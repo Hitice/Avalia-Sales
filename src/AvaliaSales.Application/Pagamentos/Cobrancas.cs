@@ -95,6 +95,20 @@ public sealed class Cobrancas(IBancoDeDados banco, IGatewayDePagamento gateway, 
         return mudou;
     }
 
+    /// <summary>
+    /// Rede de segurança do webhook perdido: reconsulta a cobrança pendente e
+    /// aplica o que o Pagar.me disser. Devolve se mudou.
+    /// </summary>
+    public async Task<bool> Conferir(Guid cobrancaId, DateTimeOffset agora, CancellationToken ct)
+    {
+        var cobranca = await banco.Cobrancas.SingleAsync(c => c.Id == cobrancaId, ct);
+        var pedido = await gateway.BuscarPorCodigo(cobranca.Codigo, ct);
+        var mudou = pedido is not null && AplicarPedido(cobranca, pedido);
+        cobranca.MarcarConferida(agora);
+        await banco.SaveChangesAsync(ct);
+        return mudou;
+    }
+
     /// <summary>Liga o pedido à cobrança e aplica a situação lida no Pagar.me.</summary>
     public static bool AplicarPedido(Cobranca cobranca, PedidoDoGateway pedido)
     {

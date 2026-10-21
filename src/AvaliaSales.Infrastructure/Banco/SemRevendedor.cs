@@ -6,4 +6,6 @@ namespace AvaliaSales.Infrastructure.Banco;
 public sealed class SemRevendedor : IRevendedorAtual
 {
     public Guid? RevendedorId => null;
+
+    public bool Operadora => false;
 }

@@ -22,6 +22,15 @@ public sealed class Contratos(IBancoDeDados banco, IAssinaturaEletronica assinat
         return await Enviar(contrato.Id, ct);
     }
 
+    /// <summary>Só grava: quem envia é o Worker, dentro do limite de requisições da D4Sign.</summary>
+    public async Task<Guid> Registrar(CriarContrato comando, CancellationToken ct)
+    {
+        var contrato = new Contrato(comando.Tipo, comando.Titulo, comando.SignatarioNome, comando.SignatarioEmail, comando.Pdf);
+        banco.Contratos.Add(contrato);
+        await banco.SaveChangesAsync(ct);
+        return contrato.Id;
+    }
+
     /// <summary>
     /// Anda pelos passos da D4Sign a partir do último gravado. Cada passo é
     /// salvo ao terminar: uma falha no terceiro não repete o upload do primeiro.

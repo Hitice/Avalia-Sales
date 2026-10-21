@@ -10,4 +10,6 @@ namespace AvaliaSales.Infrastructure.Integracoes;
 public sealed class RevendedorDaExecucao : IRevendedorAtual
 {
     public Guid? RevendedorId { get; set; }
+
+    public bool Operadora => false;
 }

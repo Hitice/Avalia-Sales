@@ -6,4 +6,5 @@ public static class Reivindicacoes
     public const string Usuario = "sub";
     public const string Revendedor = "revendedor_id";
     public const string Email = "email";
+    public const string Papel = "papel";
 }

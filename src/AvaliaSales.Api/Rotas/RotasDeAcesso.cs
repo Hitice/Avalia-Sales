@@ -1,32 +1,106 @@
 using AvaliaSales.Api.Autenticacao;
+using AvaliaSales.Application.Revendedores;
+using AvaliaSales.Infrastructure.Banco;
 using AvaliaSales.Infrastructure.Identidade;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 
 namespace AvaliaSales.Api.Rotas;
 
 public sealed record PedidoDeEntrada(string Email, string Senha);
 
+/// <summary>
+/// Entrada, renovação e saída. O token de acesso vive 15 minutos e só em
+/// memória no front; o refresh fica em cookie HttpOnly, que script nenhum lê,
+/// e é o que mantém a sessão quando a página recarrega.
+/// </summary>
 public static class RotasDeAcesso
 {
     public const string LimiteDeEntrada = "entrada";
+    public const string Cookie = "avalia_sessao";
 
-    public static void MapearAcesso(this IEndpointRouteBuilder rotas) =>
-        rotas.MapPost("/auth/entrar", Entrar).AllowAnonymous().RequireRateLimiting(LimiteDeEntrada);
+    public static void MapearAcesso(this IEndpointRouteBuilder rotas)
+    {
+        var auth = rotas.MapGroup("/auth").AllowAnonymous().RequireRateLimiting(LimiteDeEntrada);
+        auth.MapPost("/entrar", Entrar);
+        auth.MapPost("/renovar", Renovar);
+        auth.MapPost("/sair", Sair);
+        rotas.MapPost("/cadastro", Cadastrar).AllowAnonymous().RequireRateLimiting(LimiteDeEntrada);
+    }
 
     /// <summary>
-    /// E-mail inexistente e senha errada respondem igual, para a tela de login
-    /// não dizer quais e-mails têm conta. Cinco erros bloqueiam a conta por 15 minutos.
+    /// E-mail inexistente, senha errada e login desativado respondem igual,
+    /// para a tela não dizer quais e-mails têm conta. Cinco erros bloqueiam por 15 minutos.
     /// </summary>
-    private static async Task<IResult> Entrar(
-        PedidoDeEntrada pedido, UserManager<Usuario> usuarios, SignInManager<Usuario> acesso, EmissorDeToken emissor)
+    private static async Task<IResult> Entrar(PedidoDeEntrada pedido, HttpContext http, UserManager<Usuario> usuarios,
+        SignInManager<Usuario> acesso, GestorDeSessoes sessoes, EmissorDeToken emissor, BancoDeDados banco, CancellationToken ct)
     {
-        var usuario = string.IsNullOrWhiteSpace(pedido.Email) ? null : await usuarios.FindByEmailAsync(pedido.Email);
-        if (usuario is null)
+        var usuario = string.IsNullOrWhiteSpace(pedido.Email) ? null : await usuarios.FindByEmailAsync(pedido.Email.Trim());
+        if (usuario is not { Ativo: true })
         {
             return Results.Unauthorized();
         }
 
         var resultado = await acesso.CheckPasswordSignInAsync(usuario, pedido.Senha ?? string.Empty, lockoutOnFailure: true);
-        return resultado.Succeeded ? Results.Ok(emissor.Emitir(usuario)) : Results.Unauthorized();
+        if (!resultado.Succeeded)
+        {
+            return Results.Unauthorized();
+        }
+
+        GravarCookie(http, await sessoes.Abrir(usuario.Id, ct));
+        return Results.Ok(emissor.Emitir(usuario, await NomeDoRevendedor(banco, usuario, ct)));
     }
+
+    private static async Task<IResult> Renovar(HttpContext http, GestorDeSessoes sessoes, EmissorDeToken emissor, BancoDeDados banco, CancellationToken ct)
+    {
+        var renovada = await sessoes.Renovar(http.Request.Cookies[Cookie], ct);
+        if (renovada is not var (usuario, token))
+        {
+            http.Response.Cookies.Delete(Cookie, Opcoes(http));
+            return Results.Unauthorized();
+        }
+
+        GravarCookie(http, token);
+        return Results.Ok(emissor.Emitir(usuario, await NomeDoRevendedor(banco, usuario, ct)));
+    }
+
+    private static async Task<IResult> Sair(HttpContext http, GestorDeSessoes sessoes, CancellationToken ct)
+    {
+        await sessoes.Encerrar(http.Request.Cookies[Cookie], ct);
+        http.Response.Cookies.Delete(Cookie, Opcoes(http));
+        return Results.NoContent();
+    }
+
+    /// <summary>Cadastro do revendedor pela tela: cria a revenda e o dono, e já entra.</summary>
+    private static async Task<IResult> Cadastrar(NovoCadastro pedido, HttpContext http, Cadastro cadastro, UserManager<Usuario> usuarios,
+        GestorDeSessoes sessoes, EmissorDeToken emissor, BancoDeDados banco, CancellationToken ct)
+    {
+        var dono = await cadastro.Criar(pedido, ct);
+        var usuario = await usuarios.FindByIdAsync(dono.ToString()) ?? throw new InvalidOperationException("Dono recém-criado não encontrado.");
+        GravarCookie(http, await sessoes.Abrir(usuario.Id, ct));
+        return Results.Ok(emissor.Emitir(usuario, await NomeDoRevendedor(banco, usuario, ct)));
+    }
+
+    private static async Task<string?> NomeDoRevendedor(BancoDeDados banco, Usuario usuario, CancellationToken ct) =>
+        usuario.RevendedorId is { } id ? await banco.Revendedores.Where(r => r.Id == id).Select(r => r.Nome).SingleOrDefaultAsync(ct) : null;
+
+    private static void GravarCookie(HttpContext http, string token)
+    {
+        var opcoes = Opcoes(http);
+        opcoes.Expires = DateTimeOffset.UtcNow + Sessao.Validade;
+        http.Response.Cookies.Append(Cookie, token, opcoes);
+    }
+
+    /// <summary>
+    /// SameSite Strict: o cookie não vai em requisição que outro site dispare.
+    /// Secure fora de Development; em Development o front chega por HTTP local.
+    /// </summary>
+    private static CookieOptions Opcoes(HttpContext http) => new()
+    {
+        HttpOnly = true,
+        Secure = http.Request.IsHttps || !http.RequestServices.GetRequiredService<IHostEnvironment>().IsDevelopment(),
+        SameSite = SameSiteMode.Strict,
+        Path = "/",
+        IsEssential = true,
+    };
 }

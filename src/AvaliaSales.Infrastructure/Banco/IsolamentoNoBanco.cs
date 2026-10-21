@@ -10,16 +10,23 @@ public static class IsolamentoNoBanco
 {
     public const string PapelDaAplicacao = "avalia_app";
 
-    /// <summary>Liga o RLS na tabela, também para o dono, com a política por revendedor.</summary>
-    public static void IsolarPorRevendedor(this MigrationBuilder migracao, string tabela)
+    /// <summary>
+    /// Liga o RLS na tabela, também para o dono, com a política por revendedor.
+    /// Com operadoraAtende, a operadora também lê e altera, como nos pedidos de
+    /// placas que ela despacha; o resto fica fechado a ela.
+    /// </summary>
+    public static void IsolarPorRevendedor(this MigrationBuilder migracao, string tabela, bool operadoraAtende = false)
     {
         const string revendedor = $"nullif(current_setting('{RevendedorNaConexao.Variavel}', true), '')::uuid";
+        var regra = operadoraAtende
+            ? $"revendedor_id = {revendedor} OR current_setting('{RevendedorNaConexao.VariavelDaOperadora}', true) = 'sim'"
+            : $"revendedor_id = {revendedor}";
         migracao.Sql($"""
             ALTER TABLE {tabela} ENABLE ROW LEVEL SECURITY;
             ALTER TABLE {tabela} FORCE ROW LEVEL SECURITY;
             CREATE POLICY isolamento_por_revendedor ON {tabela}
-                USING (revendedor_id = {revendedor})
-                WITH CHECK (revendedor_id = {revendedor});
+                USING ({regra})
+                WITH CHECK ({regra});
             """);
     }
 

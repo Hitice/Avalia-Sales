@@ -53,18 +53,31 @@ public sealed class GatewayFalso : IGatewayDePagamento
 public sealed class AssinaturaFalsa : IAssinaturaEletronica
 {
     public Dictionary<string, int> Chamadas { get; } = [];
+
+    /// <summary>
+    /// Por documento: o Worker também cria o contrato de quem se cadastrou sem
+    /// contrato, e o banco do teste é compartilhado; a contagem geral mistura.
+    /// </summary>
+    public Dictionary<(string Documento, string Passo), int> PorDocumento { get; } = [];
+
+    public List<string> NomesNoCofre { get; } = [];
     public Dictionary<string, SituacaoDoContrato?> Situacoes { get; } = [];
     public string? FalharEm { get; set; }
 
     public Task<string> EnviarAoCofre(string nome, byte[] pdf, CancellationToken ct)
     {
         Contar(nameof(EnviarAoCofre));
+        NomesNoCofre.Add(nome);
         return Task.FromResult(Guid.NewGuid().ToString());
     }
 
     public Task CadastrarWebhook(string documento, CancellationToken ct) => Contar(nameof(CadastrarWebhook));
 
-    public Task CadastrarSignatario(string documento, string email, CancellationToken ct) => Contar(nameof(CadastrarSignatario));
+    public Task CadastrarSignatario(string documento, string email, CancellationToken ct)
+    {
+        PorDocumento[(documento, nameof(CadastrarSignatario))] = PorDocumento.GetValueOrDefault((documento, nameof(CadastrarSignatario))) + 1;
+        return Contar(nameof(CadastrarSignatario));
+    }
 
     public Task EnviarParaAssinatura(string documento, string mensagem, CancellationToken ct) => Contar(nameof(EnviarParaAssinatura));
 

@@ -1,6 +1,8 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using AvaliaSales.Application.Contratos;
+using AvaliaSales.Application.Equipe;
+using AvaliaSales.Domain.Acesso;
 using AvaliaSales.Application.Pagamentos;
 using AvaliaSales.Domain.Revendedores;
 using AvaliaSales.Infrastructure;
@@ -8,6 +10,7 @@ using AvaliaSales.Infrastructure.Banco;
 using AvaliaSales.Infrastructure.Identidade;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -24,6 +27,9 @@ public sealed class ApiDeTeste : IAsyncLifetime
 {
     public const string Senha = "senha-de-teste-123";
 
+    /// <summary>Papel de login só dos testes, membro do avalia_app.</summary>
+    public const string PapelDoTeste = "avalia_app_teste";
+
     private readonly string _banco = "avalia_sales_teste_" + Guid.NewGuid().ToString("N")[..12];
     private string _administrador = string.Empty;
     private WebApplicationFactory<Program>? _fabrica;
@@ -39,7 +45,16 @@ public sealed class ApiDeTeste : IAsyncLifetime
         ["D4Sign:SegredoHmac"] = SegredoHmacD4Sign,
         ["D4Sign:Cofre"] = "cofre-de-teste",
         ["D4Sign:UrlDoWebhook"] = "https://api.exemplo.com.br/webhooks/d4sign",
+        ["Pagarme:Simulado"] = "false",
+        ["Plataforma:UrlPublica"] = UrlPublica,
+        ["Plataforma:UrlDoPainel"] = "https://painel.exemplo.com.br",
+        ["Plataforma:EmailDaOperadora"] = "operadora@exemplo.com.br",
+        ["Resend:ChaveApi"] = "",
+        ["Google:ChaveDoServidor"] = "",
+        ["Limites:EntradasPorMinuto"] = "100000",
     };
+
+    public const string UrlPublica = "https://placas.exemplo.com.br";
 
     public const string SegredoDoWebhookPagarme = "segredo-do-webhook-com-32-caracteres-ou-mais";
     public const string SegredoHmacD4Sign = "segredo-hmac-de-teste";
@@ -47,6 +62,9 @@ public sealed class ApiDeTeste : IAsyncLifetime
     public string ConexaoDoDono { get; private set; } = string.Empty;
     public string ConexaoDaAplicacao { get; private set; } = string.Empty;
     public WebApplicationFactory<Program> Fabrica => _fabrica ?? throw new InvalidOperationException("Fixture não iniciada.");
+
+    /// <summary>O Pagar.me da API de teste: nenhuma chamada sai para a rede.</summary>
+    public GatewayFalso Gateway { get; } = new();
 
     public async ValueTask InitializeAsync()
     {
@@ -58,13 +76,20 @@ public sealed class ApiDeTeste : IAsyncLifetime
         {
             await conexao.OpenAsync();
             await Executar(conexao, $"CREATE DATABASE {_banco}");
+            // O teste entra com um papel próprio, membro do papel da aplicação: herda
+            // as mesmas permissões e o mesmo RLS, sem trocar a senha do avalia_app
+            // que a API local da máquina usa.
             await Executar(conexao, $"""
                 DO $$ BEGIN
                     IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = '{IsolamentoNoBanco.PapelDaAplicacao}') THEN
-                        CREATE ROLE {IsolamentoNoBanco.PapelDaAplicacao} LOGIN NOSUPERUSER NOBYPASSRLS;
+                        CREATE ROLE {IsolamentoNoBanco.PapelDaAplicacao} NOLOGIN NOSUPERUSER NOBYPASSRLS;
+                    END IF;
+                    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = '{PapelDoTeste}') THEN
+                        CREATE ROLE {PapelDoTeste} LOGIN NOSUPERUSER NOBYPASSRLS INHERIT;
                     END IF;
                 END $$;
-                ALTER ROLE {IsolamentoNoBanco.PapelDaAplicacao} PASSWORD '{senhaDaAplicacao}';
+                GRANT {IsolamentoNoBanco.PapelDaAplicacao} TO {PapelDoTeste};
+                ALTER ROLE {PapelDoTeste} PASSWORD '{senhaDaAplicacao}';
                 """);
         }
 
@@ -72,7 +97,7 @@ public sealed class ApiDeTeste : IAsyncLifetime
         ConexaoDoDono = baseDoBanco.ConnectionString;
         ConexaoDaAplicacao = new NpgsqlConnectionStringBuilder(ConexaoDoDono)
         {
-            Username = IsolamentoNoBanco.PapelDaAplicacao,
+            Username = PapelDoTeste,
             Password = senhaDaAplicacao,
         }.ConnectionString;
 
@@ -86,6 +111,8 @@ public sealed class ApiDeTeste : IAsyncLifetime
             {
                 web.UseSetting(chave, valor);
             }
+
+            web.ConfigureTestServices(servicos => servicos.AddSingleton<IGatewayDePagamento>(Gateway));
         });
     }
 
@@ -102,21 +129,35 @@ public sealed class ApiDeTeste : IAsyncLifetime
         await Executar(conexao, $"DROP DATABASE IF EXISTS {_banco} WITH (FORCE)");
     }
 
-    /// <summary>Revendedor com o dono já cadastrado, como sai do cadastro na Fase 1.</summary>
-    public async Task<(Guid RevendedorId, string Email)> CriarRevendedor(string nome)
+    /// <summary>Revendedor com o dono já cadastrado e, por padrão, contrato assinado.</summary>
+    public async Task<(Guid RevendedorId, string Email)> CriarRevendedor(string nome, bool contratoAssinado = true)
     {
         using var escopo = Fabrica.Services.CreateScope();
         var banco = escopo.ServiceProvider.GetRequiredService<BancoDeDados>();
         var revendedor = new Revendedor(nome);
+        if (contratoAssinado)
+        {
+            revendedor.RegistrarContratoAssinado(DateTimeOffset.UtcNow);
+        }
+
         banco.Revendedores.Add(revendedor);
         await banco.SaveChangesAsync();
 
         var email = $"dono-{Guid.NewGuid():N}@teste.com.br";
         var usuarios = escopo.ServiceProvider.GetRequiredService<UserManager<Usuario>>();
         var criado = await usuarios.CreateAsync(
-            new Usuario { RevendedorId = revendedor.Id, Nome = $"Dono {nome}", UserName = email, Email = email }, Senha);
+            new Usuario { RevendedorId = revendedor.Id, Papel = Papel.Dono, Nome = $"Dono {nome}", UserName = email, Email = email }, Senha);
         Assert.True(criado.Succeeded, string.Join("; ", criado.Errors.Select(e => e.Description)));
         return (revendedor.Id, email);
+    }
+
+    /// <summary>Login da operadora, sem revendedor.</summary>
+    public async Task<string> CriarOperadora()
+    {
+        using var escopo = Fabrica.Services.CreateScope();
+        var email = $"operadora-{Guid.NewGuid():N}@teste.com.br";
+        await escopo.ServiceProvider.GetRequiredService<IContas>().Criar("Operadora", email, Senha, Papel.Operadora, null, CancellationToken.None);
+        return email;
     }
 
     public async Task DefinirRecebedor(Guid revendedorId, string recebedor)
@@ -171,7 +212,9 @@ public sealed class ApiDeTeste : IAsyncLifetime
         await comando.ExecuteNonQueryAsync();
     }
 
-    public sealed record TokenLido(string Token, DateTimeOffset ExpiraEm);
+    public sealed record TokenLido(string Token, DateTimeOffset ExpiraEm, PerfilLido Perfil);
+
+    public sealed record PerfilLido(Guid Id, string Nome, string Email, string Papel, Guid? RevendedorId, string? Revendedor);
 }
 
 [CollectionDefinition(Nome)]

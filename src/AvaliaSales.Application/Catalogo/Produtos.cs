@@ -1,3 +1,4 @@
+using AvaliaSales.Domain;
 using AvaliaSales.Domain.Catalogo;
 using Microsoft.EntityFrameworkCore;
 
@@ -27,4 +28,34 @@ public sealed class Produtos(IBancoDeDados banco)
         await banco.SaveChangesAsync(ct);
         return new ProdutoDto(produto.Id, produto.Nome, produto.PrecoCents, produto.Ativo);
     }
+
+    public async Task<ProdutoDto> Alterar(Guid id, CadastrarProduto comando, CancellationToken ct)
+    {
+        var produto = await Achar(id, ct);
+        produto.Alterar(comando.Nome, comando.PrecoCents);
+        await banco.SaveChangesAsync(ct);
+        return new ProdutoDto(produto.Id, produto.Nome, produto.PrecoCents, produto.Ativo);
+    }
+
+    public async Task DefinirAtivo(Guid id, bool ativo, CancellationToken ct)
+    {
+        (await Achar(id, ct)).DefinirAtivo(ativo);
+        await banco.SaveChangesAsync(ct);
+    }
+
+    /// <summary>Produto com venda é desativado, e não excluído: a venda continua explicável.</summary>
+    public async Task Excluir(Guid id, CancellationToken ct)
+    {
+        var produto = await Achar(id, ct);
+        if (await banco.Vendas.AnyAsync(v => v.ProdutoId == id, ct))
+        {
+            throw new RegraDeNegocioException("Produto com venda é desativado, e não excluído.");
+        }
+
+        banco.Produtos.Remove(produto);
+        await banco.SaveChangesAsync(ct);
+    }
+
+    private async Task<Produto> Achar(Guid id, CancellationToken ct) =>
+        await banco.Produtos.SingleOrDefaultAsync(p => p.Id == id, ct) ?? throw new RegraDeNegocioException("Produto não encontrado.");
 }

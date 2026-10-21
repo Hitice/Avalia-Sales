@@ -44,6 +44,9 @@ public sealed class Cobranca : IDoRevendedor
     public DateTimeOffset? PagaEm { get; private set; }
     public DateTimeOffset CriadaEm { get; private set; } = DateTimeOffset.UtcNow;
 
+    /// <summary>Última reconsulta ao Pagar.me, para a rotina que cobre webhook perdido não repetir à toa.</summary>
+    public DateTimeOffset? ConferidaEm { get; private set; }
+
     private Cobranca()
     {
     }
@@ -74,6 +77,8 @@ public sealed class Cobranca : IDoRevendedor
         PixQrCodeUrl = pixQrCodeUrl;
         PixExpiraEm = pixExpiraEm;
     }
+
+    public void MarcarConferida(DateTimeOffset agora) => ConferidaEm = agora;
 
     /// <summary>
     /// Aplica a situação lida no Pagar.me. Só anda para a frente: um evento

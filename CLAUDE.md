@@ -1,12 +1,13 @@
 # Avalia Sales: plataforma de revenda
 
-Plataforma multi-revendedor de placas com QR Code e NFC. As decisões de
-arquitetura, regra de negócio e escopo estão no desenho técnico:
-https://claude.ai/artifact/PhVBynCUBEJXdcWYNhzury
+Plataforma multi-revendedor de placas com QR Code e NFC. Regra de negócio e
+escopo estão em `docs/PDD.md`; arquitetura em `docs/SDD.md`; cada decisão
+estrutural em `docs/adr` (MADR). O desenho técnico inicial
+(https://claude.ai/artifact/PhVBynCUBEJXdcWYNhzury) é só o registro da
+concepção: o repositório vale mais que ele.
 
-Ler o desenho com as ferramentas de docs antes de decidir arquitetura, regra ou
-escopo. Se o código e o desenho discordarem, perguntar qual vale e atualizar o
-outro.
+Ler o documento certo antes de decidir arquitetura, regra ou escopo. Se o
+código e o documento discordarem, perguntar qual vale e atualizar o outro.
 
 ## Stack
 
@@ -92,6 +93,8 @@ Avalia nem lê o banco de produção dele.
   registro de mudanças do fim dele. Refatoração sem efeito visível não precisa.
 - O que está no código vale mais que o documento: se discordarem, corrigir o
   documento no mesmo trabalho, ou perguntar se for regra de negócio.
+- Decisão estrutural nova (tecnologia, isolamento, integração, segurança)
+  ganha um ADR em `docs/adr` e uma linha no índice dele.
 - Três travas cobram isso: o hook de fim de turno do Claude Code
   (`.claude/hooks/documentacao.sh`), o passo "Documentação" do CI em pull
   request e esta seção.

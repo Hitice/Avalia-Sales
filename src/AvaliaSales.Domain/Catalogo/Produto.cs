@@ -23,6 +23,15 @@ public sealed class Produto : IDoRevendedor
         PrecoCents = ValidarPreco(precoCents);
     }
 
+    /// <summary>Muda a tabela de agora; a venda feita guardou o preço dela.</summary>
+    public void Alterar(string nome, long precoCents)
+    {
+        Nome = ValidarNome(nome);
+        PrecoCents = ValidarPreco(precoCents);
+    }
+
+    public void DefinirAtivo(bool ativo) => Ativo = ativo;
+
     private static string ValidarNome(string nome)
     {
         nome = (nome ?? string.Empty).Trim();

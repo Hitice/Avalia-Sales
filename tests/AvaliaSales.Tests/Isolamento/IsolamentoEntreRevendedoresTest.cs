@@ -101,7 +101,7 @@ public sealed class IsolamentoEntreRevendedoresTest(ApiDeTeste api)
         Assert.Contains(await comoA.Produtos.ToListAsync(Ct), p => p.Nome == "Placa do filtro");
     }
 
-    private sealed record RevendedorFixo(Guid? RevendedorId) : AvaliaSales.Application.IRevendedorAtual;
+    private sealed record RevendedorFixo(Guid? RevendedorId, bool Operadora = false) : AvaliaSales.Application.IRevendedorAtual;
 
     [Fact]
     public async Task Gravar_produto_sem_revendedor_na_requisicao_falha_antes_do_banco()
@@ -119,8 +119,10 @@ public sealed class IsolamentoEntreRevendedoresTest(ApiDeTeste api)
     [Fact]
     public async Task Toda_tabela_com_revendedor_tem_rls_ligado_e_forcado()
     {
-        // Fora de propósito: usuarios (o login lê antes de saber o revendedor) e
-        // vinculos_externos (o webhook chega sem revendedor e é ela que diz de quem é).
+        // Fora de propósito: usuarios (o login lê antes de saber o revendedor),
+        // vinculos_externos (o webhook chega sem revendedor e é ela que diz de quem é),
+        // lotes e placas_emitidas (estoque da plataforma; revendedor_id é o destino do
+        // despacho, e a leitura do QR descobre por elas de quem é a placa).
         await using var dono = new NpgsqlConnection(api.ConexaoDoDono);
         await dono.OpenAsync(Ct);
         await using var comando = new NpgsqlCommand("""
@@ -129,7 +131,7 @@ public sealed class IsolamentoEntreRevendedoresTest(ApiDeTeste api)
             join pg_namespace n on n.oid = c.relnamespace and n.nspname = 'public'
             join pg_attribute a on a.attrelid = c.oid and a.attname = 'revendedor_id' and not a.attisdropped
             where c.relkind = 'r'
-              and c.relname not in ('usuarios', 'vinculos_externos')
+              and c.relname not in ('usuarios', 'vinculos_externos', 'lotes', 'placas_emitidas')
               and not (c.relrowsecurity and c.relforcerowsecurity)
             """, dono);
         var semRls = new List<string>();

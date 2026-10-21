@@ -10,6 +10,12 @@ x-integracoes: &integracoes
   D4Sign__SegredoHmac: ${D4SIGN_SEGREDO_HMAC:?defina D4SIGN_SEGREDO_HMAC no .env}
   D4Sign__Cofre: ${D4SIGN_COFRE:?defina D4SIGN_COFRE no .env}
   D4Sign__UrlDoWebhook: ${D4SIGN_URL_DO_WEBHOOK:?defina D4SIGN_URL_DO_WEBHOOK no .env}
+  Plataforma__UrlPublica: ${PLATAFORMA_URL_PUBLICA:-http://127.0.0.1:8080}
+  Plataforma__UrlDoPainel: ${PLATAFORMA_URL_DO_PAINEL:-http://127.0.0.1:5173}
+  Plataforma__EmailDaOperadora: ${PLATAFORMA_EMAIL_DA_OPERADORA:?defina PLATAFORMA_EMAIL_DA_OPERADORA no .env}
+  Resend__ChaveApi: ${RESEND_CHAVE_API:-}
+  Resend__Remetente: ${RESEND_REMETENTE:-}
+  Google__ChaveDoServidor: ${GOOGLE_CHAVE_DO_SERVIDOR:-}
   ConnectionStrings__Banco: Host=postgres;Database=avalia_sales;Username=avalia_app;Password=${PG_SENHA_APLICACAO}
 
 services:

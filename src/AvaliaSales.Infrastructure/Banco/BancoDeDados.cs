@@ -1,11 +1,16 @@
 using System.Linq.Expressions;
 using AvaliaSales.Application;
 using AvaliaSales.Domain;
+using AvaliaSales.Domain.Avisos;
 using AvaliaSales.Domain.Catalogo;
 using AvaliaSales.Domain.Contratos;
+using AvaliaSales.Domain.Equipe;
 using AvaliaSales.Domain.Integracoes;
 using AvaliaSales.Domain.Pagamentos;
+using AvaliaSales.Domain.Pedidos;
+using AvaliaSales.Domain.Placas;
 using AvaliaSales.Domain.Revendedores;
+using AvaliaSales.Domain.Vendas;
 using AvaliaSales.Infrastructure.Identidade;
 using AvaliaSales.Infrastructure.Integracoes;
 using Microsoft.AspNetCore.Identity;
@@ -23,9 +28,24 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
     public DbSet<Contrato> Contratos => Set<Contrato>();
     public DbSet<VinculoExterno> Vinculos => Set<VinculoExterno>();
     public DbSet<EventoExterno> EventosExternos => Set<EventoExterno>();
+    public DbSet<Pacote> Pacotes => Set<Pacote>();
+    public DbSet<PedidoDePlacas> Pedidos => Set<PedidoDePlacas>();
+    public DbSet<Lote> Lotes => Set<Lote>();
+    public DbSet<PlacaEmitida> PlacasEmitidas => Set<PlacaEmitida>();
+    public DbSet<CodigoReservado> CodigosReservados => Set<CodigoReservado>();
+    public DbSet<Placa> Placas => Set<Placa>();
+    public DbSet<LeituraDoDia> Leituras => Set<LeituraDoDia>();
+    public DbSet<Vendedor> Vendedores => Set<Vendedor>();
+    public DbSet<Cliente> Clientes => Set<Cliente>();
+    public DbSet<Venda> Vendas => Set<Venda>();
+    public DbSet<EmailNaFila> Emails => Set<EmailNaFila>();
+    public DbSet<Sessao> Sessoes => Set<Sessao>();
 
     /// <summary>Lido pelo filtro global a cada consulta, e não na montagem do modelo.</summary>
     public Guid? RevendedorAtual => revendedor.RevendedorId;
+
+    /// <summary>Lido pelo filtro das tabelas que a operadora atende.</summary>
+    public bool OperadoraAtual => revendedor.Operadora;
 
     protected override void OnModelCreating(ModelBuilder modelo)
     {
@@ -35,7 +55,10 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
         {
             u.ToTable("usuarios");
             u.Property(x => x.Nome).HasMaxLength(Usuario.NomeMaximo).IsRequired();
+            u.Property(x => x.Papel).HasConversion<string>().HasMaxLength(12);
             u.HasIndex(x => x.NormalizedEmail).IsUnique();
+            // Operadora não pertence a revendedor; dono e vendedor pertencem a um só.
+            u.ToTable(t => t.HasCheckConstraint("ck_usuarios_papel_e_revendedor", "(papel = 'Operadora') = (revendedor_id is null)"));
             u.HasOne<Revendedor>().WithMany().HasForeignKey(x => x.RevendedorId).OnDelete(DeleteBehavior.Restrict);
         });
         modelo.Entity<IdentityRole<Guid>>().ToTable("papeis");
@@ -50,6 +73,8 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
             r.ToTable("revendedores");
             r.Property(x => x.Nome).HasMaxLength(Revendedor.NomeMaximo).IsRequired();
             r.Property(x => x.RecebedorPagarme).HasMaxLength(64);
+            r.Property(x => x.Cnpj).HasMaxLength(14);
+            r.HasIndex(x => x.Cnpj).IsUnique();
         });
 
         modelo.Entity<Produto>(p =>
@@ -73,6 +98,7 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
             c.HasOne<Revendedor>().WithMany().HasForeignKey(x => x.RevendedorId).OnDelete(DeleteBehavior.Restrict);
             c.HasIndex(x => new { x.RevendedorId, x.Situacao });
             c.HasIndex(x => x.PedidoNoGateway).IsUnique();
+            c.HasIndex(x => new { x.Origem, x.OrigemId });
         });
 
         modelo.Entity<Contrato>(c =>
@@ -116,7 +142,142 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
             e.HasIndex(x => x.RecebidoEm).HasFilter("processado_em is null");
         });
 
+        ConfigurarFase1(modelo);
         FiltrarPorRevendedor(modelo);
+    }
+
+    private static void ConfigurarFase1(ModelBuilder modelo)
+    {
+        // Tabelas da plataforma, sem RLS: o estoque da Avalia antes do despacho
+        // e o código de cada placa, que a leitura do QR consulta sem login.
+        modelo.Entity<Pacote>(p =>
+        {
+            p.ToTable("pacotes");
+            p.HasIndex(x => x.Quantidade).IsUnique();
+            p.Ignore(x => x.CustoPorPlacaCents);
+        });
+
+        modelo.Entity<Lote>(l =>
+        {
+            l.ToTable("lotes");
+            l.HasIndex(x => x.Numero).IsUnique();
+            l.HasIndex(x => x.PedidoId).IsUnique();
+            l.Ignore(x => x.Rotulo);
+            l.HasOne<Revendedor>().WithMany().HasForeignKey(x => x.RevendedorId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelo.Entity<PlacaEmitida>(p =>
+        {
+            p.ToTable("placas_emitidas");
+            p.HasKey(x => x.Codigo);
+            p.Property(x => x.Codigo).HasMaxLength(CodigoDaPlaca.Tamanho).IsFixedLength();
+            p.HasIndex(x => x.Sequencia).IsUnique();
+            p.HasIndex(x => x.LoteId);
+            p.HasOne<Lote>().WithMany().HasForeignKey(x => x.LoteId).OnDelete(DeleteBehavior.Restrict);
+            p.HasOne<Revendedor>().WithMany().HasForeignKey(x => x.RevendedorId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelo.Entity<CodigoReservado>(c =>
+        {
+            c.ToTable("codigos_reservados");
+            c.HasKey(x => x.Codigo);
+            c.Property(x => x.Codigo).HasMaxLength(CodigoDaPlaca.Tamanho).IsFixedLength();
+            c.Property(x => x.Origem).HasMaxLength(40);
+        });
+
+        modelo.Entity<Sessao>(s =>
+        {
+            s.ToTable("sessoes");
+            s.Property(x => x.HashDoToken).HasMaxLength(64).IsFixedLength();
+            s.HasIndex(x => x.HashDoToken).IsUnique();
+            s.HasIndex(x => x.Familia);
+            s.HasOne<Usuario>().WithMany().HasForeignKey(x => x.UsuarioId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelo.Entity<EmailNaFila>(e =>
+        {
+            e.ToTable("emails");
+            e.Property(x => x.Chave).HasMaxLength(200);
+            e.Property(x => x.Para).HasMaxLength(254);
+            e.Property(x => x.Assunto).HasMaxLength(200);
+            e.Property(x => x.IdNoResend).HasMaxLength(64);
+            e.Property(x => x.UltimoErro).HasMaxLength(500);
+            e.HasIndex(x => x.Chave).IsUnique();
+            e.HasIndex(x => x.CriadoEm).HasFilter("enviado_em is null");
+        });
+
+        // Tabelas do revendedor, com RLS.
+        modelo.Entity<PedidoDePlacas>(p =>
+        {
+            p.ToTable("pedidos_placas");
+            p.Property(x => x.Situacao).HasConversion<string>().HasMaxLength(20);
+            p.Ignore(x => x.CustoPorPlacaCents);
+            p.HasOne<Revendedor>().WithMany().HasForeignKey(x => x.RevendedorId).OnDelete(DeleteBehavior.Restrict);
+            p.HasIndex(x => new { x.RevendedorId, x.Situacao });
+        });
+
+        modelo.Entity<Placa>(p =>
+        {
+            p.ToTable("placas");
+            p.Property(x => x.Codigo).HasMaxLength(CodigoDaPlaca.Tamanho).IsFixedLength();
+            p.Property(x => x.Situacao).HasConversion<string>().HasMaxLength(12);
+            p.Property(x => x.Destino).HasMaxLength(Destino.TamanhoMaximo);
+            p.Ignore(x => x.FimDaCarencia);
+            p.HasIndex(x => x.Codigo).IsUnique();
+            p.HasIndex(x => new { x.RevendedorId, x.Situacao, x.Sequencia });
+            p.HasIndex(x => new { x.RevendedorId, x.ConsignadaA });
+            p.HasOne<Revendedor>().WithMany().HasForeignKey(x => x.RevendedorId).OnDelete(DeleteBehavior.Restrict);
+            p.HasOne<PlacaEmitida>().WithOne().HasForeignKey<Placa>(x => x.Codigo).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelo.Entity<LeituraDoDia>(l =>
+        {
+            l.ToTable("leituras");
+            l.HasKey(x => new { x.PlacaId, x.Dia });
+            l.HasOne<Placa>().WithMany().HasForeignKey(x => x.PlacaId).OnDelete(DeleteBehavior.Restrict);
+            l.HasOne<Revendedor>().WithMany().HasForeignKey(x => x.RevendedorId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelo.Entity<Vendedor>(v =>
+        {
+            v.ToTable("vendedores");
+            v.Property(x => x.Id).ValueGeneratedNever();
+            v.Property(x => x.Nome).HasMaxLength(Vendedor.NomeMaximo).IsRequired();
+            v.Property(x => x.Email).HasMaxLength(254).IsRequired();
+            v.Property(x => x.Telefone).HasMaxLength(13);
+            v.Property(x => x.ChavePix).HasMaxLength(140);
+            v.HasOne<Revendedor>().WithMany().HasForeignKey(x => x.RevendedorId).OnDelete(DeleteBehavior.Restrict);
+            v.HasOne<Usuario>().WithOne().HasForeignKey<Vendedor>(x => x.Id).OnDelete(DeleteBehavior.Restrict);
+            v.HasIndex(x => new { x.RevendedorId, x.Nome });
+        });
+
+        modelo.Entity<Cliente>(c =>
+        {
+            c.ToTable("clientes");
+            c.Property(x => x.Nome).HasMaxLength(Cliente.NomeMaximo).IsRequired();
+            c.Property(x => x.Responsavel).HasMaxLength(Cliente.NomeMaximo).IsRequired();
+            c.Property(x => x.Telefone).HasMaxLength(13).IsRequired();
+            c.Property(x => x.Documento).HasMaxLength(14);
+            c.Property(x => x.LugarNoGoogle).HasMaxLength(300);
+            c.HasOne<Revendedor>().WithMany().HasForeignKey(x => x.RevendedorId).OnDelete(DeleteBehavior.Restrict);
+            c.HasIndex(x => new { x.RevendedorId, x.Documento }).IsUnique().HasFilter("documento is not null");
+            c.HasIndex(x => new { x.RevendedorId, x.Telefone });
+        });
+
+        modelo.Entity<Venda>(v =>
+        {
+            v.ToTable("vendas");
+            v.Property(x => x.Meio).HasConversion<string>().HasMaxLength(10);
+            v.Property(x => x.Situacao).HasConversion<string>().HasMaxLength(12);
+            v.Ignore(x => x.ComissaoCents);
+            v.HasOne<Revendedor>().WithMany().HasForeignKey(x => x.RevendedorId).OnDelete(DeleteBehavior.Restrict);
+            v.HasOne<Placa>().WithMany().HasForeignKey(x => x.PlacaId).OnDelete(DeleteBehavior.Restrict);
+            v.HasOne<Cliente>().WithMany().HasForeignKey(x => x.ClienteId).OnDelete(DeleteBehavior.Restrict);
+            v.HasOne<Produto>().WithMany().HasForeignKey(x => x.ProdutoId).OnDelete(DeleteBehavior.Restrict);
+            v.HasOne<Usuario>().WithMany().HasForeignKey(x => x.VendedorId).OnDelete(DeleteBehavior.Restrict);
+            v.HasIndex(x => x.PlacaId).IsUnique().HasFilter("situacao = 'Registrada'");
+            v.HasIndex(x => new { x.RevendedorId, x.VendedorId, x.VendidaEm });
+        });
     }
 
     /// <summary>
@@ -132,8 +293,45 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
             var entidade = Expression.Parameter(tipo.ClrType, "e");
             var doRevendedor = Expression.Convert(
                 Expression.Property(entidade, nameof(IDoRevendedor.RevendedorId)), typeof(Guid?));
-            modelo.Entity(tipo.ClrType).HasQueryFilter(Expression.Lambda(Expression.Equal(doRevendedor, atual), entidade));
+            Expression filtro = Expression.Equal(doRevendedor, atual);
+            if (typeof(IAtendidoPelaOperadora).IsAssignableFrom(tipo.ClrType))
+            {
+                filtro = Expression.OrElse(filtro, Expression.Property(Expression.Constant(this), nameof(OperadoraAtual)));
+            }
+
+            modelo.Entity(tipo.ClrType).HasQueryFilter(Expression.Lambda(filtro, entidade));
         }
+    }
+
+    /// <summary>Número fixo da trava de aplicação do Postgres que serializa a geração de lotes.</summary>
+    private const long TravaDaGeracaoDeLotes = 7_413_001;
+
+    public Task TravarGeracaoDeLotes(CancellationToken ct) =>
+        Database.ExecuteSqlAsync($"select pg_advisory_xact_lock({TravaDaGeracaoDeLotes})", ct);
+
+    public Task<Lote?> TravarLote(int numero, CancellationToken ct) =>
+        Lotes.FromSql($"select * from lotes where numero = {numero} for update").SingleOrDefaultAsync(ct);
+
+    public Task<Placa?> TravarPlaca(string codigo, CancellationToken ct) =>
+        Placas.FromSql($"select * from placas where codigo = {codigo} for update").SingleOrDefaultAsync(ct);
+
+    public Task<List<Placa>> TravarPlacas(IReadOnlyCollection<string> codigos, CancellationToken ct) =>
+        Placas.FromSql($"select * from placas where codigo = any({codigos.ToArray()}) for update").ToListAsync(ct);
+
+    public Task<List<Placa>> TravarPlacasLivres(int quantidade, CancellationToken ct) =>
+        Placas.FromSql($"""
+            select * from placas where situacao = 'EmEstoque' and consignada_a is null
+            order by sequencia limit {quantidade} for update skip locked
+            """).ToListAsync(ct);
+
+    public async Task SomarLeitura(Guid placaId, Guid revendedorId, DateOnly dia, DateTimeOffset agora, CancellationToken ct)
+    {
+        await Database.ExecuteSqlAsync($"""
+            insert into leituras (placa_id, dia, revendedor_id, total) values ({placaId}, {dia}, {revendedorId}, 1)
+            on conflict (placa_id, dia) do update set total = leituras.total + 1
+            """, ct);
+        await Database.ExecuteSqlAsync(
+            $"update placas set total_leituras = total_leituras + 1, ultima_leitura_em = {agora} where id = {placaId}", ct);
     }
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)

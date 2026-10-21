@@ -8,6 +8,7 @@ e no RLS do banco, cobrança no Pagar.me e assinatura na D4Sign.
 
 - [docs/PDD.md](docs/PDD.md) - produto: papéis, jornada, regras de negócio, fases.
 - [docs/SDD.md](docs/SDD.md) - software: arquitetura, isolamento, dados, integrações, infra.
+- [docs/adr](docs/adr/README.md) - registros de decisão, no formato MADR.
 
 ## Rodar os testes
 
@@ -33,9 +34,12 @@ Com o Postgres local no ar e um banco `avalia_sales_dev` criado:
 export ASPNETCORE_ENVIRONMENT=Development DOTNET_ENVIRONMENT=Development
 export ConnectionStrings__Banco="Host=localhost;Database=avalia_sales_dev;Username=avalia_app;Password=<senha do papel>"
 export Jwt__Chave="$(openssl rand -base64 48)"
-# Pagar.me e D4Sign: chaves de sandbox, ou valores falsos para só navegar
+# Pagar.me e D4Sign: chaves de sandbox, ou valores falsos para só navegar.
+# Em Development o Pagar.me roda simulado (appsettings.Development.json): o Pix fica pago 20 s depois.
 export Pagarme__ChaveSecreta=sk_test_... Pagarme__RecebedorAvalia=rp_... Pagarme__SegredoDoWebhook=<32+ caracteres>
 export D4Sign__TokenApi=... D4Sign__SegredoHmac=... D4Sign__Cofre=... D4Sign__UrlDoWebhook=https://...
+# Opcionais: sem eles o e-mail espera na fila e a busca no Google pede o link colado
+export Resend__ChaveApi=re_... Resend__Remetente="Avalia Sales <avisos@seu-dominio>" Google__ChaveDoServidor=...
 
 ConnectionStrings__Dono="Host=localhost;Database=avalia_sales_dev;Username=$USER" \
   dotnet run --project src/AvaliaSales.Api --no-launch-profile -- --migrar
@@ -50,20 +54,25 @@ Front, em outro terminal:
 cd web && npm ci && npm run dev   # http://localhost:5173, /api vai para a API local
 ```
 
-Páginas - `http://127.0.0.1:5199/rotas` (todas as rotas, com o campo do
-token) e `/health`. Logins de demonstração - `dono@revenda-a.dev` e
-`dono@revenda-b.dev`, senha `demonstracao-123`.
+Páginas - `http://127.0.0.1:5199/swagger` (Swagger UI com todas as rotas e o
+botão Authorize para o token), `/health` e a leitura de placa em `/q/{codigo}`.
 
-Revendedor novo, pela linha de comando, até a tela de cadastro existir:
+A demonstração cria, com a senha `demonstracao-123` - a operadora
+`operadora@avalia.dev`; a revenda A com `dono@revenda-a.dev`, `bruna@revenda-a.dev`
+e `carlos@revenda-a.dev`, placas ativas, vendas pagas e pendentes, leituras e um
+lote (LT-0002) esperando ativação; a revenda B com `dono@revenda-b.dev` e um
+pedido aguardando pagamento. Preços, contratos, recebedores e pagamentos são
+simulados.
+
+Revendedor e operadora pela linha de comando (o revendedor também se cadastra
+pela tela):
 
 ```bash
 dotnet run --project src/AvaliaSales.Api --no-launch-profile -- \
   --novo-revendedor --nome="Avalia" --email=dono@exemplo.com.br --senha=<10 caracteres ou mais>
+dotnet run --project src/AvaliaSales.Api --no-launch-profile -- \
+  --nova-operadora --nome="Operação Avalia" --email=operadora@exemplo.com.br --senha=<10 caracteres ou mais>
 ```
-
-Os testes trocam a senha do papel `avalia_app` no Postgres local. Depois de
-rodar `dotnet test`, devolva a senha da API local com
-`psql -d postgres -c "alter role avalia_app password '<senha do papel>'"`.
 
 ## Subir com Docker Compose
 
@@ -83,5 +92,5 @@ O Worker sobe junto e processa os webhooks recebidos.
 | `AvaliaSales.Application` | Casos de uso e as interfaces de que eles precisam |
 | `AvaliaSales.Infrastructure` | EF Core, Postgres, Identity, migrations |
 | `AvaliaSales.Api` | Rotas HTTP, autenticação JWT, webhooks, saúde |
-| `AvaliaSales.Worker` | Caixa de entrada dos webhooks e retomadas |
+| `AvaliaSales.Worker` | Caixa de entrada dos webhooks, retomadas, conferência de cobrança e fila de e-mails |
 | `web` | Front em React 19: entrada e catálogo do revendedor |

@@ -25,4 +25,17 @@ public sealed class OpcoesPagarme
     [Required, MaxLength(13)] public string DescricaoNaFatura { get; init; } = "AVALIA SALES";
 
     [Range(5, 1440)] public int ValidadeDoPixEmMinutos { get; init; } = 30;
+
+    /// <summary>
+    /// Intervalo da reconsulta de cobrança pendente, a rede de segurança do
+    /// webhook perdido. Em produção, minutos; no simulador, segundos.
+    /// </summary>
+    [Range(5, 3600)] public int ConferenciaEmSegundos { get; init; } = 300;
+
+    /// <summary>
+    /// Só em Development: troca o Pagar.me por um simulador sem rede, que
+    /// aprova o Pix de até R$ 500,00 depois de alguns segundos, como o
+    /// simulador de Pix do sandbox. A API recusa subir com ele fora de Development.
+    /// </summary>
+    public bool Simulado { get; init; }
 }

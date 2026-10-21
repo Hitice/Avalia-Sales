@@ -5,27 +5,36 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace AvaliaSales.Api.Autenticacao;
 
-public sealed record TokenEmitido(string Token, DateTimeOffset ExpiraEm);
+public sealed record Perfil(Guid Id, string Nome, string Email, string Papel, Guid? RevendedorId, string? Revendedor);
+
+public sealed record TokenEmitido(string Token, DateTimeOffset ExpiraEm, Perfil Perfil);
 
 public sealed class EmissorDeToken(IOptions<OpcoesJwt> opcoes, TimeProvider relogio)
 {
-    public TokenEmitido Emitir(Usuario usuario)
+    public TokenEmitido Emitir(Usuario usuario, string? revendedor)
     {
         var jwt = opcoes.Value;
         var expiraEm = relogio.GetUtcNow().AddMinutes(jwt.MinutosDeValidade);
+        var claims = new Dictionary<string, object>
+        {
+            [Reivindicacoes.Usuario] = usuario.Id.ToString(),
+            [Reivindicacoes.Email] = usuario.Email ?? string.Empty,
+            [Reivindicacoes.Papel] = usuario.Papel.ToString(),
+        };
+        if (usuario.RevendedorId is { } revendedorId)
+        {
+            claims[Reivindicacoes.Revendedor] = revendedorId.ToString();
+        }
+
         var token = new JsonWebTokenHandler().CreateToken(new SecurityTokenDescriptor
         {
             Issuer = jwt.Emissor,
             Audience = jwt.Publico,
             Expires = expiraEm.UtcDateTime,
-            Claims = new Dictionary<string, object>
-            {
-                [Reivindicacoes.Usuario] = usuario.Id.ToString(),
-                [Reivindicacoes.Revendedor] = usuario.RevendedorId.ToString(),
-                [Reivindicacoes.Email] = usuario.Email ?? string.Empty,
-            },
+            Claims = claims,
             SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(jwt.BytesDaChave), SecurityAlgorithms.HmacSha256),
         });
-        return new TokenEmitido(token, expiraEm);
+        return new TokenEmitido(token, expiraEm,
+            new Perfil(usuario.Id, usuario.Nome, usuario.Email ?? string.Empty, usuario.Papel.ToString(), usuario.RevendedorId, revendedor));
     }
 }

@@ -1,0 +1,29 @@
+using AvaliaSales.Application.Avisos;
+using AvaliaSales.Application.Catalogo;
+using AvaliaSales.Application.Pedidos;
+using AvaliaSales.Application.Placas;
+using AvaliaSales.Application.Revendedores;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace AvaliaSales.Application;
+
+public static class InjecaoDeDependencias
+{
+    /// <summary>Os casos de uso, um por assunto, todos com o tempo de vida da requisição.</summary>
+    public static IServiceCollection AdicionarCasosDeUso(this IServiceCollection servicos)
+    {
+        servicos.AddScoped<FilaDeEmails>();
+        servicos.AddScoped<Produtos>();
+        servicos.AddScoped<Pacotes>();
+        servicos.AddScoped<PedidosDePlacas>();
+        servicos.AddScoped<Lotes>();
+        servicos.AddScoped<Estoque>();
+        servicos.AddScoped<FichaDaPlaca>();
+        servicos.AddScoped<Leituras>();
+        servicos.AddScoped<Equipe.Equipe>();
+        servicos.AddScoped<Vendas.Vendas>();
+        servicos.AddScoped<Cadastro>();
+        servicos.AddScoped<Revendedores.Revendedores>();
+        return servicos;
+    }
+}

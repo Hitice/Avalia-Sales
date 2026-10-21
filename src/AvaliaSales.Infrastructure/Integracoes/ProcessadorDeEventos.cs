@@ -102,6 +102,13 @@ public sealed partial class ProcessadorDeEventos(
         {
             var contrato = await doRevendedor.Contratos.SingleOrDefaultAsync(c => c.DocumentoNaAssinatura == chave, ct);
             mudou = contrato is not null && contrato.Atualizar(situacao.Value, relogio.GetUtcNow());
+
+            // O contrato de revenda assinado libera o primeiro pedido de placas.
+            if (mudou && contrato!.Tipo == TipoDeContrato.ContratoDoRevendedor && contrato.Situacao == SituacaoDoContrato.Assinado)
+            {
+                var revendedor = await doRevendedor.Revendedores.SingleAsync(r => r.Id == vinculo.RevendedorId, ct);
+                revendedor.RegistrarContratoAssinado(contrato.AssinadoEm!.Value);
+            }
         }
 
         await doRevendedor.SaveChangesAsync(ct);

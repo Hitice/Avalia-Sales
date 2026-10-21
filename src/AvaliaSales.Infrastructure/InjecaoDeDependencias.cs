@@ -1,10 +1,18 @@
 using AvaliaSales.Application;
 using AvaliaSales.Application.Contratos;
 using AvaliaSales.Application.Pagamentos;
+using AvaliaSales.Application.Avisos;
+using AvaliaSales.Application.Equipe;
+using AvaliaSales.Application.Lugares;
+using AvaliaSales.Application.Revendedores;
 using AvaliaSales.Infrastructure.Banco;
+using AvaliaSales.Infrastructure.Identidade;
+using AvaliaSales.Infrastructure.Impressao;
 using AvaliaSales.Infrastructure.Integracoes;
 using AvaliaSales.Infrastructure.Integracoes.D4Sign;
+using AvaliaSales.Infrastructure.Integracoes.Google;
 using AvaliaSales.Infrastructure.Integracoes.Pagarme;
+using AvaliaSales.Infrastructure.Integracoes.Resend;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -32,6 +40,26 @@ public static class InjecaoDeDependencias
         });
         servicos.AddScoped<IBancoDeDados>(sp => sp.GetRequiredService<BancoDeDados>());
         servicos.AddScoped<CaixaDeEntrada>();
+        servicos.AddOptions<OpcoesDaPlataforma>().BindConfiguration(OpcoesDaPlataforma.Secao).ValidateDataAnnotations().ValidateOnStart();
+        servicos.AddSingleton<IModeloDeContrato, ModeloDeContrato>();
+        servicos.AdicionarCasosDeUso();
+
+        servicos
+            .AddIdentityCore<Usuario>(o =>
+            {
+                o.User.RequireUniqueEmail = true;
+                // Senha forte por tamanho, sem regra de tipo de caractere (NIST SP 800-63B).
+                o.Password.RequiredLength = 10;
+                o.Password.RequireDigit = false;
+                o.Password.RequireLowercase = false;
+                o.Password.RequireUppercase = false;
+                o.Password.RequireNonAlphanumeric = false;
+                o.Lockout.MaxFailedAccessAttempts = 5;
+                o.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+            })
+            .AddEntityFrameworkStores<BancoDeDados>();
+        servicos.AddScoped<IContas, Contas>();
+        servicos.AddScoped<GestorDeSessoes>();
         return servicos;
     }
 
@@ -70,8 +98,48 @@ public static class InjecaoDeDependencias
             cliente.AddStandardResilienceHandler(o => o.Retry.DisableForUnsafeHttpMethods());
         }
 
+        // Resend e Google são opcionais: sem chave, o e-mail espera na fila e a busca de lugar responde que não está ligada.
+        servicos.AddOptions<OpcoesResend>().BindConfiguration(OpcoesResend.Secao);
+        servicos.AddOptions<OpcoesGoogle>().BindConfiguration(OpcoesGoogle.Secao);
+        var resend = servicos.AddHttpClient<IEnvioDeEmail, ClienteResend>((sp, http) =>
+        {
+            http.BaseAddress = new Uri(sp.GetRequiredService<IOptions<OpcoesResend>>().Value.UrlBase);
+            http.DefaultRequestHeaders.UserAgent.ParseAdd("AvaliaSales/1.0");
+        });
+        var places = servicos.AddHttpClient<ILugares, ClientePlaces>((sp, http) =>
+        {
+            http.BaseAddress = new Uri(sp.GetRequiredService<IOptions<OpcoesGoogle>>().Value.UrlDoPlaces);
+            http.DefaultRequestHeaders.UserAgent.ParseAdd("AvaliaSales/1.0");
+        });
+        foreach (var cliente in new[] { resend, places })
+        {
+            if (manipuladorDeTeste is not null)
+            {
+                cliente.ConfigurePrimaryHttpMessageHandler(manipuladorDeTeste);
+            }
+
+            cliente.AddStandardResilienceHandler(o => o.Retry.DisableForUnsafeHttpMethods());
+        }
+
         servicos.AddScoped<Cobrancas>();
         servicos.AddScoped<Contratos>();
+        return servicos;
+    }
+
+    /// <summary>Troca o Pagar.me pelo simulador quando Pagarme:Simulado está ligado (só Development).</summary>
+    public static IServiceCollection UsarPagarmeSimuladoSeLigado(this IServiceCollection servicos, IConfiguration configuracao, bool desenvolvimento)
+    {
+        if (!configuracao.GetValue<bool>($"{OpcoesPagarme.Secao}:{nameof(OpcoesPagarme.Simulado)}"))
+        {
+            return servicos;
+        }
+
+        if (!desenvolvimento)
+        {
+            throw new InvalidOperationException("Pagarme:Simulado só pode ser ligado em Development.");
+        }
+
+        servicos.AddSingleton<IGatewayDePagamento, GatewaySimulado>();
         return servicos;
     }
 
@@ -80,8 +148,10 @@ public static class InjecaoDeDependencias
     {
         servicos.AddScoped<RevendedorDaExecucao>();
         servicos.AddScoped<IRevendedorAtual>(sp => sp.GetRequiredService<RevendedorDaExecucao>());
+        servicos.AddSingleton<IUsuarioAtual, SemUsuario>();
         servicos.AddScoped<ProcessadorDeEventos>();
         servicos.AddScoped<Retomadas>();
+        servicos.AddScoped<EnvioDeEmails>();
         return servicos;
     }
 }

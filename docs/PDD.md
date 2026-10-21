@@ -4,8 +4,9 @@ O que a plataforma faz, para quem, e as regras de negócio. O como fica no
 [SDD](SDD.md). Os dois são atualizados no mesmo commit da mudança que os
 afeta, com uma linha no registro de mudanças do fim.
 
-Situação em 21/10/2026 - Fase 0 pronta e integrações com Pagar.me e D4Sign no
-código; telas ainda não existem.
+Situação em 21/10/2026 - Fase 0 pronta, integrações com Pagar.me e D4Sign no
+código, e a Fase 1 com API, regras e testes prontos; as telas da Fase 1 estão
+em construção (entrada e catálogo já existem).
 
 ## 1. Visão
 
@@ -47,12 +48,18 @@ revendedor é a Avalia.
 
 ## 4. Jornada do revendedor
 
-1. Cadastro - empresa, CNPJ, conta para receber no Pagar.me.
-2. Contrato - assinado na D4Sign. Sem contrato assinado, não há pedido.
-3. Pedido - pacote de placas, pago antes do envio.
-4. Envio - a Avalia recebe o pedido por e-mail e na fila, e despacha o lote.
-5. Ativação - o revendedor digita o número do lote; as placas entram no estoque
-   dele.
+1. Cadastro - pela tela, com empresa, CNPJ e o login do dono. A conta para
+   receber no Pagar.me é informada pela operadora até o cadastro de recebedor
+   pela API entrar.
+2. Contrato - criado sozinho depois do cadastro e enviado pela D4Sign ao e-mail
+   do dono. Sem contrato assinado, não há pedido. Contrato assinado em papel é
+   registrado pela operadora.
+3. Pedido - pacote de placas, pago antes do envio. Até o checkout do Pagar.me
+   entrar (Fase 2), a operadora registra o pagamento recebido.
+4. Envio - a Avalia recebe o pedido por e-mail e na fila, e despacha um lote da
+   mesma quantidade; o dono recebe o e-mail com o número do lote.
+5. Ativação - o revendedor digita o número do lote (LT-0001, lt 1 ou 1); as
+   placas entram no estoque dele com o custo do pacote.
 6. Equipe - cadastro dos vendedores e da comissão de cada um.
 7. Leitura - o vendedor lê a placa por NFC ou QR, e o cadastro da venda abre.
 8. Venda - cliente, negócio, destino do QR e cobrança por Pix ou cartão.
@@ -72,7 +79,7 @@ Todas no mesmo app, liberadas pelo papel do usuário.
 | Catálogo | Revendedor | Computador e celular | Produtos e preço da tabela do revendedor |
 | Marca | Revendedor | Computador | Logo, cores e nome exibido, com prévia |
 | Painel | Revendedor | Computador | Vendas e pagamentos ao vivo, saldo de comissão, registro de repasse |
-| Mapa | Revendedor | Computador | Lugares vendidos |
+| Mapa | Revendedor | Computador | Lugares vendidos, no Google Maps |
 | Nova venda | Vendedor | Celular | NFC ou QR, negócio, destino, cobrança |
 | Ficha da placa | Vendedor e revendedor | Celular | Destino, vencimento, leituras, troca, renovação |
 | Pedidos | Operadora | Computador | Pedidos pagos, lote despachado, envio |
@@ -86,10 +93,19 @@ Todas no mesmo app, liberadas pelo papel do usuário.
   acima vai até 5 vezes. Dar de graça é a Cortesia.
 - Venda antes do pagamento - a venda nasce com a cobrança pendente; o cliente
   pode pagar depois, e a comissão só conta quando ele paga.
-- Destino do QR - avaliação no Google (lugar do Places ou link do Perfil da
-  Empresa), link livre ou página de links.
-- Só vende placa de lote ativado pelo próprio revendedor.
+- Destino do QR - avaliação no Google (lugar buscado no Places ou link colado
+  do Perfil da Empresa; o link colado vence a busca) ou link livre do cliente.
+  Só http e https, com domínio, até 1.000 caracteres, e nunca o endereço de
+  outra placa.
+- Só vende placa de lote ativado pelo próprio revendedor. Código de outro
+  revendedor responde como inexistente: o código está impresso e qualquer um lê.
 - Placa consignada a um vendedor e vendida por outro vale para quem vendeu.
+- Cliente - empresa, responsável e telefone obrigatórios; CNPJ ou CPF e e-mail
+  opcionais na venda, mas sem eles a cobrança não sai. Um cliente por documento
+  ou telefone no revendedor: o que já existe é achado e só ganha o que faltava.
+- A venda é gravada antes da cobrança. Pagar.me fora do ar não segura o
+  vendedor: a venda fica registrada e a cobrança é gerada de novo pela lista.
+- Venda do dono não tem comissão: a parte dele é o que sobra.
 
 ### Cobrança
 
@@ -113,9 +129,35 @@ Todas no mesmo app, liberadas pelo papel do usuário.
 
 ### Lote e placa
 
+- Código - seis caracteres do alfabeto Crockford base32 (sem I, L, O e U),
+  sorteados, únicos na plataforma inteira e nunca reaproveitados. Na leitura,
+  I e L viram 1 e O vira 0; minúscula, espaço e hífen são aceitos.
+- Código reservado - os códigos que já existem no Sales atual da Avalia entram
+  como reservados e o sorteio não os usa.
+- Lote - numerado em sequência (LT-0001), de 1 a 1.000 placas, com a sequência
+  das placas contínua entre lotes. A impressão é um ZIP com QR em SVG e PNG por
+  placa ("0001-CODIGO") e um CSV codigo,photo para a mala direta do Corel. O QR
+  grava a URL em maiúsculas, nível H de correção.
+- Situação - em estoque, ativa, suspensa ou baixada. Carência e vencida saem
+  da data: a placa vale 12 meses da venda e continua no ar por mais 30 dias de
+  carência; depois, mostra a página de vencida.
+- Placa sem venda não vai ao ar. Lida, abre a Nova venda com o código.
+- Leitura - redireciona com 302 e sem cache, para o destino trocado valer na
+  hora. Conta por dia no fuso de Brasília; leitura de robô e de pré-visualização
+  não conta, e falha na contagem nunca derruba o redirecionamento.
+- Consignação - só dentro do revendedor, do estoque dele para um vendedor e de
+  volta: a Avalia não consigna ao revendedor, porque o pacote é pago antes. Até
+  20 placas por vez; pelos códigos é tudo ou nada, pela quantidade saem as de
+  menor sequência. Vendedor excluído devolve o que tinha.
+- Suspender não apaga nada: a placa volta exatamente como estava. Só o dono ou
+  quem vendeu a placa muda o destino e suspende.
+
 - O lote é ligado ao pedido no despacho; a ativação só aceita lote ligado a
   pedido do próprio revendedor, para um número digitado errado não prender o
   lote de outro.
+- Não há consignação entre a Avalia e o revendedor - o revendedor paga o
+  pacote antes e as placas ativadas são dele. Consignação só existe dentro do
+  revendedor, do estoque dele para um vendedor da equipe, e de volta.
 - Renovação - 1 ano por 60% do valor pago, sem comissão; percentual ajustável
   por revendedor.
 - Troca de placa - a venda inteira vai para o código novo, a antiga fica
@@ -129,6 +171,31 @@ Todas no mesmo app, liberadas pelo papel do usuário.
   foi assinado.
 - Contrato só anda para a frente - aguardando assinatura vira assinado ou
   cancelado.
+
+## 6a. Mapa de portabilidade do Sales
+
+O Sales da Avalia já opera essas regras com a equipe interna. A plataforma
+porta o negócio e troca a tecnologia onde a stack pede.
+
+| No Sales hoje | Na plataforma | Situação |
+| --- | --- | --- |
+| Código Crockford de 6 caracteres e `/q/{codigo}` | Igual, com `/q/` e `/Q/` | No código |
+| Lote LT-0001, ZIP com SVG, PNG e CSV para o Corel | Igual, gerado pela operadora | No código |
+| Compra de placas da gráfica com custo congelado | Pacote pago pelo revendedor; custo da placa = preço do pacote dividido pelas placas | No código |
+| Consignação ao vendedor, 20 por vez, tudo ou nada | Igual, só dentro do revendedor | No código |
+| Situação e estado, 12 meses, carência de 30 dias | Igual | No código |
+| Contagem de leitura por dia, sem derrubar o redirecionamento | Igual, com soma atômica no Postgres | No código |
+| Valor nunca abaixo da tabela, até 5 vezes | Igual | No código |
+| Comissão de 25% sobre a venda, sócio sem comissão | Percentual por revendedor e por vendedor; dono sem comissão | No código |
+| Venda só na Nova venda, placa sem venda fora do ar | Igual | No código |
+| Pix e cartão pelo Asaas | Pix e cartão pelo Pagar.me, com split da taxa da Avalia | Pix no código; cartão pede a tokenização no front |
+| Busca do lugar no Google Places e link colado do perfil | Places (New) Text Search pelo servidor e link colado | No código |
+| Mapa de bairros em Leaflet com OpenStreetMap | Google Maps JavaScript | Fase 3 |
+| Placa coringa de teste (fluxo desfeito no fim) | Lote de teste da revendedora Avalia em homologação | Planejado |
+| Renovação por 60% do valor, sem comissão | Igual | Fase 2 |
+| Confirmação de pagamento em dinheiro ou outro Pix | A definir com o Pagar.me (baixa manual da cobrança) | Fase 2 |
+| Cortesia, cancelamento e troca de placa com estorno no razão | Igual, com o razão da Fase 2 | Fase 2 |
+| Pix e confirmação pelo WhatsApp | E-mail pelo Resend; WhatsApp fora do escopo | No código (e-mail) |
 
 ## 7. Marca do revendedor
 
@@ -169,7 +236,7 @@ Estimativa em semanas de cerca de 20 horas.
 | --- | --- | --- | --- |
 | 0. Base | Solução em camadas, login, isolamento entre revendedores, CI | 2 | Feita |
 | Integrações | Pagar.me (cobrança, split, webhook) e D4Sign (envio, webhook) no código | - | Feita, falta sandbox real |
-| 1. Revenda | Cadastro, contrato, pedido, lote, equipe, venda, NFC e QR | 3 | Em andamento: entrada e catálogo no front |
+| 1. Revenda | Cadastro, contrato, pedido, lote, equipe, venda, NFC e QR | 3 | API, regras e testes prontos; telas em construção |
 | 2. Pagamento | Checkout do pedido de placas, cupom, comissão, razão | 3 | A fazer |
 | 3. Serviços | Chat, painel ao vivo, mapa, Worker, Protheus simulado, white label | 4 | A fazer |
 | 4. Avalia | Teste, integração com o Sales, migração e volta | 3 | A fazer |
@@ -179,15 +246,18 @@ Estimativa em semanas de cerca de 20 horas.
 | Decisão | Opções | Recomendação |
 | --- | --- | --- |
 | Taxa da Avalia | 1,99% ou R$ 1,99 fixo por venda | 1,99% (o código assume) |
-| Preço dos pacotes | Por pacote | A definir |
+| Preço dos pacotes | Por pacote | A definir; a demonstração usa R$ 150 (10), R$ 280 (20), R$ 650 (50) e R$ 1.200 (100), simulados |
+| Confirmação de pagamento por fora | Baixa manual no Pagar.me ou só registro na plataforma | Conferir a API do Pagar.me na Fase 2 |
 | Nome e domínio | Subdomínio de avaliaone.com.br ou domínio próprio | A definir |
 | Recebedor da revendedora Avalia | Mesmo da conta do marketplace ou separado | Confirmar com o Pagar.me |
-| Textos do contrato e do termo | Rascunho ou revisão jurídica | Revisão antes do fim da Fase 1 |
+| Textos do contrato e do termo | Rascunho ou revisão jurídica | Revisão antes do fim da Fase 1; hoje vai uma minuta marcada como homologação |
 | Repositório | Público ou privado | Público, com dados fictícios |
 
 ## 12. Registro de mudanças
 
 | Data | Mudança |
 | --- | --- |
+| 21/10/2026 | Fase 1 na API - cadastro pela tela, contrato automático, pacotes, pedido, despacho e ativação de lote, estoque, consignação, equipe, venda com cobrança, ficha da placa e leitura do QR. Regras portadas do Sales, com o mapa de portabilidade (seção 6a). Papéis operadora, dono e vendedor. |
+| 21/10/2026 | Consignação só entre o revendedor e o vendedor dele; a Avalia não consigna ao revendedor. Mapa dos lugares vendidos no Google Maps. |
 | 21/10/2026 | Primeiras telas: entrada e catálogo do revendedor (listar e cadastrar produto com preço em reais). |
 | 21/10/2026 | Documento criado a partir do desenho técnico. Inclui o modelo de cobrança com taxa gravada na cobrança, a regra de que cobrança e contrato só andam para a frente, e a retomada de cobrança sem pedido. |

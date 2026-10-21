@@ -13,6 +13,9 @@ public sealed class RevendedorNaConexao(IRevendedorAtual revendedor) : DbConnect
 {
     public const string Variavel = "app.revendedor_id";
 
+    /// <summary>"sim" quando quem entra é a operadora; lido só pelas tabelas que ela atende.</summary>
+    public const string VariavelDaOperadora = "app.operadora";
+
     public override void ConnectionOpened(DbConnection connection, ConnectionEndEventData eventData)
     {
         using var comando = Comando(connection);
@@ -29,11 +32,15 @@ public sealed class RevendedorNaConexao(IRevendedorAtual revendedor) : DbConnect
     private DbCommand Comando(DbConnection conexao)
     {
         var comando = conexao.CreateCommand();
-        comando.CommandText = $"select set_config('{Variavel}', @revendedor, false)";
+        comando.CommandText = $"select set_config('{Variavel}', @revendedor, false), set_config('{VariavelDaOperadora}', @operadora, false)";
         var parametro = comando.CreateParameter();
         parametro.ParameterName = "revendedor";
         parametro.Value = revendedor.RevendedorId?.ToString() ?? string.Empty;
         comando.Parameters.Add(parametro);
+        var operadora = comando.CreateParameter();
+        operadora.ParameterName = "operadora";
+        operadora.Value = revendedor.Operadora ? "sim" : string.Empty;
+        comando.Parameters.Add(operadora);
         return comando;
     }
 }

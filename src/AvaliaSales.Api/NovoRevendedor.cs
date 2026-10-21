@@ -1,4 +1,5 @@
 using AvaliaSales.Domain;
+using AvaliaSales.Domain.Acesso;
 using AvaliaSales.Domain.Revendedores;
 using AvaliaSales.Infrastructure.Banco;
 using AvaliaSales.Infrastructure.Identidade;
@@ -7,10 +8,11 @@ using Microsoft.AspNetCore.Identity;
 namespace AvaliaSales.Api;
 
 /// <summary>
-/// Cadastro de revendedor pela operadora, pela linha de comando, enquanto a
-/// tela de cadastro não existe:
+/// Cadastro pela linha de comando, para quem opera o servidor:
 /// dotnet AvaliaSales.Api.dll --novo-revendedor --nome="Avalia" --email=dono@x.com --senha=...
-/// A senha segue a mesma regra do login (10 caracteres ou mais).
+/// dotnet AvaliaSales.Api.dll --nova-operadora --nome="Equipe Avalia" --email=operadora@x.com --senha=...
+/// O revendedor também se cadastra pela tela (/cadastro). A senha segue a regra
+/// do login (10 caracteres ou mais).
 /// </summary>
 internal static class NovoRevendedor
 {
@@ -49,7 +51,7 @@ internal static class NovoRevendedor
         await using var transacao = await banco.Database.BeginTransactionAsync();
         banco.Revendedores.Add(revendedor);
         await banco.SaveChangesAsync();
-        var criado = await usuarios.CreateAsync(new Usuario { RevendedorId = revendedor.Id, Nome = $"Dono {nome}", UserName = email, Email = email }, senha);
+        var criado = await usuarios.CreateAsync(new Usuario { RevendedorId = revendedor.Id, Papel = Papel.Dono, Nome = $"Dono {nome}", UserName = email, Email = email }, senha);
         if (!criado.Succeeded)
         {
             await Console.Error.WriteLineAsync(string.Join(" ", criado.Errors.Select(e => e.Description)));
@@ -58,6 +60,33 @@ internal static class NovoRevendedor
 
         await transacao.CommitAsync();
         Console.WriteLine($"Revendedor {revendedor.Nome} criado, dono {email}.");
+        return 0;
+    }
+
+    /// <summary>A operadora não pertence a revendedor: é a Avalia operando a plataforma.</summary>
+    public static async Task<int> CriarOperadora(IServiceProvider servicos, string[] argumentos)
+    {
+        var nome = Valor(argumentos, "nome");
+        var email = Valor(argumentos, "email");
+        var senha = Valor(argumentos, "senha");
+        if (string.IsNullOrWhiteSpace(nome) || string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(senha))
+        {
+            await Console.Error.WriteLineAsync("Use --nome=, --email= e --senha=.");
+            return 1;
+        }
+
+        using var escopo = servicos.CreateScope();
+        try
+        {
+            await escopo.ServiceProvider.GetRequiredService<Application.Equipe.IContas>().Criar(nome, email, senha, Papel.Operadora, null, CancellationToken.None);
+        }
+        catch (RegraDeNegocioException erro)
+        {
+            await Console.Error.WriteLineAsync(erro.Message);
+            return 1;
+        }
+
+        Console.WriteLine($"Operadora {email} criada.");
         return 0;
     }
 

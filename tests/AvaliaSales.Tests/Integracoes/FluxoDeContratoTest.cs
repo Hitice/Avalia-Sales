@@ -70,8 +70,8 @@ public sealed class FluxoDeContratoTest(ApiDeTeste api)
 
         var depois = await Ler(worker, revendedor, primeira.Id);
         Assert.Equal(EtapaDoEnvio.Enviado, depois.Etapa);
-        Assert.Equal(1, d4sign.Chamadas["EnviarAoCofre"]);
-        Assert.Equal(2, d4sign.Chamadas["CadastrarSignatario"]);
+        Assert.Single(d4sign.NomesNoCofre, n => n.Contains(primeira.Id.ToString("N"), StringComparison.Ordinal));
+        Assert.Equal(2, d4sign.PorDocumento[(depois.DocumentoNaAssinatura!, "CadastrarSignatario")]);
     }
 
     [Fact]
