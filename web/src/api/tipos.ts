@@ -154,3 +154,5 @@ export type ResumoDoMes = {
 }
 
 export type RenovacaoAberta = { id: string; codigo: string; valorCents: number; venceEm: string | null; cobranca: Cobranca | null; semCobranca: string | null }
+
+export type EnvioAoErp = { pedidoId: string; cliente: string; quantidade: number; valorCents: number; situacao: 'Pendente' | 'Enviado' | 'Parado'; numeroNoErp: string | null; tentativas: number; ultimoErro: string | null; criadoEm: string }

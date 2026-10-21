@@ -1,5 +1,6 @@
 using System.Threading.RateLimiting;
 using AvaliaSales.Api;
+using AvaliaSales.Api.AoVivo;
 using AvaliaSales.Api.Autenticacao;
 using AvaliaSales.Api.Rotas;
 using AvaliaSales.Application;
@@ -31,6 +32,7 @@ builder.Services.AddScoped<IUsuarioAtual>(sp => sp.GetRequiredService<AcessoDaRe
 builder.Services.AdicionarInfraestrutura();
 builder.Services.AdicionarIntegracoes();
 builder.Services.UsarPagarmeSimuladoSeLigado(builder.Configuration, builder.Environment.IsDevelopment());
+builder.Services.UsarProtheusSimuladoSeLigado(builder.Configuration, builder.Environment.IsDevelopment());
 new IdentityBuilder(typeof(Usuario), builder.Services).AddSignInManager();
 
 builder.Services.AddOptions<OpcoesJwt>()
@@ -54,6 +56,21 @@ builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationSc
             ValidAlgorithms = [SecurityAlgorithms.HmacSha256],
             ClockSkew = TimeSpan.FromSeconds(30),
         };
+
+        // WebSocket não leva cabeçalho: no hub, o token vem na query, e só lá.
+        bearer.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = contexto =>
+            {
+                if (contexto.HttpContext.Request.Path.StartsWithSegments(HubDeAvisos.Rota)
+                    && contexto.Request.Query["access_token"].ToString() is { Length: > 0 } token)
+                {
+                    contexto.Token = token;
+                }
+
+                return Task.CompletedTask;
+            },
+        };
     });
 builder.Services.AddAuthorization(Politicas.Registrar);
 
@@ -76,6 +93,8 @@ builder.Services.AddRateLimiter(limites =>
 
 // Situações e papéis saem pelo nome ("EmEstoque", "Paga"), e não pelo número: o contrato da API não muda se a ordem do enum mudar.
 builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter()));
+builder.Services.AddSignalR();
+builder.Services.AddHostedService<OuvinteDeAvisos>();
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<RegraDeNegocioEm422>();
 builder.Services.AddHealthChecks().AddDbContextCheck<BancoDeDados>();
@@ -130,6 +149,7 @@ app.MapearEquipe();
 app.MapearLeitura();
 app.MapearWebhooks();
 app.MapearSimulador();
+app.MapHub<HubDeAvisos>(HubDeAvisos.Rota);
 
 app.Run();
 

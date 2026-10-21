@@ -76,6 +76,13 @@ public static class RotasDaOperadora
             return Results.NoContent();
         });
 
+        operadora.MapGet("/erp", (Application.Erp.FilaDoErp fila, CancellationToken ct) => fila.Listar(ct));
+        operadora.MapPost("/erp/{pedidoId:guid}/reenvio", async (Guid pedidoId, Application.Erp.FilaDoErp fila, CancellationToken ct) =>
+        {
+            await fila.Reenviar(pedidoId, ct);
+            return Results.NoContent();
+        });
+
         operadora.MapGet("/revendedores", (Revendedores revendedores, CancellationToken ct) => revendedores.Listar(ct));
         operadora.MapPut("/revendedores/{id:guid}/recebedor", async (Guid id, DefinirRecebedor pedido, Revendedores revendedores, CancellationToken ct) =>
         {

@@ -82,6 +82,7 @@ public sealed class Comissoes(IBancoDeDados banco, IUsuarioAtual usuario, IConta
         }
 
         banco.Repasses.Add(repasse);
+        banco.AvisarAoVivo("comissao", vendedor.RevendedorId);
         banco.Lancamentos.Add(new Lancamento(TipoDeLancamento.ComissaoPaga, repasse.Id, -valor, $"Comissão repassada a {vendedor.Nome}", agora, vendedorId: vendedor.Id));
         await banco.SaveChangesAsync(ct);
         await transacao.CommitAsync(ct);

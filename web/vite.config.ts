@@ -28,6 +28,8 @@ export default defineConfig({
       '/api': {
         target: process.env.API_LOCAL ?? 'http://127.0.0.1:5199',
         rewrite: (caminho) => caminho.replace(/^\/api/, ''),
+        // O hub de avisos (SignalR) usa WebSocket.
+        ws: true,
       },
       // A leitura da placa, como o Nginx: /q/ e /Q/ vão direto para a API.
       '^/[qQ]/': { target: process.env.API_LOCAL ?? 'http://127.0.0.1:5199' },

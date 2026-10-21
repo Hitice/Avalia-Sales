@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { chamarApi, chamarResposta, enviarJson } from '@/api/cliente'
-import type { Cupom, Lote, Pacote, Pedido, Revendedor } from '@/api/tipos'
+import type { Cupom, EnvioAoErp, Lote, Pacote, Pedido, Revendedor } from '@/api/tipos'
 
 const chaves = {
   pedidos: ['operadora', 'pedidos'] as const,
@@ -47,3 +47,6 @@ export const useCriarCupom = () => useGravar((c: GravarCupom) => chamarApi('/ope
 export const useAlterarCupom = () => useGravar(({ id, ...c }: GravarCupom & { id: string }) => chamarApi(`/operadora/cupons/${id}`, enviarJson('PUT', c)))
 export const useAtivarCupom = () => useGravar(({ id, ativo }: { id: string; ativo: boolean }) => chamarApi(`/operadora/cupons/${id}/ativo`, enviarJson('PUT', { ativo })))
 export const useExcluirCupom = () => useGravar((id: string) => chamarApi(`/operadora/cupons/${id}`, { method: 'DELETE' }))
+
+export const useFilaDoErp = () => useQuery({ queryKey: ['operadora', 'erp'], queryFn: () => chamarApi<EnvioAoErp[]>('/operadora/erp') })
+export const useReenviarAoErp = () => useGravar((pedidoId: string) => chamarApi(`/operadora/erp/${pedidoId}/reenvio`, enviarJson('POST', {})))

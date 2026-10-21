@@ -122,7 +122,8 @@ public sealed class IsolamentoEntreRevendedoresTest(ApiDeTeste api)
         // Fora de propósito: usuarios (o login lê antes de saber o revendedor),
         // vinculos_externos (o webhook chega sem revendedor e é ela que diz de quem é),
         // lotes e placas_emitidas (estoque da plataforma; revendedor_id é o destino do
-        // despacho, e a leitura do QR descobre por elas de quem é a placa).
+        // despacho, e a leitura do QR descobre por elas de quem é a placa) e
+        // envios_ao_erp (fila do ERP da operadora; revendedor_id é o cliente do pedido de venda).
         await using var dono = new NpgsqlConnection(api.ConexaoDoDono);
         await dono.OpenAsync(Ct);
         await using var comando = new NpgsqlCommand("""
@@ -131,7 +132,7 @@ public sealed class IsolamentoEntreRevendedoresTest(ApiDeTeste api)
             join pg_namespace n on n.oid = c.relnamespace and n.nspname = 'public'
             join pg_attribute a on a.attrelid = c.oid and a.attname = 'revendedor_id' and not a.attisdropped
             where c.relkind = 'r'
-              and c.relname not in ('usuarios', 'vinculos_externos', 'lotes', 'placas_emitidas')
+              and c.relname not in ('usuarios', 'vinculos_externos', 'lotes', 'placas_emitidas', 'envios_ao_erp')
               and not (c.relrowsecurity and c.relforcerowsecurity)
             """, dono);
         var semRls = new List<string>();

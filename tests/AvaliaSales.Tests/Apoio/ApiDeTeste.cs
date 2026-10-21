@@ -46,6 +46,7 @@ public sealed class ApiDeTeste : IAsyncLifetime
         ["D4Sign:Cofre"] = "cofre-de-teste",
         ["D4Sign:UrlDoWebhook"] = "https://api.exemplo.com.br/webhooks/d4sign",
         ["Pagarme:Simulado"] = "false",
+        ["Protheus:Simulado"] = "false",
         ["Plataforma:UrlPublica"] = UrlPublica,
         ["Plataforma:UrlDoPainel"] = "https://painel.exemplo.com.br",
         ["Plataforma:EmailDaOperadora"] = "operadora@exemplo.com.br",
@@ -173,7 +174,7 @@ public sealed class ApiDeTeste : IAsyncLifetime
     /// Os serviços do Worker sobre o mesmo banco, com o Pagar.me e a D4Sign
     /// trocados por falsos e o relógio controlado pelo teste.
     /// </summary>
-    public ServiceProvider AmbienteDoWorker(GatewayFalso gateway, AssinaturaFalsa assinatura, TimeProvider? relogio = null)
+    public ServiceProvider AmbienteDoWorker(GatewayFalso gateway, AssinaturaFalsa assinatura, TimeProvider? relogio = null, Application.Erp.IErp? erp = null)
     {
         var configuracao = new ConfigurationBuilder()
             .AddInMemoryCollection(Integracoes.Append(new("ConnectionStrings:Banco", ConexaoDaAplicacao)))
@@ -187,6 +188,11 @@ public sealed class ApiDeTeste : IAsyncLifetime
         servicos.AdicionarProcessamento();
         servicos.AddSingleton<IGatewayDePagamento>(gateway);
         servicos.AddSingleton<IAssinaturaEletronica>(assinatura);
+        if (erp is not null)
+        {
+            servicos.AddSingleton(erp);
+        }
+
         return servicos.BuildServiceProvider(validateScopes: true);
     }
 

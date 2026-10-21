@@ -5,6 +5,7 @@ using AvaliaSales.Domain.Avisos;
 using AvaliaSales.Domain.Catalogo;
 using AvaliaSales.Domain.Contratos;
 using AvaliaSales.Domain.Equipe;
+using AvaliaSales.Domain.Erp;
 using AvaliaSales.Domain.Financeiro;
 using AvaliaSales.Domain.Integracoes;
 using AvaliaSales.Domain.Pagamentos;
@@ -45,6 +46,7 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
     public DbSet<Lancamento> Lancamentos => Set<Lancamento>();
     public DbSet<Repasse> Repasses => Set<Repasse>();
     public DbSet<Renovacao> Renovacoes => Set<Renovacao>();
+    public DbSet<EnvioAoErp> EnviosAoErp => Set<EnvioAoErp>();
 
     /// <summary>Lido pelo filtro global a cada consulta, e não na montagem do modelo.</summary>
     public Guid? RevendedorAtual => revendedor.RevendedorId;
@@ -156,6 +158,20 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
 
     private static void ConfigurarFase2(ModelBuilder modelo)
     {
+        // O ERP é da operadora: fila da plataforma, sem RLS.
+        modelo.Entity<EnvioAoErp>(e =>
+        {
+            e.ToTable("envios_ao_erp");
+            e.Property(x => x.Cliente).HasMaxLength(Revendedor.NomeMaximo).IsRequired();
+            e.Property(x => x.Cnpj).HasMaxLength(14);
+            e.Property(x => x.Situacao).HasConversion<string>().HasMaxLength(12);
+            e.Property(x => x.NumeroNoErp).HasMaxLength(40);
+            e.Property(x => x.UltimoErro).HasMaxLength(500);
+            e.HasIndex(x => x.PedidoId).IsUnique();
+            e.HasIndex(x => x.CriadoEm).HasFilter("situacao = 'Pendente'");
+            e.HasOne<Revendedor>().WithMany().HasForeignKey(x => x.RevendedorId).OnDelete(DeleteBehavior.Restrict);
+        });
+
         // Cupom é da plataforma: sem RLS, a operadora cria e o pedido gasta.
         modelo.Entity<Cupom>(c =>
         {
@@ -362,6 +378,29 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
         }
     }
 
+    /// <summary>O canal do LISTEN/NOTIFY que leva os avisos do Worker e da API às telas abertas.</summary>
+    public const string CanalDeAvisos = "avisos_ao_vivo";
+
+    private readonly List<AvisoAoVivo> _avisos = [];
+
+    public void AvisarAoVivo(string tipo, Guid? revendedorId, bool operadora = false) =>
+        _avisos.Add(new AvisoAoVivo(tipo, revendedorId, operadora));
+
+    /// <summary>
+    /// Na mesma conexão de quem gravou: dentro de transação, o Postgres só
+    /// entrega a notificação no commit.
+    /// </summary>
+    private async Task EnviarAvisos(CancellationToken ct)
+    {
+        foreach (var aviso in _avisos.ToList())
+        {
+            var json = System.Text.Json.JsonSerializer.Serialize(aviso);
+            await Database.ExecuteSqlAsync($"select pg_notify({CanalDeAvisos}, {json})", ct);
+        }
+
+        _avisos.Clear();
+    }
+
     /// <summary>Número fixo da trava de aplicação do Postgres que serializa a geração de lotes.</summary>
     private const long TravaDaGeracaoDeLotes = 7_413_001;
 
@@ -405,10 +444,16 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
         return base.SaveChanges(acceptAllChangesOnSuccess);
     }
 
-    public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+    public override async Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
     {
         CarimbarRevendedor();
-        return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+        var gravadas = await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+        if (_avisos.Count > 0)
+        {
+            await EnviarAvisos(cancellationToken);
+        }
+
+        return gravadas;
     }
 
     /// <summary>

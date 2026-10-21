@@ -4,7 +4,7 @@ namespace AvaliaSales.Worker;
 
 /// <summary>
 /// A cada volta: processa a caixa de entrada dos webhooks, retoma o que
-/// ficou pela metade e envia os e-mails da fila. Uma volta que falha não derruba o Worker; a próxima
+/// ficou pela metade, envia os e-mails da fila e leva os pedidos pagos ao ERP. Uma volta que falha não derruba o Worker; a próxima
 /// tenta de novo.
 /// </summary>
 public sealed partial class Rotinas(IServiceScopeFactory escopos, ILogger<Rotinas> log) : BackgroundService
@@ -25,9 +25,10 @@ public sealed partial class Rotinas(IServiceScopeFactory escopos, ILogger<Rotina
                 var eventos = await escopo.ServiceProvider.GetRequiredService<ProcessadorDeEventos>().ProcessarPendentes(EventosPorVolta, stoppingToken);
                 var retomados = await escopo.ServiceProvider.GetRequiredService<Retomadas>().Executar(ContratosPorVolta, stoppingToken);
                 var emails = await escopo.ServiceProvider.GetRequiredService<EnvioDeEmails>().Executar(EmailsPorVolta, stoppingToken);
-                if (eventos + retomados + emails > 0)
+                var erp = await escopo.ServiceProvider.GetRequiredService<EnvioAoErpRotina>().Executar(EmailsPorVolta, stoppingToken);
+                if (eventos + retomados + emails + erp > 0)
                 {
-                    LogVolta(log, eventos, retomados, emails);
+                    LogVolta(log, eventos, retomados, emails, erp);
                 }
             }
             catch (Exception erro) when (erro is not OperationCanceledException)
@@ -38,8 +39,8 @@ public sealed partial class Rotinas(IServiceScopeFactory escopos, ILogger<Rotina
         while (await relogio.WaitForNextTickAsync(stoppingToken));
     }
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Volta do Worker: {Eventos} eventos aplicados, {Retomados} retomados, {Emails} e-mails")]
-    private static partial void LogVolta(ILogger log, int eventos, int retomados, int emails);
+    [LoggerMessage(Level = LogLevel.Information, Message = "Volta do Worker: {Eventos} eventos aplicados, {Retomados} retomados, {Emails} e-mails, {Erp} pedidos no ERP")]
+    private static partial void LogVolta(ILogger log, int eventos, int retomados, int emails, int erp);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Volta do Worker falhou")]
     private static partial void LogFalha(ILogger log, Exception erro);

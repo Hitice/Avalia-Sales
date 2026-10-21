@@ -17,10 +17,11 @@ Cada seção diz o que já está no código e o que ainda é plano.
 | Integrações | Pagar.me v5, D4Sign v1, Resend, Google Places (New) | - | No código |
 | QR da impressão | QRCoder (MIT), SVG e PNG sem System.Drawing | 1.8.0 | No código |
 | Resiliência | Microsoft.Extensions.Http.Resilience (Polly) | 10.11.0 | No código |
-| Tempo real | SignalR | - | Plano |
+| Tempo real | SignalR, com o LISTEN/NOTIFY do Postgres levando os avisos do Worker à API | ASP.NET Core 10, `@microsoft/signalr` 10.0.11 | No código |
 | Front | React 19 + Vite, React Router, TanStack Query, Zustand, React Hook Form + Zod, Tailwind 4, shadcn/ui (Radix) | React 19.3, Vite 8.3, Router 8.5, Tailwind 4.3, Zod 4.6, TypeScript 6.0 | Telas da Fase 1 no código |
 | Leitura de QR e Pix no front | `BarcodeDetector` nativo; sem ele, o polyfill `barcode-detector` sobre o ZXing C++ em WebAssembly (`zxing-wasm`), servido pelo app; `qrcode` para o QR do Pix | barcode-detector 3.2.2, zxing-wasm 3.1.3, qrcode 1.5.4 | No código |
-| Mapa, ERP | Google Maps JavaScript, Protheus por simulador | - | Plano |
+| ERP | Protheus por contrato REST próprio, com simulador | - | No código |
+| Mapa | Google Maps JavaScript | - | Plano |
 | Documentação da API | OpenAPI do ASP.NET Core em `/openapi/v1.json` e Swagger UI em `/swagger`, só em Development | OpenApi 10.0.13, Swashbuckle.AspNetCore.SwaggerUI 10.3.0 | No código |
 | Infra | Linux, Docker Compose, Nginx, Let's Encrypt | - | Compose e Dockerfile no repositório |
 | CI | GitHub Actions, self-hosted runner no deploy, SonarCloud, Sentry | - | CI de build e teste no repositório |
@@ -180,6 +181,7 @@ aponta para a venda.
 | `cobrancas` (colunas novas) | Link no Pagar.me e URL do checkout | - |
 | `vendas` (coluna nova) | Repasse que pagou a comissão | - |
 | `revendedores` (coluna nova) | Preço da renovação (6000 = 60%) | - |
+| `envios_ao_erp` | Pedido pago a caminho do Protheus: cliente, CNPJ, quantidade, valor, situação, número no ERP, tentativas, erro | Sem RLS (fila da operadora); um por pedido |
 
 ### Planejado
 
@@ -316,6 +318,37 @@ Conferido na referência oficial em 21/10/2026.
   `Pagarme:ConferenciaEmSegundos` (300 em produção, 15 no simulador), no máximo
   20 por revendedor a cada volta. Grava `conferida_em`.
 
+### Avisos ao vivo (no código)
+
+- Hub `HubDeAvisos` em `/hubs/avisos`, com o token na query só nessa rota
+  (WebSocket não leva cabeçalho). Cada conexão entra no grupo do próprio
+  revendedor, lido do token; a operadora entra no grupo dela.
+- O aviso leva só o tipo (`venda`, `pagamento`, `pedido`, `estoque`,
+  `comissao`, `erp`). A tela refaz a consulta dela pela API, que aplica o
+  isolamento: nada de dado de cliente trafega pelo hub.
+- Ponte entre processos - `IBancoDeDados.AvisarAoVivo` guarda o aviso e o
+  `SaveChanges` manda `pg_notify` na mesma conexão. Dentro de transação, o
+  Postgres só entrega no commit; transação desfeita não avisa. A API escuta o
+  canal (`LISTEN`, `OuvinteDeAvisos`) e repassa ao grupo. Assim o pagamento
+  confirmado pelo Worker chega à tela aberta na API, sem Redis.
+- Conexão de escuta que cai tenta de novo com espera crescente até 60 s; o
+  front reconecta sozinho. Perder um aviso só atrasa a tela até a próxima
+  consulta.
+
+### Protheus (no código, por simulador)
+
+- Sem ambiente público. A plataforma fala um contrato REST próprio:
+  `POST {Protheus:UrlBase}/pedidos-de-venda` com autenticação básica e
+  `{ chave, cliente, cnpj, produto, quantidade, valorUnitarioCents,
+  valorTotalCents }`, resposta `{ numero }`. Do lado do Protheus, um serviço
+  REST em ADVPL grava o pedido de venda; a chave (id do pedido de placas)
+  impede pedido de venda repetido.
+- Pedido de placas pago (pelo link, por fora ou com cupom de 100%) entra na
+  fila `envios_ao_erp` na mesma transação do pagamento. O Worker envia; falha
+  soma tentativa e, depois de 8, o envio para e a operadora reenvia.
+- Sem `Protheus:UrlBase`, o envio espera na fila. `Protheus:Simulado` (só
+  Development) devolve um número de pedido tirado da chave.
+
 ### Planejadas
 
 | Serviço | Uso | Como |
@@ -409,7 +442,9 @@ Revisão pela skill `seguranca` (OWASP ASVS 5.0).
   venda, leitura do QR, consignação, equipe, sessão e cadastro). O Pagar.me da
   API de teste é falso: nenhuma chamada sai para a rede. Fluxo financeiro com
   o Worker de relógio adiantado (pedido pago pelo link, razão, repasse,
-  estorno pelo webhook, renovação). 147 testes em 21/10/2026.
+  estorno pelo webhook, renovação), aviso ao vivo pelo hub (chega ao dono
+  certo e não à outra revenda; sem token, 401), contrato e fila do Protheus.
+  152 testes em 21/10/2026.
 - Os testes entram no Postgres com o papel `avalia_app_teste`, membro do
   `avalia_app`: as mesmas permissões e o mesmo RLS, sem trocar a senha que a API
   local usa.
@@ -442,6 +477,8 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
 | 21/10/2026 | Razão só de inserção, com estorno apontando para a linha | Mês fechado não muda; o mesmo pagamento não é lançado duas vezes |
 | 21/10/2026 | Saldo de comissão lido do razão | Estorno depois do repasse vira saldo negativo e desconta no próximo |
 | 21/10/2026 | Pedido de placas pelo checkout, sem split | O link só divide em cartão; o pacote é todo da Avalia |
+| 21/10/2026 | Avisos ao vivo pelo LISTEN/NOTIFY do Postgres | API e Worker são processos separados; o NOTIFY sai no commit e não pede Redis |
+| 21/10/2026 | Protheus por contrato REST próprio e fila | Sem ambiente público; a chave do pedido evita pedido de venda repetido |
 | 21/10/2026 | Swagger UI sobre o OpenAPI nativo do ASP.NET Core | O documento é o do framework; o Swashbuckle entra só como página |
 | 21/10/2026 | `@hookform/resolvers` 5.9 e não 6.0 | A 6.0.0 declara versões conflitantes de uma dependência opcional e não instala sem forçar |
 | 21/10/2026 | Nenhuma biblioteca de idempotência pronta | A mais citada tinha 329 estrelas e nenhum commit desde 11/2024; o Postgres já garante unicidade |
@@ -472,6 +509,7 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
 
 | Data | Mudança |
 | --- | --- |
+| 21/10/2026 | Fase 3, primeira parte - avisos ao vivo (SignalR com LISTEN/NOTIFY), Protheus por contrato REST e simulador com fila no Worker, tela do ERP da operadora. |
 | 21/10/2026 | Fase 2 - checkout do Pagar.me para o pedido de placas, cupons, razão, saldo e repasse de comissão, renovação, efeitos do pagamento, telas de cupons, comissões, razão e renovação. Front em HTTPS na rede local para testar Web NFC e câmera no celular, com `/q/` passando pelo Vite. |
 | 21/10/2026 | Telas da Fase 1 - operadora (pedidos, lotes com download da impressão, pacotes, revendedores), dono (início, vendas com nova cobrança, estoque com consignação, pedidos de placas com ativação de lote, equipe e comissão, catálogo com editar, desativar e excluir), balcão (Nova venda com QR, NFC e Pix, ficha da placa) e cadastro. Sessão restaurada pelo cookie ao recarregar. Endereço da placa nas respostas de venda e ficha, para a gravação do NFC. |
 | 21/10/2026 | Fase 1 na API - tabelas da plataforma e do revendedor, papéis e políticas, sessão com refresh em cookie, rotas por área, leitura do QR, impressão do lote, Resend, Places, simulador do Pagar.me, conferência de cobrança pendente, contrato automático e demonstração completa. Testes com papel próprio no Postgres. Página de rotas trocada do Scalar pelo Swagger UI. |

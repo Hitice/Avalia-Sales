@@ -12,6 +12,7 @@ using AvaliaSales.Infrastructure.Integracoes;
 using AvaliaSales.Infrastructure.Integracoes.D4Sign;
 using AvaliaSales.Infrastructure.Integracoes.Google;
 using AvaliaSales.Infrastructure.Integracoes.Pagarme;
+using AvaliaSales.Infrastructure.Integracoes.Protheus;
 using AvaliaSales.Infrastructure.Integracoes.Resend;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -101,6 +102,13 @@ public static class InjecaoDeDependencias
         // Resend e Google são opcionais: sem chave, o e-mail espera na fila e a busca de lugar responde que não está ligada.
         servicos.AddOptions<OpcoesResend>().BindConfiguration(OpcoesResend.Secao);
         servicos.AddOptions<OpcoesGoogle>().BindConfiguration(OpcoesGoogle.Secao);
+        servicos.AddOptions<OpcoesProtheus>().BindConfiguration(OpcoesProtheus.Secao);
+        var protheus = servicos.AddHttpClient<Application.Erp.IErp, ClienteProtheus>((sp, http) =>
+        {
+            var url = sp.GetRequiredService<IOptions<OpcoesProtheus>>().Value.UrlBase;
+            http.BaseAddress = new Uri(string.IsNullOrWhiteSpace(url) ? "http://protheus.invalid/" : url.TrimEnd('/') + "/");
+            http.DefaultRequestHeaders.UserAgent.ParseAdd("AvaliaSales/1.0");
+        });
         var resend = servicos.AddHttpClient<IEnvioDeEmail, ClienteResend>((sp, http) =>
         {
             http.BaseAddress = new Uri(sp.GetRequiredService<IOptions<OpcoesResend>>().Value.UrlBase);
@@ -111,7 +119,7 @@ public static class InjecaoDeDependencias
             http.BaseAddress = new Uri(sp.GetRequiredService<IOptions<OpcoesGoogle>>().Value.UrlDoPlaces);
             http.DefaultRequestHeaders.UserAgent.ParseAdd("AvaliaSales/1.0");
         });
-        foreach (var cliente in new[] { resend, places })
+        foreach (var cliente in new[] { resend, places, protheus })
         {
             if (manipuladorDeTeste is not null)
             {
@@ -143,6 +151,23 @@ public static class InjecaoDeDependencias
         return servicos;
     }
 
+    /// <summary>Troca o Protheus pelo simulador quando Protheus:Simulado está ligado (só Development).</summary>
+    public static IServiceCollection UsarProtheusSimuladoSeLigado(this IServiceCollection servicos, IConfiguration configuracao, bool desenvolvimento)
+    {
+        if (!configuracao.GetValue<bool>($"{OpcoesProtheus.Secao}:{nameof(OpcoesProtheus.Simulado)}"))
+        {
+            return servicos;
+        }
+
+        if (!desenvolvimento)
+        {
+            throw new InvalidOperationException("Protheus:Simulado só pode ser ligado em Development.");
+        }
+
+        servicos.AddSingleton<Application.Erp.IErp, ErpSimulado>();
+        return servicos;
+    }
+
     /// <summary>Rotinas do Worker: o revendedor de cada escopo é definido pela própria rotina.</summary>
     public static IServiceCollection AdicionarProcessamento(this IServiceCollection servicos)
     {
@@ -152,6 +177,7 @@ public static class InjecaoDeDependencias
         servicos.AddScoped<ProcessadorDeEventos>();
         servicos.AddScoped<Retomadas>();
         servicos.AddScoped<EnvioDeEmails>();
+        servicos.AddScoped<EnvioAoErpRotina>();
         return servicos;
     }
 }

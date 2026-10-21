@@ -30,6 +30,7 @@ public static class InjecaoDeDependencias
         servicos.AddScoped<Razao>();
         servicos.AddScoped<Renovacoes>();
         servicos.AddScoped<Pagamentos.EfeitosDaCobranca>();
+        servicos.AddScoped<Erp.FilaDoErp>();
         return servicos;
     }
 }

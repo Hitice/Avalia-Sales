@@ -16,6 +16,9 @@ x-integracoes: &integracoes
   Resend__ChaveApi: ${RESEND_CHAVE_API:-}
   Resend__Remetente: ${RESEND_REMETENTE:-}
   Google__ChaveDoServidor: ${GOOGLE_CHAVE_DO_SERVIDOR:-}
+  Protheus__UrlBase: ${PROTHEUS_URL_BASE:-}
+  Protheus__Usuario: ${PROTHEUS_USUARIO:-}
+  Protheus__Senha: ${PROTHEUS_SENHA:-}
   ConnectionStrings__Banco: Host=postgres;Database=avalia_sales;Username=avalia_app;Password=${PG_SENHA_APLICACAO}
 
 services:

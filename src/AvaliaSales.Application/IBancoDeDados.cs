@@ -2,6 +2,7 @@ using AvaliaSales.Domain.Avisos;
 using AvaliaSales.Domain.Catalogo;
 using AvaliaSales.Domain.Contratos;
 using AvaliaSales.Domain.Equipe;
+using AvaliaSales.Domain.Erp;
 using AvaliaSales.Domain.Financeiro;
 using AvaliaSales.Domain.Integracoes;
 using AvaliaSales.Domain.Pagamentos;
@@ -36,6 +37,7 @@ public interface IBancoDeDados
     DbSet<Lancamento> Lancamentos { get; }
     DbSet<Repasse> Repasses { get; }
     DbSet<Renovacao> Renovacoes { get; }
+    DbSet<EnvioAoErp> EnviosAoErp { get; }
 
     /// <summary>Para abrir transação. SQL direto não sai daqui: mora nos métodos abaixo, na Infrastructure.</summary>
     DatabaseFacade Database { get; }
@@ -59,6 +61,13 @@ public interface IBancoDeDados
 
     /// <summary>Soma atômica de uma leitura no dia e no total da placa.</summary>
     Task SomarLeitura(Guid placaId, Guid revendedorId, DateOnly dia, DateTimeOffset agora, CancellationToken ct);
+
+    /// <summary>
+    /// Aviso ao vivo para as telas abertas (SignalR). Sai junto com o próximo
+    /// SaveChanges: dentro de transação, só é entregue no commit; transação
+    /// desfeita não avisa ninguém. Revendedor nulo é só para a operadora.
+    /// </summary>
+    void AvisarAoVivo(string tipo, Guid? revendedorId, bool operadora = false);
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

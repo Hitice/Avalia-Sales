@@ -70,6 +70,7 @@ public sealed class Vendas(
             placa.CustoCents, comissaoBps, pedido.Meio, agora);
         placa.Vender(venda.Id, destino, agora);
         banco.Vendas.Add(venda);
+        banco.AvisarAoVivo("venda", placa.RevendedorId);
         await banco.SaveChangesAsync(ct);
         await transacao.CommitAsync(ct);
 

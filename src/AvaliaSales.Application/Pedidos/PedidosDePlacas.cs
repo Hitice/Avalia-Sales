@@ -28,6 +28,7 @@ public sealed class PedidosDePlacas(
     IContas contas,
     FilaDeEmails avisos,
     Pagamentos.Cobrancas cobrancas,
+    Erp.FilaDoErp erp,
     IOptions<OpcoesDaPlataforma> plataforma,
     TimeProvider relogio)
 {
@@ -75,12 +76,14 @@ public sealed class PedidosDePlacas(
 
         var agora = relogio.GetUtcNow();
         var pedido = new PedidoDePlacas(pacote, agora, cupom);
+        banco.Pedidos.Add(pedido);
         if (pedido.Gratuito)
         {
             pedido.RegistrarPagamento(agora);
+            await erp.Enfileirar(pedido, revendedor.Id, ct);
         }
 
-        banco.Pedidos.Add(pedido);
+        banco.AvisarAoVivo("pedido", revendedor.Id, operadora: true);
 
         var site = plataforma.Value;
         avisos.Enfileirar($"pedido:{pedido.Id:N}:operadora", site.EmailDaOperadora,
@@ -143,7 +146,10 @@ public sealed class PedidosDePlacas(
     /// <summary>Operadora: pagamento recebido por fora, até o checkout do Pagar.me entrar.</summary>
     public async Task RegistrarPagamento(Guid id, CancellationToken ct)
     {
-        (await Achar(id, ct)).RegistrarPagamento(relogio.GetUtcNow());
+        var pedido = await Achar(id, ct);
+        pedido.RegistrarPagamento(relogio.GetUtcNow());
+        banco.AvisarAoVivo("pedido", pedido.RevendedorId, operadora: true);
+        await erp.Enfileirar(pedido, pedido.RevendedorId, ct);
         await banco.SaveChangesAsync(ct);
     }
 
@@ -158,6 +164,7 @@ public sealed class PedidosDePlacas(
         await using var transacao = await banco.Database.BeginTransactionAsync(ct);
         lote.Despachar(pedido.Id, pedido.RevendedorId, pedido.Quantidade, agora);
         pedido.Despachar(lote.Id, agora);
+        banco.AvisarAoVivo("pedido", pedido.RevendedorId, operadora: true);
         foreach (var dono in await contas.EmailsDosDonos(pedido.RevendedorId, ct))
         {
             avisos.Enfileirar($"pedido:{pedido.Id:N}:despachado:{dono}", dono, $"Suas {pedido.Quantidade} placas saíram - lote {lote.Rotulo}",
@@ -189,6 +196,7 @@ public sealed class PedidosDePlacas(
         lote.Ativar(revendedorId, agora);
         var pedido = await banco.Pedidos.SingleAsync(p => p.Id == lote.PedidoId, ct);
         pedido.Ativar(agora);
+        banco.AvisarAoVivo("estoque", revendedorId, operadora: true);
 
         var emitidas = await banco.PlacasEmitidas.Where(p => p.LoteId == lote.Id).OrderBy(p => p.Sequencia).ToListAsync(ct);
         foreach (var emitida in emitidas)

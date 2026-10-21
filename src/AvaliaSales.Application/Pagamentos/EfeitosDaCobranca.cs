@@ -13,7 +13,7 @@ namespace AvaliaSales.Application.Pagamentos;
 /// antes do SaveChanges de quem aplicou a cobrança: efeito e situação gravam
 /// juntos, e um evento repetido não acha nada a fazer.
 /// </summary>
-public sealed class EfeitosDaCobranca(IBancoDeDados banco, FilaDeEmails avisos, IOptions<OpcoesDaPlataforma> plataforma)
+public sealed class EfeitosDaCobranca(IBancoDeDados banco, FilaDeEmails avisos, Erp.FilaDoErp erp, IOptions<OpcoesDaPlataforma> plataforma)
 {
     public async Task Aplicar(Cobranca cobranca, DateTimeOffset agora, CancellationToken ct)
     {
@@ -52,6 +52,8 @@ public sealed class EfeitosDaCobranca(IBancoDeDados banco, FilaDeEmails avisos, 
         }
 
         pedido.RegistrarPagamento(cobranca.PagaEm ?? agora);
+        banco.AvisarAoVivo("pedido", pedido.RevendedorId, operadora: true);
+        await erp.Enfileirar(pedido, pedido.RevendedorId, ct);
         var revendedor = await banco.Revendedores.Where(r => r.Id == pedido.RevendedorId).Select(r => r.Nome).SingleAsync(ct);
         var site = plataforma.Value;
         avisos.Enfileirar($"pedido:{pedido.Id:N}:pago", site.EmailDaOperadora, $"Pedido pago - {pedido.Quantidade} placas - {revendedor}",
@@ -74,6 +76,7 @@ public sealed class EfeitosDaCobranca(IBancoDeDados banco, FilaDeEmails avisos, 
 
         var placa = await banco.Placas.Where(p => p.Id == venda.PlacaId).Select(p => p.Codigo).SingleAsync(ct);
         var quando = cobranca.PagaEm!.Value;
+        banco.AvisarAoVivo("pagamento", venda.RevendedorId);
         banco.Lancamentos.Add(new Lancamento(TipoDeLancamento.Receita, cobranca.Id, cobranca.ValorCents, $"Venda da placa {placa}", quando, venda.Id, venda.VendedorId));
         if (cobranca.TaxaAvaliaCents > 0)
         {
@@ -103,6 +106,7 @@ public sealed class EfeitosDaCobranca(IBancoDeDados banco, FilaDeEmails avisos, 
         }
 
         banco.Lancamentos.Add(new Lancamento(TipoDeLancamento.Receita, cobranca.Id, cobranca.ValorCents, $"Renovação da placa {placa.Codigo}", quando, renovacao.VendaId));
+        banco.AvisarAoVivo("pagamento", placa.RevendedorId);
         if (cobranca.TaxaAvaliaCents > 0)
         {
             banco.Lancamentos.Add(new Lancamento(TipoDeLancamento.TaxaAvalia, cobranca.Id, -cobranca.TaxaAvaliaCents, $"Taxa da plataforma, renovação {placa.Codigo}", quando, renovacao.VendaId));
@@ -122,6 +126,8 @@ public sealed class EfeitosDaCobranca(IBancoDeDados banco, FilaDeEmails avisos, 
         {
             banco.Lancamentos.Add(linha.Estorno("pagamento estornado no Pagar.me", agora));
         }
+
+        banco.AvisarAoVivo("pagamento", cobranca.RevendedorId);
     }
 
     private Task<bool> JaLancada(Guid cobrancaId, CancellationToken ct) =>

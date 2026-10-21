@@ -3,6 +3,7 @@ import { sairDaSessao } from '@/acesso/renovacao'
 import { type Papel, useSessao } from '@/acesso/sessao'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { useAvisosAoVivo } from './avisosAoVivo'
 
 type Item = { para: string; rotulo: string }
 
@@ -14,6 +15,7 @@ const MENU: Record<Papel, Item[]> = {
     { para: '/operadora/pacotes', rotulo: 'Pacotes' },
     { para: '/operadora/cupons', rotulo: 'Cupons' },
     { para: '/operadora/revendedores', rotulo: 'Revendedores' },
+    { para: '/operadora/erp', rotulo: 'ERP' },
   ],
   Dono: [
     { para: '/painel/inicio', rotulo: 'Início' },
@@ -37,6 +39,7 @@ const MENU: Record<Papel, Item[]> = {
 export function Moldura() {
   const perfil = useSessao((s) => s.perfil)
   const navegar = useNavigate()
+  const aviso = useAvisosAoVivo()
   const itens = perfil ? MENU[perfil.papel] : []
 
   async function sair() {
@@ -74,6 +77,10 @@ export function Moldura() {
       <main className="mx-auto max-w-6xl p-4">
         <Outlet />
       </main>
+      {/* Avisos ao vivo: leitor de tela anuncia sem tirar o foco de onde está. */}
+      <div aria-live="polite" className="pointer-events-none fixed inset-x-0 top-28 z-20 flex justify-center px-4">
+        {aviso && <p className="rounded-lg bg-foreground px-4 py-2 text-sm text-background shadow-lg">{aviso}</p>}
+      </div>
     </div>
   )
 }

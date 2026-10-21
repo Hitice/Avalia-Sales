@@ -18,3 +18,5 @@ apagada, ganha a situação Substituída e o número da que a substitui.
 | [0010](0010-swagger-ui-sobre-o-openapi-nativo.md) | Swagger UI sobre o OpenAPI nativo | Aceita |
 | [0011](0011-razao-so-de-insercao.md) | Razão só de inserção, e o saldo de comissão lido dele | Aceita |
 | [0012](0012-pedido-de-placas-pelo-checkout-sem-split.md) | Pedido de placas pelo checkout do Pagar.me, sem split | Aceita |
+| [0013](0013-avisos-ao-vivo-pelo-listen-notify.md) | Avisos ao vivo pelo LISTEN/NOTIFY do Postgres | Aceita |
+| [0014](0014-protheus-por-contrato-rest-proprio.md) | Protheus por contrato REST próprio, com fila | Aceita |

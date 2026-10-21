@@ -194,6 +194,17 @@ Todas no mesmo app, liberadas pelo papel do usuário.
   baixada e a perda vai ao razão.
 - Vendedor com venda é desativado, e não excluído; sem venda, exclui.
 
+### ERP
+
+- Pedido de placas pago vira pedido de venda no Protheus da Avalia, uma vez
+  só. O envio que falhou volta para a fila; depois de 8 tentativas para, e a
+  operadora reenvia pela tela ERP.
+
+### Avisos ao vivo
+
+- Venda, pagamento, pedido, estoque, repasse e ERP atualizam as telas abertas
+  sem recarregar, com um aviso curto. Cada revendedor só recebe os próprios.
+
 ### Contrato
 
 - O contrato do revendedor e o termo do cliente são assinados na D4Sign.
@@ -268,7 +279,7 @@ Estimativa em semanas de cerca de 20 horas.
 | Integrações | Pagar.me (cobrança, split, webhook) e D4Sign (envio, webhook) no código | - | Feita, falta sandbox real |
 | 1. Revenda | Cadastro, contrato, pedido, lote, equipe, venda, NFC e QR | 3 | Feita em simulação; falta o sandbox real do Pagar.me e da D4Sign |
 | 2. Pagamento | Checkout do pedido de placas, cupom, comissão, razão | 3 | Feita em simulação; falta o sandbox real |
-| 3. Serviços | Chat, painel ao vivo, mapa, Worker, Protheus simulado, white label | 4 | A fazer |
+| 3. Serviços | Chat, painel ao vivo, mapa, Worker, Protheus simulado, white label | 4 | Painel ao vivo, Worker e Protheus simulado feitos; mapa, white label e chat a fazer |
 | 4. Avalia | Teste, integração com o Sales, migração e volta | 3 | A fazer |
 
 ## 11. Decisões pendentes
@@ -287,6 +298,7 @@ Estimativa em semanas de cerca de 20 horas.
 
 | Data | Mudança |
 | --- | --- |
+| 21/10/2026 | Avisos ao vivo nas telas e pedido de venda no Protheus para cada pedido de placas pago. |
 | 21/10/2026 | Fase 2 - pedido de placas pago pelo checkout do Pagar.me, cupons da operadora, razão do revendedor, saldo e repasse de comissão, renovação da placa. |
 | 21/10/2026 | Telas da Fase 1 para a operadora, o dono e o vendedor. Recarregar a página mantém o login. |
 | 21/10/2026 | Fase 1 na API - cadastro pela tela, contrato automático, pacotes, pedido, despacho e ativação de lote, estoque, consignação, equipe, venda com cobrança, ficha da placa e leitura do QR. Regras portadas do Sales, com o mapa de portabilidade (seção 6a). Papéis operadora, dono e vendedor. |
