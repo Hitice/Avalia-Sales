@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { chamarApi, enviarJson } from '@/api/cliente'
-import type { DestinoInformado, Ficha, Lugar, VendaRegistrada } from '@/api/tipos'
+import type { DestinoInformado, Ficha, Lugar, RenovacaoAberta, VendaRegistrada } from '@/api/tipos'
 
 export type NovaVenda = {
   codigo: string
@@ -51,5 +51,13 @@ export function useAlternar(codigo: string) {
   return useMutation({
     mutationFn: () => chamarApi(`/placas/${codigo}/alternar`, enviarJson('POST', {})),
     onSuccess: () => Promise.all([cliente.invalidateQueries({ queryKey: ['placa', codigo] }), cliente.invalidateQueries({ queryKey: ['placas'] })]),
+  })
+}
+
+export function useRenovar(codigo: string) {
+  const cliente = useQueryClient()
+  return useMutation({
+    mutationFn: () => chamarApi<RenovacaoAberta>(`/placas/${codigo}/renovacao`, enviarJson('POST', {})),
+    onSuccess: () => cliente.invalidateQueries({ queryKey: ['placa', codigo] }),
   })
 }

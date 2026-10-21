@@ -12,6 +12,7 @@ const MENU: Record<Papel, Item[]> = {
     { para: '/operadora/pedidos', rotulo: 'Pedidos' },
     { para: '/operadora/lotes', rotulo: 'Lotes' },
     { para: '/operadora/pacotes', rotulo: 'Pacotes' },
+    { para: '/operadora/cupons', rotulo: 'Cupons' },
     { para: '/operadora/revendedores', rotulo: 'Revendedores' },
   ],
   Dono: [
@@ -21,6 +22,8 @@ const MENU: Record<Papel, Item[]> = {
     { para: '/painel/estoque', rotulo: 'Estoque' },
     { para: '/painel/pedidos', rotulo: 'Pedidos de placas' },
     { para: '/painel/equipe', rotulo: 'Equipe' },
+    { para: '/painel/comissoes', rotulo: 'Comissões' },
+    { para: '/painel/razao', rotulo: 'Razão' },
     { para: '/painel/catalogo', rotulo: 'Catálogo' },
   ],
   Vendedor: [

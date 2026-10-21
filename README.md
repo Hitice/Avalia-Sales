@@ -74,6 +74,23 @@ dotnet run --project src/AvaliaSales.Api --no-launch-profile -- \
   --nova-operadora --nome="Operação Avalia" --email=operadora@exemplo.com.br --senha=<10 caracteres ou mais>
 ```
 
+## Testar no celular
+
+Web NFC e câmera só existem em HTTPS (ou em localhost). Para o celular na mesma
+rede, gere um certificado local e suba o front no IP da rede:
+
+```bash
+IP=$(ipconfig getifaddr en0)   # no Linux: hostname -I | cut -d' ' -f1
+openssl req -x509 -newkey rsa:2048 -sha256 -days 30 -nodes -keyout chave.pem -out certificado.pem \
+  -subj "/CN=Avalia Sales local" -addext "subjectAltName=IP:$IP,DNS:localhost"
+cd web && FRONT_NA_REDE=1 FRONT_CERTIFICADO=../certificado.pem FRONT_CHAVE=../chave.pem npm run dev
+```
+
+Suba a API com `Plataforma__UrlPublica` e `Plataforma__UrlDoPainel` em
+`https://$IP:5173`, para o QR e a tag NFC gravada apontarem para o endereço que
+o celular alcança; o Vite leva `/api` e `/q/` à API. No Chrome do Android,
+aceite o aviso do certificado local. O NFC só aparece no Chrome do Android.
+
 ## Subir com Docker Compose
 
 ```bash

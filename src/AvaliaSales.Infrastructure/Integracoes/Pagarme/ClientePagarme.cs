@@ -24,6 +24,54 @@ public sealed class ClientePagarme(HttpClient http, IOptions<OpcoesPagarme> opco
         return LerPedido(resposta);
     }
 
+    /// <summary>
+    /// POST /paymentlinks, type order, um pagamento só (max_paid_sessions 1),
+    /// conferido na referência em 21/10/2026. A conferir no sandbox: se o
+    /// pedido gerado pelo link leva o order_code no code, como o POST /orders.
+    /// </summary>
+    public async Task<LinkDoGateway> CriarLink(LinkNoGateway link, CancellationToken ct)
+    {
+        var resposta = await ChamadaExterna.Json(Sistema, () => http.PostAsJsonAsync("paymentlinks", MontarLink(link, opcoes.Value), ct), ct);
+        return new LinkDoGateway(
+            resposta.Texto("id") ?? throw new Application.IntegracaoException(Sistema, null, "link sem id"),
+            resposta.Texto("url") ?? throw new Application.IntegracaoException(Sistema, null, "link sem url"));
+    }
+
+    internal static JsonObject MontarLink(LinkNoGateway link, OpcoesPagarme opcoes)
+    {
+        var valor = checked((int)link.ValorCents);
+        return new JsonObject
+        {
+            ["type"] = "order",
+            ["name"] = link.Descricao.Length > 64 ? link.Descricao[..64] : link.Descricao,
+            ["order_code"] = link.Codigo,
+            ["max_paid_sessions"] = 1,
+            ["expires_in"] = link.ValidadeEmMinutos,
+            ["payment_settings"] = new JsonObject
+            {
+                ["accepted_payment_methods"] = new JsonArray("pix", "credit_card", "boleto"),
+                ["statement_descriptor"] = opcoes.DescricaoNaFatura,
+                ["pix_settings"] = new JsonObject { ["expires_in"] = opcoes.ValidadeDoPixEmMinutos * 60 },
+                ["boleto_settings"] = new JsonObject { ["due_in"] = 3 },
+                ["credit_card_settings"] = new JsonObject
+                {
+                    ["operation_type"] = "auth_and_capture",
+                    ["installments"] = new JsonArray(new JsonObject { ["number"] = 1, ["total"] = valor }),
+                },
+            },
+            ["cart_settings"] = new JsonObject
+            {
+                ["items"] = new JsonArray(new JsonObject
+                {
+                    ["name"] = link.Descricao.Length > 64 ? link.Descricao[..64] : link.Descricao,
+                    ["description"] = link.Descricao,
+                    ["amount"] = valor,
+                    ["default_quantity"] = 1,
+                }),
+            },
+        };
+    }
+
     public async Task<PedidoDoGateway?> BuscarPorCodigo(string codigo, CancellationToken ct)
     {
         var resposta = await ChamadaExterna.Json(Sistema, () => http.GetAsync($"orders?code={Uri.EscapeDataString(codigo)}", ct), ct);

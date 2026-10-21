@@ -10,7 +10,7 @@ import { Field, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { formatarCentavos } from '@/dinheiro/dinheiro'
-import { useAtivarLote, useCancelarPedido, usePacotes, usePedidos, usePedir } from './consultas'
+import { useAtivarLote, useCancelarPedido, usePacotes, usePagarPedido, usePedidos, usePedir } from './consultas'
 
 /** Pedir placas e ativar o lote que chegou. */
 export function TelaDePedidosDePlacas() {
@@ -19,7 +19,9 @@ export function TelaDePedidosDePlacas() {
   const pedir = usePedir()
   const cancelar = useCancelarPedido()
   const ativar = useAtivarLote()
+  const pagar = usePagarPedido()
   const [numero, setNumero] = useState('')
+  const [cupom, setCupom] = useState('')
 
   return (
     <div className="grid gap-4 lg:grid-cols-[1fr_20rem]">
@@ -29,6 +31,9 @@ export function TelaDePedidosDePlacas() {
           <CardHeader><CardTitle>Pacotes</CardTitle></CardHeader>
           <CardContent className="grid gap-3">
             <Erro erro={pedir.error ? mensagemDoErro(pedir.error) : null} />
+            <div className="flex max-w-xs items-end gap-2">
+              <Input aria-label="Cupom de desconto" placeholder="Cupom" className="uppercase" value={cupom} onChange={(e) => setCupom(e.target.value)} />
+            </div>
             <EstadoDaConsulta carregando={pacotes.isPending} erro={pacotes.error} vazio={pacotes.data?.length === 0} textoVazio="Nenhum pacote à venda agora." />
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               {pacotes.data?.map((p) => (
@@ -36,7 +41,7 @@ export function TelaDePedidosDePlacas() {
                   <p className="text-lg font-semibold tabular-nums">{p.quantidade} placas</p>
                   <p className="text-sm tabular-nums">{formatarCentavos(p.precoCents)}</p>
                   <p className="text-xs text-muted-foreground tabular-nums">{formatarCentavos(p.custoPorPlacaCents)} por placa</p>
-                  <Button disabled={pedir.isPending} onClick={() => pedir.mutate(p.id)}>Pedir</Button>
+                  <Button disabled={pedir.isPending} onClick={() => pedir.mutate({ pacoteId: p.id, cupom: cupom.trim() || null }, { onSuccess: () => setCupom('') })}>Pedir</Button>
                 </div>
               ))}
             </div>
@@ -45,7 +50,7 @@ export function TelaDePedidosDePlacas() {
         <Card>
           <CardHeader><CardTitle>Meus pedidos</CardTitle></CardHeader>
           <CardContent>
-            <Erro erro={cancelar.error ? mensagemDoErro(cancelar.error) : null} />
+            <Erro erro={cancelar.error || pagar.error ? mensagemDoErro(cancelar.error ?? pagar.error) : null} />
             <EstadoDaConsulta carregando={pedidos.isPending} erro={pedidos.error} vazio={pedidos.data?.length === 0} textoVazio="Nenhum pedido ainda." />
             {pedidos.data && pedidos.data.length > 0 && (
               <Rolagem>
@@ -65,11 +70,30 @@ export function TelaDePedidosDePlacas() {
                       <TableRow key={p.id}>
                         <TableCell>{formatarDataHora(p.criadoEm)}</TableCell>
                         <TableCell className="text-right tabular-nums">{p.quantidade}</TableCell>
-                        <TableCell className="text-right tabular-nums">{formatarCentavos(p.valorCents)}</TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {formatarCentavos(p.valorCents)}
+                          {p.cupom && <span className="block text-xs text-muted-foreground">cupom {p.cupom}, menos {formatarCentavos(p.descontoCents)}</span>}
+                        </TableCell>
                         <TableCell><Badge variant={p.situacao === 'Ativado' ? 'default' : 'secondary'}>{ROTULO_DO_PEDIDO[p.situacao]}</Badge></TableCell>
                         <TableCell>{p.lote ?? '-'}</TableCell>
                         <TableCell className="text-right">
-                          {p.situacao === 'AguardandoPagamento' && <Button variant="ghost" onClick={() => cancelar.mutate(p.id)}>Cancelar</Button>}
+                          {p.situacao === 'AguardandoPagamento' && (
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                disabled={pagar.isPending}
+                                onClick={async () => {
+                                  // A página do Pagar.me abre em outra aba; o pedido fica pago aqui quando o pagamento cai.
+                                  const aba = window.open('', '_blank')
+                                  const url = p.urlDePagamento ?? (await pagar.mutateAsync(p.id).catch(() => null))?.url
+                                  if (url && aba) aba.location.href = url
+                                  else aba?.close()
+                                }}
+                              >
+                                Pagar
+                              </Button>
+                              {!p.urlDePagamento && <Button variant="ghost" onClick={() => cancelar.mutate(p.id)}>Cancelar</Button>}
+                            </div>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))}

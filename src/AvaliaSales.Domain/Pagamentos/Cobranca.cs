@@ -11,6 +11,9 @@ public enum MeioDePagamento
 {
     Pix = 1,
     Cartao = 2,
+
+    /// <summary>Checkout do Pagar.me: quem paga escolhe Pix, cartão ou boleto na página dele.</summary>
+    Link = 3,
 }
 
 public enum SituacaoDaCobranca
@@ -38,6 +41,11 @@ public sealed class Cobranca : IDoRevendedor
     public long TaxaAvaliaCents { get; private set; }
     public SituacaoDaCobranca Situacao { get; private set; } = SituacaoDaCobranca.Pendente;
     public string? PedidoNoGateway { get; private set; }
+
+    /// <summary>Link de pagamento (pl_...) e o endereço dele, quando a cobrança é pelo checkout do Pagar.me.</summary>
+    public string? LinkNoGateway { get; private set; }
+
+    public string? UrlDoLink { get; private set; }
     public string? PixCopiaECola { get; private set; }
     public string? PixQrCodeUrl { get; private set; }
     public DateTimeOffset? PixExpiraEm { get; private set; }
@@ -79,6 +87,12 @@ public sealed class Cobranca : IDoRevendedor
     }
 
     public void MarcarConferida(DateTimeOffset agora) => ConferidaEm = agora;
+
+    public void RegistrarLink(string link, string url)
+    {
+        LinkNoGateway = link;
+        UrlDoLink = url;
+    }
 
     /// <summary>
     /// Aplica a situação lida no Pagar.me. Só anda para a frente: um evento

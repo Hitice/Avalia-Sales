@@ -11,21 +11,23 @@ namespace AvaliaSales.Application.Pedidos;
 
 public sealed record PedidoDto(
     Guid Id, Guid RevendedorId, string Revendedor, int Quantidade, long ValorCents, SituacaoDoPedido Situacao,
-    DateTimeOffset CriadoEm, DateTimeOffset? PagoEm, string? Lote, DateTimeOffset? DespachadoEm, DateTimeOffset? AtivadoEm);
+    DateTimeOffset CriadoEm, DateTimeOffset? PagoEm, string? Lote, DateTimeOffset? DespachadoEm, DateTimeOffset? AtivadoEm,
+    long PrecoDoPacoteCents, string? Cupom, long DescontoCents, string? UrlDePagamento);
 
 public sealed record AtivacaoDto(string Lote, int Placas, string PrimeiroCodigo, string UltimoCodigo);
 
 /// <summary>
 /// Do pedido à ativação: o revendedor pede um pacote, a operadora registra o
 /// pagamento e despacha um lote da mesma quantidade, e o revendedor ativa o
-/// lote pelo número da caixa. O pagamento pelo Pagar.me entra na Fase 2; até
-/// lá a operadora registra o pagamento recebido.
+/// lote pelo número da caixa. O revendedor paga pelo checkout do Pagar.me;
+/// a operadora também pode registrar um pagamento recebido por fora.
 /// </summary>
 public sealed class PedidosDePlacas(
     IBancoDeDados banco,
     IRevendedorAtual atual,
     IContas contas,
     FilaDeEmails avisos,
+    Pagamentos.Cobrancas cobrancas,
     IOptions<OpcoesDaPlataforma> plataforma,
     TimeProvider relogio)
 {
@@ -38,14 +40,22 @@ public sealed class PedidosDePlacas(
         var lotes = await banco.Lotes.AsNoTracking()
             .Where(l => pedidos.Select(p => p.LoteId).Contains(l.Id))
             .ToDictionaryAsync(l => l.Id, l => l.Numero, ct);
+        var ids = pedidos.Select(p => (Guid?)p.Id).ToList();
+
+        // O link em aberto mais recente de cada pedido. A operadora não lê cobranças (RLS): para ela, sai nulo.
+        var links = await banco.Cobrancas.AsNoTracking()
+            .Where(c => c.Origem == Domain.Pagamentos.OrigemDaCobranca.PedidoDePlacas && ids.Contains(c.OrigemId) && c.Situacao == Domain.Pagamentos.SituacaoDaCobranca.Pendente && c.UrlDoLink != null)
+            .Select(c => new { c.OrigemId, c.UrlDoLink, c.CriadaEm })
+            .ToListAsync(ct);
+        var linkDe = links.GroupBy(l => l.OrigemId!.Value).ToDictionary(g => g.Key, g => g.OrderByDescending(l => l.CriadaEm).First().UrlDoLink);
         return pedidos.Select(p => new PedidoDto(
             p.Id, p.RevendedorId, revendedores.GetValueOrDefault(p.RevendedorId, ""), p.Quantidade, p.ValorCents, p.Situacao,
             p.CriadoEm, p.PagoEm, p.LoteId is { } l && lotes.TryGetValue(l, out var n) ? Lote.Rotular(n) : null,
-            p.DespachadoEm, p.AtivadoEm)).ToList();
+            p.DespachadoEm, p.AtivadoEm, p.PrecoDoPacoteCents, p.Cupom, p.DescontoCents, linkDe.GetValueOrDefault(p.Id))).ToList();
     }
 
-    /// <summary>Sem contrato de revenda assinado, não há pedido.</summary>
-    public async Task<PedidoDto> Criar(Guid pacoteId, CancellationToken ct)
+    /// <summary>Sem contrato de revenda assinado, não há pedido. O cupom é conferido e gasto aqui.</summary>
+    public async Task<PedidoDto> Criar(Guid pacoteId, string? codigoDoCupom, CancellationToken ct)
     {
         var revendedor = await banco.Revendedores.SingleAsync(r => r.Id == atual.RevendedorId, ct);
         if (revendedor.ContratoAssinadoEm is null)
@@ -55,7 +65,21 @@ public sealed class PedidosDePlacas(
 
         var pacote = await banco.Pacotes.SingleOrDefaultAsync(p => p.Id == pacoteId, ct)
             ?? throw new RegraDeNegocioException("Pacote não encontrado.");
-        var pedido = new PedidoDePlacas(pacote, relogio.GetUtcNow());
+        await using var transacao = await banco.Database.BeginTransactionAsync(ct);
+        Cupom? cupom = null;
+        if (!string.IsNullOrWhiteSpace(codigoDoCupom))
+        {
+            cupom = await banco.TravarCupom(Cupom.Normalizar(codigoDoCupom), ct)
+                ?? throw new RegraDeNegocioException("Cupom não encontrado.");
+        }
+
+        var agora = relogio.GetUtcNow();
+        var pedido = new PedidoDePlacas(pacote, agora, cupom);
+        if (pedido.Gratuito)
+        {
+            pedido.RegistrarPagamento(agora);
+        }
+
         banco.Pedidos.Add(pedido);
 
         var site = plataforma.Value;
@@ -68,12 +92,51 @@ public sealed class PedidosDePlacas(
             {site.UrlDoPainel.TrimEnd('/')}/operadora/pedidos
             """);
         await banco.SaveChangesAsync(ct);
+        await transacao.CommitAsync(ct);
         return (await Listar(ct)).Single(p => p.Id == pedido.Id);
+    }
+
+    /// <summary>
+    /// O link do checkout do Pagar.me para pagar o pedido. Chamar de novo
+    /// devolve o link em aberto, e só cria outro se o anterior venceu ou falhou.
+    /// </summary>
+    public async Task<string> Pagar(Guid id, CancellationToken ct)
+    {
+        var pedido = await Achar(id, ct);
+        if (pedido.Situacao != SituacaoDoPedido.AguardandoPagamento)
+        {
+            throw new RegraDeNegocioException("Este pedido não está aguardando pagamento.");
+        }
+
+        var aberto = await banco.Cobrancas.AsNoTracking()
+            .Where(c => c.Origem == Domain.Pagamentos.OrigemDaCobranca.PedidoDePlacas && c.OrigemId == id && c.Situacao == Domain.Pagamentos.SituacaoDaCobranca.Pendente && c.UrlDoLink != null)
+            .OrderByDescending(c => c.CriadaEm).Select(c => c.UrlDoLink).FirstOrDefaultAsync(ct);
+        if (aberto is not null)
+        {
+            return aberto;
+        }
+
+        var cobranca = await cobrancas.CriarLink(Domain.Pagamentos.OrigemDaCobranca.PedidoDePlacas, id, pedido.ValorCents, $"Pedido de {pedido.Quantidade} placas", ct);
+        return cobranca.UrlDoLink!;
     }
 
     public async Task Cancelar(Guid id, CancellationToken ct)
     {
-        (await Achar(id, ct)).Cancelar();
+        var pedido = await Achar(id, ct);
+
+        // Link em aberto ainda pode ser pago: cancelar agora deixaria o dinheiro sem pedido.
+        if (await banco.Cobrancas.AnyAsync(c => c.Origem == Domain.Pagamentos.OrigemDaCobranca.PedidoDePlacas && c.OrigemId == id
+                && c.Situacao == Domain.Pagamentos.SituacaoDaCobranca.Pendente && c.UrlDoLink != null, ct))
+        {
+            throw new RegraDeNegocioException("Há um link de pagamento em aberto para este pedido. Ele vence em 3 dias; depois disso o pedido pode ser cancelado.");
+        }
+
+        pedido.Cancelar();
+        if (pedido.Cupom is { } codigo && await banco.Cupons.SingleOrDefaultAsync(c => c.Codigo == codigo, ct) is { } cupom)
+        {
+            cupom.Devolver();
+        }
+
         await banco.SaveChangesAsync(ct);
     }
 

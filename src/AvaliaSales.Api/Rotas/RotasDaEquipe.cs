@@ -1,4 +1,5 @@
 using AvaliaSales.Api.Autenticacao;
+using AvaliaSales.Application.Financeiro;
 using AvaliaSales.Application.Lugares;
 using AvaliaSales.Application.Placas;
 using AvaliaSales.Application.Vendas;
@@ -26,6 +27,11 @@ public static class RotasDaEquipe
         });
         equipe.MapPost("/placas/{codigo}/alternar", async (string codigo, FichaDaPlaca ficha, CancellationToken ct) =>
             Results.Ok(new { Estado = await ficha.Alternar(codigo, ct) }));
+
+        equipe.MapPost("/placas/{codigo}/renovacao", (string codigo, Renovacoes renovacoes, CancellationToken ct) => renovacoes.Renovar(codigo, ct));
+
+        // O dono vê o saldo de todos; o vendedor, só o dele.
+        equipe.MapGet("/comissoes", (Comissoes comissoes, CancellationToken ct) => comissoes.Saldos(ct));
 
         equipe.MapGet("/vendas", (Vendas vendas, CancellationToken ct) => vendas.Listar(ct));
         equipe.MapPost("/vendas", async (NovaVenda pedido, Vendas vendas, CancellationToken ct) =>

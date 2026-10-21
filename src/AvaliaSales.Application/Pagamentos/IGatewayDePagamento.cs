@@ -26,12 +26,23 @@ public sealed record PedidoDoGateway(
     string? PixQrCodeUrl,
     DateTimeOffset? PixExpiraEm);
 
+/// <summary>
+/// Link de pagamento (checkout do Pagar.me) para o pedido de placas: o
+/// revendedor paga na página do Pagar.me, sem split, tudo para a Avalia.
+/// O código vai como order_code, para o pedido pago ser achado por ele.
+/// </summary>
+public sealed record LinkNoGateway(string Codigo, string Descricao, long ValorCents, int ValidadeEmMinutos);
+
+public sealed record LinkDoGateway(string Id, string Url);
+
 public interface IGatewayDePagamento
 {
     /// <summary>Recebedor da Avalia, que fica com a taxa de cada venda.</summary>
     string RecebedorDaAvalia { get; }
 
     Task<PedidoDoGateway> CriarPedido(PedidoNoGateway pedido, CancellationToken ct);
+
+    Task<LinkDoGateway> CriarLink(LinkNoGateway link, CancellationToken ct);
 
     /// <summary>Busca pelo nosso código. Nulo quando o pedido não chegou a ser criado.</summary>
     Task<PedidoDoGateway?> BuscarPorCodigo(string codigo, CancellationToken ct);

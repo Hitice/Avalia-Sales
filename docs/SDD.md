@@ -168,11 +168,23 @@ Se a venda está paga, quem diz é a cobrança mais recente com origem nela, e
 não uma coluna da venda: a cobrança gravada antes de o Pagar.me cair já
 aponta para a venda.
 
+### Fase 2, no banco
+
+| Tabela | Guarda | Regra |
+| --- | --- | --- |
+| `cupons` | Código, desconto (pontos base ou centavos), validade, limite e usos | Sem RLS; código único; travado na hora do uso |
+| `lancamentos` | Razão do revendedor: tipo, origem, venda, vendedor, valor com sinal, competência, linha estornada | RLS; só inserção; único (origem, tipo) na linha original e único `estorna_id` no estorno |
+| `repasses` | Comissão paga ao vendedor: valor, vendas, data de corte, comprovante | RLS; vendedor travado na gravação |
+| `renovacoes` | Placa, venda, valor, situação, de, até, paga em | RLS; uma aberta por placa |
+| `pedidos_placas` (colunas novas) | Preço do pacote, cupom e desconto | - |
+| `cobrancas` (colunas novas) | Link no Pagar.me e URL do checkout | - |
+| `vendas` (coluna nova) | Repasse que pagou a comissão | - |
+| `revendedores` (coluna nova) | Preço da renovação (6000 = 60%) | - |
+
 ### Planejado
 
-`regras_comissao` por produto, `lancamentos` (razão, só inserção), `cupons`,
-`renovacoes`, `conversas`, `mensagens`, `auditoria`, histórico de destino da
-placa. Detalhe no PDD.
+`regras_comissao` por produto, `conversas`, `mensagens`, `auditoria`,
+histórico de destino da placa. Detalhe no PDD.
 
 Migration só aditiva. Tabela nova com `revendedor_id` chama
 `IsolarPorRevendedor` no fim do `Up`.
@@ -236,6 +248,26 @@ Conferido na referência oficial em 21/10/2026.
   cobre só o UUID; o Worker reconsulta a situação. A chave do evento é
   `uuid:type_post:email`.
 
+### Checkout do Pagar.me (no código)
+
+- `POST /paymentlinks` com `type` order, `order_code` igual ao id da cobrança,
+  `max_paid_sessions` 1, validade de 3 dias (`expires_in` em minutos), Pix,
+  cartão e boleto, sem `split_settings`: o pedido de placas é todo da Avalia
+  (cobrança com taxa de 100%). Conferido na referência em 21/10/2026.
+- O pedido no Pagar.me só nasce quando o revendedor paga. A conferência de
+  cobrança pendente procura pelo código; link vencido sem pagamento vira
+  cobrança cancelada, e outro link pode sair.
+- A conferir no sandbox - se o pedido gerado pelo link leva o `order_code` no
+  `code`, como o `POST /orders`.
+
+### Efeitos do pagamento
+
+`EfeitosDaCobranca` roda quando a situação da cobrança muda, antes do mesmo
+`SaveChanges`: pedido de placas pago, razão da venda paga (receita, taxa,
+comissão devida), renovação estendendo a placa, estorno com as linhas
+contrárias. O estorno chega pelo webhook (`charge.refunded`), porque a
+conferência só reconsulta cobrança pendente.
+
 ### Resend (no código)
 
 Conferido na referência oficial em 21/10/2026.
@@ -248,8 +280,8 @@ Conferido na referência oficial em 21/10/2026.
   retentativa ou dois Workers não entregam em dobro.
 - Sem chave configurada, o Worker não envia e o e-mail espera na fila; nada é
   marcado como enviado sem ter saído.
-- E-mails da Fase 1 - pedido novo para a operadora e lote despachado para o
-  dono.
+- E-mails - pedido novo e pedido pago para a operadora, lote despachado para
+  o dono, e pagamento a devolver quando chega para pedido já pago ou cancelado.
 
 ### Google Places (no código)
 
@@ -273,6 +305,9 @@ Conferido na referência oficial em 21/10/2026.
   resposta: pendente nos primeiros 20 segundos e paga depois.
 - O pagamento simulado chega pela conferência de cobrança pendente, o mesmo
   caminho que cobre webhook perdido em produção.
+- Link de pagamento simulado abre `/simulador/pagarme/{codigo}`, uma página da
+  API que diz que nada é cobrado; a rota só existe em Development com o
+  simulador ligado.
 
 ### Conferência de cobrança pendente
 
@@ -372,8 +407,9 @@ Revisão pela skill `seguranca` (OWASP ASVS 5.0).
   placa, lote, venda, comissão, documentos), contrato HTTP dos clientes contra
   servidor falso, e fluxo completo no Postgres (lote do pacote à ativação,
   venda, leitura do QR, consignação, equipe, sessão e cadastro). O Pagar.me da
-  API de teste é falso: nenhuma chamada sai para a rede. 134 testes em
-  21/10/2026.
+  API de teste é falso: nenhuma chamada sai para a rede. Fluxo financeiro com
+  o Worker de relógio adiantado (pedido pago pelo link, razão, repasse,
+  estorno pelo webhook, renovação). 147 testes em 21/10/2026.
 - Os testes entram no Postgres com o papel `avalia_app_teste`, membro do
   `avalia_app`: as mesmas permissões e o mesmo RLS, sem trocar a senha que a API
   local usa.
@@ -403,6 +439,9 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
 | 21/10/2026 | Refresh token rotativo em cookie HttpOnly | O token de acesso continua só em memória, e recarregar a página não derruba a sessão |
 | 21/10/2026 | Pagamento da venda lido da cobrança por origem | A cobrança gravada antes da queda do Pagar.me já aponta para a venda |
 | 21/10/2026 | Simulador do Pagar.me sem estado, pelo UUID v7 | API e Worker são processos separados e precisam da mesma resposta |
+| 21/10/2026 | Razão só de inserção, com estorno apontando para a linha | Mês fechado não muda; o mesmo pagamento não é lançado duas vezes |
+| 21/10/2026 | Saldo de comissão lido do razão | Estorno depois do repasse vira saldo negativo e desconta no próximo |
+| 21/10/2026 | Pedido de placas pelo checkout, sem split | O link só divide em cartão; o pacote é todo da Avalia |
 | 21/10/2026 | Swagger UI sobre o OpenAPI nativo do ASP.NET Core | O documento é o do framework; o Swashbuckle entra só como página |
 | 21/10/2026 | `@hookform/resolvers` 5.9 e não 6.0 | A 6.0.0 declara versões conflitantes de uma dependência opcional e não instala sem forçar |
 | 21/10/2026 | Nenhuma biblioteca de idempotência pronta | A mais citada tinha 329 estrelas e nenhum commit desde 11/2024; o Postgres já garante unicidade |
@@ -433,6 +472,7 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
 
 | Data | Mudança |
 | --- | --- |
+| 21/10/2026 | Fase 2 - checkout do Pagar.me para o pedido de placas, cupons, razão, saldo e repasse de comissão, renovação, efeitos do pagamento, telas de cupons, comissões, razão e renovação. Front em HTTPS na rede local para testar Web NFC e câmera no celular, com `/q/` passando pelo Vite. |
 | 21/10/2026 | Telas da Fase 1 - operadora (pedidos, lotes com download da impressão, pacotes, revendedores), dono (início, vendas com nova cobrança, estoque com consignação, pedidos de placas com ativação de lote, equipe e comissão, catálogo com editar, desativar e excluir), balcão (Nova venda com QR, NFC e Pix, ficha da placa) e cadastro. Sessão restaurada pelo cookie ao recarregar. Endereço da placa nas respostas de venda e ficha, para a gravação do NFC. |
 | 21/10/2026 | Fase 1 na API - tabelas da plataforma e do revendedor, papéis e políticas, sessão com refresh em cookie, rotas por área, leitura do QR, impressão do lote, Resend, Places, simulador do Pagar.me, conferência de cobrança pendente, contrato automático e demonstração completa. Testes com papel próprio no Postgres. Página de rotas trocada do Scalar pelo Swagger UI. |
 | 21/10/2026 | Comando `--novo-revendedor` para a operadora cadastrar revendedor e dono pela linha de comando. |

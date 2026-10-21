@@ -2,6 +2,7 @@ using AvaliaSales.Domain.Avisos;
 using AvaliaSales.Domain.Catalogo;
 using AvaliaSales.Domain.Contratos;
 using AvaliaSales.Domain.Equipe;
+using AvaliaSales.Domain.Financeiro;
 using AvaliaSales.Domain.Integracoes;
 using AvaliaSales.Domain.Pagamentos;
 using AvaliaSales.Domain.Pedidos;
@@ -31,6 +32,10 @@ public interface IBancoDeDados
     DbSet<Cliente> Clientes { get; }
     DbSet<Venda> Vendas { get; }
     DbSet<EmailNaFila> Emails { get; }
+    DbSet<Cupom> Cupons { get; }
+    DbSet<Lancamento> Lancamentos { get; }
+    DbSet<Repasse> Repasses { get; }
+    DbSet<Renovacao> Renovacoes { get; }
 
     /// <summary>Para abrir transação. SQL direto não sai daqui: mora nos métodos abaixo, na Infrastructure.</summary>
     DatabaseFacade Database { get; }
@@ -46,6 +51,11 @@ public interface IBancoDeDados
 
     /// <summary>As livres de menor sequência, pulando as que outra transação já travou.</summary>
     Task<List<Placa>> TravarPlacasLivres(int quantidade, CancellationToken ct);
+
+    Task<Cupom?> TravarCupom(string codigo, CancellationToken ct);
+
+    /// <summary>Trava o vendedor: dois repasses ao mesmo tempo pagariam a mesma comissão duas vezes.</summary>
+    Task TravarVendedor(Guid vendedorId, CancellationToken ct);
 
     /// <summary>Soma atômica de uma leitura no dia e no total da placa.</summary>
     Task SomarLeitura(Guid placaId, Guid revendedorId, DateOnly dia, DateTimeOffset agora, CancellationToken ct);

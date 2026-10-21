@@ -5,6 +5,7 @@ using AvaliaSales.Domain.Avisos;
 using AvaliaSales.Domain.Catalogo;
 using AvaliaSales.Domain.Contratos;
 using AvaliaSales.Domain.Equipe;
+using AvaliaSales.Domain.Financeiro;
 using AvaliaSales.Domain.Integracoes;
 using AvaliaSales.Domain.Pagamentos;
 using AvaliaSales.Domain.Pedidos;
@@ -40,6 +41,10 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
     public DbSet<Venda> Vendas => Set<Venda>();
     public DbSet<EmailNaFila> Emails => Set<EmailNaFila>();
     public DbSet<Sessao> Sessoes => Set<Sessao>();
+    public DbSet<Cupom> Cupons => Set<Cupom>();
+    public DbSet<Lancamento> Lancamentos => Set<Lancamento>();
+    public DbSet<Repasse> Repasses => Set<Repasse>();
+    public DbSet<Renovacao> Renovacoes => Set<Renovacao>();
 
     /// <summary>Lido pelo filtro global a cada consulta, e não na montagem do modelo.</summary>
     public Guid? RevendedorAtual => revendedor.RevendedorId;
@@ -92,6 +97,8 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
             c.Property(x => x.Meio).HasConversion<string>().HasMaxLength(10);
             c.Property(x => x.Situacao).HasConversion<string>().HasMaxLength(12);
             c.Property(x => x.PedidoNoGateway).HasMaxLength(64);
+            c.Property(x => x.LinkNoGateway).HasMaxLength(64);
+            c.Property(x => x.UrlDoLink).HasMaxLength(500);
             c.Property(x => x.PixQrCodeUrl).HasMaxLength(500);
             c.Ignore(x => x.Codigo);
             c.Ignore(x => x.Divisao);
@@ -143,7 +150,56 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
         });
 
         ConfigurarFase1(modelo);
+        ConfigurarFase2(modelo);
         FiltrarPorRevendedor(modelo);
+    }
+
+    private static void ConfigurarFase2(ModelBuilder modelo)
+    {
+        // Cupom é da plataforma: sem RLS, a operadora cria e o pedido gasta.
+        modelo.Entity<Cupom>(c =>
+        {
+            c.ToTable("cupons");
+            c.Property(x => x.Codigo).HasMaxLength(Cupom.CodigoMaximo);
+            c.HasIndex(x => x.Codigo).IsUnique();
+        });
+
+        modelo.Entity<Lancamento>(l =>
+        {
+            l.ToTable("lancamentos");
+            l.Property(x => x.Tipo).HasConversion<string>().HasMaxLength(20);
+            l.Property(x => x.Descricao).HasMaxLength(200).IsRequired();
+            l.Property(x => x.Competencia).HasMaxLength(7).IsFixedLength();
+            l.HasOne<Revendedor>().WithMany().HasForeignKey(x => x.RevendedorId).OnDelete(DeleteBehavior.Restrict);
+            l.HasOne<Lancamento>().WithMany().HasForeignKey(x => x.EstornaId).OnDelete(DeleteBehavior.Restrict);
+
+            // O mesmo pagamento nunca é lançado duas vezes, e a mesma linha nunca é estornada duas vezes.
+            l.HasIndex(x => new { x.OrigemId, x.Tipo }).IsUnique().HasFilter("estorna_id is null");
+            l.HasIndex(x => x.EstornaId).IsUnique().HasFilter("estorna_id is not null");
+            l.HasIndex(x => new { x.RevendedorId, x.Competencia });
+            l.HasIndex(x => new { x.RevendedorId, x.VendedorId, x.Tipo });
+        });
+
+        modelo.Entity<Repasse>(r =>
+        {
+            r.ToTable("repasses");
+            r.Property(x => x.Comprovante).HasMaxLength(120);
+            r.HasOne<Revendedor>().WithMany().HasForeignKey(x => x.RevendedorId).OnDelete(DeleteBehavior.Restrict);
+            r.HasOne<Vendedor>().WithMany().HasForeignKey(x => x.VendedorId).OnDelete(DeleteBehavior.Restrict);
+            r.HasIndex(x => new { x.RevendedorId, x.VendedorId, x.PagoEm });
+        });
+
+        modelo.Entity<Renovacao>(r =>
+        {
+            r.ToTable("renovacoes");
+            r.Property(x => x.Situacao).HasConversion<string>().HasMaxLength(12);
+            r.HasOne<Revendedor>().WithMany().HasForeignKey(x => x.RevendedorId).OnDelete(DeleteBehavior.Restrict);
+            r.HasOne<Placa>().WithMany().HasForeignKey(x => x.PlacaId).OnDelete(DeleteBehavior.Restrict);
+            r.HasOne<Venda>().WithMany().HasForeignKey(x => x.VendaId).OnDelete(DeleteBehavior.Restrict);
+
+            // Uma renovação em aberto por placa.
+            r.HasIndex(x => x.PlacaId).IsUnique().HasFilter("situacao = 'Aberta'");
+        });
     }
 
     private static void ConfigurarFase1(ModelBuilder modelo)
@@ -212,6 +268,8 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
             p.ToTable("pedidos_placas");
             p.Property(x => x.Situacao).HasConversion<string>().HasMaxLength(20);
             p.Ignore(x => x.CustoPorPlacaCents);
+            p.Ignore(x => x.Gratuito);
+            p.Property(x => x.Cupom).HasMaxLength(Cupom.CodigoMaximo);
             p.HasOne<Revendedor>().WithMany().HasForeignKey(x => x.RevendedorId).OnDelete(DeleteBehavior.Restrict);
             p.HasIndex(x => new { x.RevendedorId, x.Situacao });
         });
@@ -277,6 +335,7 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
             v.HasOne<Usuario>().WithMany().HasForeignKey(x => x.VendedorId).OnDelete(DeleteBehavior.Restrict);
             v.HasIndex(x => x.PlacaId).IsUnique().HasFilter("situacao = 'Registrada'");
             v.HasIndex(x => new { x.RevendedorId, x.VendedorId, x.VendidaEm });
+            v.HasOne<Repasse>().WithMany().HasForeignKey(x => x.RepasseId).OnDelete(DeleteBehavior.Restrict);
         });
     }
 
@@ -323,6 +382,12 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
             select * from placas where situacao = 'EmEstoque' and consignada_a is null
             order by sequencia limit {quantidade} for update skip locked
             """).ToListAsync(ct);
+
+    public Task<Cupom?> TravarCupom(string codigo, CancellationToken ct) =>
+        Cupons.FromSql($"select * from cupons where codigo = {codigo} for update").SingleOrDefaultAsync(ct);
+
+    public Task TravarVendedor(Guid vendedorId, CancellationToken ct) =>
+        Database.ExecuteSqlAsync($"select 1 from vendedores where id = {vendedorId} for update", ct);
 
     public async Task SomarLeitura(Guid placaId, Guid revendedorId, DateOnly dia, DateTimeOffset agora, CancellationToken ct)
     {

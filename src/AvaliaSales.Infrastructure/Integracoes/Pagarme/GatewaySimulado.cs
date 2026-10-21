@@ -12,7 +12,7 @@ namespace AvaliaSales.Infrastructure.Integracoes.Pagarme;
 /// mesma resposta: pendente nos primeiros <see cref="SegundosParaPagar"/>
 /// segundos, paga depois, como o Pix do simulador do Pagar.me.
 /// </summary>
-public sealed class GatewaySimulado(IOptions<OpcoesPagarme> opcoes, TimeProvider relogio) : IGatewayDePagamento
+public sealed class GatewaySimulado(IOptions<OpcoesPagarme> opcoes, IOptions<Application.OpcoesDaPlataforma> plataforma, TimeProvider relogio) : IGatewayDePagamento
 {
     public const int SegundosParaPagar = 20;
 
@@ -20,6 +20,10 @@ public sealed class GatewaySimulado(IOptions<OpcoesPagarme> opcoes, TimeProvider
 
     public Task<PedidoDoGateway> CriarPedido(PedidoNoGateway pedido, CancellationToken ct) =>
         Task.FromResult(Ler(pedido.Codigo) ?? throw new Application.IntegracaoException("Simulador", null, "código fora do formato da cobrança"));
+
+    /// <summary>O link abre uma página da própria API em Development que avisa que o pagamento é simulado.</summary>
+    public Task<LinkDoGateway> CriarLink(LinkNoGateway link, CancellationToken ct) =>
+        Task.FromResult(new LinkDoGateway("pl_simulado_" + link.Codigo, $"{plataforma.Value.UrlPublica.TrimEnd('/')}/simulador/pagarme/{link.Codigo}"));
 
     public Task<PedidoDoGateway?> BuscarPorCodigo(string codigo, CancellationToken ct) => Task.FromResult(Ler(codigo));
 

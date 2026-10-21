@@ -34,6 +34,18 @@ public sealed class GatewayFalso : IGatewayDePagamento
         return Task.FromResult(criado);
     }
 
+    public List<LinkNoGateway> Links { get; } = [];
+
+    public Task<LinkDoGateway> CriarLink(LinkNoGateway link, CancellationToken ct)
+    {
+        Links.Add(link);
+        return FalhaAoCriar is not null ? throw FalhaAoCriar : Task.FromResult(new LinkDoGateway("pl_" + link.Codigo[..12], "https://checkout.exemplo/" + link.Codigo));
+    }
+
+    /// <summary>O cliente pagou pelo link: o pedido passa a existir com o código da cobrança.</summary>
+    public void PagarLink(string codigo) =>
+        PorCodigo[codigo] = new PedidoDoGateway("or_" + codigo[..16], codigo, SituacaoDaCobranca.Paga, DateTimeOffset.UtcNow, null, null, null);
+
     public Task<PedidoDoGateway?> BuscarPorCodigo(string codigo, CancellationToken ct)
     {
         Buscas++;

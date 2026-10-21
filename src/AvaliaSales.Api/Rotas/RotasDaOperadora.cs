@@ -38,6 +38,21 @@ public static class RotasDaOperadora
             return Results.NoContent();
         });
 
+        operadora.MapGet("/cupons", (Cupons cupons, CancellationToken ct) => cupons.Listar(ct));
+        operadora.MapPost("/cupons", async (GravarCupom pedido, Cupons cupons, CancellationToken ct) =>
+            Results.Created("/operadora/cupons", await cupons.Criar(pedido, ct)));
+        operadora.MapPut("/cupons/{id:guid}", (Guid id, GravarCupom pedido, Cupons cupons, CancellationToken ct) => cupons.Alterar(id, pedido, ct));
+        operadora.MapPut("/cupons/{id:guid}/ativo", async (Guid id, AlterarAtivo pedido, Cupons cupons, CancellationToken ct) =>
+        {
+            await cupons.DefinirAtivo(id, pedido.Ativo, ct);
+            return Results.NoContent();
+        });
+        operadora.MapDelete("/cupons/{id:guid}", async (Guid id, Cupons cupons, CancellationToken ct) =>
+        {
+            await cupons.Excluir(id, ct);
+            return Results.NoContent();
+        });
+
         operadora.MapGet("/lotes", (Lotes lotes, CancellationToken ct) => lotes.Listar(ct));
         operadora.MapPost("/lotes", async (GerarLote pedido, Lotes lotes, CancellationToken ct) =>
             Results.Created("/operadora/lotes", await lotes.Gerar(pedido.Quantidade, ct)));

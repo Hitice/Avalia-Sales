@@ -38,6 +38,9 @@ public sealed class Venda : IDoRevendedor
     public SituacaoDaVenda Situacao { get; private set; } = SituacaoDaVenda.Registrada;
     public DateTimeOffset VendidaEm { get; private set; }
 
+    /// <summary>O repasse que pagou a comissão desta venda ao vendedor.</summary>
+    public Guid? RepasseId { get; private set; }
+
     private Venda()
     {
     }
@@ -60,6 +63,9 @@ public sealed class Venda : IDoRevendedor
     }
 
     public long ComissaoCents => Comissao.Calcular(ValorCents, ComissaoBps);
+
+    public void MarcarRepassada(Guid repasseId) =>
+        RepasseId = RepasseId is null ? repasseId : throw new InvalidOperationException($"A comissão da venda {Id} já foi repassada.");
 
     /// <summary>Nunca abaixo da tabela; acima, até 5 vezes. Dar de graça é a cortesia, que não passa por aqui.</summary>
     public static void ConferirValor(long valorCents, long tabelaCents)

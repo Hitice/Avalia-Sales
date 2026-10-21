@@ -1,5 +1,7 @@
 using AvaliaSales.Api.Autenticacao;
 using AvaliaSales.Application.Equipe;
+using AvaliaSales.Application.Financeiro;
+using AvaliaSales.Application.Pagamentos;
 using AvaliaSales.Application.Pedidos;
 using AvaliaSales.Application.Placas;
 using AvaliaSales.Domain.Acesso;
@@ -42,12 +44,14 @@ internal static class Demonstracao
             var contas = escopo.ServiceProvider.GetRequiredService<IContas>();
             if (await banco.Users.AnyAsync(u => u.Email == Operadora, ct))
             {
-                Console.WriteLine("A demonstração já foi semeada. Para recomeçar, apague o banco e rode --migrar.");
+                await Complementar(servicos, ct);
+                Console.WriteLine("A demonstração já estava semeada; o que entrou depois foi completado. Para recomeçar, apague o banco e rode --migrar.");
                 return 0;
             }
 
             await contas.Criar("Operação Avalia", Operadora, Senha, Papel.Operadora, null, ct);
             banco.Pacotes.AddRange(new Pacote(10, 15_000), new Pacote(20, 28_000), new Pacote(50, 65_000), new Pacote(100, 120_000));
+            banco.Cupons.Add(new Cupom("BEMVINDO10", 1_000, null, DateTimeOffset.UtcNow.AddMonths(3), 50));
             await banco.SaveChangesAsync(ct);
 
             var lotes = escopo.ServiceProvider.GetRequiredService<Lotes>();
@@ -70,6 +74,46 @@ internal static class Demonstracao
             Preços de pacote, contratos, recebedores e pagamentos são simulados.
             """);
         return 0;
+    }
+
+    /// <summary>
+    /// O que a demonstração ganhou depois de semeada: o cupom de exemplo e o
+    /// razão das vendas pagas antes de o razão existir. Rodar de novo não duplica.
+    /// </summary>
+    private static async Task Complementar(IServiceProvider servicos, CancellationToken ct)
+    {
+        using (var escopo = servicos.CreateScope())
+        {
+            var banco = escopo.ServiceProvider.GetRequiredService<BancoDeDados>();
+            if (!await banco.Cupons.AnyAsync(c => c.Codigo == "BEMVINDO10", ct))
+            {
+                banco.Cupons.Add(new Cupom("BEMVINDO10", 1_000, null, DateTimeOffset.UtcNow.AddMonths(3), 50));
+                await banco.SaveChangesAsync(ct);
+            }
+        }
+
+        List<Guid> revendedores;
+        using (var escopo = servicos.CreateScope())
+        {
+            revendedores = await escopo.ServiceProvider.GetRequiredService<BancoDeDados>().Revendedores.Select(r => r.Id).ToListAsync(ct);
+        }
+
+        foreach (var revendedorId in revendedores)
+        {
+            using var escopo = servicos.CreateScope();
+            escopo.ServiceProvider.GetRequiredService<AcessoDaRequisicao>().Assumir(revendedorId);
+            var banco = escopo.ServiceProvider.GetRequiredService<BancoDeDados>();
+            var efeitos = escopo.ServiceProvider.GetRequiredService<EfeitosDaCobranca>();
+            var semRazao = await banco.Cobrancas
+                .Where(c => c.Situacao == SituacaoDaCobranca.Paga && c.Origem != OrigemDaCobranca.PedidoDePlacas && !banco.Lancamentos.Any(l => l.OrigemId == c.Id))
+                .ToListAsync(ct);
+            foreach (var cobranca in semRazao)
+            {
+                await efeitos.Aplicar(cobranca, DateTimeOffset.UtcNow, ct);
+            }
+
+            await banco.SaveChangesAsync(ct);
+        }
     }
 
     private static async Task<Guid> Revenda(IServiceProvider servicos, string nome, string cnpj, string email, string recebedor, CancellationToken ct)
@@ -137,6 +181,7 @@ internal static class Demonstracao
         };
 
         var aleatorio = new Random(42);
+        var pagas = new List<Cobranca>();
         foreach (var v in vendas)
         {
             var quando = agora.AddDays(-v.DiasAtras);
@@ -156,6 +201,7 @@ internal static class Demonstracao
             if (v.Paga)
             {
                 cobranca.Atualizar(SituacaoDaCobranca.Paga, quando.AddMinutes(4));
+                pagas.Add(cobranca);
             }
 
             banco.Cobrancas.Add(cobranca);
@@ -168,6 +214,18 @@ internal static class Demonstracao
         }
 
         await banco.SaveChangesAsync(ct);
+
+        // O razão das vendas pagas sai pelo mesmo caminho do pagamento de verdade.
+        var efeitos = escopo.ServiceProvider.GetRequiredService<EfeitosDaCobranca>();
+        foreach (var cobranca in pagas)
+        {
+            await efeitos.Aplicar(cobranca, agora, ct);
+        }
+
+        await banco.SaveChangesAsync(ct);
+
+        // A comissão da Bruna de antes de 25 dias atrás já foi repassada.
+        await escopo.ServiceProvider.GetRequiredService<Comissoes>().Repassar(new NovoRepasse(bruna, agora.AddDays(-25), "Pix simulado"), ct);
 
         // Leituras dos últimos 30 dias nas placas vendidas.
         foreach (var v in vendas)

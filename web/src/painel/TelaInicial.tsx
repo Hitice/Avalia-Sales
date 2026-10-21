@@ -1,17 +1,20 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
-import { formatarBps, ROTULO_DO_CONTRATO } from '@/api/rotulos'
+import { formatarBps, paraBps, ROTULO_DO_CONTRATO } from '@/api/rotulos'
 import { Aviso, Cabecalho, Erro } from '@/componentes/Tela'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatarCentavos } from '@/dinheiro/dinheiro'
-import { useMinhaRevenda, usePlacas, useVendas } from './consultas'
+import { useDefinirRenovacao, useMinhaRevenda, usePlacas, useVendas } from './consultas'
+import { Input } from '@/components/ui/input'
 
 /** O resumo do dono: contrato, estoque, vendas do mês e o que fazer a seguir. */
 export function TelaInicial() {
   const revenda = useMinhaRevenda()
   const placas = usePlacas({ pagina: 1 })
   const vendas = useVendas()
+  const definirRenovacao = useDefinirRenovacao()
+  const [renovacao, setRenovacao] = useState('')
   // Fixado na abertura da tela: o mês não muda entre uma renderização e outra.
   const [inicioDoMes] = useState(() => {
     const hoje = new Date()
@@ -50,6 +53,21 @@ export function TelaInicial() {
         ))}
       </div>
       {r && <p className="mt-4 text-sm text-muted-foreground">Comissão padrão da equipe: {formatarBps(r.comissaoPadraoBps)}. Taxa da plataforma: {formatarBps(r.taxaAvaliaBps)} por venda paga.</p>}
+      {r && (
+        <form
+          className="mt-3 flex flex-wrap items-center gap-2 text-sm"
+          onSubmit={(e) => {
+            e.preventDefault()
+            const bps = paraBps(renovacao)
+            if (bps !== null) definirRenovacao.mutate(bps, { onSuccess: () => setRenovacao('') })
+          }}
+        >
+          <label htmlFor="renovacao">Renovação: {formatarBps(r.renovacaoBps)} do valor da venda. Mudar para</label>
+          <Input id="renovacao" inputMode="decimal" className="w-24" placeholder="60" value={renovacao} onChange={(e) => setRenovacao(e.target.value)} />
+          <Button type="submit" variant="outline" disabled={paraBps(renovacao) === null}>Salvar</Button>
+          {definirRenovacao.error && <span className="text-destructive">{definirRenovacao.error.message}</span>}
+        </form>
+      )}
     </>
   )
 }

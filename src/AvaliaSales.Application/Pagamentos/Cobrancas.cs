@@ -22,11 +22,18 @@ public sealed record CobrancaDto(
     long TaxaAvaliaCents,
     string? PixCopiaECola,
     string? PixQrCodeUrl,
-    DateTimeOffset? PixExpiraEm);
+    DateTimeOffset? PixExpiraEm,
+    string? UrlDoLink = null);
 
-public sealed class Cobrancas(IBancoDeDados banco, IGatewayDePagamento gateway, IRevendedorAtual atual)
+public sealed class Cobrancas(IBancoDeDados banco, IGatewayDePagamento gateway, IRevendedorAtual atual, EfeitosDaCobranca efeitos, TimeProvider relogio)
 {
     public const int ParcelasMaximas = 12;
+
+    /// <summary>O link do pedido de placas vale três dias; depois disso, sem pagamento, a cobrança é cancelada e outra pode sair.</summary>
+    public static readonly TimeSpan ValidadeDoLink = TimeSpan.FromDays(3);
+
+    /// <summary>Todo o valor do pedido de placas é da Avalia: 100% em pontos base.</summary>
+    private const int TudoParaAvalia = 10_000;
 
     /// <summary>
     /// Grava a cobrança e o vínculo antes de chamar o Pagar.me. Se a chamada
@@ -69,7 +76,37 @@ public sealed class Cobrancas(IBancoDeDados banco, IGatewayDePagamento gateway, 
         var pedido = await gateway.CriarPedido(
             new PedidoNoGateway(cobranca.Codigo, comando.Descricao, cobranca.ValorCents, comando.Meio, comando.Pagador, regras, comando.TokenDoCartao, comando.Parcelas),
             ct);
-        AplicarPedido(cobranca, pedido);
+        await Aplicar(cobranca, pedido, ct);
+        await banco.SaveChangesAsync(ct);
+        return ParaDto(cobranca);
+    }
+
+    /// <summary>
+    /// Cobrança pelo checkout do Pagar.me, sem split: o pedido de placas é
+    /// pago à Avalia. O pedido no Pagar.me só nasce quando o revendedor paga;
+    /// até lá a conferência procura pelo código.
+    /// </summary>
+    public async Task<CobrancaDto> CriarLink(OrigemDaCobranca origem, Guid origemId, long valorCents, string descricao, CancellationToken ct)
+    {
+        var revendedorId = atual.RevendedorId ?? throw new InvalidOperationException("Cobrança sem revendedor na requisição.");
+        var cobranca = new Cobranca(origem, origemId, MeioDePagamento.Link, valorCents, TudoParaAvalia);
+        banco.Cobrancas.Add(cobranca);
+        banco.Vinculos.Add(new VinculoExterno(VinculoExterno.Pagarme, cobranca.Codigo, revendedorId));
+        await banco.SaveChangesAsync(ct);
+
+        try
+        {
+            var link = await gateway.CriarLink(new LinkNoGateway(cobranca.Codigo, descricao, valorCents, (int)ValidadeDoLink.TotalMinutes), ct);
+            cobranca.RegistrarLink(link.Id, link.Url);
+        }
+        catch (IntegracaoException)
+        {
+            // Link não criado não cobra ninguém: a cobrança falha na hora e o revendedor pede de novo.
+            cobranca.Atualizar(SituacaoDaCobranca.Falhou, null);
+            await banco.SaveChangesAsync(ct);
+            throw;
+        }
+
         await banco.SaveChangesAsync(ct);
         return ParaDto(cobranca);
     }
@@ -88,7 +125,7 @@ public sealed class Cobrancas(IBancoDeDados banco, IGatewayDePagamento gateway, 
 
         var pedido = await gateway.BuscarPorCodigo(cobranca.Codigo, ct);
         var mudou = pedido is not null
-            ? AplicarPedido(cobranca, pedido)
+            ? await Aplicar(cobranca, pedido, ct)
             : cobranca.CriadaEm < desistirSeCriadaAntesDe && cobranca.Atualizar(SituacaoDaCobranca.Falhou, null);
 
         await banco.SaveChangesAsync(ct);
@@ -97,26 +134,39 @@ public sealed class Cobrancas(IBancoDeDados banco, IGatewayDePagamento gateway, 
 
     /// <summary>
     /// Rede de segurança do webhook perdido: reconsulta a cobrança pendente e
-    /// aplica o que o Pagar.me disser. Devolve se mudou.
+    /// aplica o que o Pagar.me disser. Link vencido sem pagamento vira
+    /// cancelado. Devolve se mudou.
     /// </summary>
     public async Task<bool> Conferir(Guid cobrancaId, DateTimeOffset agora, CancellationToken ct)
     {
         var cobranca = await banco.Cobrancas.SingleAsync(c => c.Id == cobrancaId, ct);
         var pedido = await gateway.BuscarPorCodigo(cobranca.Codigo, ct);
-        var mudou = pedido is not null && AplicarPedido(cobranca, pedido);
+        var mudou = pedido is not null
+            ? await Aplicar(cobranca, pedido, ct)
+            : cobranca.LinkNoGateway is not null && cobranca.CriadaEm + ValidadeDoLink < agora && cobranca.Atualizar(SituacaoDaCobranca.Cancelada, null);
         cobranca.MarcarConferida(agora);
         await banco.SaveChangesAsync(ct);
         return mudou;
     }
 
-    /// <summary>Liga o pedido à cobrança e aplica a situação lida no Pagar.me.</summary>
-    public static bool AplicarPedido(Cobranca cobranca, PedidoDoGateway pedido)
+    /// <summary>
+    /// Liga o pedido à cobrança, aplica a situação lida no Pagar.me e, se ela
+    /// mudou, o efeito no negócio (pedido pago, razão, renovação), tudo antes
+    /// do mesmo SaveChanges de quem chamou.
+    /// </summary>
+    public async Task<bool> Aplicar(Cobranca cobranca, PedidoDoGateway pedido, CancellationToken ct)
     {
         var ligou = cobranca.PedidoNoGateway is null;
         cobranca.RegistrarPedido(pedido.Id, pedido.PixCopiaECola, pedido.PixQrCodeUrl, pedido.PixExpiraEm);
-        return cobranca.Atualizar(pedido.Situacao, pedido.PagoEm) || ligou;
+        var mudou = cobranca.Atualizar(pedido.Situacao, pedido.PagoEm);
+        if (mudou)
+        {
+            await efeitos.Aplicar(cobranca, relogio.GetUtcNow(), ct);
+        }
+
+        return mudou || ligou;
     }
 
-    private static CobrancaDto ParaDto(Cobranca c) =>
-        new(c.Id, c.Situacao, c.ValorCents, c.TaxaAvaliaCents, c.PixCopiaECola, c.PixQrCodeUrl, c.PixExpiraEm);
+    public static CobrancaDto ParaDto(Cobranca c) =>
+        new(c.Id, c.Situacao, c.ValorCents, c.TaxaAvaliaCents, c.PixCopiaECola, c.PixQrCodeUrl, c.PixExpiraEm, c.UrlDoLink);
 }

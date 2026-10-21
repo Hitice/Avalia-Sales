@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { chamarApi, chamarResposta, enviarJson } from '@/api/cliente'
-import type { Lote, Pacote, Pedido, Revendedor } from '@/api/tipos'
+import type { Cupom, Lote, Pacote, Pedido, Revendedor } from '@/api/tipos'
 
 const chaves = {
   pedidos: ['operadora', 'pedidos'] as const,
@@ -40,3 +40,10 @@ export async function baixarImpressao(lote: Lote) {
   link.click()
   URL.revokeObjectURL(url)
 }
+
+export type GravarCupom = { codigo: string; descontoBps: number | null; descontoCents: number | null; validoAte: string | null; usosMaximos: number | null }
+export const useCupons = () => useQuery({ queryKey: ['operadora', 'cupons'], queryFn: () => chamarApi<Cupom[]>('/operadora/cupons') })
+export const useCriarCupom = () => useGravar((c: GravarCupom) => chamarApi('/operadora/cupons', enviarJson('POST', c)))
+export const useAlterarCupom = () => useGravar(({ id, ...c }: GravarCupom & { id: string }) => chamarApi(`/operadora/cupons/${id}`, enviarJson('PUT', c)))
+export const useAtivarCupom = () => useGravar(({ id, ativo }: { id: string; ativo: boolean }) => chamarApi(`/operadora/cupons/${id}/ativo`, enviarJson('PUT', { ativo })))
+export const useExcluirCupom = () => useGravar((id: string) => chamarApi(`/operadora/cupons/${id}`, { method: 'DELETE' }))

@@ -22,6 +22,9 @@ public sealed class Revendedor
     /// <summary>Comissão de quem não tem a própria, em pontos base. Mudança vale para venda nova.</summary>
     public int ComissaoPadraoBps { get; private set; } = 2000;
 
+    /// <summary>Preço da renovação sobre o valor da venda, em pontos base (6000 = 60%).</summary>
+    public int RenovacaoBps { get; private set; } = 6000;
+
     /// <summary>Quando o contrato de revenda foi assinado. Sem ele, não há pedido de placas.</summary>
     public DateTimeOffset? ContratoAssinadoEm { get; private set; }
 
@@ -56,6 +59,9 @@ public sealed class Revendedor
     }
 
     public void DefinirComissaoPadrao(int bps) => ComissaoPadraoBps = Comissao.Conferir(bps);
+
+    public void DefinirRenovacao(int bps) =>
+        RenovacaoBps = bps is >= 1_000 and <= 10_000 ? bps : throw new RegraDeNegocioException("A renovação vai de 10% a 100% do valor da venda.");
 
     /// <summary>Pela D4Sign, ou pela operadora quando o contrato foi assinado em papel.</summary>
     public void RegistrarContratoAssinado(DateTimeOffset quando) => ContratoAssinadoEm ??= quando;

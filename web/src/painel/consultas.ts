@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { chamarApi, enviarJson } from '@/api/cliente'
-import type { EstadoDaPlaca, MinhaRevenda, Pacote, PaginaDePlacas, Pedido, VendaDaLista, VendaRegistrada, Vendedor } from '@/api/tipos'
+import type { EstadoDaPlaca, MinhaRevenda, Pacote, PaginaDePlacas, Pedido, Repasse, ResumoDoMes, SaldoDeComissao, VendaDaLista, VendaRegistrada, Vendedor } from '@/api/tipos'
 
 export type FiltroDePlacas = { estado?: EstadoDaPlaca; consignadaA?: string; codigo?: string; pagina?: number }
 
@@ -24,7 +24,7 @@ function useGravar<T, R = unknown>(fazer: (dados: T) => Promise<R>, refazer: str
   })
 }
 
-export const usePedir = () => useGravar((pacoteId: string) => chamarApi<Pedido>('/pedidos', enviarJson('POST', { pacoteId })), ['pedidos'])
+export const usePedir = () => useGravar(({ pacoteId, cupom }: { pacoteId: string; cupom: string | null }) => chamarApi<Pedido>('/pedidos', enviarJson('POST', { pacoteId, cupom })), ['pedidos'])
 export const useCancelarPedido = () => useGravar((id: string) => chamarApi(`/pedidos/${id}/cancelamento`, enviarJson('POST', {})), ['pedidos'])
 export const useAtivarLote = () =>
   useGravar((numero: string) => chamarApi<{ lote: string; placas: number; primeiroCodigo: string; ultimoCodigo: string }>('/lotes/ativacao', enviarJson('POST', { numero })), ['pedidos', 'placas'])
@@ -41,3 +41,13 @@ export const useConsignar = () =>
 export const useDevolver = () => useGravar((vendedorId: string) => chamarApi<{ placas: number }>('/estoque/devolucao', enviarJson('POST', { vendedorId })), ['placas'])
 
 export const useCobrarDeNovo = () => useGravar((vendaId: string) => chamarApi<VendaRegistrada>(`/vendas/${vendaId}/cobranca`, enviarJson('POST', {})), ['vendas'])
+
+export const useSaldosDeComissao = () => useQuery({ queryKey: ['comissoes'], queryFn: () => chamarApi<SaldoDeComissao[]>('/comissoes') })
+export const useRepasses = () => useQuery({ queryKey: ['repasses'], queryFn: () => chamarApi<Repasse[]>('/repasses') })
+export const useRepassar = () =>
+  useGravar((r: { vendedorId: string; ate: string | null; comprovante: string | null }) => chamarApi<Repasse>('/repasses', enviarJson('POST', r)), ['comissoes', 'repasses', 'razao'])
+export const useRazao = (competencia: string | undefined) =>
+  useQuery({ queryKey: ['razao', competencia], queryFn: () => chamarApi<ResumoDoMes>(`/razao${competencia ? `?competencia=${competencia}` : ''}`) })
+export const useMesesDoRazao = () => useQuery({ queryKey: ['razao', 'meses'], queryFn: () => chamarApi<string[]>('/razao/meses') })
+export const usePagarPedido = () => useGravar((id: string) => chamarApi<{ url: string }>(`/pedidos/${id}/pagamento`, enviarJson('POST', {})), ['pedidos'])
+export const useDefinirRenovacao = () => useGravar((renovacaoBps: number) => chamarApi('/revenda/renovacao', enviarJson('PUT', { renovacaoBps })), ['revenda'])

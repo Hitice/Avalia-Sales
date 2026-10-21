@@ -1,5 +1,6 @@
 using AvaliaSales.Application.Avisos;
 using AvaliaSales.Application.Catalogo;
+using AvaliaSales.Application.Financeiro;
 using AvaliaSales.Application.Pedidos;
 using AvaliaSales.Application.Placas;
 using AvaliaSales.Application.Revendedores;
@@ -24,6 +25,11 @@ public static class InjecaoDeDependencias
         servicos.AddScoped<Vendas.Vendas>();
         servicos.AddScoped<Cadastro>();
         servicos.AddScoped<Revendedores.Revendedores>();
+        servicos.AddScoped<Pedidos.Cupons>();
+        servicos.AddScoped<Comissoes>();
+        servicos.AddScoped<Razao>();
+        servicos.AddScoped<Renovacoes>();
+        servicos.AddScoped<Pagamentos.EfeitosDaCobranca>();
         return servicos;
     }
 }

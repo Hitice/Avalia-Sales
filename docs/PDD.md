@@ -56,8 +56,9 @@ revendedor é a Avalia.
 2. Contrato - criado sozinho depois do cadastro e enviado pela D4Sign ao e-mail
    do dono. Sem contrato assinado, não há pedido. Contrato assinado em papel é
    registrado pela operadora.
-3. Pedido - pacote de placas, pago antes do envio. Até o checkout do Pagar.me
-   entrar (Fase 2), a operadora registra o pagamento recebido.
+3. Pedido - pacote de placas, com cupom opcional, pago antes do envio pelo
+   checkout do Pagar.me (Pix, cartão ou boleto, tudo para a Avalia). A
+   operadora também pode registrar um pagamento recebido por fora.
 4. Envio - a Avalia recebe o pedido por e-mail e na fila, e despacha um lote da
    mesma quantidade; o dono recebe o e-mail com o número do lote.
 5. Ativação - o revendedor digita o número do lote (LT-0001, lt 1 ou 1); as
@@ -116,6 +117,19 @@ Todas no mesmo app, liberadas pelo papel do usuário.
 - Cobrança que não chegou ao Pagar.me é reencontrada pelo código; sem pedido
   depois de 15 minutos, vira falha e pode ser refeita.
 
+### Pedido de placas e cupom
+
+- Cupom - da operadora, em percentual ou em reais, com validade e limite de
+  usos. O pedido grava o preço do pacote, o cupom e o desconto do momento; o
+  custo de cada placa é o que o revendedor pagou de fato, com o desconto.
+- Cupom de 100% faz o pedido nascer pago. Pedido cancelado devolve o uso do
+  cupom.
+- Pagamento pelo link do checkout do Pagar.me, que vale 3 dias e aceita um
+  pagamento só. Pedir o link de novo devolve o mesmo enquanto ele valer. Com
+  link em aberto, o pedido não é cancelado: o dinheiro ainda pode entrar.
+- Pagamento que chega para pedido já pago ou cancelado avisa a operadora para
+  devolver.
+
 ### Comissão
 
 | Ponto | Regra |
@@ -128,6 +142,18 @@ Todas no mesmo app, liberadas pelo papel do usuário.
 | Mudança | Vale para venda nova; venda feita mantém o percentual gravado |
 | Cortesia e renovação | Sem comissão; o dono pode ligar comissão de renovação |
 | Estorno | Lançamento negativo no saldo do vendedor, descontado do próximo repasse |
+| Repasse | O revendedor faz o Pix ao vendedor e registra na tela, com data de corte opcional e comprovante. O repasse paga a comissão devida até o corte, menos o já repassado. Sem saldo, recusa |
+| Saldo | O vendedor vê a comissão a receber e a já recebida em Minhas vendas |
+
+### Razão
+
+- Só inserção: correção é uma linha nova com o valor contrário, que aponta
+  para a corrigida, na competência do dia do estorno. Mês fechado não muda.
+- Venda paga lança a receita bruta, a taxa da Avalia e a comissão devida;
+  renovação paga lança receita e taxa, sem comissão; repasse lança a comissão
+  paga. O mesmo pagamento nunca é lançado duas vezes.
+- Competência no fuso de Brasília. O líquido do mês é receita menos taxa menos
+  comissão; a taxa do Pagar.me sai no extrato do Pagar.me.
 
 ### Lote e placa
 
@@ -160,8 +186,10 @@ Todas no mesmo app, liberadas pelo papel do usuário.
 - Não há consignação entre a Avalia e o revendedor - o revendedor paga o
   pacote antes e as placas ativadas são dele. Consignação só existe dentro do
   revendedor, do estoque dele para um vendedor da equipe, e de volta.
-- Renovação - 1 ano por 60% do valor pago, sem comissão; percentual ajustável
-  por revendedor.
+- Renovação - 1 ano por 60% do valor da venda, sem comissão; o dono ajusta o
+  percentual (10% a 100%) e vale para renovação nova. Conta a partir do
+  vencimento antigo, mesmo paga com atraso. Uma renovação em aberto por placa;
+  pedir de novo devolve o mesmo Pix.
 - Troca de placa - a venda inteira vai para o código novo, a antiga fica
   baixada e a perda vai ao razão.
 - Vendedor com venda é desativado, e não excluído; sem venda, exclui.
@@ -194,7 +222,7 @@ porta o negócio e troca a tecnologia onde a stack pede.
 | Busca do lugar no Google Places e link colado do perfil | Places (New) Text Search pelo servidor e link colado | No código |
 | Mapa de bairros em Leaflet com OpenStreetMap | Google Maps JavaScript | Fase 3 |
 | Placa coringa de teste (fluxo desfeito no fim) | Lote de teste da revendedora Avalia em homologação | Planejado |
-| Renovação por 60% do valor, sem comissão | Igual | Fase 2 |
+| Renovação por 60% do valor, sem comissão | Igual, com o percentual ajustável pelo dono | No código |
 | Confirmação de pagamento em dinheiro ou outro Pix | A definir com o Pagar.me (baixa manual da cobrança) | Fase 2 |
 | Cortesia, cancelamento e troca de placa com estorno no razão | Igual, com o razão da Fase 2 | Fase 2 |
 | Pix e confirmação pelo WhatsApp | E-mail pelo Resend; WhatsApp fora do escopo | No código (e-mail) |
@@ -239,7 +267,7 @@ Estimativa em semanas de cerca de 20 horas.
 | 0. Base | Solução em camadas, login, isolamento entre revendedores, CI | 2 | Feita |
 | Integrações | Pagar.me (cobrança, split, webhook) e D4Sign (envio, webhook) no código | - | Feita, falta sandbox real |
 | 1. Revenda | Cadastro, contrato, pedido, lote, equipe, venda, NFC e QR | 3 | Feita em simulação; falta o sandbox real do Pagar.me e da D4Sign |
-| 2. Pagamento | Checkout do pedido de placas, cupom, comissão, razão | 3 | A fazer |
+| 2. Pagamento | Checkout do pedido de placas, cupom, comissão, razão | 3 | Feita em simulação; falta o sandbox real |
 | 3. Serviços | Chat, painel ao vivo, mapa, Worker, Protheus simulado, white label | 4 | A fazer |
 | 4. Avalia | Teste, integração com o Sales, migração e volta | 3 | A fazer |
 
@@ -259,6 +287,7 @@ Estimativa em semanas de cerca de 20 horas.
 
 | Data | Mudança |
 | --- | --- |
+| 21/10/2026 | Fase 2 - pedido de placas pago pelo checkout do Pagar.me, cupons da operadora, razão do revendedor, saldo e repasse de comissão, renovação da placa. |
 | 21/10/2026 | Telas da Fase 1 para a operadora, o dono e o vendedor. Recarregar a página mantém o login. |
 | 21/10/2026 | Fase 1 na API - cadastro pela tela, contrato automático, pacotes, pedido, despacho e ativação de lote, estoque, consignação, equipe, venda com cobrança, ficha da placa e leitura do QR. Regras portadas do Sales, com o mapa de portabilidade (seção 6a). Papéis operadora, dono e vendedor. |
 | 21/10/2026 | Consignação só entre o revendedor e o vendedor dele; a Avalia não consigna ao revendedor. Mapa dos lugares vendidos no Google Maps. |

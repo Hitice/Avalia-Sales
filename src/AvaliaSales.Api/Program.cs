@@ -129,6 +129,7 @@ app.MapearRevenda();
 app.MapearEquipe();
 app.MapearLeitura();
 app.MapearWebhooks();
+app.MapearSimulador();
 
 app.Run();
 

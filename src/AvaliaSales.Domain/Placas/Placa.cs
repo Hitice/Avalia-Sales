@@ -143,6 +143,14 @@ public sealed class Placa : IDoRevendedor
         return true;
     }
 
+    /// <summary>Mais um ano a partir do vencimento atual; devolve de quando a quando.</summary>
+    public (DateTimeOffset De, DateTimeOffset Ate) Renovar()
+    {
+        var de = VenceEm ?? throw new RegraDeNegocioException("Placa sem venda não tem o que renovar.");
+        VenceEm = de.AddMonths(ValidadeMeses);
+        return (de, VenceEm.Value);
+    }
+
     /// <summary>Suspender não apaga nada: a placa volta exatamente como estava.</summary>
     public void Alternar() => Situacao = Situacao switch
     {

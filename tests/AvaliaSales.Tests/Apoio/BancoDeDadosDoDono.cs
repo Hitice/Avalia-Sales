@@ -17,5 +17,16 @@ public sealed class BancoDeDadosDoDono(string conexao) : IAsyncDisposable
         return await ApiDeTeste.Contar(_conexao, sql);
     }
 
+    public async Task<string> Texto(string sql)
+    {
+        if (_conexao.State != System.Data.ConnectionState.Open)
+        {
+            await _conexao.OpenAsync();
+        }
+
+        await using var comando = new NpgsqlCommand(sql, _conexao);
+        return Convert.ToString(await comando.ExecuteScalarAsync(), System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
+    }
+
     public ValueTask DisposeAsync() => _conexao.DisposeAsync();
 }

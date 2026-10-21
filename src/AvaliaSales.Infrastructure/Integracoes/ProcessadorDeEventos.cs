@@ -96,7 +96,7 @@ public sealed partial class ProcessadorDeEventos(
         if (pedido is not null)
         {
             var cobranca = await doRevendedor.Cobrancas.SingleOrDefaultAsync(c => c.Id == Guid.ParseExact(chave, "N"), ct);
-            mudou = cobranca is not null && Cobrancas.AplicarPedido(cobranca, pedido);
+            mudou = cobranca is not null && await escopo.ServiceProvider.GetRequiredService<Cobrancas>().Aplicar(cobranca, pedido, ct);
         }
         else if (situacao is not null)
         {

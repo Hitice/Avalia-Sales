@@ -44,7 +44,7 @@ public sealed class Retomadas(IServiceScopeFactory escopos, BancoDeDados banco, 
             var doRevendedor = escopo.ServiceProvider.GetRequiredService<BancoDeDados>();
 
             var cobrancas = await doRevendedor.Cobrancas.AsNoTracking()
-                .Where(c => c.Situacao == SituacaoDaCobranca.Pendente && c.PedidoNoGateway == null && c.CriadaEm < agora - Carencia)
+                .Where(c => c.Situacao == SituacaoDaCobranca.Pendente && c.PedidoNoGateway == null && c.LinkNoGateway == null && c.CriadaEm < agora - Carencia)
                 .Select(c => c.Id)
                 .ToListAsync(ct);
             var servicoDeCobranca = escopo.ServiceProvider.GetRequiredService<Cobrancas>();
@@ -54,8 +54,12 @@ public sealed class Retomadas(IServiceScopeFactory escopos, BancoDeDados banco, 
             }
 
             var intervalo = TimeSpan.FromSeconds(pagarme.Value.ConferenciaEmSegundos);
+            var limiteDoPedido = agora - JanelaDeConferencia;
+            var limiteDoLink = agora - Cobrancas.ValidadeDoLink - JanelaDeConferencia;
             var pendentes = await doRevendedor.Cobrancas.AsNoTracking()
-                .Where(c => c.Situacao == SituacaoDaCobranca.Pendente && c.PedidoNoGateway != null && c.CriadaEm > agora - JanelaDeConferencia
+                // Link de pagamento também: o pedido só nasce quando o revendedor paga, e a reconsulta acha pelo código.
+                .Where(c => c.Situacao == SituacaoDaCobranca.Pendente && (c.PedidoNoGateway != null || c.LinkNoGateway != null)
+                    && (c.LinkNoGateway == null ? c.CriadaEm > limiteDoPedido : c.CriadaEm > limiteDoLink)
                     && (c.ConferidaEm == null ? c.CriadaEm < agora - intervalo : c.ConferidaEm < agora - intervalo))
                 .OrderBy(c => c.ConferidaEm ?? c.CriadaEm)
                 .Select(c => c.Id)

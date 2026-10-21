@@ -19,6 +19,10 @@ export type Pedido = {
   lote: string | null
   despachadoEm: string | null
   ativadoEm: string | null
+  precoDoPacoteCents: number
+  cupom: string | null
+  descontoCents: number
+  urlDePagamento: string | null
 }
 
 export type Lote = {
@@ -41,6 +45,7 @@ export type Revendedor = {
   recebedorPagarme: string | null
   contratoAssinadoEm: string | null
   criadoEm: string
+  renovacaoBps: number
 }
 
 export type MinhaRevenda = { revendedor: Revendedor; contrato: SituacaoDoContrato | null }
@@ -95,6 +100,7 @@ export type Cobranca = {
   pixCopiaECola: string | null
   pixQrCodeUrl: string | null
   pixExpiraEm: string | null
+  urlDoLink: string | null
 }
 
 export type VendaRegistrada = { vendaId: string; codigo: string; endereco: string; valorCents: number; venceEm: string | null; cobranca: Cobranca | null; semCobranca: string | null }
@@ -129,3 +135,22 @@ export type Lugar = { id: string; nome: string; endereco: string | null }
 
 export type TipoDeDestino = 'Google' | 'Link'
 export type DestinoInformado = { tipo: TipoDeDestino; lugarNoGoogle: string | null; link: string | null }
+
+export type Cupom = { id: string; codigo: string; descontoBps: number | null; descontoCents: number | null; validoAte: string | null; usosMaximos: number | null; usos: number; ativo: boolean }
+
+export type SaldoDeComissao = { vendedorId: string; vendedor: string; chavePix: string | null; devidaCents: number; repassadaCents: number; abertaCents: number; ultimoRepasse: string | null }
+
+export type Repasse = { id: string; vendedorId: string; vendedor: string; valorCents: number; vendas: number; ateVendaEm: string; pagoEm: string; comprovante: string | null }
+
+export type TipoDeLancamento = 'Receita' | 'TaxaAvalia' | 'ComissaoDevida' | 'ComissaoPaga'
+
+export type ResumoDoMes = {
+  competencia: string
+  receitaCents: number
+  taxaAvaliaCents: number
+  comissaoCents: number
+  liquidoCents: number
+  lancamentos: { id: string; tipo: TipoDeLancamento; valorCents: number; descricao: string; ocorridoEm: string; competencia: string; estorno: boolean }[]
+}
+
+export type RenovacaoAberta = { id: string; codigo: string; valorCents: number; venceEm: string | null; cobranca: Cobranca | null; semCobranca: string | null }

@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
-import QRCode from 'qrcode'
 import { mensagemDoErro } from '@/api/cliente'
 import { ROTULO_DO_ESTADO, ROTULO_DO_PAGAMENTO, formatarData } from '@/api/rotulos'
 import type { DestinoInformado, VendaRegistrada } from '@/api/tipos'
 import { useProdutos } from '@/catalogo/produtos'
+import { PixNaTela } from '@/componentes/PixNaTela'
 import { Aviso, Erro } from '@/componentes/Tela'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -240,17 +240,9 @@ function PassoDaCobranca({ produtoId, aoEscolher, valor, aoDigitarValor, erro }:
 
 /** O Pix na tela para o cliente pagar ali, e a confirmação quando o Pagar.me avisa. */
 function Resultado({ venda, aoRecomecar }: { venda: VendaRegistrada; aoRecomecar: () => void }) {
-  const [imagem, setImagem] = useState<string | null>(null)
-  const [copiado, setCopiado] = useState(false)
   const pix = venda.cobranca?.pixCopiaECola ?? null
   const ficha = useFicha(venda.codigo, !!pix)
   const pagamento = ficha.data?.venda?.pagamento ?? venda.cobranca?.situacao ?? null
-
-  useEffect(() => {
-    if (pix && !venda.cobranca?.pixQrCodeUrl) {
-      QRCode.toDataURL(pix, { errorCorrectionLevel: 'M', margin: 1, width: 320 }).then(setImagem, () => setImagem(null))
-    }
-  }, [pix, venda.cobranca?.pixQrCodeUrl])
 
   return (
     <div className="mx-auto grid max-w-md gap-4">
@@ -261,16 +253,7 @@ function Resultado({ venda, aoRecomecar }: { venda: VendaRegistrada; aoRecomecar
           {venda.semCobranca && <Aviso>{venda.semCobranca}</Aviso>}
           {pix && pagamento !== 'Paga' && (
             <>
-              <img className="mx-auto w-64 rounded-lg border bg-white p-2" alt="QR do Pix para o cliente pagar" src={venda.cobranca?.pixQrCodeUrl ?? imagem ?? undefined} />
-              <Button
-                variant="outline"
-                onClick={async () => {
-                  await navigator.clipboard.writeText(pix)
-                  setCopiado(true)
-                }}
-              >
-                {copiado ? 'Copiado' : 'Copiar Pix copia e cola'}
-              </Button>
+              <PixNaTela copiaECola={pix} imagemDoGateway={venda.cobranca?.pixQrCodeUrl ?? null} />
               <p role="status" className="text-center text-sm text-muted-foreground">Esperando o pagamento...</p>
             </>
           )}

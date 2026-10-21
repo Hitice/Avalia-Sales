@@ -483,3 +483,4 @@ $RECYCLE.BIN/
 
 # Segredos locais do Docker Compose
 .env
+*.pem

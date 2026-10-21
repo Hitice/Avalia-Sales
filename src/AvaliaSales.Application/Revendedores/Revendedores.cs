@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 namespace AvaliaSales.Application.Revendedores;
 
 public sealed record RevendedorDto(Guid Id, string Nome, string? Cnpj, int TaxaAvaliaBps, int ComissaoPadraoBps,
-    string? RecebedorPagarme, DateTimeOffset? ContratoAssinadoEm, DateTimeOffset CriadoEm);
+    string? RecebedorPagarme, DateTimeOffset? ContratoAssinadoEm, DateTimeOffset CriadoEm, int RenovacaoBps);
 
 public sealed record MinhaRevenda(RevendedorDto Revendedor, SituacaoDoContrato? Contrato);
 
@@ -14,7 +14,7 @@ public sealed class Revendedores(IBancoDeDados banco, IRevendedorAtual atual, Ti
 {
     public async Task<IReadOnlyList<RevendedorDto>> Listar(CancellationToken ct) =>
         await banco.Revendedores.AsNoTracking().OrderBy(r => r.Nome)
-            .Select(r => new RevendedorDto(r.Id, r.Nome, r.Cnpj, r.TaxaAvaliaBps, r.ComissaoPadraoBps, r.RecebedorPagarme, r.ContratoAssinadoEm, r.CriadoEm))
+            .Select(r => new RevendedorDto(r.Id, r.Nome, r.Cnpj, r.TaxaAvaliaBps, r.ComissaoPadraoBps, r.RecebedorPagarme, r.ContratoAssinadoEm, r.CriadoEm, r.RenovacaoBps))
             .ToListAsync(ct);
 
     public async Task<MinhaRevenda> DoUsuario(CancellationToken ct)
@@ -26,13 +26,20 @@ public sealed class Revendedores(IBancoDeDados banco, IRevendedorAtual atual, Ti
             .Select(c => (SituacaoDoContrato?)c.Situacao)
             .FirstOrDefaultAsync(ct);
         return new MinhaRevenda(
-            new RevendedorDto(r.Id, r.Nome, r.Cnpj, r.TaxaAvaliaBps, r.ComissaoPadraoBps, r.RecebedorPagarme, r.ContratoAssinadoEm, r.CriadoEm),
+            new RevendedorDto(r.Id, r.Nome, r.Cnpj, r.TaxaAvaliaBps, r.ComissaoPadraoBps, r.RecebedorPagarme, r.ContratoAssinadoEm, r.CriadoEm, r.RenovacaoBps),
             contrato);
     }
 
     public async Task DefinirRecebedor(Guid id, string recebedor, CancellationToken ct)
     {
         (await Achar(id, ct)).DefinirRecebedorPagarme(recebedor);
+        await banco.SaveChangesAsync(ct);
+    }
+
+    /// <summary>O dono define o preço da renovação; vale para renovação nova.</summary>
+    public async Task DefinirRenovacao(int bps, CancellationToken ct)
+    {
+        (await Achar(atual.RevendedorId ?? Guid.Empty, ct)).DefinirRenovacao(bps);
         await banco.SaveChangesAsync(ct);
     }
 

@@ -8,13 +8,15 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { formatarCentavos } from '@/dinheiro/dinheiro'
-import { useCobrarDeNovo, useVendas } from './consultas'
+import { useCobrarDeNovo, useSaldosDeComissao, useVendas } from './consultas'
 
 /** As vendas e a comissão de cada uma. A comissão só conta quando o cliente paga. */
 export function TelaDeVendas() {
   const dono = useSessao((s) => s.perfil?.papel === 'Dono')
   const vendas = useVendas()
   const cobrar = useCobrarDeNovo()
+  const saldo = useSaldosDeComissao()
+  const meu = dono ? undefined : saldo.data?.[0]
   const pagas = (vendas.data ?? []).filter((v) => v.pagamento === 'Paga')
   const comissaoPaga = pagas.reduce((s, v) => s + v.comissaoCents, 0)
 
@@ -25,6 +27,11 @@ export function TelaDeVendas() {
       </Cabecalho>
       <Erro erro={cobrar.error ? mensagemDoErro(cobrar.error) : null} />
       {cobrar.data?.semCobranca && <Aviso>{cobrar.data.semCobranca}</Aviso>}
+      {meu && (
+        <p className="mb-3 text-sm">
+          Comissão a receber: <span className="font-semibold tabular-nums">{formatarCentavos(meu.abertaCents)}</span>. Já recebida: <span className="tabular-nums">{formatarCentavos(meu.repassadaCents)}</span>.
+        </p>
+      )}
       {vendas.data && vendas.data.length > 0 && (
         <p className="mb-3 text-sm text-muted-foreground">
           {pagas.length} de {vendas.data.length} vendas pagas. Comissão das pagas: <span className="font-medium text-foreground tabular-nums">{formatarCentavos(comissaoPaga)}</span>

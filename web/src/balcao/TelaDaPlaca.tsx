@@ -3,11 +3,12 @@ import { Link, useParams } from 'react-router'
 import { mensagemDoErro } from '@/api/cliente'
 import { formatarData, formatarDataHora, formatarTelefone, ROTULO_DO_PAGAMENTO } from '@/api/rotulos'
 import type { DestinoInformado } from '@/api/tipos'
-import { Cabecalho, Erro, EtiquetaDoEstado } from '@/componentes/Tela'
+import { Aviso, Cabecalho, Erro, EtiquetaDoEstado } from '@/componentes/Tela'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatarCentavos } from '@/dinheiro/dinheiro'
-import { useAlternar, useApontar, useFicha } from './consultas'
+import { PixNaTela } from '@/componentes/PixNaTela'
+import { useAlternar, useApontar, useFicha, useRenovar } from './consultas'
 import { EscolhaDeDestino } from './EscolhaDeDestino'
 import { GravarNfc } from './BotoesDeNfc'
 
@@ -17,6 +18,7 @@ export function TelaDaPlaca() {
   const ficha = useFicha(codigo)
   const apontar = useApontar(codigo)
   const alternar = useAlternar(codigo)
+  const renovar = useRenovar(codigo)
   const [trocando, setTrocando] = useState(false)
   const [destino, setDestino] = useState<DestinoInformado>({ tipo: 'Google', lugarNoGoogle: null, link: null })
   const f = ficha.data
@@ -35,6 +37,7 @@ export function TelaDaPlaca() {
           <CardContent className="grid gap-3 pt-6">
             <p className="text-sm">Placa no estoque{f.consignadaA ? `, com ${f.consignadaA}` : ''}. Ela só vai ao ar com a venda.</p>
             <Button asChild><Link to={`/vender?codigo=${f.codigo}`}>Vender esta placa</Link></Button>
+            <GravarNfc endereco={f.endereco} />
           </CardContent>
         </Card>
       )}
@@ -75,6 +78,24 @@ export function TelaDaPlaca() {
                     <GravarNfc endereco={f.endereco} />
                   </div>
                 )}
+          </CardContent>
+        </Card>
+      )}
+      {f.venda && (f.estado === 'Ativa' || f.estado === 'Carencia' || f.estado === 'Vencida') && (
+        <Card>
+          <CardHeader><CardTitle>Renovação</CardTitle></CardHeader>
+          <CardContent className="grid gap-3">
+            <p className="text-sm">Mais um ano a partir de {formatarData(f.venceEm)}.</p>
+            <Erro erro={renovar.error ? mensagemDoErro(renovar.error) : null} />
+            {renovar.data?.semCobranca && <Aviso>{renovar.data.semCobranca}</Aviso>}
+            {renovar.data?.cobranca?.situacao === 'Paga' && <p role="status" className="font-medium">Renovação paga. Vence em {formatarData(f.venceEm)}.</p>}
+            {renovar.data?.cobranca?.pixCopiaECola && renovar.data.cobranca.situacao === 'Pendente' && (
+              <>
+                <p className="text-sm">Pix de {formatarCentavos(renovar.data.valorCents)}:</p>
+                <PixNaTela copiaECola={renovar.data.cobranca.pixCopiaECola} imagemDoGateway={renovar.data.cobranca.pixQrCodeUrl} />
+              </>
+            )}
+            {!renovar.data && <Button disabled={renovar.isPending} onClick={() => renovar.mutate()}>{renovar.isPending ? 'Gerando o Pix...' : 'Renovar'}</Button>}
           </CardContent>
         </Card>
       )}

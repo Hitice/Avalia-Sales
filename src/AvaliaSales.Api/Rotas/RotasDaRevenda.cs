@@ -1,12 +1,15 @@
 using AvaliaSales.Api.Autenticacao;
 using AvaliaSales.Application.Equipe;
+using AvaliaSales.Application.Financeiro;
 using AvaliaSales.Application.Pedidos;
 using AvaliaSales.Application.Placas;
 using AvaliaSales.Application.Revendedores;
 
 namespace AvaliaSales.Api.Rotas;
 
-public sealed record NovoPedido(Guid PacoteId);
+public sealed record NovoPedido(Guid PacoteId, string? Cupom);
+
+public sealed record DefinirRenovacao(int RenovacaoBps);
 
 public sealed record AtivarLote(string Numero);
 
@@ -33,7 +36,9 @@ public static class RotasDaRevenda
         dono.MapGet("/pacotes", (Pacotes pacotes, CancellationToken ct) => pacotes.Listar(soAtivos: true, ct));
         dono.MapGet("/pedidos", (PedidosDePlacas pedidos, CancellationToken ct) => pedidos.Listar(ct));
         dono.MapPost("/pedidos", async (NovoPedido pedido, PedidosDePlacas pedidos, CancellationToken ct) =>
-            Results.Created("/pedidos", await pedidos.Criar(pedido.PacoteId, ct)));
+            Results.Created("/pedidos", await pedidos.Criar(pedido.PacoteId, pedido.Cupom, ct)));
+        dono.MapPost("/pedidos/{id:guid}/pagamento", async (Guid id, PedidosDePlacas pedidos, CancellationToken ct) =>
+            Results.Ok(new { Url = await pedidos.Pagar(id, ct) }));
         dono.MapPost("/pedidos/{id:guid}/cancelamento", async (Guid id, PedidosDePlacas pedidos, CancellationToken ct) =>
         {
             await pedidos.Cancelar(id, ct);
@@ -55,6 +60,17 @@ public static class RotasDaRevenda
             await equipe.Excluir(id, ct);
             return Results.NoContent();
         });
+
+        dono.MapPut("/revenda/renovacao", async (DefinirRenovacao pedido, Revendedores revendedores, CancellationToken ct) =>
+        {
+            await revendedores.DefinirRenovacao(pedido.RenovacaoBps, ct);
+            return Results.NoContent();
+        });
+        dono.MapGet("/repasses", (Comissoes comissoes, CancellationToken ct) => comissoes.Repasses(ct));
+        dono.MapPost("/repasses", async (NovoRepasse pedido, Comissoes comissoes, CancellationToken ct) =>
+            Results.Created("/repasses", await comissoes.Repassar(pedido, ct)));
+        dono.MapGet("/razao", (string? competencia, Razao razao, CancellationToken ct) => razao.DoMes(competencia, ct));
+        dono.MapGet("/razao/meses", (Razao razao, CancellationToken ct) => razao.Meses(ct));
 
         dono.MapPost("/estoque/consignacao", async (Consignar pedido, Estoque estoque, CancellationToken ct) =>
             Results.Ok(new { Placas = await estoque.Consignar(pedido.VendedorId, pedido.Codigos, pedido.Quantidade, ct) }));
