@@ -1,0 +1,109 @@
+using System.Net;
+using System.Text;
+using AvaliaSales.Application;
+using AvaliaSales.Application.Contratos;
+using AvaliaSales.Application.Pagamentos;
+using AvaliaSales.Domain.Contratos;
+using AvaliaSales.Domain.Pagamentos;
+
+namespace AvaliaSales.Tests.Apoio;
+
+/// <summary>Pagar.me de mentira: guarda o que recebeu e responde o que o teste mandar.</summary>
+public sealed class GatewayFalso : IGatewayDePagamento
+{
+    public string RecebedorDaAvalia => "rp_avaliaDeTeste";
+    public List<PedidoNoGateway> Criados { get; } = [];
+    public Dictionary<string, PedidoDoGateway> PorCodigo { get; } = [];
+    public Exception? FalhaAoCriar { get; set; }
+    public Exception? FalhaAoBuscar { get; set; }
+    public int Buscas { get; private set; }
+
+    public Task<PedidoDoGateway> CriarPedido(PedidoNoGateway pedido, CancellationToken ct)
+    {
+        Criados.Add(pedido);
+        if (FalhaAoCriar is not null)
+        {
+            throw FalhaAoCriar;
+        }
+
+        var criado = new PedidoDoGateway("or_" + pedido.Codigo[..16], pedido.Codigo, SituacaoDaCobranca.Pendente, null,
+            pedido.Meio == MeioDePagamento.Pix ? "00020101pix-copia-e-cola" : null,
+            pedido.Meio == MeioDePagamento.Pix ? "https://api.pagar.me/qrcode.png" : null,
+            pedido.Meio == MeioDePagamento.Pix ? DateTimeOffset.UtcNow.AddMinutes(30) : null);
+        PorCodigo[pedido.Codigo] = criado;
+        return Task.FromResult(criado);
+    }
+
+    public Task<PedidoDoGateway?> BuscarPorCodigo(string codigo, CancellationToken ct)
+    {
+        Buscas++;
+        if (FalhaAoBuscar is not null)
+        {
+            throw FalhaAoBuscar;
+        }
+
+        return Task.FromResult(PorCodigo.GetValueOrDefault(codigo));
+    }
+
+    public void Mudar(string codigo, SituacaoDaCobranca situacao) =>
+        PorCodigo[codigo] = PorCodigo[codigo] with { Situacao = situacao, PagoEm = situacao == SituacaoDaCobranca.Paga ? DateTimeOffset.UtcNow : null };
+}
+
+/// <summary>D4Sign de mentira: conta as chamadas e falha no passo que o teste mandar.</summary>
+public sealed class AssinaturaFalsa : IAssinaturaEletronica
+{
+    public Dictionary<string, int> Chamadas { get; } = [];
+    public Dictionary<string, SituacaoDoContrato?> Situacoes { get; } = [];
+    public string? FalharEm { get; set; }
+
+    public Task<string> EnviarAoCofre(string nome, byte[] pdf, CancellationToken ct)
+    {
+        Contar(nameof(EnviarAoCofre));
+        return Task.FromResult(Guid.NewGuid().ToString());
+    }
+
+    public Task CadastrarWebhook(string documento, CancellationToken ct) => Contar(nameof(CadastrarWebhook));
+
+    public Task CadastrarSignatario(string documento, string email, CancellationToken ct) => Contar(nameof(CadastrarSignatario));
+
+    public Task EnviarParaAssinatura(string documento, string mensagem, CancellationToken ct) => Contar(nameof(EnviarParaAssinatura));
+
+    public Task<SituacaoDoContrato?> LerSituacao(string documento, CancellationToken ct)
+    {
+        Contar(nameof(LerSituacao));
+        return Task.FromResult(Situacoes.GetValueOrDefault(documento));
+    }
+
+    private Task Contar(string passo)
+    {
+        Chamadas[passo] = Chamadas.GetValueOrDefault(passo) + 1;
+        if (FalharEm == passo)
+        {
+            FalharEm = null;
+            throw new IntegracaoException("D4Sign", 429, "limite de requisições");
+        }
+
+        return Task.CompletedTask;
+    }
+}
+
+/// <summary>Servidor HTTP de mentira para testar o contrato dos clientes, sem rede.</summary>
+public sealed class HttpFalso(params (HttpStatusCode Status, string Corpo)[] respostas) : HttpMessageHandler
+{
+    private readonly Queue<(HttpStatusCode Status, string Corpo)> _respostas = new(respostas);
+
+    public List<(HttpMethod Metodo, Uri Uri, string? Corpo, string? Autorizacao)> Pedidos { get; } = [];
+
+    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage pedido, CancellationToken ct)
+    {
+        var corpo = pedido.Content is null ? null : await pedido.Content.ReadAsStringAsync(ct);
+        Pedidos.Add((pedido.Method, pedido.RequestUri!, corpo, pedido.Headers.Authorization?.ToString()));
+        var (status, texto) = _respostas.Count > 0 ? _respostas.Dequeue() : (HttpStatusCode.InternalServerError, "{}");
+        return new HttpResponseMessage(status) { Content = new StringContent(texto, Encoding.UTF8, "application/json") };
+    }
+}
+
+public static class Pdf
+{
+    public static byte[] Minimo(string texto = "contrato") => Encoding.ASCII.GetBytes($"%PDF-1.4\n% {texto}\n%%EOF");
+}

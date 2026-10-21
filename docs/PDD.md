@@ -1,0 +1,191 @@
+# Avalia Sales - documento de produto (PDD)
+
+O que a plataforma faz, para quem, e as regras de negócio. O como fica no
+[SDD](SDD.md). Os dois são atualizados no mesmo commit da mudança que os
+afeta, com uma linha no registro de mudanças do fim.
+
+Situação em 21/10/2026 - Fase 0 pronta e integrações com Pagar.me e D4Sign no
+código; telas ainda não existem.
+
+## 1. Visão
+
+Plataforma para revender placas com QR Code e NFC que levam o cliente a uma
+avaliação no Google, a um link ou a uma página de links. A Avalia opera a
+plataforma e vende as placas aos revendedores. Cada revendedor vende com a
+própria equipe, recebe pelo Pagar.me e acompanha as vendas num painel.
+
+## 2. Papéis
+
+| Papel | Quem é | O que faz |
+| --- | --- | --- |
+| Operadora | A Avalia | Vende placas aos revendedores, recebe a taxa de cada venda, despacha lotes, atende o chat |
+| Revendedor (dono) | Empresa que revende | Compra placas, cadastra vendedores, define preço e comissão, acompanha painel e mapa |
+| Vendedor | Equipe do revendedor | Vende no balcão pelo celular, com NFC ou QR |
+| Cliente final | Quem compra a placa | Paga por Pix ou cartão e usa a placa no negócio |
+
+A Avalia também é revendedora, com o mesmo peso de qualquer outra: mesmo fluxo,
+mesma taxa, usuários separados dos da operadora. Nenhuma regra pergunta se o
+revendedor é a Avalia.
+
+## 3. Modelo de negócio
+
+| Dinheiro | Quem paga | Quem recebe | Quando |
+| --- | --- | --- | --- |
+| Pedido de placas | Revendedor | Avalia | Antes do envio do lote |
+| Venda da placa | Cliente final | Avalia a taxa e o revendedor o resto, pelo split do Pagar.me | No pagamento |
+| Renovação | Cliente final | Avalia a taxa e o revendedor o resto, sem comissão | No pagamento |
+| Comissão | Revendedor | Vendedor, por Pix, registrado no painel | Quando o revendedor repassa |
+
+- Taxa da Avalia - 1,99% de cada venda paga, gravada na cobrança no momento
+  dela. A confirmar se é 1,99% ou R$ 1,99 fixo.
+- Pacotes de placas - configuráveis pela operadora - 20, 50 e 100, e um de 10
+  para o teste da revendedora Avalia. Preço a definir.
+- Taxa do Pagar.me - paga pelo revendedor.
+- Exemplo - venda de R$ 100,00 com comissão de 20%: R$ 1,99 para a Avalia,
+  R$ 98,01 para o revendedor (de onde sai a taxa do Pagar.me), e R$ 20,00
+  lançados como devidos ao vendedor.
+
+## 4. Jornada do revendedor
+
+1. Cadastro - empresa, CNPJ, conta para receber no Pagar.me.
+2. Contrato - assinado na D4Sign. Sem contrato assinado, não há pedido.
+3. Pedido - pacote de placas, pago antes do envio.
+4. Envio - a Avalia recebe o pedido por e-mail e na fila, e despacha o lote.
+5. Ativação - o revendedor digita o número do lote; as placas entram no estoque
+   dele.
+6. Equipe - cadastro dos vendedores e da comissão de cada um.
+7. Leitura - o vendedor lê a placa por NFC ou QR, e o cadastro da venda abre.
+8. Venda - cliente, negócio, destino do QR e cobrança por Pix ou cartão.
+9. Pagamento - o cliente paga e o split divide na hora.
+10. Painel - vendas ao vivo, saldo de comissão e mapa dos lugares vendidos.
+
+## 5. Telas
+
+Todas no mesmo app, liberadas pelo papel do usuário.
+
+| Tela | Quem usa | Pensada para | O que faz |
+| --- | --- | --- | --- |
+| Cadastro e contrato | Revendedor | Computador | Dados da empresa, conta para receber, contrato |
+| Pedido de placas | Revendedor | Computador | Pacote, pagamento, acompanhamento do envio |
+| Ativar lote | Revendedor | Computador | Número do lote recebido |
+| Vendedores | Revendedor | Computador | Criar, editar, desativar, excluir, comissão |
+| Marca | Revendedor | Computador | Logo, cores e nome exibido, com prévia |
+| Painel | Revendedor | Computador | Vendas e pagamentos ao vivo, saldo de comissão, registro de repasse |
+| Mapa | Revendedor | Computador | Lugares vendidos |
+| Nova venda | Vendedor | Celular | NFC ou QR, negócio, destino, cobrança |
+| Ficha da placa | Vendedor e revendedor | Celular | Destino, vencimento, leituras, troca, renovação |
+| Pedidos | Operadora | Computador | Pedidos pagos, lote despachado, envio |
+| Página do QR | Cliente final | Celular | Redireciona ao destino e conta a leitura |
+
+## 6. Regras de negócio
+
+### Venda
+
+- Preço - o revendedor define a tabela dele; a venda nunca fica abaixo dela, e
+  acima vai até 5 vezes. Dar de graça é a Cortesia.
+- Venda antes do pagamento - a venda nasce com a cobrança pendente; o cliente
+  pode pagar depois, e a comissão só conta quando ele paga.
+- Destino do QR - avaliação no Google (lugar do Places ou link do Perfil da
+  Empresa), link livre ou página de links.
+- Só vende placa de lote ativado pelo próprio revendedor.
+- Placa consignada a um vendedor e vendida por outro vale para quem vendeu.
+
+### Cobrança
+
+- Uma cobrança só anda para a frente - pendente vira paga, cancelada ou
+  falha; paga só vira estornada. Aviso atrasado não desfaz pagamento.
+- Cobrança que não chegou ao Pagar.me é reencontrada pelo código; sem pedido
+  depois de 15 minutos, vira falha e pode ser refeita.
+
+### Comissão
+
+| Ponto | Regra |
+| --- | --- |
+| Quem ajusta | Só o dono, na tela Vendedores; toda mudança vai à auditoria |
+| Níveis | Padrão do revendedor, exceção por produto, exceção por vendedor; vale a mais específica |
+| Base | Valor bruto da venda |
+| Forma | Percentual em pontos base (2000 = 20%) |
+| Limite | Recusada se deixar o revendedor sem cobrir a taxa da Avalia e a do Pagar.me |
+| Mudança | Vale para venda nova; venda feita mantém o percentual gravado |
+| Cortesia e renovação | Sem comissão; o dono pode ligar comissão de renovação |
+| Estorno | Lançamento negativo no saldo do vendedor, descontado do próximo repasse |
+
+### Lote e placa
+
+- O lote é ligado ao pedido no despacho; a ativação só aceita lote ligado a
+  pedido do próprio revendedor, para um número digitado errado não prender o
+  lote de outro.
+- Renovação - 1 ano por 60% do valor pago, sem comissão; percentual ajustável
+  por revendedor.
+- Troca de placa - a venda inteira vai para o código novo, a antiga fica
+  baixada e a perda vai ao razão.
+- Vendedor com venda é desativado, e não excluído; sem venda, exclui.
+
+### Contrato
+
+- O contrato do revendedor e o termo do cliente são assinados na D4Sign.
+- O PDF original e o hash SHA-256 dele ficam guardados, para provar qual texto
+  foi assinado.
+- Contrato só anda para a frente - aguardando assinatura vira assinado ou
+  cancelado.
+
+## 7. Marca do revendedor
+
+O dono configura logo, cor primária, cor de destaque e nome exibido. Vale para
+todos os usuários dele, no app e no e-mail. A plataforma gera os tons a partir
+das cores e recusa cor sem contraste de 4,5:1 com o texto. A tela de login e a
+área da operadora usam a marca da plataforma. Logo só em PNG ou WebP, até
+512 KB.
+
+## 8. Fora do escopo
+
+- Avalia Gestor, Lia, página de links e loja, que seguem no sistema atual da
+  Avalia.
+- WhatsApp e atendimento por IA. O pré-atendimento é o chat do revendedor com
+  a Avalia, dentro da plataforma.
+- Domínio próprio por revendedor. Todos usam o mesmo domínio.
+
+## 9. A Avalia na plataforma
+
+1. Teste - o fluxo roda em homologação com os sandboxes; depois a revendedora
+   Avalia compra 10 placas de si mesma, paga como qualquer revendedor e vende a
+   clientes reais. O lote usa uma faixa de códigos que não existe no Sales.
+2. Integração - placa nova nasce na plataforma, placa antiga fica no Sales.
+   Cada placa tem uma casa só, decidida pela faixa do código.
+3. Migração - as placas antigas entram por uma importação que serviria a
+   qualquer revendedor, ensaiada em cópia da produção até os totais baterem ao
+   centavo.
+4. Volta - o Sales fica intacto por semanas; voltar é desligar o repasse.
+
+Regra que não quebra - `avaliaone.com.br/q/{codigo}` responde para sempre,
+porque está impresso nas placas vendidas.
+
+## 10. Fases
+
+Estimativa em semanas de cerca de 20 horas.
+
+| Fase | Conteúdo | Semanas | Situação |
+| --- | --- | --- | --- |
+| 0. Base | Solução em camadas, login, isolamento entre revendedores, CI | 2 | Feita |
+| Integrações | Pagar.me (cobrança, split, webhook) e D4Sign (envio, webhook) no código | - | Feita, falta sandbox real |
+| 1. Revenda | Cadastro, contrato, pedido, lote, equipe, venda, NFC e QR | 3 | A fazer |
+| 2. Pagamento | Checkout do pedido de placas, cupom, comissão, razão | 3 | A fazer |
+| 3. Serviços | Chat, painel ao vivo, mapa, Worker, Protheus simulado, white label | 4 | A fazer |
+| 4. Avalia | Teste, integração com o Sales, migração e volta | 3 | A fazer |
+
+## 11. Decisões pendentes
+
+| Decisão | Opções | Recomendação |
+| --- | --- | --- |
+| Taxa da Avalia | 1,99% ou R$ 1,99 fixo por venda | 1,99% (o código assume) |
+| Preço dos pacotes | Por pacote | A definir |
+| Nome e domínio | Subdomínio de avaliaone.com.br ou domínio próprio | A definir |
+| Recebedor da revendedora Avalia | Mesmo da conta do marketplace ou separado | Confirmar com o Pagar.me |
+| Textos do contrato e do termo | Rascunho ou revisão jurídica | Revisão antes do fim da Fase 1 |
+| Repositório | Público ou privado | Público, com dados fictícios |
+
+## 12. Registro de mudanças
+
+| Data | Mudança |
+| --- | --- |
+| 21/10/2026 | Documento criado a partir do desenho técnico. Inclui o modelo de cobrança com taxa gravada na cobrança, a regra de que cobrança e contrato só andam para a frente, e a retomada de cobrança sem pedido. |

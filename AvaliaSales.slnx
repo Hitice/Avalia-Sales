@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/AvaliaSales.Api/AvaliaSales.Api.csproj" />
+    <Project Path="src/AvaliaSales.Application/AvaliaSales.Application.csproj" />
+    <Project Path="src/AvaliaSales.Domain/AvaliaSales.Domain.csproj" />
+    <Project Path="src/AvaliaSales.Infrastructure/AvaliaSales.Infrastructure.csproj" />
+    <Project Path="src/AvaliaSales.Worker/AvaliaSales.Worker.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/AvaliaSales.Tests/AvaliaSales.Tests.csproj" />
+  </Folder>
+</Solution>

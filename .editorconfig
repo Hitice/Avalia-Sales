@@ -1,0 +1,28 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+[*.{json,yml,yaml,props,csproj,slnx}]
+indent_size = 2
+
+[*.cs]
+# Código sem uso vira aviso, e o build trata aviso como erro (skill codigo-morto).
+dotnet_diagnostic.IDE0051.severity = warning   # membro privado sem uso
+dotnet_diagnostic.IDE0052.severity = warning   # membro privado escrito e nunca lido
+dotnet_diagnostic.IDE0060.severity = warning   # parâmetro sem uso
+dotnet_diagnostic.IDE0005.severity = warning   # using desnecessário
+# Nomes em português divergem dos da classe base por escolha.
+dotnet_diagnostic.CA1725.severity = none
+
+[**/Migrations/*.cs]
+generated_code = true
+
+[tests/**.cs]
+# Nome de teste é a regra de negócio escrita com sublinhado.
+dotnet_diagnostic.CA1707.severity = none

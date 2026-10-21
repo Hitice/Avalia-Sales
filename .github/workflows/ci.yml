@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  api:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      AVALIA_SALES_PG_ADMIN: Host=localhost;Username=postgres;Password=postgres;Database=postgres
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+      - run: dotnet restore
+      - run: dotnet build --no-restore -c Release
+      - run: dotnet test --no-build -c Release
+
+  # Código que muda sem o PDD ou o SDD acompanhar não entra. Refatoração sem
+  # efeito visível passa com o rótulo sem-mudanca-de-doc.
+  documentacao:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Documentação acompanha o código
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          SEM_DOC: ${{ contains(github.event.pull_request.labels.*.name, 'sem-mudanca-de-doc') }}
+        run: |
+          mudou=$(git diff --name-only "$BASE"...HEAD)
+          codigo=$(printf '%s\n' "$mudou" | grep -E '^(src|tests|infra)/|^(Dockerfile|docker-compose\.yml|Directory\.(Build|Packages)\.props)$' || true)
+          docs=$(printf '%s\n' "$mudou" | grep -E '^docs/(PDD|SDD)\.md$' || true)
+          if [ -n "$codigo" ] && [ -z "$docs" ] && [ "$SEM_DOC" != "true" ]; then
+            echo "::error::Código mudou sem atualizar docs/PDD.md ou docs/SDD.md. Atualize o documento certo ou aplique o rótulo sem-mudanca-de-doc."
+            printf '%s\n' "$codigo"
+            exit 1
+          fi

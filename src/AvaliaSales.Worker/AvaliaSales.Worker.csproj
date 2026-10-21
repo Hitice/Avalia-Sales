@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+  <ItemGroup>
+    <ProjectReference Include="..\AvaliaSales.Infrastructure\AvaliaSales.Infrastructure.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+  </ItemGroup>
+  <PropertyGroup>
+    <UserSecretsId>avalia-sales-worker</UserSecretsId>
+  </PropertyGroup>
+</Project>
