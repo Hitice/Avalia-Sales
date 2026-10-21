@@ -39,6 +39,24 @@ jobs:
       - run: dotnet build --no-restore -c Release
       - run: dotnet test --no-build -c Release
 
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: web/.nvmrc
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - run: npx vite build
+
   # Código que muda sem o PDD ou o SDD acompanhar não entra. Refatoração sem
   # efeito visível passa com o rótulo sem-mudanca-de-doc.
   documentacao:
@@ -54,7 +72,7 @@ jobs:
           SEM_DOC: ${{ contains(github.event.pull_request.labels.*.name, 'sem-mudanca-de-doc') }}
         run: |
           mudou=$(git diff --name-only "$BASE"...HEAD)
-          codigo=$(printf '%s\n' "$mudou" | grep -E '^(src|tests|infra)/|^(Dockerfile|docker-compose\.yml|Directory\.(Build|Packages)\.props)$' || true)
+          codigo=$(printf '%s\n' "$mudou" | grep -E '^(src|tests|infra|web/src)/|^(Dockerfile|docker-compose\.yml|Directory\.(Build|Packages)\.props)$' || true)
           docs=$(printf '%s\n' "$mudou" | grep -E '^docs/(PDD|SDD)\.md$' || true)
           if [ -n "$codigo" ] && [ -z "$docs" ] && [ "$SEM_DOC" != "true" ]; then
             echo "::error::Código mudou sem atualizar docs/PDD.md ou docs/SDD.md. Atualize o documento certo ou aplique o rótulo sem-mudanca-de-doc."

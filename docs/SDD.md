@@ -17,7 +17,7 @@ Cada seção diz o que já está no código e o que ainda é plano.
 | Integrações | Pagar.me v5, D4Sign v1 | - | No código |
 | Resiliência | Microsoft.Extensions.Http.Resilience (Polly) | 10.11.0 | No código |
 | Tempo real | SignalR | - | Plano |
-| Front | React 19 + Vite, React Router, TanStack Query, Zustand, React Hook Form + Zod, Tailwind 4, shadcn/ui | - | Plano |
+| Front | React 19 + Vite, React Router, TanStack Query, Zustand, React Hook Form + Zod, Tailwind 4, shadcn/ui (Radix) | React 19.3, Vite 8.3, Router 8.5, Tailwind 4.3, Zod 4.6, TypeScript 6.0 | Entrada e catálogo no código |
 | E-mail, mapa, ERP | Resend, Google Maps e Places (New), Protheus por simulador | - | Plano |
 | Documentação da API | OpenAPI do ASP.NET Core e página Scalar em `/rotas`, só em Development | OpenApi 10.0.13, Scalar 2.18.2 | No código |
 | Infra | Linux, Docker Compose, Nginx, Let's Encrypt | - | Compose e Dockerfile no repositório |
@@ -42,6 +42,7 @@ Webhooks ───────┘   Worker ────────┘
 | `AvaliaSales.Infrastructure` | `BancoDeDados`, migrations, Identity, clientes do Pagar.me e da D4Sign, caixa de entrada, processador | Ter regra de negócio |
 | `AvaliaSales.Api` | Rotas, autenticação, webhooks, saúde, modo `--migrar` | Ter regra de negócio ou SQL |
 | `AvaliaSales.Worker` | Volta a cada 10 segundos: caixa de entrada e retomadas | Ter regra de negócio |
+| `web` | Front único em React: telas, sessão, chamadas à API | Calcular regra de negócio que a API já decide |
 
 Regra recusada sai do Domain como `RegraDeNegocioException` e a API responde
 422. Falha de sistema externo vira `IntegracaoException`, sem chave nem URL na
@@ -69,6 +70,33 @@ negócio e duas travas independentes:
 - Testes que guardam - cada trava é testada sozinha, e um teste falha se uma
   tabela com `revendedor_id` nascer sem RLS. Desligar uma trava de propósito
   faz o teste dela falhar; isso foi conferido.
+
+## 3a. Front
+
+- Rotas - `/entrar` e `/painel/catalogo`, este dentro de uma rota protegida
+  que manda para a entrada sem sessão válida. Cada área nova entra como rota do
+  mesmo app, liberada pelo papel do usuário.
+- Sessão - o token fica só em memória (Zustand), nunca em `localStorage` ou
+  `sessionStorage`, onde um script injetado o leria. Recarregar a página pede
+  login até a API ter o refresh token em cookie HttpOnly. Resposta 401 encerra a
+  sessão.
+- Chamadas - todas por `chamarApi`, com o prefixo `/api`. Em desenvolvimento o
+  Vite repassa `/api` à API local sem o prefixo; em produção o Nginx fará o
+  mesmo. A mensagem de erro da tela vem do `detail` do ProblemDetails.
+- Dados - TanStack Query para leitura e gravação, com a lista refeita depois de
+  gravar. Formulários com React Hook Form e Zod; a API valida de novo.
+- Dinheiro - digitado em reais e convertido para centavos inteiros por texto,
+  sem ponto flutuante (`paraCentavos`).
+- Tema - `web/src/estilos/tokens.css` com as variáveis do shadcn/ui na marca da
+  plataforma (noite #120c2b e laser #ee46bc), contraste conferido: texto 17:1,
+  secundário 5,8:1, borda de campo 3,4:1, anel de foco 3,2:1. O laser não é
+  usado como texto sobre branco (3,4:1). Variantes `dark:` só com a classe
+  `.dark`, que ainda não existe.
+- Toque - campos e botões com 44 px abaixo de 768 px e 36 px acima.
+- Testes - Vitest e Testing Library: conversão de dinheiro, sessão e a tela de
+  entrada (validação, senha errada, caminho feliz). 20 testes em 21/10/2026.
+  Telas conferidas no navegador a 1440 px e a 390 px, com o revendedor B vendo
+  o catálogo vazio.
 
 ## 4. Modelo de dados
 
@@ -223,9 +251,11 @@ Revisão pela skill `seguranca` (OWASP ASVS 5.0).
   máquina, que não tem Docker.
 - Produção - VPS Linux com Compose, Nginx e Let's Encrypt, um domínio para
   todos os revendedores.
-- Rodar sem Docker - a API aceita `--migrar` (com `ConnectionStrings__Dono`) e
-  `--demonstracao`, que cria dois revendedores fictícios com login, só em
-  Development. Passo a passo no README.
+- Rodar sem Docker - a API aceita `--migrar` (com `ConnectionStrings__Dono`),
+  `--demonstracao` (dois revendedores fictícios com login, só em Development) e
+  `--novo-revendedor --nome= --email= --senha=` (revendedor e dono numa
+  transação, em qualquer ambiente, até a tela de cadastro existir). Passo a
+  passo no README.
 - Desenvolvimento local - Postgres 17 do Homebrew; os testes criam e apagam
   o próprio banco. No VPS o banco nasce vazio e as mesmas migrations criam as
   tabelas: não há dado a migrar da máquina.
@@ -233,7 +263,8 @@ Revisão pela skill `seguranca` (OWASP ASVS 5.0).
 ## 10. CI e qualidade
 
 - CI no GitHub Actions - restore, build em Release e a suíte inteira contra um
-  Postgres 17 de serviço, a cada push no `main` e em pull request.
+  Postgres 17 de serviço, a cada push no `main` e em pull request. O front tem
+  um job próprio no Node 24 LTS: `npm ci`, tipos, lint (oxlint), testes e build.
 - Build trata aviso como erro, com `AnalysisMode=Recommended` e as regras de
   código sem uso (IDE0051, IDE0052, IDE0060, IDE0005) ligadas no
   `.editorconfig`.
@@ -258,6 +289,8 @@ Revisão pela skill `seguranca` (OWASP ASVS 5.0).
 | 21/10/2026 | Vendedor não é recebedor no Pagar.me | O revendedor paga a comissão por Pix; a plataforma calcula o saldo |
 | 21/10/2026 | Webhook só grava; o Worker reconsulta a fonte | Nenhum dos dois webhooks assina o corpo |
 | 21/10/2026 | Vínculo externo sem RLS | O webhook chega sem revendedor |
+| 21/10/2026 | Token do front só em memória | Script injetado não lê memória do app; o refresh em cookie HttpOnly resolve a recarga |
+| 21/10/2026 | `@hookform/resolvers` 5.9 e não 6.0 | A 6.0.0 declara versões conflitantes de uma dependência opcional e não instala sem forçar |
 | 21/10/2026 | Nenhuma biblioteca de idempotência pronta | A mais citada tinha 329 estrelas e nenhum commit desde 11/2024; o Postgres já garante unicidade |
 
 ## 12. Pendências técnicas
@@ -269,6 +302,11 @@ Revisão pela skill `seguranca` (OWASP ASVS 5.0).
   hoje só os casos de uso e os testes os chamam.
 - Link de pagamento do Pagar.me (`POST /paymentlinks`) entra com o pedido de
   placas.
+- Pacote do front com 511 kB (161 kB comprimido): dividir por rota quando a
+  área do vendedor entrar, para o celular carregar só o que usa.
+- Storybook e axe, pedidos pela skill `design-system`, ainda não instalados;
+  entram com o primeiro componente próprio.
+- Nginx com `/api/`, `/q/` e `/webhooks/` para a API e o resto para o front.
 - Testes e API local usam o mesmo papel `avalia_app` no Postgres da máquina, e a
   suíte troca a senha dele a cada execução: depois de rodar os testes, a API
   local precisa da senha de volta (README). Resolver com um nome de papel
@@ -278,5 +316,7 @@ Revisão pela skill `seguranca` (OWASP ASVS 5.0).
 
 | Data | Mudança |
 | --- | --- |
+| 21/10/2026 | Comando `--novo-revendedor` para a operadora cadastrar revendedor e dono pela linha de comando. |
+| 21/10/2026 | Front em `web/`: entrada, painel protegido e catálogo, tema da plataforma com contraste conferido, toque de 44 px no celular, 20 testes e job no CI. |
 | 21/10/2026 | Página de rotas (OpenAPI e Scalar em `/rotas`) e comando `--demonstracao`, os dois só em Development. |
 | 21/10/2026 | Documento criado. Fase 0 (camadas, login, isolamento, CI) e integrações do Pagar.me e da D4Sign com caixa de entrada, Worker e retomadas. |

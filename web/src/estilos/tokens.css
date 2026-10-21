@@ -1,0 +1,38 @@
+/*
+ * Marca da plataforma. A marca do revendedor sobrescreve só estas variáveis
+ * em :root depois do login (skill design-system); componente nenhum escreve
+ * cor solta. Cores da marca Avalia: noite #120c2b e laser #ee46bc.
+ *
+ * Contraste conferido (WCAG 2.2): texto sobre fundo 17:1, texto secundário
+ * 5,8:1, branco sobre primária 18,9:1, branco sobre destrutivo 4,8:1, borda de
+ * campo 3,4:1 e anel de foco 3,2:1. O laser não serve de texto sobre branco
+ * (3,4:1): vai no foco e no destaque, com texto escuro por cima.
+ */
+:root {
+  --background: oklch(0.985 0.004 277);
+  --foreground: oklch(0.211 0.039 282.5);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.211 0.039 282.5);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.211 0.039 282.5);
+  --primary: oklch(0.184 0.06 287.9);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.955 0.012 285);
+  --secondary-foreground: oklch(0.184 0.06 287.9);
+  --muted: oklch(0.955 0.012 285);
+  --muted-foreground: oklch(0.5 0.03 285);
+  --accent: oklch(0.94 0.04 342);
+  --accent-foreground: oklch(0.184 0.06 287.9);
+  --destaque: oklch(0.671 0.234 342.3);
+  --destaque-foreground: oklch(0.184 0.06 287.9);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.91 0.012 285);
+  --input: oklch(0.64 0.02 285);
+  --ring: oklch(0.671 0.234 342.3);
+  --chart-1: oklch(0.184 0.06 287.9);
+  --chart-2: oklch(0.671 0.234 342.3);
+  --chart-3: oklch(0.568 0.237 270);
+  --chart-4: oklch(0.5 0.03 285);
+  --chart-5: oklch(0.8 0.1 342);
+  --radius: 0.625rem;
+}

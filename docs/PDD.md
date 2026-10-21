@@ -69,6 +69,7 @@ Todas no mesmo app, liberadas pelo papel do usuário.
 | Pedido de placas | Revendedor | Computador | Pacote, pagamento, acompanhamento do envio |
 | Ativar lote | Revendedor | Computador | Número do lote recebido |
 | Vendedores | Revendedor | Computador | Criar, editar, desativar, excluir, comissão |
+| Catálogo | Revendedor | Computador e celular | Produtos e preço da tabela do revendedor |
 | Marca | Revendedor | Computador | Logo, cores e nome exibido, com prévia |
 | Painel | Revendedor | Computador | Vendas e pagamentos ao vivo, saldo de comissão, registro de repasse |
 | Mapa | Revendedor | Computador | Lugares vendidos |
@@ -168,7 +169,7 @@ Estimativa em semanas de cerca de 20 horas.
 | --- | --- | --- | --- |
 | 0. Base | Solução em camadas, login, isolamento entre revendedores, CI | 2 | Feita |
 | Integrações | Pagar.me (cobrança, split, webhook) e D4Sign (envio, webhook) no código | - | Feita, falta sandbox real |
-| 1. Revenda | Cadastro, contrato, pedido, lote, equipe, venda, NFC e QR | 3 | A fazer |
+| 1. Revenda | Cadastro, contrato, pedido, lote, equipe, venda, NFC e QR | 3 | Em andamento: entrada e catálogo no front |
 | 2. Pagamento | Checkout do pedido de placas, cupom, comissão, razão | 3 | A fazer |
 | 3. Serviços | Chat, painel ao vivo, mapa, Worker, Protheus simulado, white label | 4 | A fazer |
 | 4. Avalia | Teste, integração com o Sales, migração e volta | 3 | A fazer |
@@ -188,4 +189,5 @@ Estimativa em semanas de cerca de 20 horas.
 
 | Data | Mudança |
 | --- | --- |
+| 21/10/2026 | Primeiras telas: entrada e catálogo do revendedor (listar e cadastrar produto com preço em reais). |
 | 21/10/2026 | Documento criado a partir do desenho técnico. Inclui o modelo de cobrança com taxa gravada na cobrança, a regra de que cobrança e contrato só andam para a frente, e a retomada de cobrança sem pedido. |

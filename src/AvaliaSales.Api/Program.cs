@@ -90,6 +90,12 @@ builder.Services.AddOpenApi(o => o.AddDocumentTransformer<EsquemaDoToken>());
 
 var app = builder.Build();
 
+if (args.Contains("--novo-revendedor"))
+{
+    Environment.ExitCode = await NovoRevendedor.Criar(app.Services, args);
+    return;
+}
+
 if (args.Contains("--demonstracao"))
 {
     Environment.ExitCode = await Demonstracao.Semear(app.Services, app.Environment);

@@ -11,7 +11,7 @@ esac
 raiz=${CLAUDE_PROJECT_DIR:-$(pwd)}
 mudancas=$(git -C "$raiz" status --porcelain --untracked-files=all 2>/dev/null | cut -c4-) || exit 0
 
-codigo=$(printf '%s\n' "$mudancas" | grep -E '^(src|tests|infra)/|^(Dockerfile|docker-compose\.yml|Directory\.(Build|Packages)\.props|\.github/)' | grep -vE '/(bin|obj)/' || true)
+codigo=$(printf '%s\n' "$mudancas" | grep -E '^(src|tests|infra|web/src)/|^(Dockerfile|docker-compose\.yml|Directory\.(Build|Packages)\.props|\.github/)' | grep -vE '/(bin|obj)/' || true)
 documento=$(printf '%s\n' "$mudancas" | grep -E '^docs/(PDD|SDD)\.md$' || true)
 
 if [ -n "$codigo" ] && [ -z "$documento" ]; then

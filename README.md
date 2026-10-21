@@ -44,9 +44,22 @@ ASPNETCORE_URLS=http://127.0.0.1:5199 dotnet run --project src/AvaliaSales.Api -
 dotnet run --project src/AvaliaSales.Worker --no-launch-profile   # em outro terminal
 ```
 
+Front, em outro terminal:
+
+```bash
+cd web && npm ci && npm run dev   # http://localhost:5173, /api vai para a API local
+```
+
 Páginas - `http://127.0.0.1:5199/rotas` (todas as rotas, com o campo do
 token) e `/health`. Logins de demonstração - `dono@revenda-a.dev` e
 `dono@revenda-b.dev`, senha `demonstracao-123`.
+
+Revendedor novo, pela linha de comando, até a tela de cadastro existir:
+
+```bash
+dotnet run --project src/AvaliaSales.Api --no-launch-profile -- \
+  --novo-revendedor --nome="Avalia" --email=dono@exemplo.com.br --senha=<10 caracteres ou mais>
+```
 
 Os testes trocam a senha do papel `avalia_app` no Postgres local. Depois de
 rodar `dotnet test`, devolva a senha da API local com
@@ -71,3 +84,4 @@ O Worker sobe junto e processa os webhooks recebidos.
 | `AvaliaSales.Infrastructure` | EF Core, Postgres, Identity, migrations |
 | `AvaliaSales.Api` | Rotas HTTP, autenticação JWT, webhooks, saúde |
 | `AvaliaSales.Worker` | Caixa de entrada dos webhooks e retomadas |
+| `web` | Front em React 19: entrada e catálogo do revendedor |
