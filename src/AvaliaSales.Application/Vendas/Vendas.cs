@@ -25,7 +25,7 @@ public sealed record NovaVenda(
     string? TokenDoCartao = null,
     int Parcelas = 1);
 
-public sealed record VendaRegistrada(Guid VendaId, string Codigo, long ValorCents, DateTimeOffset? VenceEm, CobrancaDto? Cobranca, string? SemCobranca);
+public sealed record VendaRegistrada(Guid VendaId, string Codigo, string Endereco, long ValorCents, DateTimeOffset? VenceEm, CobrancaDto? Cobranca, string? SemCobranca);
 
 public sealed record VendaDaLista(
     Guid Id, string Codigo, string Cliente, string Produto, Guid VendedorId, string Vendedor, long ValorCents, long ComissaoCents,
@@ -74,7 +74,7 @@ public sealed class Vendas(
         await transacao.CommitAsync(ct);
 
         var (cobranca, semCobranca) = await TentarCobrar(venda, cliente, placa.Codigo, pedido.TokenDoCartao, pedido.Parcelas, ct);
-        return new VendaRegistrada(venda.Id, placa.Codigo, venda.ValorCents, placa.VenceEm, cobranca, semCobranca);
+        return new VendaRegistrada(venda.Id, placa.Codigo, plataforma.Value.EnderecoDaPlaca(placa.Codigo), venda.ValorCents, placa.VenceEm, cobranca, semCobranca);
     }
 
     /// <summary>Gera de novo a cobrança que não saiu ou que falhou. A paga e a pendente ficam.</summary>
@@ -90,7 +90,7 @@ public sealed class Vendas(
         var cliente = await banco.Clientes.SingleAsync(c => c.Id == venda.ClienteId, ct);
         var placa = await banco.Placas.AsNoTracking().SingleAsync(p => p.Id == venda.PlacaId, ct);
         var (cobranca, semCobranca) = await TentarCobrar(venda, cliente, placa.Codigo, null, 1, ct);
-        return new VendaRegistrada(venda.Id, placa.Codigo, venda.ValorCents, placa.VenceEm, cobranca, semCobranca);
+        return new VendaRegistrada(venda.Id, placa.Codigo, plataforma.Value.EnderecoDaPlaca(placa.Codigo), venda.ValorCents, placa.VenceEm, cobranca, semCobranca);
     }
 
     public async Task<IReadOnlyList<VendaDaLista>> Listar(CancellationToken ct)

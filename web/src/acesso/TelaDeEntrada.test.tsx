@@ -20,7 +20,7 @@ function respostaDaApi(status: number, corpo: unknown) {
 
 afterEach(() => {
   vi.unstubAllGlobals()
-  useSessao.getState().sair()
+  useSessao.getState().limpar()
 })
 
 describe('TelaDeEntrada', () => {

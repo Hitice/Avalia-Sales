@@ -5,8 +5,10 @@ O que a plataforma faz, para quem, e as regras de negócio. O como fica no
 afeta, com uma linha no registro de mudanças do fim.
 
 Situação em 21/10/2026 - Fase 0 pronta, integrações com Pagar.me e D4Sign no
-código, e a Fase 1 com API, regras e testes prontos; as telas da Fase 1 estão
-em construção (entrada e catálogo já existem).
+código, e a Fase 1 com API e telas: cadastro, pedido, despacho e ativação de
+lote, estoque, consignação, equipe, catálogo, Nova venda com QR, NFC e Pix, e
+ficha da placa. Falta para fechar a Fase 1 rodar os sandboxes reais e a
+revisão do texto do contrato.
 
 ## 1. Visão
 
@@ -236,7 +238,7 @@ Estimativa em semanas de cerca de 20 horas.
 | --- | --- | --- | --- |
 | 0. Base | Solução em camadas, login, isolamento entre revendedores, CI | 2 | Feita |
 | Integrações | Pagar.me (cobrança, split, webhook) e D4Sign (envio, webhook) no código | - | Feita, falta sandbox real |
-| 1. Revenda | Cadastro, contrato, pedido, lote, equipe, venda, NFC e QR | 3 | API, regras e testes prontos; telas em construção |
+| 1. Revenda | Cadastro, contrato, pedido, lote, equipe, venda, NFC e QR | 3 | Feita em simulação; falta o sandbox real do Pagar.me e da D4Sign |
 | 2. Pagamento | Checkout do pedido de placas, cupom, comissão, razão | 3 | A fazer |
 | 3. Serviços | Chat, painel ao vivo, mapa, Worker, Protheus simulado, white label | 4 | A fazer |
 | 4. Avalia | Teste, integração com o Sales, migração e volta | 3 | A fazer |
@@ -257,6 +259,7 @@ Estimativa em semanas de cerca de 20 horas.
 
 | Data | Mudança |
 | --- | --- |
+| 21/10/2026 | Telas da Fase 1 para a operadora, o dono e o vendedor. Recarregar a página mantém o login. |
 | 21/10/2026 | Fase 1 na API - cadastro pela tela, contrato automático, pacotes, pedido, despacho e ativação de lote, estoque, consignação, equipe, venda com cobrança, ficha da placa e leitura do QR. Regras portadas do Sales, com o mapa de portabilidade (seção 6a). Papéis operadora, dono e vendedor. |
 | 21/10/2026 | Consignação só entre o revendedor e o vendedor dele; a Avalia não consigna ao revendedor. Mapa dos lugares vendidos no Google Maps. |
 | 21/10/2026 | Primeiras telas: entrada e catálogo do revendedor (listar e cadastrar produto com preço em reais). |

@@ -18,8 +18,7 @@ public static class ArquivoDeImpressao
     /// compacto. A rota da leitura aceita /Q/ e /q/. Nível H de correção: a
     /// placa leva risco e sujeira de balcão.
     /// </summary>
-    public static string UrlDoQr(string urlPublica, string codigo) =>
-        (urlPublica.TrimEnd('/') + "/Q/" + codigo).ToUpperInvariant();
+    public static string UrlDoQr(string urlPublica, string codigo) => Application.OpcoesDaPlataforma.EnderecoDaPlaca(urlPublica, codigo);
 
     public static byte[] Gerar(ImpressaoDoLote lote, string urlPublica, string? pastaLocal)
     {

@@ -20,4 +20,10 @@ public sealed class OpcoesDaPlataforma
     public string EmailDaOperadora { get; set; } = string.Empty;
 
     public string HostPublico => new Uri(UrlPublica).Host;
+
+    /// <summary>O endereço gravado no QR e no NFC, em maiúsculas para o modo alfanumérico do QR.</summary>
+    public string EnderecoDaPlaca(string codigo) => EnderecoDaPlaca(UrlPublica, codigo);
+
+    public static string EnderecoDaPlaca(string urlPublica, string codigo) =>
+        (urlPublica.TrimEnd('/') + "/Q/" + codigo).ToUpperInvariant();
 }

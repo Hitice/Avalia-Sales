@@ -13,7 +13,7 @@ public sealed record LeituraDto(DateOnly Dia, int Total);
 public sealed record VendaDaFicha(Guid Id, string Cliente, string Responsavel, string Telefone, string Produto, string Vendedor,
     long ValorCents, long ComissaoCents, SituacaoDaCobranca? Pagamento, DateTimeOffset VendidaEm);
 
-public sealed record FichaDto(string Codigo, long Sequencia, EstadoDaPlaca Estado, string? Destino, DateTimeOffset? VenceEm,
+public sealed record FichaDto(string Codigo, string Endereco, long Sequencia, EstadoDaPlaca Estado, string? Destino, DateTimeOffset? VenceEm,
     DateTimeOffset? FimDaCarencia, long TotalLeituras, DateTimeOffset? UltimaLeituraEm, string? ConsignadaA, VendaDaFicha? Venda,
     IReadOnlyList<LeituraDto> Leituras);
 
@@ -54,7 +54,7 @@ public sealed class FichaDaPlaca(IBancoDeDados banco, IUsuarioAtual usuario, ICo
             consignada = (await contas.Nomes([vendedorId], ct)).GetValueOrDefault(vendedorId);
         }
 
-        return new FichaDto(placa.Codigo, placa.Sequencia, placa.Estado(agora), placa.Destino, placa.VenceEm, placa.FimDaCarencia,
+        return new FichaDto(placa.Codigo, plataforma.Value.EnderecoDaPlaca(placa.Codigo), placa.Sequencia, placa.Estado(agora), placa.Destino, placa.VenceEm, placa.FimDaCarencia,
             placa.TotalLeituras, placa.UltimaLeituraEm, consignada, venda, leituras);
     }
 

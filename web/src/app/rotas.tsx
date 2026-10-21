@@ -1,23 +1,65 @@
+import type { ComponentType } from 'react'
 import { Navigate, createBrowserRouter } from 'react-router'
 import { Protegida } from '@/acesso/Protegida'
 import { TelaDeEntrada } from '@/acesso/TelaDeEntrada'
-import { TelaDoCatalogo } from '@/catalogo/TelaDoCatalogo'
-import { LayoutDoPainel } from '@/painel/LayoutDoPainel'
+import { Moldura } from './Moldura'
 
-export const rotas = createBrowserRouter([
+/**
+ * Cada tela carrega o próprio código só quando abre: o vendedor no celular
+ * não baixa a área da operadora nem a do dono.
+ */
+const tela = <M,>(carregar: () => Promise<M>, nome: keyof M) => async () => ({ Component: (await carregar())[nome] as ComponentType })
+
+/** Um app só; cada área abre para o papel dela (Protegida). */
+export const rotas = createBrowserRouter([{
+  // Mostrado enquanto o código da primeira tela chega.
+  hydrateFallbackElement: <p role="status" className="p-6 text-sm text-muted-foreground">Carregando...</p>,
+  children: [
   { path: '/entrar', element: <TelaDeEntrada /> },
+  { path: '/cadastro', lazy: tela(() => import('@/acesso/TelaDeCadastro'), 'TelaDeCadastro') },
   {
     element: <Protegida />,
     children: [
       {
-        path: '/painel',
-        element: <LayoutDoPainel />,
+        element: <Moldura />,
         children: [
-          { index: true, element: <Navigate to="catalogo" replace /> },
-          { path: 'catalogo', element: <TelaDoCatalogo /> },
+          {
+            path: '/operadora',
+            element: <Protegida papeis={['Operadora']} />,
+            children: [
+              { index: true, element: <Navigate to="pedidos" replace /> },
+              { path: 'pedidos', lazy: tela(() => import('@/operadora/TelaDePedidos'), 'TelaDePedidos') },
+              { path: 'lotes', lazy: tela(() => import('@/operadora/TelaDeLotes'), 'TelaDeLotes') },
+              { path: 'pacotes', lazy: tela(() => import('@/operadora/TelaDePacotes'), 'TelaDePacotes') },
+              { path: 'revendedores', lazy: tela(() => import('@/operadora/TelaDeRevendedores'), 'TelaDeRevendedores') },
+            ],
+          },
+          {
+            path: '/painel',
+            element: <Protegida papeis={['Dono']} />,
+            children: [
+              { index: true, element: <Navigate to="inicio" replace /> },
+              { path: 'inicio', lazy: tela(() => import('@/painel/TelaInicial'), 'TelaInicial') },
+              { path: 'vendas', lazy: tela(() => import('@/painel/TelaDeVendas'), 'TelaDeVendas') },
+              { path: 'estoque', lazy: tela(() => import('@/painel/TelaDoEstoque'), 'TelaDoEstoque') },
+              { path: 'pedidos', lazy: tela(() => import('@/painel/TelaDePedidosDePlacas'), 'TelaDePedidosDePlacas') },
+              { path: 'equipe', lazy: tela(() => import('@/painel/TelaDaEquipe'), 'TelaDaEquipe') },
+              { path: 'catalogo', lazy: tela(() => import('@/catalogo/TelaDoCatalogo'), 'TelaDoCatalogo') },
+            ],
+          },
+          {
+            element: <Protegida papeis={['Dono', 'Vendedor']} />,
+            children: [
+              { path: '/vender', lazy: tela(() => import('@/balcao/TelaDeNovaVenda'), 'TelaDeNovaVenda') },
+              { path: '/placa/:codigo', lazy: tela(() => import('@/balcao/TelaDaPlaca'), 'TelaDaPlaca') },
+              { path: '/vendedor/placas', lazy: tela(() => import('@/painel/TelaDoEstoque'), 'TelaDoEstoque') },
+              { path: '/vendedor/vendas', lazy: tela(() => import('@/painel/TelaDeVendas'), 'TelaDeVendas') },
+            ],
+          },
         ],
       },
     ],
   },
-  { path: '*', element: <Navigate to="/painel" replace /> },
-])
+  { path: '*', element: <Navigate to="/entrar" replace /> },
+  ],
+}])

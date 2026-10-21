@@ -18,7 +18,8 @@ Cada seção diz o que já está no código e o que ainda é plano.
 | QR da impressão | QRCoder (MIT), SVG e PNG sem System.Drawing | 1.8.0 | No código |
 | Resiliência | Microsoft.Extensions.Http.Resilience (Polly) | 10.11.0 | No código |
 | Tempo real | SignalR | - | Plano |
-| Front | React 19 + Vite, React Router, TanStack Query, Zustand, React Hook Form + Zod, Tailwind 4, shadcn/ui (Radix) | React 19.3, Vite 8.3, Router 8.5, Tailwind 4.3, Zod 4.6, TypeScript 6.0 | Entrada e catálogo no código |
+| Front | React 19 + Vite, React Router, TanStack Query, Zustand, React Hook Form + Zod, Tailwind 4, shadcn/ui (Radix) | React 19.3, Vite 8.3, Router 8.5, Tailwind 4.3, Zod 4.6, TypeScript 6.0 | Telas da Fase 1 no código |
+| Leitura de QR e Pix no front | `BarcodeDetector` nativo; sem ele, o polyfill `barcode-detector` sobre o ZXing C++ em WebAssembly (`zxing-wasm`), servido pelo app; `qrcode` para o QR do Pix | barcode-detector 3.2.2, zxing-wasm 3.1.3, qrcode 1.5.4 | No código |
 | Mapa, ERP | Google Maps JavaScript, Protheus por simulador | - | Plano |
 | Documentação da API | OpenAPI do ASP.NET Core em `/openapi/v1.json` e Swagger UI em `/swagger`, só em Development | OpenApi 10.0.13, Swashbuckle.AspNetCore.SwaggerUI 10.3.0 | No código |
 | Infra | Linux, Docker Compose, Nginx, Let's Encrypt | - | Compose e Dockerfile no repositório |
@@ -87,13 +88,19 @@ negócio e duas travas independentes:
 
 ## 3a. Front
 
-- Rotas - `/entrar` e `/painel/catalogo`, este dentro de uma rota protegida
-  que manda para a entrada sem sessão válida. Cada área nova entra como rota do
-  mesmo app, liberada pelo papel do usuário.
-- Sessão - o token fica só em memória (Zustand), nunca em `localStorage` ou
-  `sessionStorage`, onde um script injetado o leria. Recarregar a página pede
-  login até a API ter o refresh token em cookie HttpOnly. Resposta 401 encerra a
-  sessão.
+- Rotas por papel - `/entrar` e `/cadastro` abertas; `/operadora/*`
+  (pedidos, lotes, pacotes, revendedores) só para a operadora; `/painel/*`
+  (início, vendas, estoque, pedidos de placas, equipe, catálogo) só para o
+  dono; `/vender`, `/placa/:codigo` e `/vendedor/*` para dono e vendedor. Papel
+  errado vai para a área do próprio papel. Cada tela carrega o próprio código
+  quando abre (`lazy` do React Router): o pacote inicial caiu de 695 kB para
+  460 kB, e o vendedor não baixa a área da operadora.
+- Sessão - o token de acesso fica só em memória (Zustand), nunca em
+  `localStorage` ou `sessionStorage`. Ao abrir, o app chama `/auth/renovar`
+  com o cookie HttpOnly; as rotas esperam essa tentativa antes de mandar para a
+  entrada, e recarregar a página mantém o login. A chamada renova um minuto
+  antes de vencer e, num 401, renova uma vez e repete. Renovações simultâneas
+  esperam a mesma, porque o refresh é rotativo.
 - Chamadas - todas por `chamarApi`, com o prefixo `/api`. Em desenvolvimento o
   Vite repassa `/api` à API local sem o prefixo; em produção o Nginx fará o
   mesmo. A mensagem de erro da tela vem do `detail` do ProblemDetails.
@@ -107,10 +114,18 @@ negócio e duas travas independentes:
   usado como texto sobre branco (3,4:1). Variantes `dark:` só com a classe
   `.dark`, que ainda não existe.
 - Toque - campos e botões com 44 px abaixo de 768 px e 36 px acima.
-- Testes - Vitest e Testing Library: conversão de dinheiro, sessão e a tela de
-  entrada (validação, senha errada, caminho feliz). 20 testes em 21/10/2026.
-  Telas conferidas no navegador a 1440 px e a 390 px, com o revendedor B vendo
-  o catálogo vazio.
+- Balcão - a Nova venda tem um passo por tela (placa, cliente, destino,
+  cobrança) com o botão no pé da tela. A placa entra pelo QR da câmera
+  traseira, pelo NFC (Web NFC, só Chrome do Android) ou digitada, e a leitura da
+  URL do QR em estoque abre a Nova venda com o código. O resultado mostra o QR
+  do Pix, o copia e cola e confirma o pagamento sozinho (a ficha é refeita a
+  cada 5 s). Com Web NFC, a tela grava o endereço da placa numa tag em branco.
+- Testes - Vitest e Testing Library: dinheiro, sessão, renovação (uma só para
+  chamadas simultâneas), rota protegida por papel, código da placa, percentual,
+  CNPJ, telefone e a tela de entrada. 34 testes em 21/10/2026. Fluxos
+  conferidos no navegador com os dados da demonstração - dono a 1440 px, Nova
+  venda e ficha a 390 px até o Pix pago pelo simulador, operadora despachando
+  lote.
 
 ## 4. Modelo de dados
 
@@ -403,8 +418,11 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
   operadora informa o `rp_` do revendedor.
 - Link de pagamento do Pagar.me (`POST /paymentlinks`) entra com o pedido de
   placas.
-- Pacote do front com 511 kB (161 kB comprimido): dividir por rota quando a
-  área do vendedor entrar, para o celular carregar só o que usa.
+- Pacote inicial do front com 460 kB (React, Router, Query, Zod e o
+  formulário de entrada); o polyfill de QR (44 kB e 1,1 MB de WebAssembly) só
+  baixa no aparelho sem `BarcodeDetector`.
+- Mapa dos lugares vendidos (Google Maps JavaScript) e busca de lugar ainda sem
+  chave na demonstração; a busca responde pedindo o link colado.
 - Storybook e axe, pedidos pela skill `design-system`, ainda não instalados;
   entram com o primeiro componente próprio.
 - Nginx com `/api/`, `/q/` e `/webhooks/` para a API e o resto para o front.
@@ -415,6 +433,7 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
 
 | Data | Mudança |
 | --- | --- |
+| 21/10/2026 | Telas da Fase 1 - operadora (pedidos, lotes com download da impressão, pacotes, revendedores), dono (início, vendas com nova cobrança, estoque com consignação, pedidos de placas com ativação de lote, equipe e comissão, catálogo com editar, desativar e excluir), balcão (Nova venda com QR, NFC e Pix, ficha da placa) e cadastro. Sessão restaurada pelo cookie ao recarregar. Endereço da placa nas respostas de venda e ficha, para a gravação do NFC. |
 | 21/10/2026 | Fase 1 na API - tabelas da plataforma e do revendedor, papéis e políticas, sessão com refresh em cookie, rotas por área, leitura do QR, impressão do lote, Resend, Places, simulador do Pagar.me, conferência de cobrança pendente, contrato automático e demonstração completa. Testes com papel próprio no Postgres. Página de rotas trocada do Scalar pelo Swagger UI. |
 | 21/10/2026 | Comando `--novo-revendedor` para a operadora cadastrar revendedor e dono pela linha de comando. |
 | 21/10/2026 | Front em `web/`: entrada, painel protegido e catálogo, tema da plataforma com contraste conferido, toque de 44 px no celular, 20 testes e job no CI. |

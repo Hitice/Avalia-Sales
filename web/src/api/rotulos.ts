@@ -1,0 +1,61 @@
+import type { EstadoDaPlaca, SituacaoDaCobranca, SituacaoDoContrato, SituacaoDoPedido } from './tipos'
+
+/** Os nomes que a tela mostra para cada situação da API. */
+export const ROTULO_DO_ESTADO: Record<EstadoDaPlaca, string> = {
+  EmEstoque: 'Em estoque',
+  Ativa: 'Ativa',
+  Carencia: 'Na carência',
+  Vencida: 'Vencida',
+  Suspensa: 'Suspensa',
+  Baixada: 'Encerrada',
+}
+
+export const ROTULO_DO_PEDIDO: Record<SituacaoDoPedido, string> = {
+  AguardandoPagamento: 'Aguardando pagamento',
+  Pago: 'Pago',
+  Despachado: 'Despachado',
+  Ativado: 'Ativado',
+  Cancelado: 'Cancelado',
+}
+
+export const ROTULO_DO_PAGAMENTO: Record<SituacaoDaCobranca, string> = {
+  Pendente: 'Aguardando',
+  Paga: 'Paga',
+  Cancelada: 'Cancelada',
+  Falhou: 'Falhou',
+  Estornada: 'Estornada',
+}
+
+export const ROTULO_DO_CONTRATO: Record<SituacaoDoContrato, string> = {
+  Rascunho: 'Sendo enviado',
+  AguardandoAssinatura: 'Esperando sua assinatura',
+  Assinado: 'Assinado',
+  Cancelado: 'Cancelado',
+}
+
+const data = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+const dataHora = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+
+export const formatarData = (iso: string | null) => (iso ? data.format(new Date(iso)) : '-')
+export const formatarDataHora = (iso: string | null) => (iso ? dataHora.format(new Date(iso)) : '-')
+
+/** 2000 pontos base viram "20%"; 2550 viram "25,5%". */
+export const formatarBps = (bps: number) => `${(bps / 100).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}%`
+
+/** "20", "20,5" ou "20%" viram pontos base; null se não for um percentual de 0 a 100. */
+export function paraBps(texto: string): number | null {
+  const limpo = texto.replace('%', '').trim().replace(',', '.')
+  if (!/^\d{1,3}(\.\d{1,2})?$/.test(limpo)) return null
+  const [inteiro, fracao = ''] = limpo.split('.')
+  const bps = Number(inteiro) * 100 + Number(fracao.padEnd(2, '0'))
+  return bps <= 10_000 ? bps : null
+}
+
+/** 11977771234 vira (11) 97777-1234; com o 55 na frente, +55 (11) 97777-1234. */
+export function formatarTelefone(digitos: string | null): string {
+  if (!digitos) return '-'
+  const pais = digitos.length > 11 ? `+${digitos.slice(0, digitos.length - 11)} ` : ''
+  const local = digitos.slice(-11)
+  const m = /^(\d{2})(\d{4,5})(\d{4})$/.exec(local.length === 11 ? local : digitos.slice(-10))
+  return m ? `${pais}(${m[1]}) ${m[2]}-${m[3]}` : digitos
+}
