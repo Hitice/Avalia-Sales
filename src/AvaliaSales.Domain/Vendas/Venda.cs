@@ -64,6 +64,27 @@ public sealed class Venda : IDoRevendedor
 
     public long ComissaoCents => Comissao.Calcular(ValorCents, ComissaoBps);
 
+    /// <summary>
+    /// Venda feita em outro sistema: o valor é o que foi cobrado lá, sem a regra
+    /// da tabela de hoje, e a comissão entra zerada porque já foi acertada lá.
+    /// </summary>
+    public static Venda Importada(Guid placaId, Guid clienteId, Guid produtoId, Guid vendedorId, long valorCents, long custoCents, DateTimeOffset vendidaEm) =>
+        valorCents < 0
+            ? throw new RegraDeNegocioException("Valor de venda negativo no arquivo.")
+            : new Venda
+            {
+                PlacaId = placaId,
+                ClienteId = clienteId,
+                ProdutoId = produtoId,
+                VendedorId = vendedorId,
+                ValorCents = valorCents,
+                TabelaCents = valorCents,
+                CustoCents = custoCents,
+                ComissaoBps = 0,
+                Meio = MeioDePagamento.Pix,
+                VendidaEm = vendidaEm,
+            };
+
     public void MarcarRepassada(Guid repasseId) =>
         RepasseId = RepasseId is null ? repasseId : throw new InvalidOperationException($"A comissão da venda {Id} já foi repassada.");
 

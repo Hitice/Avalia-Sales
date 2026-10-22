@@ -53,6 +53,20 @@ public sealed class Lote
         return int.TryParse(limpo, NumberStyles.None, CultureInfo.InvariantCulture, out var numero) && numero > 0 ? numero : null;
     }
 
+    /// <summary>
+    /// O lote que agrupa placas importadas de outro sistema, já do revendedor e
+    /// ativado. Não é tiragem de gráfica, então não tem o limite de 1.000.
+    /// </summary>
+    public static Lote Importado(int numero, int quantidade, Guid revendedorId, DateTimeOffset agora) => new()
+    {
+        Numero = numero,
+        Quantidade = quantidade > 0 ? quantidade : throw new RegraDeNegocioException("O arquivo não tem placas."),
+        CriadoEm = agora,
+        RevendedorId = revendedorId,
+        DespachadoEm = agora,
+        AtivadoEm = agora,
+    };
+
     public void Despachar(Guid pedidoId, Guid revendedorId, int quantidadeDoPedido, DateTimeOffset agora)
     {
         if (DespachadoEm is not null)

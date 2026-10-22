@@ -34,6 +34,8 @@ public static class InjecaoDeDependencias
         servicos.AddScoped<Revendedores.Marca>();
         servicos.AddScoped<Mapa>();
         servicos.AddScoped<Atendimento.Chat>();
+        servicos.AddScoped<Importacao.Importacao>();
+        servicos.AddScoped<Importacao.Reservas>();
         return servicos;
     }
 }

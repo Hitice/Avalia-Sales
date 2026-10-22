@@ -1,0 +1,198 @@
+using System.Globalization;
+using AvaliaSales.Api.Autenticacao;
+using AvaliaSales.Application.Importacao;
+using AvaliaSales.Domain;
+using AvaliaSales.Infrastructure.Banco;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.VisualBasic.FileIO;
+
+namespace AvaliaSales.Api;
+
+/// <summary>
+/// Os comandos da Fase 4, para quem opera o servidor:
+/// --reservar-codigos --arquivo=codigos.csv --origem="Sales Avalia"
+/// --importar-placas --revendedor=CNPJ --arquivo=placas.csv [--ensaio]
+/// Formato dos arquivos em docs/OPERACAO.md.
+/// </summary>
+internal static class Importar
+{
+    private static readonly TimeZoneInfo Brasilia = TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo");
+
+    public static async Task<int> ReservarCodigos(IServiceProvider servicos, string[] argumentos)
+    {
+        var arquivo = Valor(argumentos, "arquivo");
+        if (arquivo is null || !File.Exists(arquivo))
+        {
+            await Console.Error.WriteLineAsync("Use --arquivo= com o CSV dos códigos (primeira coluna).");
+            return 1;
+        }
+
+        var codigos = Linhas(arquivo).Select(l => l.Valores.FirstOrDefault() ?? string.Empty).ToList();
+        using var escopo = servicos.CreateScope();
+        var resultado = await escopo.ServiceProvider.GetRequiredService<Reservas>().Reservar(codigos, Valor(argumentos, "origem") ?? "importação", CancellationToken.None);
+        Console.WriteLine($"lidos {resultado.Lidos}, inválidos {resultado.Invalidos}, reservados {resultado.Reservados}, já reservados {resultado.JaReservados}");
+        foreach (var conflito in resultado.JaEmitidos)
+        {
+            Console.WriteLine($"conflito: {conflito} já foi emitido na plataforma");
+        }
+
+        return resultado.JaEmitidos.Count == 0 ? 0 : 2;
+    }
+
+    public static async Task<int> ImportarPlacas(IServiceProvider servicos, string[] argumentos)
+    {
+        var arquivo = Valor(argumentos, "arquivo");
+        var quem = Valor(argumentos, "revendedor");
+        if (arquivo is null || !File.Exists(arquivo) || string.IsNullOrWhiteSpace(quem))
+        {
+            await Console.Error.WriteLineAsync("Use --revendedor= (CNPJ ou id) e --arquivo= com o CSV das placas.");
+            return 1;
+        }
+
+        Guid revendedorId;
+        using (var escopo = servicos.CreateScope())
+        {
+            var banco = escopo.ServiceProvider.GetRequiredService<BancoDeDados>();
+            var cnpj = new string(quem.Where(char.IsAsciiDigit).ToArray());
+            var achado = Guid.TryParse(quem, out var id)
+                ? await banco.Revendedores.Where(r => r.Id == id).Select(r => (Guid?)r.Id).SingleOrDefaultAsync()
+                : await banco.Revendedores.Where(r => r.Cnpj == cnpj).Select(r => (Guid?)r.Id).SingleOrDefaultAsync();
+            if (achado is not { } encontrado)
+            {
+                await Console.Error.WriteLineAsync($"Revendedor {quem} não encontrado.");
+                return 1;
+            }
+
+            revendedorId = encontrado;
+        }
+
+        List<LinhaDePlaca> linhas;
+        try
+        {
+            linhas = LerPlacas(arquivo);
+        }
+        catch (FormatException erro)
+        {
+            await Console.Error.WriteLineAsync(erro.Message);
+            return 1;
+        }
+
+        using var doRevendedor = servicos.CreateScope();
+        doRevendedor.ServiceProvider.GetRequiredService<AcessoDaRequisicao>().Assumir(revendedorId);
+        var ensaio = argumentos.Contains("--ensaio");
+        ResultadoDaImportacao r;
+        try
+        {
+            r = await doRevendedor.ServiceProvider.GetRequiredService<Importacao>().Importar(linhas, ensaio, CancellationToken.None);
+        }
+        catch (RegraDeNegocioException erro)
+        {
+            await Console.Error.WriteLineAsync(erro.Message);
+            return 1;
+        }
+
+        Console.WriteLine($"""
+            {(r.Gravada ? "IMPORTADO" : ensaio && r.Recusas.Count == 0 ? "ENSAIO (nada gravado)" : "RECUSADO (nada gravado)")}
+              linhas                {r.Linhas}
+              em estoque            {r.EmEstoque}
+              no ar                 {r.NoAr}
+              suspensas             {r.Suspensas}
+              encerradas            {r.Baixadas}
+              vendidas              {r.Vendidas}
+              valor vendido         {r.ValorVendidoCents / 100m:N2}
+              custo das placas      {r.CustoCents / 100m:N2}
+              vendas sem vendedor   {r.VendedorNaoIdentificado} (ficam com o dono)
+              reservas liberadas    {r.ReservasLiberadas}
+            """);
+        foreach (var recusa in r.Recusas)
+        {
+            Console.WriteLine($"  {recusa}");
+        }
+
+        return r.Recusas.Count == 0 ? 0 : 2;
+    }
+
+    /// <summary>Cabeçalho na primeira linha; as colunas são achadas pelo nome, em qualquer ordem.</summary>
+    internal static List<LinhaDePlaca> LerPlacas(string arquivo)
+    {
+        var todas = Linhas(arquivo).ToList();
+        if (todas.Count < 2)
+        {
+            throw new FormatException("O arquivo precisa do cabeçalho e de ao menos uma placa.");
+        }
+
+        var cabecalho = todas[0].Valores.Select((c, i) => (Nome: c.Trim().ToLowerInvariant(), i)).ToDictionary(x => x.Nome, x => x.i);
+        foreach (var obrigatoria in new[] { "codigo", "situacao" })
+        {
+            if (!cabecalho.ContainsKey(obrigatoria))
+            {
+                throw new FormatException($"Falta a coluna {obrigatoria} no cabeçalho.");
+            }
+        }
+
+        string? Campo(string[] valores, string coluna) =>
+            cabecalho.TryGetValue(coluna, out var i) && i < valores.Length && !string.IsNullOrWhiteSpace(valores[i]) ? valores[i].Trim() : null;
+
+        return todas.Skip(1).Select(l => new LinhaDePlaca(
+            l.Numero,
+            Campo(l.Valores, "codigo") ?? string.Empty,
+            Campo(l.Valores, "situacao") ?? string.Empty,
+            Campo(l.Valores, "destino"),
+            Data(Campo(l.Valores, "vendida_em"), l.Numero),
+            Data(Campo(l.Valores, "vence_em"), l.Numero),
+            Centavos(Campo(l.Valores, "valor_cents"), l.Numero),
+            Centavos(Campo(l.Valores, "custo_cents"), l.Numero),
+            Campo(l.Valores, "cliente_nome"),
+            Campo(l.Valores, "cliente_responsavel"),
+            Campo(l.Valores, "cliente_telefone"),
+            Campo(l.Valores, "cliente_documento"),
+            Campo(l.Valores, "vendedor_email"),
+            Centavos(Campo(l.Valores, "total_leituras"), l.Numero) ?? 0)).ToList();
+    }
+
+    /// <summary>CSV com aspas e vírgula dentro do campo, pelo leitor do próprio .NET.</summary>
+    private static IEnumerable<(int Numero, string[] Valores)> Linhas(string arquivo)
+    {
+        using var leitor = new TextFieldParser(arquivo, System.Text.Encoding.UTF8) { TextFieldType = FieldType.Delimited, HasFieldsEnclosedInQuotes = true };
+        leitor.SetDelimiters(",");
+        while (!leitor.EndOfData)
+        {
+            var numero = (int)leitor.LineNumber;
+            var valores = leitor.ReadFields() ?? [];
+            if (valores.Length > 0 && valores.Any(v => !string.IsNullOrWhiteSpace(v)))
+            {
+                yield return (numero, valores.Select(v => v.TrimStart('﻿')).ToArray());
+            }
+        }
+    }
+
+    /// <summary>2026-01-10 é meia-noite em Brasília; com hora e fuso, vale o que veio.</summary>
+    private static DateTimeOffset? Data(string? texto, int linha)
+    {
+        if (texto is null)
+        {
+            return null;
+        }
+
+        if (DateOnly.TryParseExact(texto, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var dia))
+        {
+            var meiaNoite = dia.ToDateTime(TimeOnly.MinValue);
+            return new DateTimeOffset(meiaNoite, Brasilia.GetUtcOffset(meiaNoite));
+        }
+
+        return DateTimeOffset.TryParse(texto, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var data)
+            ? data
+            : throw new FormatException($"Linha {linha}: data inválida {texto} (use 2026-01-10).");
+    }
+
+    private static long? Centavos(string? texto, int linha) =>
+        texto is null ? null
+        : long.TryParse(texto, NumberStyles.None, CultureInfo.InvariantCulture, out var valor) ? valor
+        : throw new FormatException($"Linha {linha}: número inválido {texto} (centavos, sem vírgula).");
+
+    private static string? Valor(string[] argumentos, string chave)
+    {
+        var prefixo = $"--{chave}=";
+        return argumentos.LastOrDefault(a => a.StartsWith(prefixo, StringComparison.Ordinal))?[prefixo.Length..];
+    }
+}

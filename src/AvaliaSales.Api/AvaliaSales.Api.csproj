@@ -9,4 +9,7 @@
     <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" />
     <PackageReference Include="Sentry.AspNetCore" />
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="AvaliaSales.Tests" />
+  </ItemGroup>
 </Project>

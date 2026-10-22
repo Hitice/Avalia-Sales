@@ -64,6 +64,9 @@ public sealed class Contas(UserManager<Usuario> usuarios, BancoDeDados banco, Ti
         return await banco.Users.AsNoTracking().Where(u => lista.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.Nome, ct);
     }
 
+    public async Task<Guid?> IdPorEmail(string email, CancellationToken ct) =>
+        (await usuarios.FindByEmailAsync(email.Trim()))?.Id;
+
     /// <summary>As recusas do Identity que a regra de senha e de e-mail produzem, em português.</summary>
     private static string Traduzir(IdentityError erro) => erro.Code switch
     {

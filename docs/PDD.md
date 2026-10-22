@@ -288,6 +288,11 @@ revendedor fica para depois.
    centavo.
 4. Volta - o Sales fica intacto por semanas; voltar é desligar o repasse.
 
+Ferramentas prontas para a Fase 4 (docs/OPERACAO.md) - reservar os códigos
+do Sales antes de qualquer lote de produção, e importar as placas por um
+arquivo que serve a qualquer revendedor, com ensaio que só mostra os totais. A
+venda importada mantém o valor de origem, sem cobrança e sem comissão.
+
 Regra que não quebra - `avaliaone.com.br/q/{codigo}` responde para sempre,
 porque está impresso nas placas vendidas.
 
@@ -302,7 +307,7 @@ Estimativa em semanas de cerca de 20 horas.
 | 1. Revenda | Cadastro, contrato, pedido, lote, equipe, venda, NFC e QR | 3 | Feita em simulação; falta o sandbox real do Pagar.me e da D4Sign |
 | 2. Pagamento | Checkout do pedido de placas, cupom, comissão, razão | 3 | Feita em simulação; falta o sandbox real |
 | 3. Serviços | Chat, painel ao vivo, mapa, Worker, Protheus simulado, white label | 4 | Feita; o mapa com o Google real espera a chave do navegador |
-| 4. Avalia | Teste, integração com o Sales, migração e volta | 3 | A fazer |
+| 4. Avalia | Teste, integração com o Sales, migração e volta | 3 | Ferramentas prontas (reservar códigos, importar placas com ensaio); falta a virada com o Sales |
 
 ## 11. Decisões pendentes
 
@@ -320,6 +325,7 @@ Estimativa em semanas de cerca de 20 horas.
 
 | Data | Mudança |
 | --- | --- |
+| 21/10/2026 | Fase 4, ferramentas - reserva de códigos de outro sistema e importação de placas tudo ou nada, com ensaio e totais. |
 | 21/10/2026 | Preparada a publicação em servidor próprio (manual em OPERACAO.md); a regra de que `/q/` responde para sempre vale para o deploy, que troca a API em segundos. |
 | 21/10/2026 | Fase 3 fechada - mapa dos lugares vendidos (lista sem a chave do Google) e chat entre revendedor e Avalia. |
 | 21/10/2026 | White label - tela Marca com nome exibido, cores e logo, contraste conferido na tela e na API. |

@@ -158,6 +158,18 @@ if (args.Contains("--nova-operadora"))
     return;
 }
 
+if (args.Contains("--reservar-codigos"))
+{
+    Environment.ExitCode = await Importar.ReservarCodigos(app.Services, args);
+    return;
+}
+
+if (args.Contains("--importar-placas"))
+{
+    Environment.ExitCode = await Importar.ImportarPlacas(app.Services, args);
+    return;
+}
+
 if (args.Contains("--demonstracao"))
 {
     Environment.ExitCode = await Demonstracao.Semear(app.Services, app.Environment);

@@ -24,7 +24,8 @@ Arquitetura e decisões no [SDD](SDD.md); cada decisão estrutural em
 2. Runner próprio do GitHub Actions no VPS, com os rótulos `self-hosted`,
    `linux` e `avalia-sales`, rodando com um usuário do grupo `docker`.
 3. No GitHub: ambiente `producao` com aprovação obrigatória; variável
-   `DOMINIO` no ambiente.
+   `DOMINIO` no ambiente; variável `DEPLOY_ATIVO=true` no repositório (sem
+   ela, o workflow Deploy não roda, para não ficar na fila sem runner).
 4. No VPS, `/srv/avalia-sales/.env` a partir do `.env.example`, com
    `chmod 600`. Gere os segredos com `openssl rand -base64 48`.
 5. Primeira subida (rode o workflow Deploy, ou à mão na pasta do checkout):
@@ -89,6 +90,45 @@ o workflow compila de novo.
   para dentro com `docker compose cp`).
 - Restaurar a produção: pare `api`, `worker` e `nginx`, recrie o banco a
   partir do dump com `pg_restore --clean --if-exists`, e suba de novo.
+
+## Reservar códigos e importar placas
+
+Os dois comandos servem a qualquer revendedor que já venda placas em outro
+sistema, como o Sales da Avalia. Rodam pelo contêiner da API:
+
+```bash
+docker compose -f docker-compose.producao.yml --env-file /srv/avalia-sales/.env run --rm \
+  -v /srv/avalia-sales/importacao:/importacao api --reservar-codigos --arquivo=/importacao/codigos.csv --origem="Sales Avalia"
+```
+
+- Reservar códigos - CSV com o código na primeira coluna (com ou sem
+  cabeçalho; linha que não é código conta como inválida). O sorteio de lote
+  nunca gera código reservado. Código que já foi emitido na plataforma sai como
+  conflito, e o comando termina com código de saída 2.
+- Importar placas - `--importar-placas --revendedor=<CNPJ ou id> --arquivo=...`,
+  primeiro com `--ensaio`, que desfaz tudo no fim e só mostra os totais para
+  conferir com o relatório de origem, ao centavo. Tudo ou nada: uma linha
+  recusada desfaz o arquivo inteiro e a lista diz qual linha e por quê.
+
+Formato do arquivo de placas (UTF-8, vírgula, cabeçalho na primeira linha,
+colunas em qualquer ordem; só `codigo` e `situacao` são obrigatórias):
+
+| Coluna | Conteúdo |
+| --- | --- |
+| `codigo` | Código da placa (normalizado como na leitura: minúscula, I e L por 1, O por 0) |
+| `situacao` | `em_branco`, `ativa`, `suspensa` ou `baixada` |
+| `destino` | Endereço para onde a placa leva (conferido como no balcão) |
+| `vendida_em` | Data da venda, `2026-01-10` (meia-noite em Brasília) ou data e hora com fuso. Obrigatória para placa ativa ou suspensa |
+| `vence_em` | Vencimento, no mesmo formato |
+| `valor_cents` | Valor cobrado, em centavos, sem vírgula |
+| `custo_cents` | Custo da placa, em centavos |
+| `cliente_nome`, `cliente_responsavel`, `cliente_telefone`, `cliente_documento` | O cliente; um por documento, senão por telefone, senão por nome |
+| `vendedor_email` | Login do vendedor na plataforma; sem ele, a venda fica com o dono |
+| `total_leituras` | Leituras acumuladas |
+
+A placa importada entra num lote próprio, já ativado no revendedor; a venda
+importada mantém o valor de origem, fica sem cobrança e sem comissão (já
+acertada lá), e o código importado deixa de ser reserva.
 
 ## Logs e erros
 

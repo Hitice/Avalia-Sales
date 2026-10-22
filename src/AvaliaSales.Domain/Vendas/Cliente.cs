@@ -39,6 +39,19 @@ public sealed class Cliente : IDoRevendedor
         CriadoEm = agora;
     }
 
+    /// <summary>
+    /// Cliente que vem de outro sistema, onde telefone e responsável podiam
+    /// faltar. Sem telefone, não é juntado a outro cliente por telefone.
+    /// </summary>
+    public static Cliente Importado(string nome, string? responsavel, string? telefone, string? documento, DateTimeOffset agora) => new()
+    {
+        Nome = Texto(nome, "o nome do cliente"),
+        Responsavel = string.IsNullOrWhiteSpace(responsavel) ? Texto(nome, "o nome do cliente") : responsavel.Trim(),
+        Telefone = Telefones.Normalizar(telefone, obrigatorio: false) ?? string.Empty,
+        Documento = Documentos.Normalizar(documento, obrigatorio: false),
+        CriadoEm = agora,
+    };
+
     /// <summary>O balcão não sobrescreve o que já estava preenchido.</summary>
     public void Completar(string? documento, string? email, string? lugarNoGoogle)
     {

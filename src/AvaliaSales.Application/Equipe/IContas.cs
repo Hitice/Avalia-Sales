@@ -16,4 +16,6 @@ public interface IContas
     Task<IReadOnlyList<string>> EmailsDosDonos(Guid revendedorId, CancellationToken ct);
 
     Task<IReadOnlyDictionary<Guid, string>> Nomes(IEnumerable<Guid> usuarios, CancellationToken ct);
+
+    Task<Guid?> IdPorEmail(string email, CancellationToken ct);
 }

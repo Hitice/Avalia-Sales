@@ -65,6 +65,37 @@ public sealed class Placa : IDoRevendedor
 
     public DateTimeOffset? FimDaCarencia => VenceEm?.AddDays(CarenciaDias);
 
+    /// <summary>
+    /// A placa que vem de outro sistema, com a situação e as datas de lá. Só a
+    /// importação usa: no balcão, a placa nasce em estoque e vai ao ar pela venda.
+    /// </summary>
+    public static Placa Importada(PlacaEmitida emitida, long custoCents, DateTimeOffset entrouEm, SituacaoDaPlaca situacao,
+        string? destino, DateTimeOffset? vendidaEm, DateTimeOffset? venceEm, long totalLeituras)
+    {
+        if (situacao is SituacaoDaPlaca.Ativa or SituacaoDaPlaca.Suspensa && vendidaEm is null)
+        {
+            throw new RegraDeNegocioException($"a placa {emitida.Codigo} está no ar sem venda; o arquivo precisa da data da venda");
+        }
+
+        if (situacao == SituacaoDaPlaca.EmEstoque && vendidaEm is not null)
+        {
+            throw new RegraDeNegocioException($"a placa {emitida.Codigo} está em estoque com data de venda");
+        }
+
+        return new Placa(emitida, custoCents, entrouEm)
+        {
+            Situacao = situacao,
+            Destino = destino,
+            VendidaEm = vendidaEm,
+            VenceEm = venceEm,
+            TotalLeituras = totalLeituras,
+        };
+    }
+
+    /// <summary>Liga a venda importada à placa importada; cada uma precisa do id da outra.</summary>
+    public void LigarVendaImportada(Guid vendaId) =>
+        VendaId = VendaId is null && VendidaEm is not null ? vendaId : throw new InvalidOperationException($"A placa {Codigo} já tem venda ou não foi vendida.");
+
     public EstadoDaPlaca Estado(DateTimeOffset agora) => EstadoDe(Situacao, VenceEm, agora);
 
     /// <summary>Também para a lista, que lê só as colunas e não a placa inteira.</summary>

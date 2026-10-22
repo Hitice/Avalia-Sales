@@ -22,7 +22,8 @@ permissions:
 
 jobs:
   deploy:
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    # Desligado até o VPS existir: ligue com a variável DEPLOY_ATIVO=true no repositório.
+    if: vars.DEPLOY_ATIVO == 'true' && (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success')
     runs-on: [self-hosted, linux, avalia-sales]
     environment:
       name: producao
