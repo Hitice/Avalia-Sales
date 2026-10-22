@@ -18,25 +18,35 @@ export type Marca = {
 const VARIAVEIS = ['--primary', '--primary-foreground', '--ring', '--destaque', '--destaque-foreground', '--accent', '--accent-foreground', '--chart-1', '--chart-2', '--traco']
 
 /**
- * Aplica a marca do revendedor só nas variáveis do tema (skill design-system):
- * componente nenhum muda. O fundo do destaque claro (accent) sai do tom 92 da
- * paleta tonal do Material, com o texto escuro da plataforma por cima.
+ * As variáveis do tema para uma primária e um destaque (skill design-system):
+ * componente nenhum muda. O fundo do item ativo (accent) sai do tom 95 da
+ * primária na paleta tonal do Material, com o tom 10 por cima, a mesma conta
+ * do padrão da plataforma em tokens.css.
  */
+export function variaveisDaMarca(primaria: string, destaque: string, textoSobrePrimaria?: string | null, textoSobreDestaque?: string | null): Record<string, string> {
+  const tons = TonalPalette.fromInt(argbFromHex(primaria))
+  return {
+    '--primary': primaria,
+    '--primary-foreground': textoSobrePrimaria ?? '#FFFFFF',
+    '--ring': destaque,
+    '--destaque': destaque,
+    '--destaque-foreground': textoSobreDestaque ?? ESCURO,
+    '--accent': hexFromArgb(tons.tone(95)),
+    '--accent-foreground': hexFromArgb(tons.tone(10)),
+    '--chart-1': primaria,
+    '--chart-2': destaque,
+    '--traco': `linear-gradient(90deg, ${destaque}, ${primaria})`,
+  }
+}
+
+/** Aplica a marca do revendedor em :root; sem marca, ficam as variáveis da plataforma. */
 export function aplicarMarca(marca: Marca | null) {
   const raiz = document.documentElement.style
   VARIAVEIS.forEach((v) => raiz.removeProperty(v))
   if (!marca?.corPrimaria || !marca.corDestaque) return
-  const tons = TonalPalette.fromInt(argbFromHex(marca.corDestaque))
-  raiz.setProperty('--primary', marca.corPrimaria)
-  raiz.setProperty('--primary-foreground', marca.textoSobrePrimaria ?? '#FFFFFF')
-  raiz.setProperty('--ring', marca.corDestaque)
-  raiz.setProperty('--destaque', marca.corDestaque)
-  raiz.setProperty('--destaque-foreground', marca.textoSobreDestaque ?? ESCURO)
-  raiz.setProperty('--accent', hexFromArgb(tons.tone(92)))
-  raiz.setProperty('--accent-foreground', ESCURO)
-  raiz.setProperty('--chart-1', marca.corPrimaria)
-  raiz.setProperty('--chart-2', marca.corDestaque)
-  raiz.setProperty('--traco', `linear-gradient(90deg, ${marca.corDestaque}, ${marca.corPrimaria})`)
+  for (const [nome, valor] of Object.entries(variaveisDaMarca(marca.corPrimaria, marca.corDestaque, marca.textoSobrePrimaria, marca.textoSobreDestaque))) {
+    raiz.setProperty(nome, valor)
+  }
 }
 
 /** A marca do revendedor logado. A operadora fica com a da plataforma. */

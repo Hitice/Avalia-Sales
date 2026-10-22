@@ -1,6 +1,10 @@
-import { type LucideIcon, ClipboardList, Headset, Home, Menu, Package, PlusCircle, Receipt, Store } from 'lucide-react'
+import { useIsFetching, useIsMutating } from '@tanstack/react-query'
+import {
+  type LucideIcon, BookOpen, Boxes, ClipboardList, HandCoins, Headset, History, Home, Landmark, Link2, MapPin, Menu, Package,
+  Palette, PlusCircle, Receipt, Server, ShieldCheck, Store, TicketPercent, Users, UsersRound,
+} from 'lucide-react'
 import { useState } from 'react'
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router'
+import { NavLink, Outlet, useLocation, useNavigate, useNavigation } from 'react-router'
 import { ConfirmeOEmail } from '@/acesso/ConfirmeOEmail'
 import { sairDaSessao } from '@/acesso/renovacao'
 import { type Papel, useSessao } from '@/acesso/sessao'
@@ -10,13 +14,14 @@ import { cn } from '@/lib/utils'
 import { useLogo, useMarca } from '@/marca/marca'
 import { useAvisosAoVivo } from './avisosAoVivo'
 
-type Item = { para: string; rotulo: string }
+type Item = { para: string; rotulo: string; icone: LucideIcon }
+type Grupo = { titulo?: string; itens: Item[] }
 
 /**
  * No celular, a barra de baixo leva as telas de todo dia, ao alcance do
- * polegar; o resto fica no "Mais". No computador, o menu de cima mostra tudo.
+ * polegar; o resto fica no "Mais". No computador, o menu lateral mostra tudo.
  */
-const PRINCIPAIS: Record<Papel, { para: string; rotulo: string; icone: LucideIcon }[]> = {
+const PRINCIPAIS: Record<Papel, Item[]> = {
   Operadora: [
     { para: '/operadora/pedidos', rotulo: 'Pedidos', icone: ClipboardList },
     { para: '/operadora/lotes', rotulo: 'Lotes', icone: Package },
@@ -37,42 +42,58 @@ const PRINCIPAIS: Record<Papel, { para: string; rotulo: string; icone: LucideIco
   ],
 }
 
-/** O menu de cada papel. O vendedor tem poucas telas, pensadas para o celular. */
-const MENU: Record<Papel, Item[]> = {
+/** O menu de cada papel, em grupos no menu lateral. O vendedor tem poucas telas, pensadas para o celular. */
+const MENU: Record<Papel, Grupo[]> = {
   Operadora: [
-    { para: '/operadora/pedidos', rotulo: 'Pedidos' },
-    { para: '/operadora/lotes', rotulo: 'Lotes' },
-    { para: '/operadora/pacotes', rotulo: 'Pacotes' },
-    { para: '/operadora/cupons', rotulo: 'Cupons' },
-    { para: '/operadora/revendedores', rotulo: 'Revendedores' },
-    { para: '/operadora/erp', rotulo: 'ERP' },
-    { para: '/operadora/atendimento', rotulo: 'Atendimento' },
-    { para: '/conta/seguranca', rotulo: 'Segurança' },
+    { itens: [
+      { para: '/operadora/pedidos', rotulo: 'Pedidos', icone: ClipboardList },
+      { para: '/operadora/lotes', rotulo: 'Lotes', icone: Package },
+      { para: '/operadora/pacotes', rotulo: 'Pacotes', icone: Boxes },
+      { para: '/operadora/cupons', rotulo: 'Cupons', icone: TicketPercent },
+    ] },
+    { titulo: 'Revendas', itens: [
+      { para: '/operadora/revendedores', rotulo: 'Revendedores', icone: Store },
+      { para: '/operadora/atendimento', rotulo: 'Atendimento', icone: Headset },
+      { para: '/operadora/erp', rotulo: 'ERP', icone: Server },
+    ] },
+    { titulo: 'Conta', itens: [{ para: '/conta/seguranca', rotulo: 'Segurança', icone: ShieldCheck }] },
   ],
   Dono: [
-    { para: '/painel/inicio', rotulo: 'Início' },
-    { para: '/vender', rotulo: 'Nova venda' },
-    { para: '/painel/vendas', rotulo: 'Vendas' },
-    { para: '/painel/estoque', rotulo: 'Estoque' },
-    { para: '/painel/pedidos', rotulo: 'Pedidos de placas' },
-    { para: '/painel/equipe', rotulo: 'Equipe' },
-    { para: '/painel/clientes', rotulo: 'Clientes' },
-    { para: '/links', rotulo: 'Links' },
-    { para: '/painel/comissoes', rotulo: 'Comissões' },
-    { para: '/painel/razao', rotulo: 'Razão' },
-    { para: '/painel/mapa', rotulo: 'Mapa' },
-    { para: '/painel/catalogo', rotulo: 'Catálogo' },
-    { para: '/painel/marca', rotulo: 'Marca' },
-    { para: '/painel/auditoria', rotulo: 'Auditoria' },
-    { para: '/conta/seguranca', rotulo: 'Segurança' },
-    { para: '/painel/suporte', rotulo: 'Falar com a Avalia' },
+    { itens: [
+      { para: '/painel/inicio', rotulo: 'Início', icone: Home },
+      { para: '/vender', rotulo: 'Nova venda', icone: PlusCircle },
+    ] },
+    { titulo: 'Vendas', itens: [
+      { para: '/painel/vendas', rotulo: 'Vendas', icone: Receipt },
+      { para: '/painel/clientes', rotulo: 'Clientes', icone: Users },
+      { para: '/links', rotulo: 'Links', icone: Link2 },
+      { para: '/painel/mapa', rotulo: 'Mapa', icone: MapPin },
+    ] },
+    { titulo: 'Placas', itens: [
+      { para: '/painel/estoque', rotulo: 'Estoque', icone: Package },
+      { para: '/painel/pedidos', rotulo: 'Pedidos', icone: ClipboardList },
+      { para: '/painel/catalogo', rotulo: 'Catálogo', icone: BookOpen },
+    ] },
+    { titulo: 'Equipe e dinheiro', itens: [
+      { para: '/painel/equipe', rotulo: 'Equipe', icone: UsersRound },
+      { para: '/painel/comissoes', rotulo: 'Comissões', icone: HandCoins },
+      { para: '/painel/razao', rotulo: 'Razão', icone: Landmark },
+    ] },
+    { titulo: 'Conta', itens: [
+      { para: '/painel/marca', rotulo: 'Marca', icone: Palette },
+      { para: '/painel/auditoria', rotulo: 'Auditoria', icone: History },
+      { para: '/conta/seguranca', rotulo: 'Segurança', icone: ShieldCheck },
+      { para: '/painel/suporte', rotulo: 'Suporte', icone: Headset },
+    ] },
   ],
   Vendedor: [
-    { para: '/vendedor/inicio', rotulo: 'Início' },
-    { para: '/vender', rotulo: 'Nova venda' },
-    { para: '/vendedor/placas', rotulo: 'Minhas placas' },
-    { para: '/vendedor/vendas', rotulo: 'Minhas vendas' },
-    { para: '/links', rotulo: 'Links' },
+    { itens: [
+      { para: '/vendedor/inicio', rotulo: 'Início', icone: Home },
+      { para: '/vender', rotulo: 'Nova venda', icone: PlusCircle },
+      { para: '/vendedor/placas', rotulo: 'Minhas placas', icone: Package },
+      { para: '/vendedor/vendas', rotulo: 'Minhas vendas', icone: Receipt },
+      { para: '/links', rotulo: 'Links', icone: Link2 },
+    ] },
   ],
 }
 
@@ -83,7 +104,8 @@ export function Moldura() {
   const aviso = useAvisosAoVivo()
   const marca = useMarca()
   const logo = useLogo(marca)
-  const itens = perfil ? MENU[perfil.papel] : []
+  const grupos = perfil ? MENU[perfil.papel] : []
+  const itens = grupos.flatMap((g) => g.itens)
   const principais = perfil ? PRINCIPAIS[perfil.papel] : []
   const outros = itens.filter((i) => !principais.some((p) => p.para === i.para))
   const [mais, setMais] = useState(false)
@@ -92,6 +114,11 @@ export function Moldura() {
   const naVenda = caminho === '/vender'
   // Dono sem e-mail confirmado só passa daqui depois de confirmar; a API recusa o resto com 403.
   const travado = perfil?.papel === 'Dono' && !perfil.emailConfirmado && !caminho.startsWith('/conta')
+  // Barra no topo enquanto a tela nova baixa ou uma consulta está em andamento.
+  const navegacao = useNavigation()
+  const buscando = useIsFetching()
+  const gravando = useIsMutating()
+  const carregando = navegacao.state !== 'idle' || buscando + gravando > 0
 
   async function sair() {
     await sairDaSessao()
@@ -100,6 +127,7 @@ export function Moldura() {
 
   return (
     <div className="min-h-svh">
+      <div role="progressbar" aria-label="Carregando" aria-hidden={!carregando} className={cn('barra-de-carregando fixed inset-x-0 top-0 z-30 h-1 transition-opacity', carregando ? 'opacity-100 delay-300' : 'opacity-0 delay-0')} />
       <header className="sticky top-0 z-10 bg-card">
         <div className="mx-auto flex h-14 max-w-7xl items-center gap-3 px-4">
           {logo
@@ -120,9 +148,14 @@ export function Moldura() {
         </nav>
         <div aria-hidden className="traco h-0.5" />
       </header>
-      <div className={cn('mx-auto max-w-7xl lg:gap-6 lg:px-4', !travado && 'lg:grid lg:grid-cols-[13rem_minmax(0,1fr)]')}>
-        <nav aria-label="Menu lateral" className={cn('sticky top-16 hidden self-start py-4 lg:gap-0.5', !travado && 'lg:grid')}>
-          {itens.map((item) => <ItemDoMenu key={item.para} item={item} />)}
+      <div className={cn('mx-auto max-w-7xl lg:gap-8 lg:px-4', !travado && 'lg:grid lg:grid-cols-[14rem_minmax(0,1fr)]')}>
+        <nav aria-label="Menu lateral" className={cn('sticky top-16 hidden max-h-[calc(100svh-4rem)] self-start overflow-y-auto py-4', !travado && 'lg:block')}>
+          {grupos.map((grupo, i) => (
+            <div key={grupo.titulo ?? i} className="mb-4 grid gap-0.5">
+              {grupo.titulo && <p className="px-3 pb-1 text-xs font-medium text-muted-foreground">{grupo.titulo}</p>}
+              {grupo.itens.map((item) => <ItemDoMenu key={item.para} item={item} />)}
+            </div>
+          ))}
         </nav>
         <main className={cn('min-w-0 p-4 lg:px-0', !naVenda && 'pb-24 md:pb-4')}>
             {travado ? <ConfirmeOEmail email={perfil.email} /> : <Outlet />}
@@ -160,8 +193,9 @@ export function Moldura() {
                 key={item.para}
                 to={item.para}
                 onClick={() => setMais(false)}
-                className={({ isActive }) => cn('flex min-h-12 items-center rounded-md px-3 text-base', isActive ? 'bg-accent font-medium' : 'hover:bg-muted')}
+                className={({ isActive }) => cn('flex min-h-12 items-center gap-3 rounded-md px-3 text-base', isActive ? 'bg-accent font-medium text-accent-foreground' : 'hover:bg-muted')}
               >
+                <item.icone aria-hidden className="size-5 text-muted-foreground" />
                 {item.rotulo}
               </NavLink>
             ))}
@@ -176,16 +210,18 @@ export function Moldura() {
   )
 }
 
-/** Até o dono confirmar, o painel fica nesta tela: contrato, avisos e conta de recebimento dependem do e-mail. */
+/** Item do menu lateral e do de cima: ícone, rótulo e, no ativo, o traço da marca à esquerda. */
 function ItemDoMenu({ item }: { item: Item }) {
   return (
     <NavLink
       to={item.para}
       className={({ isActive }) => cn(
-        'flex min-h-9 shrink-0 items-center rounded-md px-3 text-sm',
+        'group relative flex min-h-9 shrink-0 items-center gap-2.5 rounded-md px-3 text-sm',
         isActive ? 'bg-accent font-medium text-accent-foreground' : 'text-muted-foreground hover:bg-muted hover:text-foreground',
       )}
     >
+      <span aria-hidden className="absolute inset-y-2 left-0 w-0.5 rounded-full bg-primary opacity-0 group-aria-[current=page]:opacity-100" />
+      <item.icone aria-hidden className="size-4 shrink-0" />
       {item.rotulo}
     </NavLink>
   )

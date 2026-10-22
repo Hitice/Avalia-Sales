@@ -2,6 +2,7 @@ import type { ComponentType } from 'react'
 import { Navigate, createBrowserRouter } from 'react-router'
 import { Protegida } from '@/acesso/Protegida'
 import { TelaDeEntrada } from '@/acesso/TelaDeEntrada'
+import { CarregandoTela } from '@/componentes/Tela'
 
 /**
  * Cada tela carrega o próprio código só quando abre: o vendedor no celular
@@ -12,7 +13,7 @@ const tela = <M,>(carregar: () => Promise<M>, nome: keyof M) => async () => ({ C
 /** Um app só; cada área abre para o papel dela (Protegida). */
 export const rotas = createBrowserRouter([{
   // Mostrado enquanto o código da primeira tela chega.
-  hydrateFallbackElement: <p role="status" className="p-6 text-sm text-muted-foreground">Carregando...</p>,
+  hydrateFallbackElement: <CarregandoTela />,
   children: [
   { path: '/entrar', element: <TelaDeEntrada /> },
   { path: '/cadastro', lazy: tela(() => import('@/acesso/TelaDeCadastro'), 'TelaDeCadastro') },

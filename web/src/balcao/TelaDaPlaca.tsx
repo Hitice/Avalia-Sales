@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router'
 import { mensagemDoErro } from '@/api/cliente'
 import { formatarData, formatarDataHora, formatarTelefone, ROTULO_DO_PAGAMENTO } from '@/api/rotulos'
 import type { DestinoInformado } from '@/api/tipos'
-import { Aviso, Cabecalho, Erro, EtiquetaDoEstado } from '@/componentes/Tela'
+import { Aviso, Cabecalho, CarregandoTela, Erro, EtiquetaDoEstado } from '@/componentes/Tela'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatarCentavos } from '@/dinheiro/dinheiro'
@@ -27,7 +27,7 @@ export function TelaDaPlaca() {
   const f = ficha.data
   const maior = Math.max(1, ...(f?.leituras.map((l) => l.total) ?? [0]))
 
-  if (ficha.isPending) return <p role="status" className="text-sm text-muted-foreground">Carregando...</p>
+  if (ficha.isPending) return <CarregandoTela />
   if (!f) return <Erro erro={ficha.error} />
 
   return (

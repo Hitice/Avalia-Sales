@@ -5,7 +5,7 @@ import { z } from 'zod'
 import { mensagemDoErro } from '@/api/cliente'
 import { formatarBps, paraBps } from '@/api/rotulos'
 import { Campo } from '@/componentes/Campo'
-import { Cabecalho, Erro } from '@/componentes/Tela'
+import { Cabecalho, Carregando, Erro } from '@/componentes/Tela'
 import { percentualOpcional } from '@/lib/esquemas'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -61,7 +61,7 @@ export function TelaDoCatalogo() {
       <Card>
         <CardContent className="grid gap-3">
           <Erro erro={erroDaLista ? mensagemDoErro(erroDaLista) : null} />
-          {produtos.isPending && <p className="text-sm text-muted-foreground">Carregando...</p>}
+          {produtos.isPending && <Carregando />}
           {produtos.isError && (
             <Alert variant="destructive"><AlertDescription>{produtos.error.message}</AlertDescription></Alert>
           )}

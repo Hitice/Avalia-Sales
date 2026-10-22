@@ -1,3 +1,4 @@
+import { LoaderCircle } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -18,9 +19,29 @@ export function Cabecalho({ titulo, children }: { titulo: string; children?: Rea
   )
 }
 
+/** Blocos pulsando no lugar do conteúdo que ainda vem da API. */
+export function Carregando({ linhas = 3 }: { linhas?: number }) {
+  return (
+    <div role="status" className="grid gap-3">
+      {Array.from({ length: linhas }, (_, i) => <div key={i} aria-hidden className="h-14 animate-pulse rounded-lg bg-muted" />)}
+      <span className="sr-only">Carregando...</span>
+    </div>
+  )
+}
+
+/** A tela inteira esperando: sessão, código da tela ou dado sem o qual nada aparece. */
+export function CarregandoTela() {
+  return (
+    <div role="status" className="flex min-h-48 items-center justify-center gap-2 p-6 text-sm text-muted-foreground">
+      <LoaderCircle aria-hidden className="size-5 animate-spin" />
+      Carregando...
+    </div>
+  )
+}
+
 /** Carregando, erro ou vazio: o estado da consulta antes da lista. */
 export function EstadoDaConsulta({ carregando, erro, vazio, textoVazio }: { carregando: boolean; erro: unknown; vazio: boolean; textoVazio: string }) {
-  if (carregando) return <p role="status" className="text-sm text-muted-foreground">Carregando...</p>
+  if (carregando) return <Carregando />
   if (erro) return <Erro erro={erro} />
   if (vazio) return <p className="text-sm text-muted-foreground">{textoVazio}</p>
   return null

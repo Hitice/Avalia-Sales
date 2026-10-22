@@ -62,6 +62,18 @@
   * {
     @apply border-border outline-ring;
   }
+  /*
+   * Foco de teclado sólido na cor da marca. O "auto" do navegador ignora a cor
+   * e, no Safari, desenhava um traço escuro em modal e menu.
+   */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  /* Texto selecionado num tom da primária: muda junto com a marca da revenda. */
+  ::selection {
+    background: color-mix(in oklch, var(--primary) 20%, transparent);
+  }
   body {
     @apply bg-background text-foreground;
   }
@@ -82,6 +94,25 @@
 }
 
 /* O traço em linha: cabeçalho, sublinhado do título e item ativo do menu. */
+/* Xadrez atrás de imagem com transparência (logo), para ver o que fica vazio. */
+@utility xadrez {
+  background-color: var(--card);
+  background-image: conic-gradient(var(--muted) 25%, transparent 0 50%, var(--muted) 0 75%, transparent 0);
+  background-size: 16px 16px;
+}
+
+/* Barra de carregando no topo: o traço da marca correndo. Com menos movimento, fica parada. */
+@utility barra-de-carregando {
+  background-image: var(--traco);
+  background-size: 200% 100%;
+  animation: barra-correndo 1.2s linear infinite;
+}
+
+@keyframes barra-correndo {
+  from { background-position: 100% 0; }
+  to { background-position: -100% 0; }
+}
+
 @utility traco {
   background-image: var(--traco);
 }

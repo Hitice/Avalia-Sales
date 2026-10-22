@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
 import { chamarApi, enviarJson, mensagemDoErro } from '@/api/cliente'
 import { formatarDataHora } from '@/api/rotulos'
-import { Erro } from '@/componentes/Tela'
+import { Carregando, Erro } from '@/componentes/Tela'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
@@ -33,8 +33,8 @@ export function Conversa({ caminho, souOperadora }: { caminho: string; souOperad
   return (
     <div className="grid gap-3">
       <div className="grid max-h-96 gap-2 overflow-y-auto rounded-lg border bg-card p-3" role="log" aria-label="Mensagens">
-        {mensagens.isPending && <p role="status" className="text-sm text-muted-foreground">Carregando...</p>}
-        {mensagens.data?.length === 0 && <p className="text-sm text-muted-foreground">Nenhuma mensagem ainda.</p>}
+        {mensagens.isPending && <Carregando linhas={2} />}
+        {mensagens.data?.length === 0 && <p className="text-sm text-muted-foreground">Digite sua mensagem.</p>}
         {mensagens.data?.map((m) => {
           const minha = m.daOperadora === souOperadora
           return (

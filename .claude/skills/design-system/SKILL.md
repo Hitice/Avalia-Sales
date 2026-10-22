@@ -51,6 +51,21 @@ A marca do revendedor sobrescreve só essas variáveis:
 
 Não há cor por usuário. Login e área da Avalia usam a marca da plataforma.
 
+As variáveis da revenda saem de `variaveisDaMarca(primaria, destaque)` em
+`marca.ts`, a mesma função que a prévia da tela Marca usa: o fundo do item
+ativo (`--accent`) é o tom 95 da primária na paleta tonal, com o tom 10 por
+cima; o destaque fica com o foco (`--ring`) e o traço. A seleção de texto é a
+primária a 20% e o foco de teclado é contorno sólido de 2 px no `--ring` (o
+"auto" do Safari ignora a cor). Modal abre com o foco nele mesmo, sem contorno
+no primeiro botão.
+
+Carregando: barra no topo (`barra-de-carregando`, o traço correndo, aparece
+depois de 300 ms) enquanto a tela baixa ou uma consulta roda; dentro da tela,
+`Carregando` (blocos pulsando) no lugar da lista e `CarregandoTela` quando nada
+aparece sem o dado. Logo da revenda passa pela caixa de recorte
+(`RecorteDoLogo`, `react-easy-crop`), horizontal 3:1 ou quadrado, começando
+com a imagem inteira enquadrada.
+
 Logo da plataforma em `web/public/marca`, em SVG e com o texto em curvas:
 `avaliasales.svg` (gauge e "AvaliaSales") só nas telas de entrada (entrar,
 cadastro, senha), pelo `MarcaAvalia`; `gauge.svg` no cabeçalho de quem não tem
@@ -104,7 +119,7 @@ Até lá, um arquivo CSS basta.
 | --- | --- |
 | Celular (abaixo de 768 px) | Barra de baixo com 4 telas do papel e "Mais" em gaveta; some na Nova venda |
 | Tablet (768 a 1023 px) | Menu de cima, quebrando linha |
-| Computador (1024 px ou mais) | Menu lateral |
+| Computador (1024 px ou mais) | Menu lateral em grupos com título, ícone em cada item (lucide) e, no ativo, fundo `accent` com uma barra na primária à esquerda |
 
 Tabela abaixo de 768 px vira cartão (`components/ui/table.tsx`): a primeira
 coluna é o título, as outras levam o rótulo da coluna em cima do valor e a
@@ -158,6 +173,7 @@ Conferidas na API do GitHub e no npm em 21/10/2026, pelo critério da skill
 | [Storybook](https://github.com/storybookjs/storybook) | Catálogo vivo | 91 mil | 10.6.3 |
 | [axe-core](https://github.com/dequelabs/axe-core) | Acessibilidade | 7,7 mil | `@axe-core/playwright` 4.14.0 |
 | [Playwright](https://github.com/microsoft/playwright) | Teste de ponta a ponta | 98 mil | |
+| [react-easy-crop](https://github.com/ValentinH/react-easy-crop) | Recorte do logo | 2,8 mil | 6.2.4 |
 | [Style Dictionary](https://github.com/style-dictionary/style-dictionary) | Tokens em JSON, só se surgir outro consumidor | 4,9 mil | 5.7.0 |
 
 Estado em 22/10/2026: traço, Inter Display, navegação por tamanho e tabela em cartão no celular; axe no Playwright (`web/e2e`) em todas as telas do dono e nos fluxos de venda e convite. Storybook 10 (`npm run storybook`, porta 6006) com o addon de acessibilidade em modo erro e a troca de marca na barra (plataforma ou revenda); histórias de botão, campo, tabela (computador e celular), histórico e NFC. O CI compila o catálogo. Em 21/10/2026 o front tinha as telas das Fases 1 a 3 e a marca do revendedor aplicada nas variáveis (`web/src/marca`). Tokens

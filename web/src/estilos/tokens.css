@@ -21,8 +21,13 @@
   --secondary-foreground: oklch(0.184 0.06 287.9);
   --muted: oklch(0.955 0.012 285);
   --muted-foreground: oklch(0.5 0.03 285);
-  --accent: oklch(0.94 0.04 342);
-  --accent-foreground: oklch(0.184 0.06 287.9);
+  /*
+   * Fundo claro do item ativo e da linha escolhida: tom 95 da primária na
+   * paleta tonal do Material, com o tom 10 por cima. A revenda ganha a mesma
+   * conta sobre a primária dela (marca.ts).
+   */
+  --accent: #f4eeff;
+  --accent-foreground: #1d1736;
   --destaque: oklch(0.671 0.234 342.3);
   --destaque-foreground: oklch(0.184 0.06 287.9);
   --destructive: oklch(0.577 0.245 27.325);

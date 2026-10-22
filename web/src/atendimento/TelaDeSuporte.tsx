@@ -5,7 +5,7 @@ import { Conversa } from './Conversa'
 export function TelaDeSuporte() {
   return (
     <div className="mx-auto max-w-2xl">
-      <Cabecalho titulo="Falar com a Avalia" />
+      <Cabecalho titulo="Contate o suporte" />
       <Conversa caminho="/chat" souOperadora={false} />
     </div>
   )

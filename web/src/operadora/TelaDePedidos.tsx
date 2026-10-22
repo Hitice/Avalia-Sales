@@ -21,7 +21,7 @@ export function TelaDePedidos() {
 
   return (
     <>
-      <Cabecalho titulo="Pedidos de placas" />
+      <Cabecalho titulo="Pedidos" />
       <Erro erro={pagar.error ?? despachar.error} />
       <Card className="mt-3">
         <CardContent>

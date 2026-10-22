@@ -1,4 +1,5 @@
 import { Navigate, Outlet } from 'react-router'
+import { CarregandoTela } from '@/componentes/Tela'
 import { type Papel, inicioDoPapel, sessaoValida, useSessao } from './sessao'
 
 /**
@@ -9,7 +10,7 @@ import { type Papel, inicioDoPapel, sessaoValida, useSessao } from './sessao'
 export function Protegida({ papeis }: { papeis?: Papel[] }) {
   const sessao = useSessao()
   if (!sessao.iniciada) {
-    return <p role="status" className="p-6 text-sm text-muted-foreground">Carregando...</p>
+    return <CarregandoTela />
   }
 
   if (!sessaoValida(sessao)) {

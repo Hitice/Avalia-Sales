@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
-import { formatarBps, paraBps, ROTULO_DO_CONTRATO } from '@/api/rotulos'
+import { formatarBps, paraBps } from '@/api/rotulos'
+import type { SituacaoDoContrato } from '@/api/tipos'
 import { Aviso, Cabecalho, Erro } from '@/componentes/Tela'
 import { Button } from '@/components/ui/button'
 import { formatarCentavos } from '@/dinheiro/dinheiro'
@@ -8,6 +9,14 @@ import { useDefinirCelular, useDefinirRenovacao, useMinhaRevenda, usePlacas, use
 import { Input } from '@/components/ui/input'
 import { digitos, mascaraTelefone } from '@/lib/mascaras'
 import { Indicador, Indicadores } from '@/componentes/Indicador'
+
+/** O que falta no contrato de revenda, enquanto ele não está assinado. */
+const AVISO_DO_CONTRATO: Record<SituacaoDoContrato, string> = {
+  Rascunho: 'Preparando o seu contrato de revenda.',
+  AguardandoAssinatura: 'Assine o contrato de revenda que chegou no seu e-mail.',
+  Assinado: '',
+  Cancelado: 'O contrato de revenda foi cancelado. Fale com o suporte.',
+}
 
 /** O resumo do dono: contrato, estoque, vendas do mês e o que fazer a seguir. */
 export function TelaInicial() {
@@ -43,7 +52,7 @@ export function TelaInicial() {
       <Erro erro={revenda.error} />
       {r && !r.contratoAssinadoEm && (
         <Aviso>
-          Contrato de revenda: {revenda.data?.contrato ? ROTULO_DO_CONTRATO[revenda.data.contrato].toLowerCase() : 'em preparo'}. Assine pelo e-mail da D4Sign.
+          {AVISO_DO_CONTRATO[revenda.data?.contrato ?? 'Rascunho']}
         </Aviso>
       )}
       {r && !r.celular && <div className="mt-3"><Aviso>Informe o celular de contato da revenda.</Aviso></div>}

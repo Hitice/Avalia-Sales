@@ -13,23 +13,28 @@ function gerar(canvas: HTMLCanvasElement, tipo: string, qualidade?: number) {
   return new Promise<Blob | null>((resolver) => canvas.toBlob(resolver, tipo, qualidade))
 }
 
+/** A área escolhida na caixa de recorte, em pixels da imagem original. Pode passar da borda: o que sobra fica transparente. */
+export type Area = { x: number; y: number; width: number; height: number }
+
 /**
- * Redesenha a imagem em até 512 px no lado maior e grava em WebP, ou em PNG
- * no navegador que não grava WebP. A transparência do PNG fica. Se ainda
- * passar do limite, diminui o lado e tenta de novo.
+ * Redesenha a imagem (ou só a área recortada) em até 512 px no lado maior e
+ * grava em WebP, ou em PNG no navegador que não grava WebP. A transparência
+ * fica. Se ainda passar do limite, diminui o lado e tenta de novo.
  */
-export async function reduzirLogo(arquivo: File): Promise<Blob> {
+export async function reduzirLogo(arquivo: Blob, area?: Area): Promise<Blob> {
   const imagem = await createImageBitmap(arquivo)
+  const recorte = area ?? { x: 0, y: 0, width: imagem.width, height: imagem.height }
   try {
     for (let lado = LADO_MAXIMO; lado >= 128; lado = Math.round(lado * 0.75)) {
-      const { largura, altura } = medidas(imagem.width, imagem.height, lado)
+      const { largura, altura } = medidas(recorte.width, recorte.height, lado)
       const canvas = document.createElement('canvas')
       canvas.width = largura
       canvas.height = altura
       const contexto = canvas.getContext('2d')
       if (!contexto) break
       contexto.imageSmoothingQuality = 'high'
-      contexto.drawImage(imagem, 0, 0, largura, altura)
+      const escala = largura / recorte.width
+      contexto.drawImage(imagem, -recorte.x * escala, -recorte.y * escala, imagem.width * escala, imagem.height * escala)
       const webp = await gerar(canvas, 'image/webp', 0.9)
       const blob = webp?.type === 'image/webp' ? webp : await gerar(canvas, 'image/png')
       if (blob && blob.size <= LOGO_GUARDADO) return blob

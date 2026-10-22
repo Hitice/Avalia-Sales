@@ -623,6 +623,7 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
 
 | Data | Mudança |
 | --- | --- |
+| 22/10/2026 | Versão 1.2.0. Front - menu lateral em grupos com ícones, fundo do item ativo do tom 95 da primária (`variaveisDaMarca` em `marca.ts`, a mesma conta na prévia da Marca), seleção de texto e foco sólido na cor da marca, foco inicial do modal no próprio modal, barra de carregando no topo e blocos de carregando (`Carregando`, `CarregandoTela`), recorte do logo com `react-easy-crop` 6.2.4, Links em abas. Contrato embutido na versão 1 aprovada. |
 | 22/10/2026 | E-mail com logo da plataforma em PNG, faixa no traço da marca, botão com o rótulo da linha `Rótulo: endereço` e código em destaque; textos de convite, senha, confirmação, aparelho novo e pedidos no formato novo. |
 | 22/10/2026 | Versão 1.1.0. A versão do app mora em `web/package.json` (semver: correção sobe o último número, funcionalidade o do meio) e aparece no rodapé. |
 | 22/10/2026 | Coluna `celular` em `revendedores`: obrigatória no `POST /cadastro`, trocada pelo dono em `PUT /revenda/celular`, no `RevendedorDto` da operadora e da revenda. |

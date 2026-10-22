@@ -80,14 +80,14 @@ Todas no mesmo app, liberadas pelo papel do usuário.
 | Ativar lote | Revendedor | Computador | Número do lote recebido |
 | Vendedores | Revendedor | Computador | Criar, editar, desativar, excluir, comissão |
 | Catálogo | Revendedor | Computador e celular | Produtos e preço da tabela do revendedor |
-| Marca | Revendedor | Computador | Logo, cores e nome exibido, com prévia |
+| Marca | Revendedor | Computador | Logo com recorte (horizontal ou quadrado, arrastar e zoom), cores e nome exibido, com prévia do app nas cores escolhidas |
 | Painel | Revendedor | Computador | Vendas e pagamentos ao vivo, saldo de comissão, registro de repasse |
 | Auditoria | Revendedor | Computador | Quem mudou o quê, com antes e depois e busca pelo código |
 | Segurança | Dono e operadora | Celular e computador | Ligar e desligar o segundo fator (app autenticador), com códigos de recuperação |
 | Mapa | Revendedor | Computador | Lugares vendidos, no Google Maps |
 | Painel do vendedor | Vendedor | Celular | Vendas do mês, comissão a receber, esperando pagamento e recebida, placas com ele |
 | Nova venda | Vendedor | Celular | Negócio no Google, QR da placa, cliente, cobrança, gravação do NFC |
-| Links | Dono e vendedor | Celular | Link curto do negócio sem placa: copiar, gravar NFC; o dono edita, desliga e exclui |
+| Links | Dono e vendedor | Celular | Link curto do negócio sem placa, em duas abas - Encurtador (cola qualquer endereço, como avaliação do Google, cardápio ou Instagram, ou busca o negócio no Google) e NFC (grava o link curto na tag); o dono edita, desliga e exclui |
 | Ficha da placa | Vendedor e revendedor | Celular | Destino, vencimento, leituras, troca, renovação |
 | Pedidos | Operadora | Computador | Pedidos pagos, lote despachado, envio |
 | Página do QR | Cliente final | Celular | Redireciona ao destino e conta a leitura |
@@ -238,7 +238,7 @@ Todas no mesmo app, liberadas pelo papel do usuário.
 
 ### Atendimento
 
-- O dono fala com a Avalia pelo chat da plataforma (Falar com a Avalia); a
+- O dono fala com a Avalia pelo chat da plataforma (menu Suporte, tela "Contate o suporte"); a
   operadora atende todas as conversas, com as não lidas primeiro. Mensagem não
   é editada nem apagada. Abrir a conversa marca como lidas as mensagens do
   outro lado, e a mensagem nova chega ao vivo.
@@ -252,9 +252,9 @@ Todas no mesmo app, liberadas pelo papel do usuário.
 
 - O contrato do revendedor e o termo do cliente são assinados na D4Sign.
 - O texto do contrato fica em `docs/contrato/contrato-de-revenda.html` e vira o PDF
-  embutido na API com `node docs/contrato/gerar.mjs`. É uma minuta de adesão: os dados
-  do revendedor vêm do cadastro e do registro da D4Sign, e o texto depende de revisão
-  jurídica antes de valer.
+  embutido na API com `node docs/contrato/gerar.mjs`. É um contrato de adesão: os dados
+  do revendedor vêm do cadastro e do registro da D4Sign. A versão 1 foi aprovada pela
+  Avalia em 22/10/2026.
 - O PDF original e o hash SHA-256 dele ficam guardados, para provar qual texto
   foi assinado.
 - Contrato só anda para a frente - aguardando assinatura vira assinado ou
@@ -403,7 +403,7 @@ Estimativa em semanas de cerca de 20 horas.
 | Confirmação de pagamento por fora | Baixa manual no Pagar.me ou só registro na plataforma | Conferir a API do Pagar.me na Fase 2 |
 | Nome e domínio | Subdomínio de avaliaone.com.br ou domínio próprio | A definir |
 | Recebedor da revendedora Avalia | Mesmo da conta do marketplace ou separado | Confirmar com o Pagar.me |
-| Textos do contrato e do termo | Rascunho ou revisão jurídica | Revisão antes do fim da Fase 1; hoje vai uma minuta marcada como homologação |
+| Texto do termo do cliente | Rascunho ou revisão jurídica | Revisão antes do fim da Fase 1. O contrato de revenda foi aprovado (versão 1, 22/10/2026) |
 | Repositório | Público ou privado | Público, com dados fictícios |
 
 ### Fase das APIs (com as contas e chaves)
@@ -424,6 +424,7 @@ O que está pronto no código e só fecha com a conta de verdade:
 
 | Data | Mudança |
 | --- | --- |
+| 22/10/2026 | Contrato de revenda aprovado (versão 1), sem o aviso de minuta. Menu lateral em grupos com ícones; "Pedidos de placas" vira Pedidos e "Falar com a Avalia" vira Suporte. Links em abas Encurtador e NFC, com qualquer endereço colado. Logo com recorte. Avisos do contrato na tela inicial reescritos. |
 | 22/10/2026 | Celular da revenda obrigatório no cadastro; o dono troca na tela inicial e a operadora vê na lista de revendedores. |
 | 22/10/2026 | Confirmação do e-mail por código digitado na tela, além do link, com reenvio depois de 1 minuto. E-mail recusado pelo provedor tenta de novo por uns 3 dias. Campos com máscara (só números em CNPJ, CPF, telefone e código), contorno no traço da marca e verde quando o dado confere. Logo Avalia Sales completo nas telas de entrada e só o gauge dentro do app. |
 | 22/10/2026 | Contrato de revenda formatado, com o logo e os dados da Avalia, em minuta para revisão jurídica. |
