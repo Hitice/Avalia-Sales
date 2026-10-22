@@ -16,8 +16,7 @@ import { extrairCodigo } from './codigo'
 import { useFicha, useVender } from './consultas'
 import { EscolhaDeDestino } from './EscolhaDeDestino'
 import { LeitorDeQr } from './LeitorDeQr'
-import { GravarNfc, LerNfc } from './BotoesDeNfc'
-import { nfcDisponivel } from './nfc'
+import { GravarNfc } from './BotoesDeNfc'
 
 type Passo = 'placa' | 'cliente' | 'destino' | 'cobranca'
 const PASSOS: { id: Passo; rotulo: string }[] = [
@@ -146,7 +145,7 @@ export function TelaDeNovaVenda() {
   )
 }
 
-/** Ler pelo QR, pelo NFC ou digitar; a placa precisa estar no estoque desta revenda. */
+/** Ler pelo QR ou digitar; a placa precisa estar no estoque desta revenda. O NFC só é gravado, depois da venda. */
 function PassoDaPlaca({ codigo, digitado, aoDigitar, aoLer, aoSeguir }: {
   codigo: string
   digitado: string
@@ -171,10 +170,7 @@ function PassoDaPlaca({ codigo, digitado, aoDigitar, aoLer, aoSeguir }: {
           ? <LeitorDeQr aoLer={lido} aoFechar={() => setCamera(false)} />
           : (
               <>
-                <div className="grid grid-cols-2 gap-2">
-                  <Button size="lg" onClick={() => setCamera(true)}>Ler QR</Button>
-                  {nfcDisponivel() ? <LerNfc aoLer={lido} /> : <Button size="lg" variant="outline" disabled title="NFC só no Chrome do Android">Ler NFC</Button>}
-                </div>
+                <Button size="lg" onClick={() => setCamera(true)}>Ler QR</Button>
                 <form
                   className="flex gap-2"
                   onSubmit={(e) => {

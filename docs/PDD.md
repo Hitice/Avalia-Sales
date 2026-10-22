@@ -23,7 +23,7 @@ própria equipe, recebe pelo Pagar.me e acompanha as vendas num painel.
 | --- | --- | --- |
 | Operadora | A Avalia | Vende placas aos revendedores, recebe a taxa de cada venda, despacha lotes, atende o chat |
 | Revendedor (dono) | Empresa que revende | Compra placas, cadastra vendedores, define preço e comissão, acompanha painel e mapa |
-| Vendedor | Equipe do revendedor | Vende no balcão pelo celular, com NFC ou QR |
+| Vendedor | Equipe do revendedor | Vende no balcão pelo celular: lê o QR e grava o NFC |
 | Cliente final | Quem compra a placa | Paga por Pix ou cartão e usa a placa no negócio |
 
 A Avalia também é revendedora, com o mesmo peso de qualquer outra: mesmo fluxo,
@@ -64,7 +64,7 @@ revendedor é a Avalia.
 5. Ativação - o revendedor digita o número do lote (LT-0001, lt 1 ou 1); as
    placas entram no estoque dele com o custo do pacote.
 6. Equipe - cadastro dos vendedores e da comissão de cada um.
-7. Leitura - o vendedor lê a placa por NFC ou QR, e o cadastro da venda abre.
+7. Leitura - o vendedor lê o QR da placa, ou digita o código, e o cadastro da venda abre. Depois da venda grava o endereço na tag NFC da placa.
 8. Venda - cliente, negócio, destino do QR e cobrança por Pix ou cartão.
 9. Pagamento - o cliente paga e o split divide na hora.
 10. Painel - vendas ao vivo, saldo de comissão e mapa dos lugares vendidos.
@@ -83,7 +83,7 @@ Todas no mesmo app, liberadas pelo papel do usuário.
 | Marca | Revendedor | Computador | Logo, cores e nome exibido, com prévia |
 | Painel | Revendedor | Computador | Vendas e pagamentos ao vivo, saldo de comissão, registro de repasse |
 | Mapa | Revendedor | Computador | Lugares vendidos, no Google Maps |
-| Nova venda | Vendedor | Celular | NFC ou QR, negócio, destino, cobrança |
+| Nova venda | Vendedor | Celular | QR, negócio, destino, cobrança, gravação do NFC |
 | Ficha da placa | Vendedor e revendedor | Celular | Destino, vencimento, leituras, troca, renovação |
 | Pedidos | Operadora | Computador | Pedidos pagos, lote despachado, envio |
 | Página do QR | Cliente final | Celular | Redireciona ao destino e conta a leitura |

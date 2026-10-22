@@ -124,10 +124,11 @@ negócio e duas travas independentes:
   (`Contraste`).
 - Balcão - a Nova venda tem um passo por tela (placa, cliente, destino,
   cobrança) com o botão no pé da tela. A placa entra pelo QR da câmera
-  traseira, pelo NFC (Web NFC, só Chrome do Android) ou digitada, e a leitura da
-  URL do QR em estoque abre a Nova venda com o código. O resultado mostra o QR
-  do Pix, o copia e cola e confirma o pagamento sozinho (a ficha é refeita a
-  cada 5 s). Com Web NFC, a tela grava o endereço da placa numa tag em branco.
+  traseira ou digitada, e a leitura da URL do QR em estoque abre a Nova venda
+  com o código. O resultado mostra o QR do Pix, o copia e cola e confirma o
+  pagamento sozinho (a ficha é refeita a cada 5 s). O NFC não é lido: a tela
+  grava o endereço da placa na tag (Web NFC, só Chrome do Android), no fim da
+  venda e na ficha.
 - Testes - Vitest e Testing Library: dinheiro, sessão, renovação (uma só para
   chamadas simultâneas), rota protegida por papel, código da placa, percentual,
   CNPJ, telefone, contraste da marca e a tela de entrada. 36 testes em
