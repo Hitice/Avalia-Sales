@@ -21,6 +21,7 @@
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
+  --color-sucesso: var(--sucesso);
   --color-destaque-foreground: var(--destaque-foreground);
   --color-destaque: var(--destaque);
   --color-accent-foreground: var(--accent-foreground);

@@ -89,7 +89,7 @@ export function TelaDeLinks() {
               valor={destino}
               aoMudar={setDestino}
               nomeSugerido=""
-              aoEscolherLugar={(lugar) => setTitulo((t) => t || `Avaliação no Google - ${lugar.nome}`)}
+              aoEscolherLugar={(lugar) => lugar && setTitulo((t) => t || `Avaliação no Google - ${lugar.nome}`)}
             />
             <Button type="submit" disabled={!titulo.trim() || (!destino.link && !destino.lugarNoGoogle) || criar.isPending || alterar.isPending}>
               {editando ? 'Salvar link' : 'Criar link'}

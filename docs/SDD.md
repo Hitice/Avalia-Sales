@@ -572,6 +572,7 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
 
 | Data | Mudança |
 | --- | --- |
+| 22/10/2026 | Front - barra de baixo no celular (`PRINCIPAIS` na `Moldura`, o resto no "Mais"), menu de cima só a partir de `md`; token `--sucesso`; CPF, e-mail e telefone conferidos no navegador (`documentos.ts`); `destino.ts` confere o link do Google como a API; trocar de passo limpa a recusa da tentativa anterior. 42 testes no front. |
 | 22/10/2026 | Encurtador - `links` (RLS) e `codigos_de_link` (plataforma, sem RLS, como `placas_emitidas`), rotas `/links` e `GET/HEAD /l/{codigo}` com 302 sem cache, `Links.DoNegocio` na transação da venda, `VendaRegistrada.LinkCurto`. Destino recusa `/l/` da plataforma. Nova venda na ordem negócio, placa, cliente, cobrança. 184 testes na API. |
 | 22/10/2026 | Convite do vendedor e esqueci a senha (`POST /equipe/{id}/convite`, `POST /auth/senha/link`, `POST /auth/senha`, `GestorDeSenhas`, migration LinksDeSenha), telas `/convite`, `/senha` e `/esqueci`. Grade de duas colunas sem rolagem lateral no celular. 181 testes na API. |
 | 22/10/2026 | Revisão do texto das telas e das recusas da API (`RegraDeNegocioException`), mais curtas. |

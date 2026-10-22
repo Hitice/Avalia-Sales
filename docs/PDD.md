@@ -372,6 +372,7 @@ Estimativa em semanas de cerca de 20 horas.
 
 | Data | Mudança |
 | --- | --- |
+| 22/10/2026 | Celular - menu na barra de baixo (telas de todo dia e "Mais"); Nova venda com "Sair da venda", campo do cliente verde quando o dado confere e link do Google conferido no passo do negócio. |
 | 22/10/2026 | Nova venda começa pelo negócio no Google, depois a placa. Link curto `/L/` do negócio, criado na venda com Google e na tela Links. |
 | 22/10/2026 | Vendedor convidado por e-mail cria a própria senha; o dono também pode mandar o link pelo WhatsApp. Esqueci a senha na entrada. |
 | 22/10/2026 | Texto das telas revisto - sem frase de explicação; rótulo, ação e recusa curta. |

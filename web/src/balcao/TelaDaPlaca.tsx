@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatarCentavos } from '@/dinheiro/dinheiro'
 import { PixNaTela } from '@/componentes/PixNaTela'
 import { useAlternar, useApontar, useFicha, useRenovar } from './consultas'
+import { destinoPronto } from './destino'
 import { EscolhaDeDestino } from './EscolhaDeDestino'
 import { GravarNfc } from './BotoesDeNfc'
 
@@ -64,7 +65,7 @@ export function TelaDaPlaca() {
                   <>
                     <EscolhaDeDestino valor={destino} aoMudar={setDestino} nomeSugerido={f.venda.cliente} />
                     <div className="flex gap-2">
-                      <Button disabled={(!destino.link && !destino.lugarNoGoogle) || apontar.isPending} onClick={() => apontar.mutate(destino, { onSuccess: () => setTrocando(false) })}>Salvar destino</Button>
+                      <Button disabled={!destinoPronto(destino) || apontar.isPending} onClick={() => apontar.mutate(destino, { onSuccess: () => setTrocando(false) })}>Salvar destino</Button>
                       <Button variant="ghost" onClick={() => setTrocando(false)}>Cancelar</Button>
                     </div>
                   </>
