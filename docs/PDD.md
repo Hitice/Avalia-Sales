@@ -248,9 +248,27 @@ porta o negócio e troca a tecnologia onde a stack pede.
 | Mapa de bairros em Leaflet com OpenStreetMap | Google Maps JavaScript | Fase 3 |
 | Placa coringa de teste (fluxo desfeito no fim) | Lote de teste da revendedora Avalia em homologação | Planejado |
 | Renovação por 60% do valor, sem comissão | Igual, com o percentual ajustável pelo dono | No código |
-| Confirmação de pagamento em dinheiro ou outro Pix | A definir com o Pagar.me (baixa manual da cobrança) | Fase 2 |
-| Cortesia, cancelamento e troca de placa com estorno no razão | Igual, com o razão da Fase 2 | Fase 2 |
+| Confirmação de pagamento em dinheiro ou outro Pix | Igual, depois de o Pix vencer; a taxa da Avalia fica a acertar no razão; o dono desfaz com estorno | No código |
+| Cortesia, cancelamento e troca de placa com estorno no razão | Igual, só sem cobrança em aberto ou paga; paga sai por estorno no Pagar.me, que já desfaz o razão | No código |
 | Pix e confirmação pelo WhatsApp | E-mail pelo Resend; WhatsApp fora do escopo | No código (e-mail) |
+
+### Depois da venda
+
+- Cancelar e dar de cortesia são do dono, e só com a venda sem cobrança em
+  aberto nem paga. O Pix em aberto vale 30 minutos e ainda pode ser pago pelo
+  QR; a venda paga sai por estorno no Pagar.me, que já lança o razão ao
+  contrário. Cancelada, a placa volta ao estoque e sai do ar. Cortesia mantém
+  a placa no ar com valor e comissão zerados.
+- Trocar a placa é do dono: a venda, o destino e o vencimento passam para uma
+  placa livre do estoque, e a antiga é encerrada e não volta a circular.
+- Recebido em dinheiro ou por outro Pix é confirmado pelo vendedor ou pelo
+  dono, também só sem Pix em aberto. O razão recebe a venda como se o Pix
+  tivesse caído, com a comissão devida, e a taxa da Avalia como "a acertar",
+  porque não passou pelo split. Só o dono desfaz, e só antes do repasse da
+  comissão.
+- Renovação em aberto segura o cancelamento e a troca: paga depois, ela
+  estenderia uma placa fora da venda.
+- A definir - como a Avalia cobra a taxa das vendas recebidas por fora.
 
 ## 6b. Dados pessoais (LGPD)
 
@@ -342,6 +360,7 @@ Estimativa em semanas de cerca de 20 horas.
 
 | Data | Mudança |
 | --- | --- |
+| 22/10/2026 | Depois da venda - cancelamento, cortesia, troca de placa e recebido em dinheiro ou outro Pix, na tela Vendas. |
 | 21/10/2026 | LGPD - papéis de controlador e operadora, dado mínimo, exportação e anonimização do cliente na tela Clientes. |
 | 21/10/2026 | Fase 4, ferramentas - reserva de códigos de outro sistema e importação de placas tudo ou nada, com ensaio e totais. |
 | 21/10/2026 | Preparada a publicação em servidor próprio (manual em OPERACAO.md); a regra de que `/q/` responde para sempre vale para o deploy, que troca a API em segundos. |

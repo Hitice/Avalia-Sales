@@ -19,6 +19,8 @@ public sealed record Consignar(Guid VendedorId, IReadOnlyList<string>? Codigos, 
 
 public sealed record Devolver(Guid VendedorId);
 
+public sealed record TrocarPlaca(string Codigo);
+
 /// <summary>A área do dono: a revenda, pedidos de placas, ativação de lote, equipe e consignação.</summary>
 public static class RotasDaRevenda
 {
@@ -84,6 +86,24 @@ public static class RotasDaRevenda
         });
         dono.MapGet("/mapa/configuracao", (Microsoft.Extensions.Options.IOptions<Infrastructure.Integracoes.Google.OpcoesGoogle> google) =>
             new { Chave = string.IsNullOrWhiteSpace(google.Value.ChaveDoMapa) ? null : google.Value.ChaveDoMapa, google.Value.IdDoMapa });
+
+        dono.MapPost("/vendas/{id:guid}/cancelamento", async (Guid id, Application.Vendas.Vendas vendas, CancellationToken ct) =>
+        {
+            await vendas.Cancelar(id, ct);
+            return Results.NoContent();
+        });
+        dono.MapDelete("/vendas/{id:guid}/recebimento", async (Guid id, Application.Vendas.Vendas vendas, CancellationToken ct) =>
+        {
+            await vendas.DesfazerRecebimento(id, ct);
+            return Results.NoContent();
+        });
+        dono.MapPost("/vendas/{id:guid}/cortesia", async (Guid id, Application.Vendas.Vendas vendas, CancellationToken ct) =>
+        {
+            await vendas.Cortesia(id, ct);
+            return Results.NoContent();
+        });
+        dono.MapPost("/vendas/{id:guid}/troca-de-placa", async (Guid id, TrocarPlaca pedido, Application.Vendas.Vendas vendas, CancellationToken ct) =>
+            Results.Ok(new { Codigo = await vendas.TrocarPlaca(id, pedido.Codigo, ct) }));
 
         dono.MapPost("/estoque/consignacao", async (Consignar pedido, Estoque estoque, CancellationToken ct) =>
             Results.Ok(new { Placas = await estoque.Consignar(pedido.VendedorId, pedido.Codigos, pedido.Quantidade, ct) }));

@@ -90,7 +90,13 @@ export type VendaDaLista = {
   pagamento: SituacaoDaCobranca | null
   vendidaEm: string
   pagaEm: string | null
+  situacao: 'Registrada' | 'Cancelada'
+  cortesia: boolean
+  /** Como veio o último pagamento: pelo Pagar.me (Pix, cartão, link) ou declarado no balcão. */
+  pagoPor: MeioDePagamento | null
 }
+
+export type MeioDePagamento = 'Pix' | 'Cartao' | 'Link' | 'Dinheiro' | 'OutroPix'
 
 export type Cobranca = {
   id: string

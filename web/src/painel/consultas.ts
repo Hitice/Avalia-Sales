@@ -42,6 +42,15 @@ export const useDevolver = () => useGravar((vendedorId: string) => chamarApi<{ p
 
 export const useCobrarDeNovo = () => useGravar((vendaId: string) => chamarApi<VendaRegistrada>(`/vendas/${vendaId}/cobranca`, enviarJson('POST', {})), ['vendas'])
 
+const VENDA_MUDOU = ['vendas', 'placas', 'comissoes', 'razao']
+export const useReceberPorFora = () =>
+  useGravar(({ vendaId, meio }: { vendaId: string; meio: 'Dinheiro' | 'OutroPix' }) => chamarApi(`/vendas/${vendaId}/recebimento`, enviarJson('POST', { meio })), VENDA_MUDOU)
+export const useDesfazerRecebimento = () => useGravar((vendaId: string) => chamarApi(`/vendas/${vendaId}/recebimento`, { method: 'DELETE' }), VENDA_MUDOU)
+export const useCancelarVenda = () => useGravar((vendaId: string) => chamarApi(`/vendas/${vendaId}/cancelamento`, enviarJson('POST', {})), VENDA_MUDOU)
+export const useCortesia = () => useGravar((vendaId: string) => chamarApi(`/vendas/${vendaId}/cortesia`, enviarJson('POST', {})), VENDA_MUDOU)
+export const useTrocarPlaca = () =>
+  useGravar(({ vendaId, codigo }: { vendaId: string; codigo: string }) => chamarApi<{ codigo: string }>(`/vendas/${vendaId}/troca-de-placa`, enviarJson('POST', { codigo })), VENDA_MUDOU)
+
 export const useSaldosDeComissao = () => useQuery({ queryKey: ['comissoes'], queryFn: () => chamarApi<SaldoDeComissao[]>('/comissoes') })
 export const useRepasses = () => useQuery({ queryKey: ['repasses'], queryFn: () => chamarApi<Repasse[]>('/repasses') })
 export const useRepassar = () =>

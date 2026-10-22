@@ -1251,6 +1251,10 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("comissao_bps");
 
+                    b.Property<bool>("Cortesia")
+                        .HasColumnType("boolean")
+                        .HasColumnName("cortesia");
+
                     b.Property<long>("CustoCents")
                         .HasColumnType("bigint")
                         .HasColumnName("custo_cents");

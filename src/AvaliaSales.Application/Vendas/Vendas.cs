@@ -29,7 +29,7 @@ public sealed record VendaRegistrada(Guid VendaId, string Codigo, string Enderec
 
 public sealed record VendaDaLista(
     Guid Id, string Codigo, string Cliente, string Produto, Guid VendedorId, string Vendedor, long ValorCents, long ComissaoCents,
-    MeioDePagamento Meio, SituacaoDaCobranca? Pagamento, DateTimeOffset VendidaEm, DateTimeOffset? PagaEm);
+    MeioDePagamento Meio, SituacaoDaCobranca? Pagamento, DateTimeOffset VendidaEm, DateTimeOffset? PagaEm, SituacaoDaVenda Situacao, bool Cortesia, MeioDePagamento? PagoPor);
 
 /// <summary>
 /// A venda no balcão: placa, produto, cliente, destino e cobrança. A venda é
@@ -47,6 +47,11 @@ public sealed class Vendas(
 {
     public async Task<VendaRegistrada> Registrar(NovaVenda pedido, CancellationToken ct)
     {
+        if (pedido.Meio is not (MeioDePagamento.Pix or MeioDePagamento.Cartao or MeioDePagamento.Link))
+        {
+            throw new RegraDeNegocioException("A venda nasce com Pix ou cartão. Recebido em dinheiro se confirma depois, na lista de vendas.");
+        }
+
         var (vendedorId, comissaoBps) = await QuemVende(ct);
         var produto = await banco.Produtos.AsNoTracking().SingleOrDefaultAsync(p => p.Id == pedido.ProdutoId && p.Ativo, ct)
             ?? throw new RegraDeNegocioException("Este produto não está no catálogo.");
@@ -88,10 +93,117 @@ public sealed class Vendas(
             throw new RegraDeNegocioException("Esta venda já tem cobrança em aberto ou paga.");
         }
 
+        if (venda.Situacao == SituacaoDaVenda.Cancelada || venda.Cortesia)
+        {
+            throw new RegraDeNegocioException("Venda cancelada ou cortesia não se cobra.");
+        }
+
         var cliente = await banco.Clientes.SingleAsync(c => c.Id == venda.ClienteId, ct);
         var placa = await banco.Placas.AsNoTracking().SingleAsync(p => p.Id == venda.PlacaId, ct);
         var (cobranca, semCobranca) = await TentarCobrar(venda, cliente, placa.Codigo, null, 1, ct);
         return new VendaRegistrada(venda.Id, placa.Codigo, plataforma.Value.EnderecoDaPlaca(placa.Codigo), venda.ValorCents, placa.VenceEm, cobranca, semCobranca);
+    }
+
+    /// <summary>
+    /// O cliente pagou no balcão, em dinheiro ou por outro Pix. Só sem cobrança
+    /// em aberto: o Pix em aberto ainda pode ser pago pelo QR, e o cliente
+    /// pagaria duas vezes. A comissão passa a ser devida como no Pix.
+    /// </summary>
+    public async Task ReceberPorFora(Guid vendaId, MeioDePagamento meio, CancellationToken ct)
+    {
+        var venda = await AcharVenda(vendaId, ct);
+        if (venda.Situacao == SituacaoDaVenda.Cancelada || venda.Cortesia || venda.ValorCents == 0)
+        {
+            throw new RegraDeNegocioException("Esta venda não tem valor a receber.");
+        }
+
+        await ExigirSemCobrancaViva(venda, "Esta venda tem Pix em aberto ou já está paga. Espere o Pix vencer para confirmar por fora.", ct);
+        await cobrancas.RegistrarPorFora(OrigemDaCobranca.Venda, venda.Id, meio, venda.ValorCents, ct);
+        await banco.SaveChangesAsync(ct);
+    }
+
+    /// <summary>Confirmação por engano: o dono desfaz, e o razão recebe o estorno.</summary>
+    public async Task DesfazerRecebimento(Guid vendaId, CancellationToken ct)
+    {
+        var venda = await AcharVenda(vendaId, ct);
+        var cobranca = await banco.Cobrancas
+            .Where(c => c.Origem == OrigemDaCobranca.Venda && c.OrigemId == venda.Id && c.Situacao == SituacaoDaCobranca.Paga)
+            .SingleOrDefaultAsync(ct) ?? throw new RegraDeNegocioException("Esta venda não está paga.");
+        if (venda.RepasseId is not null)
+        {
+            throw new RegraDeNegocioException("A comissão desta venda já foi repassada ao vendedor.");
+        }
+
+        await cobrancas.DesfazerPorFora(cobranca, ct);
+        await banco.SaveChangesAsync(ct);
+    }
+
+    /// <summary>
+    /// Desfaz a venda. Só sem cobrança em aberto nem paga: Pix em aberto ainda
+    /// pode cair, e o pagamento chegaria a uma venda desfeita. A placa volta ao
+    /// estoque e sai do ar.
+    /// </summary>
+    public async Task Cancelar(Guid vendaId, CancellationToken ct)
+    {
+        var venda = await AcharVenda(vendaId, ct);
+        await ExigirSemCobrancaViva(venda, "Esta venda tem cobrança em aberto ou paga. Espere o Pix vencer, ou estorne no Pagar.me, antes de cancelar.", ct);
+        await ExigirSemRenovacaoAberta(venda.PlacaId, ct);
+        var placa = await banco.Placas.SingleAsync(p => p.Id == venda.PlacaId, ct);
+        venda.Cancelar();
+        placa.DesfazerVenda();
+        banco.AvisarAoVivo("venda", venda.RevendedorId);
+        await banco.SaveChangesAsync(ct);
+    }
+
+    /// <summary>A revenda dá a placa: valor e comissão zerados, com a mesma trava da cobrança.</summary>
+    public async Task Cortesia(Guid vendaId, CancellationToken ct)
+    {
+        var venda = await AcharVenda(vendaId, ct);
+        await ExigirSemCobrancaViva(venda, "Esta venda tem cobrança em aberto ou paga; cortesia é para venda sem cobrança.", ct);
+        venda.TornarCortesia();
+        banco.AvisarAoVivo("venda", venda.RevendedorId);
+        await banco.SaveChangesAsync(ct);
+    }
+
+    /// <summary>A venda passa para outra placa do estoque, e a antiga é encerrada para sempre.</summary>
+    public async Task<string> TrocarPlaca(Guid vendaId, string codigoNovo, CancellationToken ct)
+    {
+        var venda = await AcharVenda(vendaId, ct);
+        var codigo = CodigoDaPlaca.Normalizar(codigoNovo);
+        await using var transacao = await banco.Database.BeginTransactionAsync(ct);
+        var nova = (codigo.Length == 0 ? null : await banco.TravarPlaca(codigo, ct))
+            ?? throw new RegraDeNegocioException("Código não encontrado, verifique novamente.");
+        await ExigirSemRenovacaoAberta(venda.PlacaId, ct);
+        var antiga = await banco.Placas.SingleAsync(p => p.Id == venda.PlacaId, ct);
+        if (nova.Id == antiga.Id)
+        {
+            throw new RegraDeNegocioException("A placa nova é a mesma da venda.");
+        }
+
+        nova.ReceberVendaDe(antiga);
+        venda.TrocarPlaca(nova.Id);
+        banco.AvisarAoVivo("venda", venda.RevendedorId);
+        await banco.SaveChangesAsync(ct);
+        await transacao.CommitAsync(ct);
+        return nova.Codigo;
+    }
+
+    /// <summary>A renovação em aberto aponta para a placa: paga depois, estenderia uma placa fora da venda.</summary>
+    private async Task ExigirSemRenovacaoAberta(Guid placaId, CancellationToken ct)
+    {
+        if (await banco.Renovacoes.AnyAsync(r => r.PlacaId == placaId && r.Situacao == SituacaoDaRenovacao.Aberta, ct))
+        {
+            throw new RegraDeNegocioException("A placa tem renovação em aberto. Espere o Pix dela vencer.");
+        }
+    }
+
+    private async Task ExigirSemCobrancaViva(Venda venda, string recusa, CancellationToken ct)
+    {
+        if (await banco.Cobrancas.AnyAsync(c => c.Origem == OrigemDaCobranca.Venda && c.OrigemId == venda.Id
+                && (c.Situacao == SituacaoDaCobranca.Pendente || c.Situacao == SituacaoDaCobranca.Paga), ct))
+        {
+            throw new RegraDeNegocioException(recusa);
+        }
     }
 
     public async Task<IReadOnlyList<VendaDaLista>> Listar(CancellationToken ct)
@@ -109,13 +221,13 @@ public sealed class Vendas(
             join pr in banco.Produtos on v.ProdutoId equals pr.Id
             let cb = banco.Cobrancas.Where(x => x.Origem == OrigemDaCobranca.Venda && x.OrigemId == v.Id).OrderByDescending(x => x.CriadaEm).FirstOrDefault()
             orderby v.VendidaEm descending
-            select new { v, p.Codigo, Cliente = c.Nome, Produto = pr.Nome, Pagamento = cb == null ? (SituacaoDaCobranca?)null : cb.Situacao, PagaEm = cb == null ? null : cb.PagaEm })
+            select new { v, p.Codigo, Cliente = c.Nome, Produto = pr.Nome, Pagamento = cb == null ? (SituacaoDaCobranca?)null : cb.Situacao, PagaEm = cb == null ? null : cb.PagaEm, PagoPor = cb == null ? (MeioDePagamento?)null : cb.Meio })
             .Take(500)
             .ToListAsync(ct);
         var nomes = await contas.Nomes(linhas.Select(l => l.v.VendedorId).Distinct(), ct);
         return linhas.Select(l => new VendaDaLista(l.v.Id, l.Codigo, l.Cliente, l.Produto, l.v.VendedorId,
             nomes.GetValueOrDefault(l.v.VendedorId, "Não identificado"), l.v.ValorCents, l.v.ComissaoCents, l.v.Meio,
-            l.Pagamento, l.v.VendidaEm, l.PagaEm)).ToList();
+            l.Pagamento, l.v.VendidaEm, l.PagaEm, l.v.Situacao, l.v.Cortesia, l.PagoPor)).ToList();
     }
 
     /// <summary>

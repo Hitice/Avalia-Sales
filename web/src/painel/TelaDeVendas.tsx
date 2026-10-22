@@ -7,8 +7,18 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import type { VendaDaLista } from '@/api/tipos'
 import { formatarCentavos } from '@/dinheiro/dinheiro'
+import { AcoesDaVenda } from './AcoesDaVenda'
 import { useCobrarDeNovo, useSaldosDeComissao, useVendas } from './consultas'
+
+function rotuloDoPagamento(v: VendaDaLista) {
+  if (v.situacao === 'Cancelada') return 'Venda cancelada'
+  if (v.cortesia) return 'Cortesia'
+  if (v.pagamento === 'Paga' && v.pagoPor === 'Dinheiro') return 'Paga em dinheiro'
+  if (v.pagamento === 'Paga' && v.pagoPor === 'OutroPix') return 'Paga por outro Pix'
+  return v.pagamento ? ROTULO_DO_PAGAMENTO[v.pagamento] : 'Sem cobrança'
+}
 
 /** As vendas e a comissão de cada uma. A comissão só conta quando o cliente paga. */
 export function TelaDeVendas() {
@@ -64,11 +74,12 @@ export function TelaDeVendas() {
                       {dono && <TableCell>{v.vendedor}</TableCell>}
                       <TableCell className="text-right tabular-nums">{formatarCentavos(v.valorCents)}</TableCell>
                       <TableCell className="text-right tabular-nums">{formatarCentavos(v.comissaoCents)}</TableCell>
-                      <TableCell><Badge variant={v.pagamento === 'Paga' ? 'default' : 'secondary'}>{v.pagamento ? ROTULO_DO_PAGAMENTO[v.pagamento] : 'Sem cobrança'}</Badge></TableCell>
-                      <TableCell className="text-right">
-                        {(v.pagamento === null || v.pagamento === 'Falhou' || v.pagamento === 'Cancelada') && (
+                      <TableCell><Badge variant={v.situacao === 'Cancelada' ? 'outline' : v.pagamento === 'Paga' ? 'default' : 'secondary'}>{rotuloDoPagamento(v)}</Badge></TableCell>
+                      <TableCell className="text-right whitespace-nowrap">
+                        {v.situacao === 'Registrada' && !v.cortesia && (v.pagamento === null || v.pagamento === 'Falhou' || v.pagamento === 'Cancelada') && (
                           <Button variant="outline" disabled={cobrar.isPending} onClick={() => cobrar.mutate(v.id)}>Gerar cobrança</Button>
                         )}
+                        <AcoesDaVenda venda={v} dono={dono} />
                       </TableCell>
                     </TableRow>
                   ))}

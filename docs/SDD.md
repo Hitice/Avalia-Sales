@@ -192,6 +192,7 @@ aponta para a venda.
 | `mensagens` | Chat: autor, se é da operadora, texto (até 2.000), enviada em, lida em | RLS com a operadora |
 | `logos` | Logo do revendedor (PNG ou WebP, até 512 KB) | RLS; tabela própria para o revendedor, lido em toda cobrança, não carregar a imagem |
 | `revendedores` (colunas novas) | Nome exibido, cor primária, cor de destaque, marca alterada em | - |
+| `vendas` (coluna nova) | Cortesia | - |
 | `envios_ao_erp` | Pedido pago a caminho do Protheus: cliente, CNPJ, quantidade, valor, situação, número no ERP, tentativas, erro | Sem RLS (fila da operadora); um por pedido |
 
 ### Planejado
@@ -280,6 +281,16 @@ Conferido na referência oficial em 21/10/2026.
 comissão devida), renovação estendendo a placa, estorno com as linhas
 contrárias. O estorno chega pelo webhook (`charge.refunded`), porque a
 conferência só reconsulta cobrança pendente.
+
+Recebido por fora (`MeioDePagamento.Dinheiro` e `OutroPix`) é uma cobrança
+que nasce paga, sem pedido no Pagar.me, e passa pelos mesmos efeitos no mesmo
+`SaveChanges`; a linha da taxa diz "a acertar". Desfazer leva a cobrança a
+estornada e os efeitos lançam o contrário. Cancelar, cortesia e recebido por
+fora exigem a venda sem cobrança pendente nem paga, e não há chamada ao
+Pagar.me para cancelar o Pix: ele vence em 30 minutos. A troca de placa trava
+a placa nova (`FOR UPDATE`) e encerra a antiga; o índice único de
+`vendas.placa_id` só vale para venda registrada, e a placa da venda cancelada
+vende de novo.
 
 ### Resend (no código)
 
@@ -558,6 +569,7 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
 
 | Data | Mudança |
 | --- | --- |
+| 22/10/2026 | Cancelamento, cortesia, troca de placa e recebido por fora (rotas `/vendas/{id}/cancelamento`, `/cortesia`, `/troca-de-placa`, `/recebimento`), migration VendaDesfeita, diálogo de ações na tela Vendas. 176 testes. |
 | 21/10/2026 | LGPD - exportação e anonimização do cliente, tela Clientes. 172 testes. |
 | 21/10/2026 | Comandos `--reservar-codigos` e `--importar-placas` (CSV pelo leitor do .NET, colunas pelo nome, tudo ou nada com `--ensaio`), fábricas de importação no Domain (placa, venda, cliente, lote sem o limite de tiragem). 170 testes. |
 | 21/10/2026 | Produção - compose com Nginx e certbot, backup diário, healthcheck pela API, cabeçalhos encaminhados, workflow de deploy no runner próprio com aprovação, SonarCloud opcional no CI, Sentry opcional na API, Worker e front, manual de operação. Moldura do front carregada depois do login. |

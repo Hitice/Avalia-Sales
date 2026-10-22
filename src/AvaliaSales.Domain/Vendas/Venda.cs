@@ -38,6 +38,9 @@ public sealed class Venda : IDoRevendedor
     public SituacaoDaVenda Situacao { get; private set; } = SituacaoDaVenda.Registrada;
     public DateTimeOffset VendidaEm { get; private set; }
 
+    /// <summary>Venda que a revenda deu de graça: valor zero e sem comissão.</summary>
+    public bool Cortesia { get; private set; }
+
     /// <summary>O repasse que pagou a comissão desta venda ao vendedor.</summary>
     public Guid? RepasseId { get; private set; }
 
@@ -84,6 +87,32 @@ public sealed class Venda : IDoRevendedor
                 Meio = MeioDePagamento.Pix,
                 VendidaEm = vendidaEm,
             };
+
+    /// <summary>Desfeita sem cobrança em aberto nem paga: quem chama confere isso antes.</summary>
+    public void Cancelar()
+    {
+        if (Situacao == SituacaoDaVenda.Cancelada)
+        {
+            throw new RegraDeNegocioException("Esta venda já foi cancelada.");
+        }
+
+        Situacao = SituacaoDaVenda.Cancelada;
+    }
+
+    /// <summary>A revenda deu a placa: valor e comissão zerados; a tabela de então fica gravada.</summary>
+    public void TornarCortesia()
+    {
+        if (Situacao == SituacaoDaVenda.Cancelada || Cortesia)
+        {
+            throw new RegraDeNegocioException("Esta venda não pode virar cortesia.");
+        }
+
+        Cortesia = true;
+        ValorCents = 0;
+        ComissaoBps = 0;
+    }
+
+    public void TrocarPlaca(Guid novaPlacaId) => PlacaId = novaPlacaId;
 
     public void MarcarRepassada(Guid repasseId) =>
         RepasseId = RepasseId is null ? repasseId : throw new InvalidOperationException($"A comissão da venda {Id} já foi repassada.");

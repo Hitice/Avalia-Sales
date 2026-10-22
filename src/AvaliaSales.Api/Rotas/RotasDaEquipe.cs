@@ -37,6 +37,11 @@ public static class RotasDaEquipe
         equipe.MapPost("/vendas", async (NovaVenda pedido, Vendas vendas, CancellationToken ct) =>
             Results.Created("/vendas", await vendas.Registrar(pedido, ct)));
         equipe.MapPost("/vendas/{id:guid}/cobranca", (Guid id, Vendas vendas, CancellationToken ct) => vendas.Cobrar(id, ct));
+        equipe.MapPost("/vendas/{id:guid}/recebimento", async (Guid id, ReceberPorFora pedido, Vendas vendas, CancellationToken ct) =>
+        {
+            await vendas.ReceberPorFora(id, pedido.Meio, ct);
+            return Results.NoContent();
+        });
 
         // A chave do Google fica no servidor; o front pede por aqui.
         equipe.MapGet("/lugares", async (string? texto, ILugares lugares, CancellationToken ct) =>
@@ -52,3 +57,5 @@ public static class RotasDaEquipe
         });
     }
 }
+
+public sealed record ReceberPorFora(Domain.Pagamentos.MeioDePagamento Meio);

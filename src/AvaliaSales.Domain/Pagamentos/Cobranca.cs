@@ -14,6 +14,10 @@ public enum MeioDePagamento
 
     /// <summary>Checkout do Pagar.me: quem paga escolhe Pix, cartão ou boleto na página dele.</summary>
     Link = 3,
+
+    /// <summary>Recebido fora do Pagar.me, no balcão: a cobrança só registra o que o vendedor declarou.</summary>
+    Dinheiro = 4,
+    OutroPix = 5,
 }
 
 public enum SituacaoDaCobranca
@@ -66,6 +70,41 @@ public sealed class Cobranca : IDoRevendedor
         Meio = meio;
         ValorCents = valorCents;
         TaxaAvaliaCents = DivisaoDaCobranca.Calcular(valorCents, taxaAvaliaBps).AvaliaCents;
+    }
+
+    /// <summary>
+    /// Pagamento que não passou pelo Pagar.me: nasce paga, sem pedido no
+    /// gateway. A taxa da Avalia não foi retida no split e fica a acertar.
+    /// </summary>
+    public static Cobranca RecebidaPorFora(OrigemDaCobranca origem, Guid origemId, MeioDePagamento meio, long valorCents, int taxaAvaliaBps, DateTimeOffset agora)
+    {
+        if (meio is not (MeioDePagamento.Dinheiro or MeioDePagamento.OutroPix))
+        {
+            throw new RegraDeNegocioException("Escolha como o cliente pagou: em dinheiro ou por outro Pix.");
+        }
+
+        return new Cobranca(origem, origemId, meio, valorCents, taxaAvaliaBps)
+        {
+            Situacao = SituacaoDaCobranca.Paga,
+            PagaEm = agora,
+            CriadaEm = agora,
+        };
+    }
+
+    public bool PorFora => Meio is MeioDePagamento.Dinheiro or MeioDePagamento.OutroPix;
+
+    /// <summary>
+    /// Confirmação por fora feita por engano. O Pix que caiu no Pagar.me não
+    /// sai por aqui: esse só sai por estorno no Pagar.me.
+    /// </summary>
+    public void DesfazerRecebimento()
+    {
+        if (!PorFora || Situacao != SituacaoDaCobranca.Paga)
+        {
+            throw new RegraDeNegocioException("Só o pagamento confirmado na tela pode ser desfeito.");
+        }
+
+        Situacao = SituacaoDaCobranca.Estornada;
     }
 
     /// <summary>Código do pedido no Pagar.me: o id sem hífens, 32 dos 52 caracteres aceitos.</summary>

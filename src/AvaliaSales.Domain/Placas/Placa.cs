@@ -182,6 +182,47 @@ public sealed class Placa : IDoRevendedor
         return (de, VenceEm.Value);
     }
 
+    /// <summary>Venda desfeita: a placa volta ao estoque e sai do ar. Placa sem venda não vai ao ar.</summary>
+    public void DesfazerVenda()
+    {
+        if (Situacao == SituacaoDaPlaca.Baixada)
+        {
+            throw new RegraDeNegocioException($"A placa {Codigo} foi encerrada.");
+        }
+
+        Situacao = SituacaoDaPlaca.EmEstoque;
+        VendaId = null;
+        VendidaEm = null;
+        VenceEm = null;
+        Destino = null;
+    }
+
+    /// <summary>
+    /// Troca de placa (a antiga quebrou, sumiu, foi gravada errada): a venda,
+    /// o destino e o vencimento passam para esta, e a antiga é encerrada para
+    /// sempre. O código antigo não volta a circular.
+    /// </summary>
+    public void ReceberVendaDe(Placa antiga)
+    {
+        if (Situacao != SituacaoDaPlaca.EmEstoque || VendaId is not null)
+        {
+            throw new RegraDeNegocioException($"A placa {Codigo} não está livre no estoque.");
+        }
+
+        if (antiga.VendaId is null || antiga.Situacao == SituacaoDaPlaca.Baixada)
+        {
+            throw new RegraDeNegocioException($"A placa {antiga.Codigo} não tem venda para passar.");
+        }
+
+        VendaId = antiga.VendaId;
+        VendidaEm = antiga.VendidaEm;
+        VenceEm = antiga.VenceEm;
+        Destino = antiga.Destino;
+        Situacao = antiga.Situacao == SituacaoDaPlaca.Suspensa ? SituacaoDaPlaca.Suspensa : SituacaoDaPlaca.Ativa;
+        ConsignadaA = null;
+        antiga.Situacao = SituacaoDaPlaca.Baixada;
+    }
+
     /// <summary>Suspender não apaga nada: a placa volta exatamente como estava.</summary>
     public void Alternar() => Situacao = Situacao switch
     {

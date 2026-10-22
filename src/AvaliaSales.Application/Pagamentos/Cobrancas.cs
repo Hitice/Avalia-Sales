@@ -51,6 +51,11 @@ public sealed class Cobrancas(IBancoDeDados banco, IGatewayDePagamento gateway, 
             throw new RegraDeNegocioException("O revendedor ainda não tem conta de recebimento no Pagar.me.");
         }
 
+        if (comando.Meio is MeioDePagamento.Dinheiro or MeioDePagamento.OutroPix)
+        {
+            throw new RegraDeNegocioException("Pagamento em dinheiro ou outro Pix se confirma na lista de vendas, depois da venda.");
+        }
+
         if (comando.Meio == MeioDePagamento.Cartao && string.IsNullOrWhiteSpace(comando.TokenDoCartao))
         {
             throw new RegraDeNegocioException("Falta o cartão para cobrar.");
@@ -165,6 +170,27 @@ public sealed class Cobrancas(IBancoDeDados banco, IGatewayDePagamento gateway, 
         }
 
         return mudou || ligou;
+    }
+
+    /// <summary>
+    /// O vendedor declara que recebeu fora do Pagar.me. A cobrança nasce paga e
+    /// o efeito no negócio é o mesmo do Pix que caiu, no mesmo SaveChanges.
+    /// </summary>
+    public async Task<Cobranca> RegistrarPorFora(OrigemDaCobranca origem, Guid origemId, MeioDePagamento meio, long valorCents, CancellationToken ct)
+    {
+        var revendedorId = atual.RevendedorId ?? throw new InvalidOperationException("Cobrança sem revendedor na requisição.");
+        var taxa = await banco.Revendedores.Where(r => r.Id == revendedorId).Select(r => r.TaxaAvaliaBps).SingleAsync(ct);
+        var cobranca = Cobranca.RecebidaPorFora(origem, origemId, meio, valorCents, taxa, relogio.GetUtcNow());
+        banco.Cobrancas.Add(cobranca);
+        await efeitos.Aplicar(cobranca, relogio.GetUtcNow(), ct);
+        return cobranca;
+    }
+
+    /// <summary>Desfaz a confirmação por fora com estorno no razão, como um estorno do Pagar.me.</summary>
+    public async Task DesfazerPorFora(Cobranca cobranca, CancellationToken ct)
+    {
+        cobranca.DesfazerRecebimento();
+        await efeitos.Aplicar(cobranca, relogio.GetUtcNow(), ct);
     }
 
     public static CobrancaDto ParaDto(Cobranca c) =>

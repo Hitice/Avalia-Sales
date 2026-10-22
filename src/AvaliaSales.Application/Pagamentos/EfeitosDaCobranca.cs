@@ -80,7 +80,8 @@ public sealed class EfeitosDaCobranca(IBancoDeDados banco, FilaDeEmails avisos, 
         banco.Lancamentos.Add(new Lancamento(TipoDeLancamento.Receita, cobranca.Id, cobranca.ValorCents, $"Venda da placa {placa}", quando, venda.Id, venda.VendedorId));
         if (cobranca.TaxaAvaliaCents > 0)
         {
-            banco.Lancamentos.Add(new Lancamento(TipoDeLancamento.TaxaAvalia, cobranca.Id, -cobranca.TaxaAvaliaCents, $"Taxa da plataforma, placa {placa}", quando, venda.Id));
+            var taxa = cobranca.PorFora ? $"Taxa da plataforma a acertar, placa {placa} recebida por fora" : $"Taxa da plataforma, placa {placa}";
+            banco.Lancamentos.Add(new Lancamento(TipoDeLancamento.TaxaAvalia, cobranca.Id, -cobranca.TaxaAvaliaCents, taxa, quando, venda.Id));
         }
 
         if (venda.ComissaoCents > 0)
@@ -124,7 +125,7 @@ public sealed class EfeitosDaCobranca(IBancoDeDados banco, FilaDeEmails avisos, 
         var jaEstornadas = await banco.Lancamentos.Where(l => l.OrigemId == cobranca.Id && l.EstornaId != null).Select(l => l.EstornaId).ToListAsync(ct);
         foreach (var linha in originais.Where(l => !jaEstornadas.Contains(l.Id)))
         {
-            banco.Lancamentos.Add(linha.Estorno("pagamento estornado no Pagar.me", agora));
+            banco.Lancamentos.Add(linha.Estorno(cobranca.PorFora ? "recebimento por fora desfeito" : "pagamento estornado no Pagar.me", agora));
         }
 
         banco.AvisarAoVivo("pagamento", cobranca.RevendedorId);
