@@ -264,6 +264,8 @@ Generated_Code/
 # because we have git ;-)
 _UpgradeReport_Files/
 Backup*/
+# No Mac (sem diferença de caixa) a regra acima pegava a pasta do backup do banco.
+!infra/backup/
 UpgradeLog*.XML
 UpgradeLog*.htm
 ServiceFabricBackup/

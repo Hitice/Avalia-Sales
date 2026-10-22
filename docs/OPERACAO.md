@@ -76,9 +76,12 @@ o workflow compila de novo.
 
 ## Backup e restauração
 
-- O contêiner `backup` grava `avalia_sales-AAAAMMDDTHHMMSSZ.dump` por dia em
-  `PASTA_DE_BACKUP` e apaga os mais velhos que `BACKUP_DIAS`. Copie a pasta
-  para fora do VPS (outro servidor ou armazenamento de objetos).
+- O contêiner `backup` grava `avalia_sales-AAAAMMDDTHHMMSSZ.dump` às 02:00 de
+  Brasília em `PASTA_DE_BACKUP` e apaga os mais velhos que `BACKUP_DIAS`.
+- Com `BACKUP_PARA` e o Resend configurado, a cópia também vai anexada para essa
+  caixa, que é o destino fora do VPS. Acima de 28 MB o e-mail sai sem anexo,
+  avisando: aí é hora de outro destino (armazenamento de objetos).
+- Cópia na hora: `docker compose -f docker-compose.producao.yml --env-file /srv/avalia-sales/.env exec backup sh /backup.sh agora`.
 - Teste a restauração todo mês, num banco à parte:
 
   ```bash
