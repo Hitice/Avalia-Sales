@@ -329,8 +329,13 @@ Conferido na referência oficial em 21/10/2026.
   plataforma responde para `Resend:ResponderPara`. Nome, resposta e cor da
   marca são copiados para a fila na hora (`nome_do_remetente`,
   `responder_para`, `cor_da_marca`).
-- O HTML (`ModeloDeEmail`) repete o texto escapado, com o primeiro link como
-  botão na cor da marca e a cor da letra escolhida pelo contraste WCAG.
+- O HTML (`ModeloDeEmail`) sai do texto escapado: a linha `Rótulo: https://...`
+  vira botão com esse rótulo, na cor da marca, com a letra escolhida pelo
+  contraste WCAG; a linha `Rótulo: 123456` mostra o código em destaque. E-mail
+  da plataforma leva o logo em PNG (`web/public/marca/avaliasales-email.png`,
+  pelo `Plataforma:UrlDoPainel`) e a faixa no traço da marca; e-mail da
+  revenda leva o nome e a cor dela. Quem escreve e-mail novo usa essas duas
+  linhas, sem HTML.
 - Para publicar - domínio verificado no Resend com SPF, DKIM e DMARC no DNS,
   e as variáveis `Resend__ChaveApi`, `Resend__Remetente` e
   `Resend__ResponderPara`.
@@ -618,6 +623,7 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
 
 | Data | Mudança |
 | --- | --- |
+| 22/10/2026 | E-mail com logo da plataforma em PNG, faixa no traço da marca, botão com o rótulo da linha `Rótulo: endereço` e código em destaque; textos de convite, senha, confirmação, aparelho novo e pedidos no formato novo. |
 | 22/10/2026 | Versão 1.1.0. A versão do app mora em `web/package.json` (semver: correção sobe o último número, funcionalidade o do meio) e aparece no rodapé. |
 | 22/10/2026 | Coluna `celular` em `revendedores`: obrigatória no `POST /cadastro`, trocada pelo dono em `PUT /revenda/celular`, no `RevendedorDto` da operadora e da revenda. |
 | 22/10/2026 | Confirmação do e-mail também por código de 6 dígitos (`hash_do_codigo`, `erros_do_codigo` em `links_de_senha`) e reenvio só depois de 1 minuto. Fila de e-mail com `proxima_tentativa_em`, espera dobrando até 6 horas e 20 tentativas. Front - máscaras de CNPJ, CPF, telefone e código (`lib/mascaras.ts`), contorno do campo com o traço da marca no foco e verde quando confere, logo Avalia Sales em SVG (`public/marca`) e favicon do gauge. `.gitignore` com `.claude/settings.local.json` e `.claude/worktrees/`. |

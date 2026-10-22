@@ -12,7 +12,7 @@ namespace AvaliaSales.Infrastructure.Integracoes.Resend;
 /// fila vai como Idempotency-Key (até 256 caracteres, vale 24 horas): uma
 /// retentativa depois de queda não entrega em dobro.
 /// </summary>
-public sealed class ClienteResend(HttpClient http, IOptions<OpcoesResend> opcoes) : IEnvioDeEmail
+public sealed class ClienteResend(HttpClient http, IOptions<OpcoesResend> opcoes, IOptions<Application.OpcoesDaPlataforma> plataforma) : IEnvioDeEmail
 {
     private const string Sistema = "Resend";
 
@@ -38,7 +38,7 @@ public sealed class ClienteResend(HttpClient http, IOptions<OpcoesResend> opcoes
                 to = new[] { mensagem.Para },
                 subject = mensagem.Assunto,
                 text = mensagem.Texto,
-                html = ModeloDeEmail.Html(mensagem.Assunto, mensagem.Texto, mensagem.Remetente?.Nome, mensagem.Remetente?.Cor),
+                html = ModeloDeEmail.Html(mensagem.Assunto, mensagem.Texto, mensagem.Remetente?.Nome, mensagem.Remetente?.Cor, UrlDoLogo),
                 reply_to = responder is null ? null : new[] { responder },
             }, options: SemNulos),
         };
@@ -49,6 +49,9 @@ public sealed class ClienteResend(HttpClient http, IOptions<OpcoesResend> opcoes
         var resposta = await ChamadaExterna.Json(Sistema, () => http.SendAsync(pedido, ct), ct);
         return resposta.Texto("id") ?? throw new Application.IntegracaoException(Sistema, null, "resposta sem id");
     }
+
+    /// <summary>O PNG do logo servido pelo próprio front (web/public/marca).</summary>
+    private string UrlDoLogo => plataforma.Value.UrlDoPainel.TrimEnd('/') + "/marca/avaliasales-email.png";
 
     private static string? NuloSeVazio(string? texto) => string.IsNullOrWhiteSpace(texto) ? null : texto;
 }

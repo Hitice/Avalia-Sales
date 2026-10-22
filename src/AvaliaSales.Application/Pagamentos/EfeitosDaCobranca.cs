@@ -60,8 +60,9 @@ public sealed class EfeitosDaCobranca(IBancoDeDados banco, FilaDeEmails avisos, 
             $"""
             {revendedor} pagou o pedido de {pedido.Quantidade} placas pelo Pagar.me.
 
-            Despache um lote de {pedido.Quantidade} placas:
-            {site.UrlDoPainel.TrimEnd('/')}/operadora/pedidos
+            Despache um lote de {pedido.Quantidade} placas.
+
+            Abrir pedidos: {site.UrlDoPainel.TrimEnd('/')}/operadora/pedidos
             """);
     }
 

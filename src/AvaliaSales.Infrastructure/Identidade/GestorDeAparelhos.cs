@@ -40,8 +40,9 @@ public sealed class GestorDeAparelhos(BancoDeDados banco, FilaDeEmails emails, I
 
                 Sua conta entrou de um aparelho novo: {aparelho.Descricao}, em {quando}, IP {ip ?? "desconhecido"}.
 
-                Se foi você, ignore. Se não foi, troque a senha agora:
-                {plataforma.Value.UrlDoPainel.TrimEnd('/')}/esqueci
+                Se foi você, ignore este e-mail. Se não foi, troque a senha agora.
+
+                Trocar a senha: {plataforma.Value.UrlDoPainel.TrimEnd('/')}/esqueci
                 """);
         }
 

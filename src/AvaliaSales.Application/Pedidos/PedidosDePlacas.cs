@@ -91,8 +91,9 @@ public sealed class PedidosDePlacas(
             $"""
             {revendedor.Nome} pediu {pedido.Quantidade} placas, {Reais(pedido.ValorCents)}.
 
-            Registre o pagamento e despache um lote de {pedido.Quantidade} placas:
-            {site.UrlDoPainel.TrimEnd('/')}/operadora/pedidos
+            Registre o pagamento e despache um lote de {pedido.Quantidade} placas.
+
+            Abrir pedidos: {site.UrlDoPainel.TrimEnd('/')}/operadora/pedidos
             """);
         await banco.SaveChangesAsync(ct);
         await transacao.CommitAsync(ct);
@@ -171,8 +172,9 @@ public sealed class PedidosDePlacas(
                 $"""
                 O lote {lote.Rotulo} com {pedido.Quantidade} placas foi despachado.
 
-                Quando a caixa chegar, ative o lote pelo número impresso nela:
-                {plataforma.Value.UrlDoPainel.TrimEnd('/')}/painel/estoque
+                Quando a caixa chegar, ative o lote pelo número impresso nela.
+
+                Ativar o lote: {plataforma.Value.UrlDoPainel.TrimEnd('/')}/painel/estoque
                 """);
         }
 

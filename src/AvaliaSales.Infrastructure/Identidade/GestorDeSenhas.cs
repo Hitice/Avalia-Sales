@@ -33,8 +33,9 @@ public sealed class GestorDeSenhas(BancoDeDados banco, UserManager<Usuario> usua
             $"""
             Olá, {usuario.Nome}.
 
-            A {revenda.Nome} cadastrou você para vender as placas de avaliação. Crie sua senha:
-            {endereco}
+            A {revenda.Nome} cadastrou você para vender as placas de avaliação.
+
+            Criar minha senha: {endereco}
 
             O link vale 7 dias.
             """, revenda);
@@ -57,8 +58,9 @@ public sealed class GestorDeSenhas(BancoDeDados banco, UserManager<Usuario> usua
             $"""
             Olá, {usuario.Nome}.
 
-            Para criar uma senha nova:
-            {endereco}
+            Recebemos um pedido para trocar a senha da sua conta.
+
+            Criar senha nova: {endereco}
 
             O link vale 1 hora. Se não foi você que pediu, ignore este e-mail.
             """);
@@ -92,8 +94,9 @@ public sealed class GestorDeSenhas(BancoDeDados banco, UserManager<Usuario> usua
 
             Seu código para confirmar o e-mail na Avalia Sales: {codigo}
 
-            Ou confirme pelo link:
-            {endereco}
+            Ou confirme pelo botão, se abriu o e-mail em outro aparelho.
+
+            Confirmar e-mail: {endereco}
 
             Vale 2 dias. Se não foi você, ignore este e-mail.
             """);
