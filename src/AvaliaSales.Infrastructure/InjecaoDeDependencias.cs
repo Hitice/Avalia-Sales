@@ -14,6 +14,7 @@ using AvaliaSales.Infrastructure.Integracoes.Google;
 using AvaliaSales.Infrastructure.Integracoes.Pagarme;
 using AvaliaSales.Infrastructure.Integracoes.Protheus;
 using AvaliaSales.Infrastructure.Integracoes.Resend;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -58,8 +59,11 @@ public static class InjecaoDeDependencias
                 o.Lockout.MaxFailedAccessAttempts = 5;
                 o.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
             })
-            .AddEntityFrameworkStores<BancoDeDados>();
+            .AddEntityFrameworkStores<BancoDeDados>()
+            // O do app autenticador (TOTP) não usa Data Protection: a chave fica em usuarios_tokens.
+            .AddTokenProvider<AuthenticatorTokenProvider<Usuario>>(TokenOptions.DefaultAuthenticatorProvider);
         servicos.AddScoped<IContas, Contas>();
+        servicos.AddScoped<GestorDeSegundoFator>();
         servicos.AddScoped<GestorDeSessoes>();
         servicos.AddScoped<GestorDeSenhas>();
         return servicos;

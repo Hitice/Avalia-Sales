@@ -23,6 +23,8 @@ public enum AcaoAuditada
     MarcaAlterada,
     LinkAlterado,
     LinkExcluido,
+    SegundoFatorLigado,
+    SegundoFatorDesligado,
 }
 
 /// <summary>

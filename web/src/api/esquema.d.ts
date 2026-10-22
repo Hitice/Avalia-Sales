@@ -351,6 +351,54 @@ export interface paths {
                         "application/json": components["schemas"]["TokenEmitido"];
                     };
                 };
+                /** @description Accepted */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SegundoFatorExigido"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/entrar/codigo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CodigoDaEntrada"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TokenEmitido"];
+                    };
+                };
             };
         };
         delete?: never;
@@ -427,6 +475,15 @@ export interface paths {
                         "application/json": components["schemas"]["TokenEmitido"];
                     };
                 };
+                /** @description Accepted */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SegundoFatorExigido"];
+                    };
+                };
             };
         };
         delete?: never;
@@ -454,6 +511,136 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": components["schemas"]["PedidoDeConfirmacao"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/conta/segundo-fator": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SituacaoDoSegundoFator"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CodigoDoAutenticador"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": string[];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/conta/segundo-fator/chave": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ChaveDoAutenticador"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/conta/segundo-fator/desligar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CodigoDoAutenticador"];
                 };
             };
             responses: {
@@ -3280,7 +3467,7 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /** @enum {unknown} */
-        AcaoAuditada: "DestinoDefinido" | "DestinoTrocado" | "PlacaSuspensa" | "PlacaNoAr" | "PlacaTrocada" | "VendaCancelada" | "VendaEmCortesia" | "RecebidoPorFora" | "RecebimentoDesfeito" | "VendedorCadastrado" | "VendedorAlterado" | "VendedorDesativado" | "VendedorReativado" | "VendedorExcluido" | "ComissaoPadraoAlterada" | "ProdutoAlterado" | "RepasseRegistrado" | "ClienteAnonimizado" | "MarcaAlterada" | "LinkAlterado" | "LinkExcluido";
+        AcaoAuditada: "DestinoDefinido" | "DestinoTrocado" | "PlacaSuspensa" | "PlacaNoAr" | "PlacaTrocada" | "VendaCancelada" | "VendaEmCortesia" | "RecebidoPorFora" | "RecebimentoDesfeito" | "VendedorCadastrado" | "VendedorAlterado" | "VendedorDesativado" | "VendedorReativado" | "VendedorExcluido" | "ComissaoPadraoAlterada" | "ProdutoAlterado" | "RepasseRegistrado" | "ClienteAnonimizado" | "MarcaAlterada" | "LinkAlterado" | "LinkExcluido" | "SegundoFatorLigado" | "SegundoFatorDesligado";
         AlterarAtivo: {
             ativo: boolean;
         };
@@ -3313,6 +3500,10 @@ export interface components {
             /** Format: int32 */
             comissaoBps?: null | number;
         };
+        ChaveDoAutenticador: {
+            chave: string;
+            uri: string;
+        };
         ClienteDaLista: {
             /** Format: uuid */
             id: string;
@@ -3340,6 +3531,13 @@ export interface components {
             /** Format: date-time */
             pixExpiraEm: null | string;
             urlDoLink?: null | string;
+        };
+        CodigoDaEntrada: {
+            desafio: null | string;
+            codigo: null | string;
+        };
+        CodigoDoAutenticador: {
+            codigo: null | string;
         };
         Consignar: {
             /** Format: uuid */
@@ -3815,6 +4013,10 @@ export interface components {
             /** Format: date-time */
             ultimoRepasse: null | string;
         };
+        /** @description Senha certa de quem tem segundo fator: falta o código, com este desafio (5 minutos). */
+        SegundoFatorExigido: {
+            desafio: string;
+        };
         /** @enum {unknown} */
         SituacaoDaCobranca: "Pendente" | "Paga" | "Cancelada" | "Falhou" | "Estornada" | null;
         /** @enum {unknown} */
@@ -3825,6 +4027,9 @@ export interface components {
         SituacaoDoEnvio: "Pendente" | "Enviado" | "Parado";
         /** @enum {unknown} */
         SituacaoDoPedido: "AguardandoPagamento" | "Pago" | "Despachado" | "Ativado" | "Cancelado";
+        SituacaoDoSegundoFator: {
+            ligado: boolean;
+        };
         /** @enum {unknown} */
         TipoDeDestino: "Google" | "Link";
         /**

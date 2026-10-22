@@ -217,6 +217,45 @@
                 }
               }
             }
+          },
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SegundoFatorExigido"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/entrar/codigo": {
+      "post": {
+        "tags": [
+          "RotasDeAcesso"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CodigoDaEntrada"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenEmitido"
+                }
+              }
+            }
           }
         }
       }
@@ -268,6 +307,16 @@
                 }
               }
             }
+          },
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SegundoFatorExigido"
+                }
+              }
+            }
           }
         }
       }
@@ -282,6 +331,96 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/PedidoDeConfirmacao"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/conta/segundo-fator": {
+      "get": {
+        "tags": [
+          "AvaliaSales.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SituacaoDoSegundoFator"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "AvaliaSales.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CodigoDoAutenticador"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/conta/segundo-fator/chave": {
+      "post": {
+        "tags": [
+          "AvaliaSales.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChaveDoAutenticador"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/conta/segundo-fator/desligar": {
+      "post": {
+        "tags": [
+          "AvaliaSales.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CodigoDoAutenticador"
               }
             }
           },
@@ -2470,7 +2609,9 @@
           "ClienteAnonimizado",
           "MarcaAlterada",
           "LinkAlterado",
-          "LinkExcluido"
+          "LinkExcluido",
+          "SegundoFatorLigado",
+          "SegundoFatorDesligado"
         ]
       },
       "AlterarAtivo": {
@@ -2597,6 +2738,21 @@
         },
         "description": "Sem comiss\u00E3o, o produto segue a do vendedor ou a padr\u00E3o."
       },
+      "ChaveDoAutenticador": {
+        "required": [
+          "chave",
+          "uri"
+        ],
+        "type": "object",
+        "properties": {
+          "chave": {
+            "type": "string"
+          },
+          "uri": {
+            "type": "string"
+          }
+        }
+      },
       "ClienteDaLista": {
         "required": [
           "id",
@@ -2696,6 +2852,41 @@
             "format": "date-time"
           },
           "urlDoLink": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "CodigoDaEntrada": {
+        "required": [
+          "desafio",
+          "codigo"
+        ],
+        "type": "object",
+        "properties": {
+          "desafio": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "codigo": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "CodigoDoAutenticador": {
+        "required": [
+          "codigo"
+        ],
+        "type": "object",
+        "properties": {
+          "codigo": {
             "type": [
               "null",
               "string"
@@ -4400,6 +4591,18 @@
           }
         }
       },
+      "SegundoFatorExigido": {
+        "required": [
+          "desafio"
+        ],
+        "type": "object",
+        "properties": {
+          "desafio": {
+            "type": "string"
+          }
+        },
+        "description": "Senha certa de quem tem segundo fator: falta o c\u00F3digo, com este desafio (5 minutos)."
+      },
       "SituacaoDaCobranca": {
         "enum": [
           "Pendente",
@@ -4440,6 +4643,17 @@
           "Ativado",
           "Cancelado"
         ]
+      },
+      "SituacaoDoSegundoFator": {
+        "required": [
+          "ligado"
+        ],
+        "type": "object",
+        "properties": {
+          "ligado": {
+            "type": "boolean"
+          }
+        }
       },
       "TipoDeDestino": {
         "enum": [

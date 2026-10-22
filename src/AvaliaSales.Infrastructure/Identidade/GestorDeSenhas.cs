@@ -134,7 +134,7 @@ public sealed class GestorDeSenhas(BancoDeDados banco, UserManager<Usuario> usua
         var hash = Sessao.Hash(token ?? string.Empty);
         var link = await banco.LinksDeSenha.FromSql($"select * from links_de_senha where hash_do_token = {hash} for update").SingleOrDefaultAsync(ct);
         var usuario = link is null ? null : await usuarios.FindByIdAsync(link.UsuarioId.ToString());
-        var daFinalidade = link is not null && (finalidade is { } f ? link.Finalidade == f : link.Finalidade != FinalidadeDoLink.ConfirmacaoDeEmail);
+        var daFinalidade = link is not null && (finalidade is { } f ? link.Finalidade == f : link.Finalidade is FinalidadeDoLink.Convite or FinalidadeDoLink.Redefinicao);
         return link is not null && daFinalidade && link.Valido(relogio.GetUtcNow()) && usuario is { Ativo: true }
             ? (link, usuario)
             : throw new RegraDeNegocioException("Link vencido ou já usado. Peça outro.");

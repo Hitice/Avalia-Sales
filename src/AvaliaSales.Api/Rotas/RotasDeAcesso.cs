@@ -16,6 +16,15 @@ public sealed record NovaSenha(string? Token, string? Senha);
 
 public sealed record PedidoDeConfirmacao(string? Token);
 
+/// <summary>Senha certa de quem tem segundo fator: falta o código, com este desafio (5 minutos).</summary>
+public sealed record SegundoFatorExigido(string Desafio);
+
+public sealed record CodigoDaEntrada(string? Desafio, string? Codigo);
+
+public sealed record CodigoDoAutenticador(string? Codigo);
+
+public sealed record SituacaoDoSegundoFator(bool Ligado);
+
 /// <summary>
 /// Entrada, renovação e saída. O token de acesso vive 15 minutos e só em
 /// memória no front; o refresh fica em cookie HttpOnly, que script nenhum lê,
@@ -40,16 +49,29 @@ public static class RotasDeAcesso
         sessao.MapPost("/sair", Sair);
 
         var auth = rotas.MapGroup("/auth").AllowAnonymous().RequireRateLimiting(LimiteDeEntrada);
-        auth.MapPost("/entrar", Entrar).Produces<TokenEmitido>();
+        auth.MapPost("/entrar", Entrar).Produces<TokenEmitido>().Produces<SegundoFatorExigido>(StatusCodes.Status202Accepted);
+        auth.MapPost("/entrar/codigo", EntrarComCodigo).Produces<TokenEmitido>();
         auth.MapPost("/senha/link", async (PedidoDeLink pedido, GestorDeSenhas senhas, CancellationToken ct) =>
         {
             await senhas.PedirRedefinicao(pedido.Email, ct);
             return Results.NoContent();
         });
-        auth.MapPost("/senha", DefinirSenha).Produces<TokenEmitido>();
+        auth.MapPost("/senha", DefinirSenha).Produces<TokenEmitido>().Produces<SegundoFatorExigido>(StatusCodes.Status202Accepted);
         auth.MapPost("/email", async (PedidoDeConfirmacao pedido, GestorDeSenhas senhas, CancellationToken ct) =>
         {
             await senhas.Confirmar(pedido.Token, ct);
+            return Results.NoContent();
+        });
+
+        // Segundo fator do dono e da operadora. Ligar exige o primeiro código do app; desligar, um código válido.
+        var fator = rotas.MapGroup("/conta/segundo-fator").RequireAuthorization().RequireRateLimiting(LimiteDeEntrada);
+        fator.MapGet("/", async (IUsuarioAtual atual, UserManager<Usuario> usuarios) =>
+            new SituacaoDoSegundoFator((await usuarios.FindByIdAsync(Atual(atual)))?.TwoFactorEnabled == true));
+        fator.MapPost("/chave", (IUsuarioAtual atual, GestorDeSegundoFator fatores) => fatores.Preparar(Guid.Parse(Atual(atual))));
+        fator.MapPost("/", (CodigoDoAutenticador pedido, IUsuarioAtual atual, GestorDeSegundoFator fatores) => fatores.Ligar(Guid.Parse(Atual(atual)), pedido.Codigo));
+        fator.MapPost("/desligar", async (CodigoDoAutenticador pedido, IUsuarioAtual atual, GestorDeSegundoFator fatores) =>
+        {
+            await fatores.Desligar(Guid.Parse(Atual(atual)), pedido.Codigo);
             return Results.NoContent();
         });
 
@@ -67,7 +89,7 @@ public static class RotasDeAcesso
     /// para a tela não dizer quais e-mails têm conta. Cinco erros bloqueiam por 15 minutos.
     /// </summary>
     private static async Task<IResult> Entrar(PedidoDeEntrada pedido, HttpContext http, UserManager<Usuario> usuarios,
-        SignInManager<Usuario> acesso, GestorDeSessoes sessoes, EmissorDeToken emissor, BancoDeDados banco, CancellationToken ct)
+        SignInManager<Usuario> acesso, GestorDeSessoes sessoes, GestorDeSegundoFator fatores, EmissorDeToken emissor, BancoDeDados banco, CancellationToken ct)
     {
         var usuario = string.IsNullOrWhiteSpace(pedido.Email) ? null : await usuarios.FindByEmailAsync(pedido.Email.Trim());
         if (usuario is not { Ativo: true })
@@ -81,18 +103,41 @@ public static class RotasDeAcesso
             return Results.Unauthorized();
         }
 
+        if (usuario.TwoFactorEnabled)
+        {
+            return Results.Accepted(value: new SegundoFatorExigido(await fatores.Desafiar(usuario, ct)));
+        }
+
         GravarCookie(http, await sessoes.Abrir(usuario.Id, ct));
         return Results.Ok(emissor.Emitir(usuario, await NomeDoRevendedor(banco, usuario, ct)));
     }
 
-    /// <summary>Senha criada pelo convite ou trocada pelo link: já entra.</summary>
-    private static async Task<IResult> DefinirSenha(NovaSenha pedido, HttpContext http, GestorDeSenhas senhas, GestorDeSessoes sessoes,
+    /// <summary>
+    /// Senha criada pelo convite ou trocada pelo link: já entra. Com segundo
+    /// fator ligado, ainda pede o código: o link do e-mail não pode valer por ele.
+    /// </summary>
+    private static async Task<IResult> DefinirSenha(NovaSenha pedido, HttpContext http, GestorDeSenhas senhas, GestorDeSegundoFator fatores, GestorDeSessoes sessoes,
         EmissorDeToken emissor, BancoDeDados banco, CancellationToken ct)
     {
         var usuario = await senhas.Definir(pedido.Token, pedido.Senha, ct);
+        if (usuario.TwoFactorEnabled)
+        {
+            return Results.Accepted(value: new SegundoFatorExigido(await fatores.Desafiar(usuario, ct)));
+        }
+
         GravarCookie(http, await sessoes.Abrir(usuario.Id, ct));
         return Results.Ok(emissor.Emitir(usuario, await NomeDoRevendedor(banco, usuario, ct)));
     }
+
+    private static async Task<IResult> EntrarComCodigo(CodigoDaEntrada pedido, HttpContext http, GestorDeSegundoFator fatores, GestorDeSessoes sessoes,
+        EmissorDeToken emissor, BancoDeDados banco, CancellationToken ct)
+    {
+        var usuario = await fatores.Responder(pedido.Desafio, pedido.Codigo, ct);
+        GravarCookie(http, await sessoes.Abrir(usuario.Id, ct));
+        return Results.Ok(emissor.Emitir(usuario, await NomeDoRevendedor(banco, usuario, ct)));
+    }
+
+    private static string Atual(IUsuarioAtual atual) => (atual.UsuarioId ?? throw new InvalidOperationException("Sem usuário.")).ToString();
 
     private static async Task<IResult> Renovar(HttpContext http, GestorDeSessoes sessoes, EmissorDeToken emissor, BancoDeDados banco, CancellationToken ct)
     {

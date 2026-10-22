@@ -22,3 +22,4 @@ apagada, ganha a situação Substituída e o número da que a substitui.
 | [0014](0014-protheus-por-contrato-rest-proprio.md) | Protheus por contrato REST próprio, com fila | Aceita |
 | [0015](0015-operadora-grava-so-nas-tabelas-que-atende.md) | Operadora grava só nas tabelas que atende | Aceita |
 | [0016](0016-producao-em-compose-com-nginx.md) | Produção em Docker Compose com Nginx na frente | Aceita |
+| [0017](0017-segundo-fator-por-totp-com-desafio.md) | Segundo fator por app autenticador, com desafio de uso único | Aceita |

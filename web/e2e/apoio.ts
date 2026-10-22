@@ -1,3 +1,4 @@
+import { createHmac } from 'node:crypto'
 import AxeBuilder from '@axe-core/playwright'
 import { type Page, expect } from '@playwright/test'
 
@@ -29,4 +30,28 @@ export async function semViolacaoGrave(page: Page) {
 export async function semRolagemLateral(page: Page) {
   const larguras = await page.evaluate(() => [document.documentElement.scrollWidth, window.innerWidth])
   expect(larguras[0]).toBeLessThanOrEqual(larguras[1])
+}
+
+/** O código que um app autenticador mostraria agora (RFC 6238, HMAC-SHA1, 30 s). */
+export function codigoTotp(chaveBase32: string, agora = Date.now()): string {
+  const alfabeto = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'
+  let bits = ''
+  for (const c of chaveBase32.replace(/=+$/, '').toUpperCase()) bits += alfabeto.indexOf(c).toString(2).padStart(5, '0')
+  const chave = Buffer.from((bits.match(/.{8}/g) ?? []).map((b) => parseInt(b, 2)))
+  const contador = Buffer.alloc(8)
+  contador.writeBigInt64BE(BigInt(Math.floor(agora / 1000 / 30)))
+  const hash = createHmac('sha1', chave).update(contador).digest()
+  const d = hash[hash.length - 1] & 0x0f
+  const numero = ((hash[d] & 0x7f) << 24) | (hash[d + 1] << 16) | (hash[d + 2] << 8) | hash[d + 3]
+  return String(numero % 1_000_000).padStart(6, '0')
+}
+
+/** CNPJ válido novo a cada chamada: o cadastro recusa CNPJ repetido. */
+export function cnpjNovo(): string {
+  const d = Array.from({ length: 12 }, () => Math.floor(Math.random() * 10))
+  for (const pesos of [[5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2], [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]]) {
+    const resto = d.reduce((s, n, i) => s + n * pesos[i], 0) % 11
+    d.push(resto < 2 ? 0 : 11 - resto)
+  }
+  return d.join('')
 }

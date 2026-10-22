@@ -10,6 +10,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { FieldGroup } from '@/components/ui/field'
+import { PassoDoCodigo } from './PassoDoCodigo'
+import { type SegundoFatorExigido, exigeCodigo } from './segundoFator'
 import { renovarSessao } from './renovacao'
 import { type TokenEmitido, inicioDoPapel, useSessao } from './sessao'
 import { MarcaAvalia } from '@/componentes/MarcaAvalia'
@@ -43,12 +45,19 @@ export function TelaDeSenha() {
   const token = hash.replace(/^#/, '')
   const formulario = useForm<NovaSenha>({ resolver: zodResolver(esquemaDaSenha), mode: 'onChange', defaultValues: { senha: '', repetida: '' } })
   const { errors, isSubmitting } = formulario.formState
+  const [desafio, setDesafio] = useState<string | null>(null)
+
+  function concluir(resposta: TokenEmitido) {
+    sessao.entrar(resposta)
+    navegar(inicioDoPapel(resposta.perfil?.papel), { replace: true })
+  }
 
   async function gravar({ senha }: NovaSenha) {
     try {
-      const resposta = await chamarApi<TokenEmitido>('/auth/senha', enviarJson('POST', { token, senha }))
-      sessao.entrar(resposta)
-      navegar(inicioDoPapel(resposta.perfil?.papel), { replace: true })
+      const resposta = await chamarApi<TokenEmitido | SegundoFatorExigido>('/auth/senha', enviarJson('POST', { token, senha }))
+      // Com segundo fator, a senha nova grava, mas a entrada ainda pede o código.
+      if (exigeCodigo(resposta)) setDesafio(resposta.desafio)
+      else concluir(resposta)
     } catch (e) {
       formulario.setError('root', { message: mensagem(e) })
     }
@@ -56,9 +65,9 @@ export function TelaDeSenha() {
 
   return (
     <Moldura titulo={pathname === '/convite' ? 'Criar senha' : 'Nova senha'}>
-      {!token
-        ? <p className="text-sm">Link incompleto. <Link to="/esqueci" className="underline">Peça outro</Link>.</p>
-        : (
+      {desafio && <PassoDoCodigo desafio={desafio} aoEntrar={concluir} />}
+      {!desafio && !token && <p className="text-sm">Link incompleto. <Link to="/esqueci" className="underline">Peça outro</Link>.</p>}
+      {!desafio && token && (
             <form onSubmit={formulario.handleSubmit(gravar)} noValidate>
               <FieldGroup>
                 {errors.root && <Alert variant="destructive"><AlertDescription>{errors.root.message}</AlertDescription></Alert>}
@@ -68,7 +77,7 @@ export function TelaDeSenha() {
                 <Button type="submit" size="lg" disabled={isSubmitting}>{isSubmitting ? 'Gravando...' : 'Gravar senha'}</Button>
               </FieldGroup>
             </form>
-          )}
+      )}
     </Moldura>
   )
 }

@@ -47,6 +47,7 @@ const MENU: Record<Papel, Item[]> = {
     { para: '/operadora/revendedores', rotulo: 'Revendedores' },
     { para: '/operadora/erp', rotulo: 'ERP' },
     { para: '/operadora/atendimento', rotulo: 'Atendimento' },
+    { para: '/conta/seguranca', rotulo: 'Segurança' },
   ],
   Dono: [
     { para: '/painel/inicio', rotulo: 'Início' },
@@ -63,6 +64,7 @@ const MENU: Record<Papel, Item[]> = {
     { para: '/painel/catalogo', rotulo: 'Catálogo' },
     { para: '/painel/marca', rotulo: 'Marca' },
     { para: '/painel/auditoria', rotulo: 'Auditoria' },
+    { para: '/conta/seguranca', rotulo: 'Segurança' },
     { para: '/painel/suporte', rotulo: 'Falar com a Avalia' },
   ],
   Vendedor: [

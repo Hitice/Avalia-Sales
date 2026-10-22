@@ -7,11 +7,14 @@ public enum FinalidadeDoLink
 
     /// <summary>Prova que o e-mail do dono é dele, antes de o contrato e os avisos irem para lá.</summary>
     ConfirmacaoDeEmail,
+
+    /// <summary>O desafio entre a senha e o código do app autenticador.</summary>
+    SegundoFator,
 }
 
 /// <summary>
-/// Link mandado por e-mail (criar ou trocar a senha, confirmar o e-mail),
-/// guardado só pelo hash, como a sessão. Vale uma vez; o link novo encerra o
+/// Link de uso único (criar ou trocar a senha, confirmar o e-mail, o desafio
+/// do segundo fator), guardado só pelo hash, como a sessão. Vale uma vez; o link novo encerra o
 /// anterior da mesma finalidade do mesmo usuário.
 /// </summary>
 public sealed class LinkDeSenha
@@ -21,6 +24,7 @@ public sealed class LinkDeSenha
     {
         FinalidadeDoLink.Convite => TimeSpan.FromDays(7),
         FinalidadeDoLink.ConfirmacaoDeEmail => TimeSpan.FromDays(2),
+        FinalidadeDoLink.SegundoFator => TimeSpan.FromMinutes(5),
         _ => TimeSpan.FromHours(1),
     };
 
