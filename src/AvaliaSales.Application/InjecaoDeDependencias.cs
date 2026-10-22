@@ -32,6 +32,8 @@ public static class InjecaoDeDependencias
         servicos.AddScoped<Pagamentos.EfeitosDaCobranca>();
         servicos.AddScoped<Erp.FilaDoErp>();
         servicos.AddScoped<Revendedores.Marca>();
+        servicos.AddScoped<Mapa>();
+        servicos.AddScoped<Atendimento.Chat>();
         return servicos;
     }
 }

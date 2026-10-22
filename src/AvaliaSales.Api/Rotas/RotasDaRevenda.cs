@@ -71,6 +71,9 @@ public static class RotasDaRevenda
             Results.Created("/repasses", await comissoes.Repassar(pedido, ct)));
         dono.MapGet("/razao", (string? competencia, Razao razao, CancellationToken ct) => razao.DoMes(competencia, ct));
         dono.MapGet("/razao/meses", (Razao razao, CancellationToken ct) => razao.Meses(ct));
+        dono.MapGet("/mapa", (Mapa mapa, CancellationToken ct) => mapa.Lugares(ct));
+        dono.MapGet("/mapa/configuracao", (Microsoft.Extensions.Options.IOptions<Infrastructure.Integracoes.Google.OpcoesGoogle> google) =>
+            new { Chave = string.IsNullOrWhiteSpace(google.Value.ChaveDoMapa) ? null : google.Value.ChaveDoMapa, google.Value.IdDoMapa });
 
         dono.MapPost("/estoque/consignacao", async (Consignar pedido, Estoque estoque, CancellationToken ct) =>
             Results.Ok(new { Placas = await estoque.Consignar(pedido.VendedorId, pedido.Codigos, pedido.Quantidade, ct) }));

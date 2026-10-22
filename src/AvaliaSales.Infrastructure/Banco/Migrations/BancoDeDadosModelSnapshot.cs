@@ -22,6 +22,55 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("AvaliaSales.Domain.Atendimento.Mensagem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("AutorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("autor_id");
+
+                    b.Property<bool>("DaOperadora")
+                        .HasColumnType("boolean")
+                        .HasColumnName("da_operadora");
+
+                    b.Property<DateTimeOffset>("EnviadaEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("enviada_em");
+
+                    b.Property<DateTimeOffset?>("LidaEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("lida_em");
+
+                    b.Property<Guid>("RevendedorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("revendedor_id");
+
+                    b.Property<string>("Texto")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("texto");
+
+                    b.HasKey("Id")
+                        .HasName("pk_mensagens");
+
+                    b.HasIndex("AutorId")
+                        .HasDatabaseName("ix_mensagens_autor_id");
+
+                    b.HasIndex("RevendedorId", "DaOperadora")
+                        .HasDatabaseName("ix_mensagens_revendedor_id_da_operadora")
+                        .HasFilter("lida_em is null");
+
+                    b.HasIndex("RevendedorId", "EnviadaEm")
+                        .HasDatabaseName("ix_mensagens_revendedor_id_enviada_em");
+
+                    b.ToTable("mensagens", (string)null);
+                });
+
             modelBuilder.Entity("AvaliaSales.Domain.Avisos.EmailNaFila", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1657,6 +1706,23 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .HasName("pk_usuarios_tokens");
 
                     b.ToTable("usuarios_tokens", (string)null);
+                });
+
+            modelBuilder.Entity("AvaliaSales.Domain.Atendimento.Mensagem", b =>
+                {
+                    b.HasOne("AvaliaSales.Infrastructure.Identidade.Usuario", null)
+                        .WithMany()
+                        .HasForeignKey("AutorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_mensagens_usuarios_autor_id");
+
+                    b.HasOne("AvaliaSales.Domain.Revendedores.Revendedor", null)
+                        .WithMany()
+                        .HasForeignKey("RevendedorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_mensagens_revendedores_revendedor_id");
                 });
 
             modelBuilder.Entity("AvaliaSales.Domain.Catalogo.Produto", b =>

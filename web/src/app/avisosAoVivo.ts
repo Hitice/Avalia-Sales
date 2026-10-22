@@ -11,6 +11,7 @@ const REFAZER: Record<string, string[][]> = {
   estoque: [['placas'], ['pedidos'], ['operadora']],
   comissao: [['comissoes'], ['repasses'], ['razao']],
   erp: [['operadora', 'erp']],
+  chat: [['chat']],
 }
 
 const TEXTO: Record<string, string> = {
@@ -20,6 +21,7 @@ const TEXTO: Record<string, string> = {
   estoque: 'Estoque atualizado.',
   comissao: 'Repasse de comissão registrado.',
   erp: 'Pedido de venda criado no ERP.',
+  chat: 'Nova mensagem no atendimento.',
 }
 
 /**

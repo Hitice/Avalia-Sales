@@ -1,6 +1,7 @@
 using System.Linq.Expressions;
 using AvaliaSales.Application;
 using AvaliaSales.Domain;
+using AvaliaSales.Domain.Atendimento;
 using AvaliaSales.Domain.Avisos;
 using AvaliaSales.Domain.Catalogo;
 using AvaliaSales.Domain.Contratos;
@@ -48,6 +49,7 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
     public DbSet<Renovacao> Renovacoes => Set<Renovacao>();
     public DbSet<EnvioAoErp> EnviosAoErp => Set<EnvioAoErp>();
     public DbSet<LogoDoRevendedor> Logos => Set<LogoDoRevendedor>();
+    public DbSet<Mensagem> Mensagens => Set<Mensagem>();
 
     /// <summary>Lido pelo filtro global a cada consulta, e não na montagem do modelo.</summary>
     public Guid? RevendedorAtual => revendedor.RevendedorId;
@@ -86,6 +88,16 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
             r.Property(x => x.CorPrimaria).HasMaxLength(7).IsFixedLength();
             r.Property(x => x.CorDestaque).HasMaxLength(7).IsFixedLength();
             r.HasIndex(x => x.Cnpj).IsUnique();
+        });
+
+        modelo.Entity<Mensagem>(m =>
+        {
+            m.ToTable("mensagens");
+            m.Property(x => x.Texto).HasMaxLength(Mensagem.TextoMaximo).IsRequired();
+            m.HasOne<Revendedor>().WithMany().HasForeignKey(x => x.RevendedorId).OnDelete(DeleteBehavior.Restrict);
+            m.HasOne<Usuario>().WithMany().HasForeignKey(x => x.AutorId).OnDelete(DeleteBehavior.Restrict);
+            m.HasIndex(x => new { x.RevendedorId, x.EnviadaEm });
+            m.HasIndex(x => new { x.RevendedorId, x.DaOperadora }).HasFilter("lida_em is null");
         });
 
         modelo.Entity<LogoDoRevendedor>(l =>
@@ -481,6 +493,12 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
 
             if (entrada.State == EntityState.Added)
             {
+                // A operadora não tem revendedor: grava só nas tabelas que atende, e diz de qual revendedor é o registro.
+                if (OperadoraAtual && entrada.Entity is IAtendidoPelaOperadora && coluna.CurrentValue is Guid escolhido && escolhido != Guid.Empty)
+                {
+                    continue;
+                }
+
                 coluna.CurrentValue = RevendedorAtual
                     ?? throw new InvalidOperationException($"Gravação de {entrada.Metadata.ClrType.Name} sem revendedor na requisição.");
             }

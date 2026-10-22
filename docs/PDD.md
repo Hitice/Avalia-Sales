@@ -200,6 +200,20 @@ Todas no mesmo app, liberadas pelo papel do usuário.
   só. O envio que falhou volta para a fila; depois de 8 tentativas para, e a
   operadora reenvia pela tela ERP.
 
+### Mapa
+
+- O dono vê no mapa do Google os negócios que compraram placa com lugar do
+  Google, com placas, placas no ar e leituras dos últimos 30 dias. Sem a chave
+  do mapa configurada, a mesma informação vem em lista, com o link para o
+  Google Maps.
+
+### Atendimento
+
+- O dono fala com a Avalia pelo chat da plataforma (Falar com a Avalia); a
+  operadora atende todas as conversas, com as não lidas primeiro. Mensagem não
+  é editada nem apagada. Abrir a conversa marca como lidas as mensagens do
+  outro lado, e a mensagem nova chega ao vivo.
+
 ### Avisos ao vivo
 
 - Venda, pagamento, pedido, estoque, repasse e ERP atualizam as telas abertas
@@ -287,7 +301,7 @@ Estimativa em semanas de cerca de 20 horas.
 | Integrações | Pagar.me (cobrança, split, webhook) e D4Sign (envio, webhook) no código | - | Feita, falta sandbox real |
 | 1. Revenda | Cadastro, contrato, pedido, lote, equipe, venda, NFC e QR | 3 | Feita em simulação; falta o sandbox real do Pagar.me e da D4Sign |
 | 2. Pagamento | Checkout do pedido de placas, cupom, comissão, razão | 3 | Feita em simulação; falta o sandbox real |
-| 3. Serviços | Chat, painel ao vivo, mapa, Worker, Protheus simulado, white label | 4 | Painel ao vivo, Worker, Protheus simulado e white label feitos; mapa e chat a fazer |
+| 3. Serviços | Chat, painel ao vivo, mapa, Worker, Protheus simulado, white label | 4 | Feita; o mapa com o Google real espera a chave do navegador |
 | 4. Avalia | Teste, integração com o Sales, migração e volta | 3 | A fazer |
 
 ## 11. Decisões pendentes
@@ -306,6 +320,7 @@ Estimativa em semanas de cerca de 20 horas.
 
 | Data | Mudança |
 | --- | --- |
+| 21/10/2026 | Fase 3 fechada - mapa dos lugares vendidos (lista sem a chave do Google) e chat entre revendedor e Avalia. |
 | 21/10/2026 | White label - tela Marca com nome exibido, cores e logo, contraste conferido na tela e na API. |
 | 21/10/2026 | Avisos ao vivo nas telas e pedido de venda no Protheus para cada pedido de placas pago. |
 | 21/10/2026 | Fase 2 - pedido de placas pago pelo checkout do Pagar.me, cupons da operadora, razão do revendedor, saldo e repasse de comissão, renovação da placa. |

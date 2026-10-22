@@ -20,3 +20,4 @@ apagada, ganha a situação Substituída e o número da que a substitui.
 | [0012](0012-pedido-de-placas-pelo-checkout-sem-split.md) | Pedido de placas pelo checkout do Pagar.me, sem split | Aceita |
 | [0013](0013-avisos-ao-vivo-pelo-listen-notify.md) | Avisos ao vivo pelo LISTEN/NOTIFY do Postgres | Aceita |
 | [0014](0014-protheus-por-contrato-rest-proprio.md) | Protheus por contrato REST próprio, com fila | Aceita |
+| [0015](0015-operadora-grava-so-nas-tabelas-que-atende.md) | Operadora grava só nas tabelas que atende | Aceita |

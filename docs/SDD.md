@@ -21,7 +21,7 @@ Cada seção diz o que já está no código e o que ainda é plano.
 | Front | React 19 + Vite, React Router, TanStack Query, Zustand, React Hook Form + Zod, Tailwind 4, shadcn/ui (Radix) | React 19.3, Vite 8.3, Router 8.5, Tailwind 4.3, Zod 4.6, TypeScript 6.0 | Telas da Fase 1 no código |
 | Leitura de QR e Pix no front | `BarcodeDetector` nativo; sem ele, o polyfill `barcode-detector` sobre o ZXing C++ em WebAssembly (`zxing-wasm`), servido pelo app; `qrcode` para o QR do Pix | barcode-detector 3.2.2, zxing-wasm 3.1.3, qrcode 1.5.4 | No código |
 | ERP | Protheus por contrato REST próprio, com simulador | - | No código |
-| Mapa | Google Maps JavaScript | - | Plano |
+| Mapa | Google Maps JavaScript pelo `@googlemaps/js-api-loader`, marcador avançado | loader 2.1.3, tipos 3.66.5 | No código; sem chave, lista |
 | Documentação da API | OpenAPI do ASP.NET Core em `/openapi/v1.json` e Swagger UI em `/swagger`, só em Development | OpenApi 10.0.13, Swashbuckle.AspNetCore.SwaggerUI 10.3.0 | No código |
 | Infra | Linux, Docker Compose, Nginx, Let's Encrypt | - | Compose e Dockerfile no repositório |
 | CI | GitHub Actions, self-hosted runner no deploy, SonarCloud, Sentry | - | CI de build e teste no repositório |
@@ -189,6 +189,7 @@ aponta para a venda.
 | `cobrancas` (colunas novas) | Link no Pagar.me e URL do checkout | - |
 | `vendas` (coluna nova) | Repasse que pagou a comissão | - |
 | `revendedores` (coluna nova) | Preço da renovação (6000 = 60%) | - |
+| `mensagens` | Chat: autor, se é da operadora, texto (até 2.000), enviada em, lida em | RLS com a operadora |
 | `logos` | Logo do revendedor (PNG ou WebP, até 512 KB) | RLS; tabela própria para o revendedor, lido em toda cobrança, não carregar a imagem |
 | `revendedores` (colunas novas) | Nome exibido, cor primária, cor de destaque, marca alterada em | - |
 | `envios_ao_erp` | Pedido pago a caminho do Protheus: cliente, CNPJ, quantidade, valor, situação, número no ERP, tentativas, erro | Sem RLS (fila da operadora); um por pedido |
@@ -359,11 +360,31 @@ Conferido na referência oficial em 21/10/2026.
 - Sem `Protheus:UrlBase`, o envio espera na fila. `Protheus:Simulado` (só
   Development) devolve um número de pedido tirado da chave.
 
-### Planejadas
+### Mapa (no código)
 
-| Serviço | Uso | Como |
-| --- | --- | --- |
-| Google Maps JavaScript | Mapa dos lugares vendidos | Dado do Places só aparece em mapa do Google; chave do navegador restrita por domínio |
+- `GET /mapa` devolve só o id do lugar no Google de cada cliente vendido, com
+  placas, placas no ar e leituras de 30 dias. A posição é lida no navegador
+  pelo Places (`Place.fetchFields(['location'])`): dado do Places só aparece em
+  mapa do Google e não é guardado.
+- `GET /mapa/configuracao` entrega a chave do navegador (`Google:ChaveDoMapa`,
+  pública por natureza; restringir ao domínio e à Maps JavaScript API) e o Map
+  ID (`Google:IdDoMapa`, `DEMO_MAP_ID` para teste) do marcador avançado. Sem
+  chave, a tela mostra a lista com o link do Google Maps.
+- A conferir com a chave real - o desenho dos marcadores; sem ela, só a lista
+  foi vista rodando.
+
+### Chat (no código)
+
+- `mensagens`, com RLS e atendida pela operadora (`IAtendidoPelaOperadora`).
+  O dono lê e escreve em `/chat` (o revendedor vem do token); a operadora em
+  `/operadora/chat/{revendedor}`.
+- A operadora grava em nome do revendedor da conversa, e só nas tabelas que
+  atende: o carimbo do EF aceita o revendedor informado só quando quem grava é
+  a operadora e a tabela é atendida por ela; para todos os outros, o revendedor
+  continua saindo do token, mesmo que o registro venha com outro. A política de
+  RLS barra o resto.
+- Mensagem nova manda o aviso `chat` ao outro lado; abrir a conversa marca as
+  do outro lado como lidas.
 | SignalR | Chat e avisos | Hub com JWT, grupo por revendedor |
 | Protheus | Pedido de placas pago vira pedido de venda | Interface com simulador da API REST |
 
@@ -455,7 +476,9 @@ Revisão pela skill `seguranca` (OWASP ASVS 5.0).
   estorno pelo webhook, renovação), aviso ao vivo pelo hub (chega ao dono
   certo e não à outra revenda; sem token, 401), contrato e fila do Protheus.
   Marca (contraste, logo pelos bytes, equipe lê e não grava, outra revenda não
-  vê). 160 testes em 21/10/2026.
+  vê), mapa, chat (conversa, não lidas, isolamento) e a gravação da operadora
+  em nome de outro revendedor só nas tabelas atendidas. 164 testes em
+  21/10/2026.
 - Os testes entram no Postgres com o papel `avalia_app_teste`, membro do
   `avalia_app`: as mesmas permissões e o mesmo RLS, sem trocar a senha que a API
   local usa.
@@ -521,6 +544,7 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
 
 | Data | Mudança |
 | --- | --- |
+| 21/10/2026 | Mapa dos lugares vendidos (Google Maps JavaScript com lista quando falta a chave) e chat entre revendedor e operadora, com a regra de gravação da operadora nas tabelas atendidas. |
 | 21/10/2026 | White label - marca do revendedor (nome, cores e logo em tabela própria com RLS), rotas `/marca` e `/revenda/marca`, tela Marca com prévia, cores aplicadas nas variáveis do tema. |
 | 21/10/2026 | Fase 3, primeira parte - avisos ao vivo (SignalR com LISTEN/NOTIFY), Protheus por contrato REST e simulador com fila no Worker, tela do ERP da operadora. |
 | 21/10/2026 | Fase 2 - checkout do Pagar.me para o pedido de placas, cupons, razão, saldo e repasse de comissão, renovação, efeitos do pagamento, telas de cupons, comissões, razão e renovação. Front em HTTPS na rede local para testar Web NFC e câmera no celular, com `/q/` passando pelo Vite. |

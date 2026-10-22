@@ -115,6 +115,39 @@ public sealed class IsolamentoEntreRevendedoresTest(ApiDeTeste api)
         Assert.Contains("sem revendedor", erro.Message);
     }
 
+    [Fact]
+    public async Task So_a_operadora_grava_em_nome_de_outro_revendedor_e_so_nas_tabelas_que_atende()
+    {
+        var (a, _) = await api.CriarRevendedor("Revenda Que Escreve");
+        var (b, _) = await api.CriarRevendedor("Revenda Alvo");
+        var autor = await api.CriarOperadora();
+        await using var donoDoBanco = new BancoDeDadosDoDono(api.ConexaoDoDono);
+        var autorId = Guid.Parse(await donoDoBanco.Texto($"select id::text from usuarios where email = '{autor}'"));
+
+        // As duas travas, como em produção: o filtro e o carimbo do EF, e o revendedor gravado na conexão para o RLS.
+        BancoDeDados Contexto(RevendedorFixo quem) => new(new DbContextOptionsBuilder<BancoDeDados>()
+            .UseNpgsql(api.ConexaoDaAplicacao).UseSnakeCaseNamingConvention().AddInterceptors(new RevendedorNaConexao(quem)).Options, quem);
+
+        // Revendedor A tenta gravar uma mensagem na conversa de B: o carimbo devolve para A.
+        await using (var comoA = Contexto(new RevendedorFixo(a)))
+        {
+            comoA.Mensagens.Add(new AvaliaSales.Domain.Atendimento.Mensagem(autorId, daOperadora: false, "tentativa", DateTimeOffset.UtcNow, revendedorDaConversa: b));
+            await comoA.SaveChangesAsync(Ct);
+        }
+
+        // A operadora grava na conversa de B, e só porque a tabela é atendida por ela.
+        await using (var comoOperadora = Contexto(new RevendedorFixo(null, Operadora: true)))
+        {
+            comoOperadora.Mensagens.Add(new AvaliaSales.Domain.Atendimento.Mensagem(autorId, daOperadora: true, "resposta", DateTimeOffset.UtcNow, revendedorDaConversa: b));
+            await comoOperadora.SaveChangesAsync(Ct);
+            comoOperadora.Produtos.Add(new Produto("Produto da operadora", 100));
+            await Assert.ThrowsAsync<InvalidOperationException>(() => comoOperadora.SaveChangesAsync(Ct));
+        }
+
+        Assert.Equal(1, await donoDoBanco.Contar($"select count(*) from mensagens where texto = 'tentativa' and revendedor_id = '{a}'"));
+        Assert.Equal(1, await donoDoBanco.Contar($"select count(*) from mensagens where texto = 'resposta' and revendedor_id = '{b}'"));
+    }
+
     /// <summary>Tabela nova com revendedor_id e sem RLS falha aqui, antes de chegar à produção.</summary>
     [Fact]
     public async Task Toda_tabela_com_revendedor_tem_rls_ligado_e_forcado()

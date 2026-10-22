@@ -147,6 +147,7 @@ app.MapearOperadora();
 app.MapearRevenda();
 app.MapearEquipe();
 app.MapearMarca();
+app.MapearChat();
 app.MapearLeitura();
 app.MapearWebhooks();
 app.MapearSimulador();

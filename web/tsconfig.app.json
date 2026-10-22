@@ -9,7 +9,8 @@
     "module": "esnext",
     "types": [
       "vite/client",
-      "@testing-library/jest-dom"
+      "@testing-library/jest-dom",
+      "google.maps"
     ],
     "allowArbitraryExtensions": true,
     "skipLibCheck": true,
