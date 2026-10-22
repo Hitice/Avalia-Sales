@@ -48,5 +48,8 @@ public sealed class Vendedor : IDoRevendedor
         ComissaoBps = comissaoBps is null ? null : Comissao.Conferir(comissaoBps.Value);
     }
 
+    /// <summary>O próprio vendedor troca nome, telefone e chave Pix; a comissão é do dono.</summary>
+    public void AlterarDados(string nome, string? telefone, string? chavePix) => Alterar(nome, telefone, chavePix, ComissaoBps);
+
     public void DefinirAtivo(bool ativo) => Ativo = ativo;
 }

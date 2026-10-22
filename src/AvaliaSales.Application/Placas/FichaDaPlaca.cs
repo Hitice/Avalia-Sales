@@ -57,7 +57,7 @@ public sealed class FichaDaPlaca(IBancoDeDados banco, IUsuarioAtual usuario, ICo
 
         return new FichaDto(placa.Codigo, plataforma.Value.EnderecoDaPlaca(placa.Codigo), placa.Sequencia, placa.Estado(agora), placa.Destino, placa.VenceEm, placa.FimDaCarencia,
             placa.TotalLeituras, placa.UltimaLeituraEm, consignada, venda, leituras,
-            (await auditoria.Listar(placa.Codigo, 1, ct)).Registros);
+            (await auditoria.Listar(placa.Codigo, null, 1, ct)).Registros);
     }
 
     public async Task Apontar(string codigo, DestinoInformado destino, CancellationToken ct)

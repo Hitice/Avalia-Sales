@@ -84,4 +84,5 @@ export const ROTULO_DA_ACAO: Record<AcaoAuditada, string> = {
   LinkExcluido: 'Link excluído',
   SegundoFatorLigado: 'Segundo fator ligado',
   SegundoFatorDesligado: 'Segundo fator desligado',
+  EmpresaAlterada: 'Dados da empresa alterados',
 }

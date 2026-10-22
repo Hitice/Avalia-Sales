@@ -31,4 +31,10 @@ public interface IContas
     Task<IReadOnlyDictionary<Guid, string>> Nomes(IEnumerable<Guid> usuarios, CancellationToken ct);
 
     Task<Guid?> IdPorEmail(string email, CancellationToken ct);
+
+    /// <summary>Nome e e-mail do login, para a tela de dados da conta.</summary>
+    Task<(string Nome, string Email)> Ler(Guid usuarioId, CancellationToken ct);
+
+    /// <summary>Troca o nome do login, o que aparece no cabeçalho e nas mensagens.</summary>
+    Task Renomear(Guid usuarioId, string nome, CancellationToken ct);
 }

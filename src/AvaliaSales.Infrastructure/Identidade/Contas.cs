@@ -75,6 +75,22 @@ public sealed class Contas(UserManager<Usuario> usuarios, BancoDeDados banco, Ge
         return await banco.Users.AsNoTracking().Where(u => lista.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.Nome, ct);
     }
 
+    public async Task<(string Nome, string Email)> Ler(Guid usuarioId, CancellationToken ct) =>
+        await banco.Users.AsNoTracking().Where(u => u.Id == usuarioId).Select(u => new ValueTuple<string, string>(u.Nome, u.Email!)).SingleAsync(ct);
+
+    public async Task Renomear(Guid usuarioId, string nome, CancellationToken ct)
+    {
+        nome = (nome ?? string.Empty).Trim();
+        if (nome.Length is 0 or > Usuario.NomeMaximo)
+        {
+            throw new RegraDeNegocioException($"O nome precisa ter de 1 a {Usuario.NomeMaximo} caracteres.");
+        }
+
+        var usuario = await banco.Users.SingleAsync(u => u.Id == usuarioId, ct);
+        usuario.Nome = nome;
+        await banco.SaveChangesAsync(ct);
+    }
+
     public async Task<Guid?> IdPorEmail(string email, CancellationToken ct) =>
         (await usuarios.FindByEmailAsync(email.Trim()))?.Id;
 

@@ -39,7 +39,8 @@ test('o dono liga o segundo fator, a entrada pede o código e ele desliga', asyn
   await page.getByRole('button', { name: 'Confirmar e ligar' }).click()
   await expect(page.locator('ol li')).toHaveCount(10)
 
-  await page.getByRole('button', { name: 'Sair' }).click()
+  await page.getByRole('button', { name: /^Conta de / }).click()
+  await page.getByRole('menuitem', { name: 'Sair' }).click()
   // Espera a saída terminar: antes disso o cookie ainda vale e a entrada devolveria ao painel.
   await expect(page).toHaveURL(/\/entrar$/)
   await entrar()

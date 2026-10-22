@@ -24,6 +24,8 @@ type Sessao = {
   entrar: (emitido: TokenEmitido) => void
   limpar: () => void
   marcarIniciada: () => void
+  /** Nome novo da pessoa (e da revenda) no cabeçalho, sem esperar o próximo token. */
+  renomear: (nome: string, revendedor?: string | null) => void
 }
 
 export const useSessao = create<Sessao>((definir) => ({
@@ -34,6 +36,7 @@ export const useSessao = create<Sessao>((definir) => ({
   entrar: (emitido) => definir({ token: emitido.token, expiraEm: Date.parse(emitido.expiraEm), perfil: emitido.perfil ?? null, iniciada: true }),
   limpar: () => definir({ token: null, expiraEm: null, perfil: null }),
   marcarIniciada: () => definir({ iniciada: true }),
+  renomear: (nome, revendedor) => definir((s) => ({ perfil: s.perfil ? { ...s.perfil, nome, revendedor: revendedor ?? s.perfil.revendedor } : null })),
 }))
 
 export function sessaoValida(estado: Pick<Sessao, 'token' | 'expiraEm'>, agora = Date.now()): boolean {

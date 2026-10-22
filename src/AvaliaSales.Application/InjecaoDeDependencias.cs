@@ -36,6 +36,7 @@ public static class InjecaoDeDependencias
         servicos.AddScoped<Revendedores.Marca>();
         servicos.AddScoped<Mapa>();
         servicos.AddScoped<Atendimento.Chamados>();
+        servicos.AddScoped<Conta.MeusDados>();
         servicos.AddScoped<Importacao.Importacao>();
         servicos.AddScoped<Importacao.Reservas>();
         servicos.AddScoped<Clientes.Clientes>();

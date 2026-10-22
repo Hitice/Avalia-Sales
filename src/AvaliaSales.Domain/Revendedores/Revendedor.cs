@@ -51,13 +51,17 @@ public sealed class Revendedor
                 : throw new RegraDeNegocioException("Informe o CNPJ da empresa, com 14 números.");
         }
 
-        nome = (nome ?? string.Empty).Trim();
-        if (nome.Length is 0 or > NomeMaximo)
-        {
-            throw new RegraDeNegocioException($"O nome do revendedor precisa ter de 1 a {NomeMaximo} caracteres.");
-        }
+        Nome = string.Empty;
+        Renomear(nome);
+    }
 
-        Nome = nome;
+    /// <summary>O nome da empresa. O CNPJ não muda: é a parte do contrato.</summary>
+    public void Renomear(string nome)
+    {
+        nome = (nome ?? string.Empty).Trim();
+        Nome = nome.Length is > 0 and <= NomeMaximo
+            ? nome
+            : throw new RegraDeNegocioException($"O nome da empresa precisa ter de 1 a {NomeMaximo} caracteres.");
     }
 
     public void DefinirRecebedorPagarme(string recebedor)

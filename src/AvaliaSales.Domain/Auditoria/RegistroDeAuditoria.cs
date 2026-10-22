@@ -25,6 +25,7 @@ public enum AcaoAuditada
     LinkExcluido,
     SegundoFatorLigado,
     SegundoFatorDesligado,
+    EmpresaAlterada,
 }
 
 /// <summary>

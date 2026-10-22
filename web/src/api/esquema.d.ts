@@ -2305,43 +2305,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/revenda/celular": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["DefinirCelular"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/repasses": {
         parameters: {
             query?: never;
@@ -2516,6 +2479,7 @@ export interface paths {
             parameters: {
                 query?: {
                     referencia?: string;
+                    acao?: components["schemas"]["AcaoAuditada"];
                     pagina?: number;
                 };
                 header?: never;
@@ -2531,6 +2495,44 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["PaginaDeAuditoria"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auditoria/exportar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    referencia?: string;
+                    acao?: components["schemas"]["AcaoAuditada"];
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RegistroDto"][];
                     };
                 };
             };
@@ -3774,6 +3776,142 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/conta/dados": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DadosDaConta"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AlterarMeusDados"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DadosDaConta"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/conta/dados/empresa": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AlterarEmpresa"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DadosDaConta"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/conta/dados/recebimento": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AlterarRecebimento"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DadosDaConta"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/webhooks/pagarme/{segredo}": {
         parameters: {
             query?: never;
@@ -3847,9 +3985,20 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /** @enum {unknown} */
-        AcaoAuditada: "DestinoDefinido" | "DestinoTrocado" | "PlacaSuspensa" | "PlacaNoAr" | "PlacaTrocada" | "VendaCancelada" | "VendaEmCortesia" | "RecebidoPorFora" | "RecebimentoDesfeito" | "VendedorCadastrado" | "VendedorAlterado" | "VendedorDesativado" | "VendedorReativado" | "VendedorExcluido" | "ComissaoPadraoAlterada" | "ProdutoAlterado" | "RepasseRegistrado" | "ClienteAnonimizado" | "MarcaAlterada" | "LinkAlterado" | "LinkExcluido" | "SegundoFatorLigado" | "SegundoFatorDesligado";
+        AcaoAuditada: "DestinoDefinido" | "DestinoTrocado" | "PlacaSuspensa" | "PlacaNoAr" | "PlacaTrocada" | "VendaCancelada" | "VendaEmCortesia" | "RecebidoPorFora" | "RecebimentoDesfeito" | "VendedorCadastrado" | "VendedorAlterado" | "VendedorDesativado" | "VendedorReativado" | "VendedorExcluido" | "ComissaoPadraoAlterada" | "ProdutoAlterado" | "RepasseRegistrado" | "ClienteAnonimizado" | "MarcaAlterada" | "LinkAlterado" | "LinkExcluido" | "SegundoFatorLigado" | "SegundoFatorDesligado" | "EmpresaAlterada";
         AlterarAtivo: {
             ativo: boolean;
+        };
+        AlterarEmpresa: {
+            nome: string;
+            celular: null | string;
+        };
+        AlterarMeusDados: {
+            nome: string;
+        };
+        AlterarRecebimento: {
+            telefone: null | string;
+            chavePix: null | string;
         };
         AlterarVendedor: {
             nome: string;
@@ -3977,8 +4126,22 @@ export interface components {
             usos: number;
             ativo: boolean;
         };
-        DefinirCelular: {
+        /** @description Empresa só para o dono; recebimento só para o vendedor. */
+        DadosDaConta: {
+            nome: string;
+            email: string;
+            papel: components["schemas"]["Papel"];
+            empresa: null | components["schemas"]["DadosDaEmpresa"];
+            recebimento: null | components["schemas"]["DadosDeRecebimento"];
+        };
+        DadosDaEmpresa: {
+            nome: string;
+            cnpj: null | string;
             celular: null | string;
+        };
+        DadosDeRecebimento: {
+            telefone: null | string;
+            chavePix: null | string;
         };
         DefinirComissao: {
             /** Format: int32 */

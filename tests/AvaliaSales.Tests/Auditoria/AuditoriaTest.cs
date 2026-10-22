@@ -40,6 +40,17 @@ public sealed class AuditoriaTest(ApiDeTeste api)
         Assert.Equal(0, (await sul.Dono.Pegar("/auditoria")).GetProperty("total").GetInt32());
         var vendedor = await api.ClienteLogado(email);
         Assert.Equal(HttpStatusCode.Forbidden, (await vendedor.GetAsync("/auditoria", Ct)).StatusCode);
+
+        // Filtro pela ação e exportação em JSON, com o mesmo filtro e o mesmo isolamento.
+        var soComissao = await norte.Dono.Pegar("/auditoria?acao=ComissaoPadraoAlterada");
+        Assert.All(soComissao.GetProperty("registros").EnumerateArray(), r => Assert.Equal("ComissaoPadraoAlterada", r.GetProperty("acao").GetString()));
+        var arquivo = await norte.Dono.GetAsync("/auditoria/exportar?acao=VendedorCadastrado", Ct);
+        Assert.Equal(HttpStatusCode.OK, arquivo.StatusCode);
+        Assert.Equal("application/json", arquivo.Content.Headers.ContentType?.MediaType);
+        Assert.StartsWith("auditoria-", arquivo.Content.Headers.ContentDisposition?.FileName?.Trim('"'));
+        var exportados = System.Text.Json.JsonDocument.Parse(await arquivo.Content.ReadAsStringAsync(Ct)).RootElement;
+        Assert.Contains(exportados.EnumerateArray(), r => r.GetProperty("acao").GetString() == "VendedorCadastrado" && r.GetProperty("quem").GetString() != null);
+        Assert.Equal(0, System.Text.Json.JsonDocument.Parse(await (await sul.Dono.GetAsync("/auditoria/exportar", Ct)).Content.ReadAsStringAsync(Ct)).RootElement.GetArrayLength());
     }
 
     [Fact]

@@ -219,6 +219,7 @@ app.MapearRevenda();
 app.MapearEquipe();
 app.MapearMarca();
 app.MapearChat();
+app.MapearConta();
 app.MapearLeitura();
 app.MapearWebhooks();
 app.MapearSimulador();

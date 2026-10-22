@@ -11,8 +11,6 @@ public sealed record NovoPedido(Guid PacoteId, string? Cupom);
 
 public sealed record DefinirRenovacao(int RenovacaoBps);
 
-public sealed record DefinirCelular(string? Celular);
-
 public sealed record AtivarLote(string Numero);
 
 public sealed record DefinirComissao(int ComissaoBps);
@@ -26,6 +24,13 @@ public sealed record TrocarPlaca(string Codigo);
 /// <summary>A área do dono: a revenda, pedidos de placas, ativação de lote, equipe e consignação.</summary>
 public static class RotasDaRevenda
 {
+    /// <summary>O arquivo exportado: legível, com a ação pelo nome, como a API responde.</summary>
+    private static readonly System.Text.Json.JsonSerializerOptions Exportacao = new(System.Text.Json.JsonSerializerDefaults.Web)
+    {
+        WriteIndented = true,
+        Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() },
+    };
+
     public static void MapearRevenda(this IEndpointRouteBuilder rotas)
     {
         var dono = rotas.MapGroup("/").RequireAuthorization(Politicas.Dono).WithTags("Revenda");
@@ -71,11 +76,6 @@ public static class RotasDaRevenda
             await revendedores.DefinirRenovacao(pedido.RenovacaoBps, ct);
             return Results.NoContent();
         });
-        dono.MapPut("/revenda/celular", async (DefinirCelular pedido, Revendedores revendedores, CancellationToken ct) =>
-        {
-            await revendedores.DefinirCelular(pedido.Celular, ct);
-            return Results.NoContent();
-        });
         dono.MapGet("/repasses", (Comissoes comissoes, CancellationToken ct) => comissoes.Repasses(ct));
         dono.MapPost("/repasses", async (NovoRepasse pedido, Comissoes comissoes, CancellationToken ct) =>
             Results.Created("/repasses", await comissoes.Repassar(pedido, ct)));
@@ -85,8 +85,14 @@ public static class RotasDaRevenda
 
         // LGPD: o dono atende o titular. A exportação baixa como arquivo; a anonimização não volta atrás.
         // Quem mudou o quê: destino, venda, comissão, equipe, marca. Só o dono vê.
-        dono.MapGet("/auditoria", (string? referencia, int? pagina, Application.Auditoria.Auditoria auditoria, CancellationToken ct) =>
-            auditoria.Listar(referencia, pagina ?? 1, ct));
+        dono.MapGet("/auditoria", (string? referencia, Domain.Auditoria.AcaoAuditada? acao, int? pagina, Application.Auditoria.Auditoria auditoria, CancellationToken ct) =>
+            auditoria.Listar(referencia, acao, pagina ?? 1, ct));
+        dono.MapGet("/auditoria/exportar", async (string? referencia, Domain.Auditoria.AcaoAuditada? acao, Application.Auditoria.Auditoria auditoria, CancellationToken ct) =>
+        {
+            var registros = await auditoria.Exportar(referencia, acao, ct);
+            var json = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(registros, Exportacao);
+            return Results.File(json, "application/json", $"auditoria-{DateTime.UtcNow:yyyy-MM-dd}.json");
+        }).Produces<IReadOnlyList<Application.Auditoria.RegistroDto>>();
         dono.MapGet("/clientes", (string? busca, Application.Clientes.Clientes clientes, CancellationToken ct) => clientes.Listar(busca, ct));
         dono.MapGet("/clientes/{id:guid}/dados", async (Guid id, Application.Clientes.Clientes clientes, CancellationToken ct) =>
             Results.Json(await clientes.Exportar(id, ct), contentType: "application/json", statusCode: 200));

@@ -82,7 +82,8 @@ Todas no mesmo app, liberadas pelo papel do usuário.
 | Catálogo | Revendedor | Computador e celular | Produtos e preço da tabela do revendedor |
 | Marca | Revendedor | Computador | Logo com recorte (horizontal ou quadrado, arrastar e zoom), cores e nome exibido, com prévia do app nas cores escolhidas |
 | Painel | Revendedor | Computador | Vendas e pagamentos ao vivo, saldo de comissão, registro de repasse |
-| Auditoria | Revendedor | Computador | Quem mudou o quê, com antes e depois e busca pelo código |
+| Auditoria | Revendedor | Computador | Quem mudou o quê, em tabela com antes e depois, busca pelo código, filtro pela ação, 20 por página e exportação em JSON |
+| Meus dados | Todos | Celular e computador | No menu da conta (junto do Sair) - nome de todos; nome da empresa e celular do dono (o CNPJ não muda); telefone e chave Pix do vendedor. O e-mail muda pelo Suporte |
 | Segurança | Dono e operadora | Celular e computador | Ligar e desligar o segundo fator (app autenticador), com códigos de recuperação |
 | Mapa | Revendedor | Computador | Lugares vendidos, no Google Maps |
 | Painel do vendedor | Vendedor | Celular | Vendas do mês, comissão a receber, esperando pagamento e recebida, placas com ele |
@@ -433,6 +434,7 @@ O que está pronto no código e só fecha com a conta de verdade:
 
 | Data | Mudança |
 | --- | --- |
+| 22/10/2026 | Menu da conta no cabeçalho com Meus dados, Segurança e Sair; o celular da revenda passa da tela inicial para Meus dados. Auditoria em tabela, com filtro pela ação, paginação e exportação em JSON. |
 | 22/10/2026 | Suporte em chamados com prazo de 24 horas úteis (segunda a sexta, 8h às 18h, sem feriado nacional), fila da operadora pelo prazo e aviso por e-mail. As conversas do chat anterior viram um chamado resolvido por revenda. |
 | 22/10/2026 | Contrato de revenda aprovado (versão 1), sem o aviso de minuta. Menu lateral em grupos com ícones; "Pedidos de placas" vira Pedidos e "Falar com a Avalia" vira Suporte. Links em abas Encurtador e NFC, com qualquer endereço colado. Logo com recorte. Avisos do contrato na tela inicial reescritos. |
 | 22/10/2026 | Celular da revenda obrigatório no cadastro; o dono troca na tela inicial e a operadora vê na lista de revendedores. |

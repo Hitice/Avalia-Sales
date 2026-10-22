@@ -90,15 +90,34 @@ public sealed class SessaoTest(ApiDeTeste api)
     }
 
     [Fact]
-    public async Task Dono_troca_o_celular_da_revenda()
+    public async Task Cada_um_altera_os_proprios_dados_no_menu_da_conta()
     {
-        var (_, email) = await api.CriarRevendedor("Revenda Celular");
-        var cliente = await api.ClienteLogado(email);
+        var (_, email) = await api.CriarRevendedor("Revenda Dados");
+        var dono = await api.ClienteLogado(email);
 
-        await cliente.Colocar("/revenda/celular", new { celular = "(21) 99876-5432" }, HttpStatusCode.NoContent);
-        await cliente.Colocar("/revenda/celular", new { celular = "123" }, HttpStatusCode.UnprocessableEntity);
+        var dados = await dono.Pegar("/conta/dados");
+        Assert.Equal(email, dados.GetProperty("email").GetString());
+        Assert.Equal("Revenda Dados", dados.GetProperty("empresa").GetProperty("nome").GetString());
 
-        var revenda = await cliente.Pegar("/revenda");
-        Assert.Equal("21998765432", revenda.GetProperty("revendedor").GetProperty("celular").GetString());
+        await dono.Colocar("/conta/dados", new { nome = "Dona Renomeada" });
+        var empresa = await dono.Colocar("/conta/dados/empresa", new { nome = "Revenda Dados Nova", celular = "(21) 99876-5432" });
+        Assert.Equal("Dona Renomeada", empresa.GetProperty("nome").GetString());
+        Assert.Equal("21998765432", empresa.GetProperty("empresa").GetProperty("celular").GetString());
+        Assert.Equal("Revenda Dados Nova", empresa.GetProperty("empresa").GetProperty("nome").GetString());
+        await dono.Colocar("/conta/dados/empresa", new { nome = "Revenda Dados Nova", celular = "123" }, HttpStatusCode.UnprocessableEntity);
+        await dono.Colocar("/conta/dados", new { nome = "" }, HttpStatusCode.UnprocessableEntity);
+
+        var emailDoVendedor = $"vendedor-{Guid.NewGuid():N}@teste.com.br";
+        await dono.Postar("/equipe", new { nome = "Vendedor Dados", email = emailDoVendedor, senha = ApiDeTeste.Senha }, HttpStatusCode.Created);
+        var vendedor = await api.ClienteLogado(emailDoVendedor);
+        var recebimento = await vendedor.Colocar("/conta/dados/recebimento", new { telefone = "(34) 99999-0000", chavePix = "vendedor@pix.com.br" });
+        Assert.Equal("vendedor@pix.com.br", recebimento.GetProperty("recebimento").GetProperty("chavePix").GetString());
+        await vendedor.Colocar("/conta/dados", new { nome = "Vendedor Renomeado" });
+        var equipe = await dono.Pegar("/equipe");
+        Assert.Contains(equipe.EnumerateArray(), v => v.GetProperty("nome").GetString() == "Vendedor Renomeado" && v.GetProperty("telefone").GetString() == "34999990000");
+        Assert.Equal(HttpStatusCode.Forbidden, (await vendedor.PutAsJsonAsync("/conta/dados/empresa", new { nome = "Intruso", celular = "21998765432" }, TestContext.Current.CancellationToken)).StatusCode);
+
+        var operadora = await api.ClienteLogado(await api.CriarOperadora());
+        Assert.Equal(HttpStatusCode.Forbidden, (await operadora.PutAsJsonAsync("/conta/dados/empresa", new { nome = "Intrusa", celular = "21998765432" }, TestContext.Current.CancellationToken)).StatusCode);
     }
 }

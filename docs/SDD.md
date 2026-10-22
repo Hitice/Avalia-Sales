@@ -507,7 +507,7 @@ tentativas.
 | Leitura do QR com limite de 300 por minuto por IP, sem cookie, robôs não contam | No código |
 | CSP no HTML do front (Nginx): só o próprio domínio, Pagar.me (token do cartão), Google Maps e Places, Sentry e `wasm-unsafe-eval` para o leitor de QR; `frame-ancestors 'none'` | No código; conferir com `curl -sI` no primeiro deploy |
 | Segredos - gitleaks no CI (job `segredos`) e sem achado no histórico; falso positivo conferido no `.gitleaksignore` | No código |
-| Auditoria - tabela `auditoria` com RLS, só de inserção (`REVOKE UPDATE, DELETE` do papel da aplicação, com teste), gravada na transação da ação; `GET /auditoria` só do dono e o histórico na ficha | No código |
+| Auditoria - tabela `auditoria` com RLS, só de inserção (`REVOKE UPDATE, DELETE` do papel da aplicação, com teste), gravada na transação da ação; `GET /auditoria` só do dono (20 por página, filtro por `referencia` e `acao`), `GET /auditoria/exportar` em JSON com os mesmos filtros e teto de 10.000, e o histórico na ficha | No código |
 | Aviso por e-mail quando a conta entra de um aparelho novo (o primeiro entra calado) | No código |
 | Dono só opera com e-mail confirmado; sem ele, só `/conta` | No código |
 | Segundo fator (app TOTP ou código por e-mail) opcional para dono e operadora: entrada em dois passos com desafio de 5 minutos, 10 códigos de recuperação, erro de código conta para o bloqueio, link de senha não pula o fator (ADR 0017) | No código |
@@ -633,6 +633,7 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
 
 | Data | Mudança |
 | --- | --- |
+| 22/10/2026 | Versão 1.4.0. `MeusDados` com `GET/PUT /conta/dados`, `PUT /conta/dados/empresa` (dono, auditado como EmpresaAlterada) e `PUT /conta/dados/recebimento` (vendedor); sai `PUT /revenda/celular`. Auditoria com filtro por ação, 20 por página e `GET /auditoria/exportar`. Menu da conta (`dropdown-menu` do shadcn) no cabeçalho. |
 | 22/10/2026 | Versão 1.3.0. Tabela `chamados` e `mensagens.chamado_id` (migration Chamados), rotas `/chamados` e `/operadora/chamados` no lugar de `/chat`, prazo de 24 horas úteis em `HorarioDeAtendimento`, e-mail de chamado novo para a operadora e de resposta para o dono. |
 | 22/10/2026 | Versão 1.2.0. Front - menu lateral em grupos com ícones, fundo do item ativo do tom 95 da primária (`variaveisDaMarca` em `marca.ts`, a mesma conta na prévia da Marca), seleção de texto e foco sólido na cor da marca, foco inicial do modal no próprio modal, barra de carregando no topo e blocos de carregando (`Carregando`, `CarregandoTela`), recorte do logo com `react-easy-crop` 6.2.4, Links em abas. Contrato embutido na versão 1 aprovada. |
 | 22/10/2026 | E-mail com logo da plataforma em PNG, faixa no traço da marca, botão com o rótulo da linha `Rótulo: endereço` e código em destaque; textos de convite, senha, confirmação, aparelho novo e pedidos no formato novo. |

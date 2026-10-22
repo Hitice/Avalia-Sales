@@ -1,7 +1,7 @@
 import { useIsFetching, useIsMutating } from '@tanstack/react-query'
 import {
   type LucideIcon, BookOpen, Boxes, ClipboardList, HandCoins, Headset, History, Home, Landmark, Link2, MapPin, Menu, Package,
-  Palette, PlusCircle, Receipt, Server, ShieldCheck, Store, TicketPercent, Users, UsersRound,
+  ChevronDown, LogOut, Palette, PlusCircle, Receipt, Server, ShieldCheck, Store, TicketPercent, UserRound, Users, UsersRound,
 } from 'lucide-react'
 import { useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate, useNavigation } from 'react-router'
@@ -10,6 +10,9 @@ import { sairDaSessao } from '@/acesso/renovacao'
 import { type Papel, useSessao } from '@/acesso/sessao'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
 import { useLogo, useMarca } from '@/marca/marca'
 import { useAvisosAoVivo } from './avisosAoVivo'
@@ -137,9 +140,29 @@ export function Moldura() {
               : <img src="/marca/gauge.svg" alt="Avalia Sales" width={61} height={32} className="h-8 w-auto" />}
           {perfil?.revendedor && !marca?.nomeExibido && <span className="hidden truncate text-sm text-muted-foreground sm:inline">{perfil.revendedor}</span>}
           {perfil?.papel === 'Operadora' && <span className="hidden text-sm text-muted-foreground sm:inline">Operação</span>}
-          <div className="ml-auto flex items-center gap-3 text-sm">
-            <span className="hidden text-muted-foreground md:inline">{perfil?.nome}</span>
-            <Button variant="outline" onClick={sair}>Sair</Button>
+          <div className="ml-auto">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="gap-2 px-2">
+                  <span aria-hidden className="flex size-8 items-center justify-center rounded-full bg-accent text-xs font-semibold text-accent-foreground">{iniciais(perfil?.nome)}</span>
+                  {/* O nome lido é "Conta de Fulano" e contém o nome visível, como pede a WCAG 2.5.3. */}
+                  <span className="sr-only">Conta de </span>
+                  <span className="sr-only max-w-40 truncate text-sm md:not-sr-only">{perfil?.nome}</span>
+                  <ChevronDown aria-hidden className="size-4 text-muted-foreground" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel className="grid font-normal">
+                  <span className="truncate font-medium">{perfil?.nome}</span>
+                  <span className="truncate text-xs text-muted-foreground">{perfil?.email}</span>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => navegar('/conta/dados')}><UserRound aria-hidden />Meus dados</DropdownMenuItem>
+                {perfil?.papel !== 'Vendedor' && <DropdownMenuItem onSelect={() => navegar('/conta/seguranca')}><ShieldCheck aria-hidden />Segurança</DropdownMenuItem>}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={sair}><LogOut aria-hidden />Sair</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
         {/* Tablet: menu de cima, quebrando linha. Celular: barra de baixo. Computador: lateral. */}
@@ -208,6 +231,12 @@ export function Moldura() {
       </div>
     </div>
   )
+}
+
+/** As iniciais do nome, no círculo do menu da conta. */
+function iniciais(nome: string | undefined) {
+  const partes = (nome ?? '').trim().split(/\s+/).filter(Boolean)
+  return ((partes[0]?.[0] ?? '') + (partes.length > 1 ? partes[partes.length - 1][0] : '')).toUpperCase()
 }
 
 /** Item do menu lateral e do de cima: ícone, rótulo e, no ativo, o traço da marca à esquerda. */

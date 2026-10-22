@@ -43,13 +43,6 @@ public sealed class Revendedores(IBancoDeDados banco, IRevendedorAtual atual, Ti
         await banco.SaveChangesAsync(ct);
     }
 
-    /// <summary>O dono troca o celular de contato da revenda.</summary>
-    public async Task DefinirCelular(string? celular, CancellationToken ct)
-    {
-        (await Achar(atual.RevendedorId ?? Guid.Empty, ct)).DefinirCelular(celular);
-        await banco.SaveChangesAsync(ct);
-    }
-
     /// <summary>Contrato assinado em papel, fora da D4Sign. A data fica gravada.</summary>
     public async Task RegistrarContratoAssinado(Guid id, CancellationToken ct)
     {

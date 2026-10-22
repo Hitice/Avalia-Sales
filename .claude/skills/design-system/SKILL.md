@@ -59,6 +59,10 @@ primária a 20% e o foco de teclado é contorno sólido de 2 px no `--ring` (o
 "auto" do Safari ignora a cor). Modal abre com o foco nele mesmo, sem contorno
 no primeiro botão.
 
+Cabeçalho: logo (ou nome) à esquerda e, à direita, o menu da conta (iniciais
+num círculo, nome a partir de `md`) com Meus dados, Segurança e Sair. O nome
+lido do botão é "Conta de Fulano", com o nome visível dentro (WCAG 2.5.3).
+
 Carregando: barra no topo (`barra-de-carregando`, o traço correndo, aparece
 depois de 300 ms) enquanto a tela baixa ou uma consulta roda; dentro da tela,
 `Carregando` (blocos pulsando) no lugar da lista e `CarregandoTela` quando nada

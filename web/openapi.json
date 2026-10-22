@@ -1699,28 +1699,6 @@
         }
       }
     },
-    "/revenda/celular": {
-      "put": {
-        "tags": [
-          "Revenda"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/DefinirCelular"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
     "/repasses": {
       "get": {
         "tags": [
@@ -1849,6 +1827,13 @@
             }
           },
           {
+            "name": "acao",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/AcaoAuditada"
+            }
+          },
+          {
             "name": "pagina",
             "in": "query",
             "schema": {
@@ -1864,6 +1849,44 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PaginaDeAuditoria"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auditoria/exportar": {
+      "get": {
+        "tags": [
+          "Revenda"
+        ],
+        "parameters": [
+          {
+            "name": "referencia",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "acao",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/AcaoAuditada"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RegistroDto"
+                  }
                 }
               }
             }
@@ -2787,6 +2810,110 @@
         }
       }
     },
+    "/conta/dados": {
+      "get": {
+        "tags": [
+          "Conta"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DadosDaConta"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Conta"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlterarMeusDados"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DadosDaConta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/conta/dados/empresa": {
+      "put": {
+        "tags": [
+          "Conta"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlterarEmpresa"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DadosDaConta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/conta/dados/recebimento": {
+      "put": {
+        "tags": [
+          "Conta"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlterarRecebimento"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DadosDaConta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/webhooks/pagarme/{segredo}": {
       "post": {
         "tags": [
@@ -2848,7 +2975,8 @@
           "LinkAlterado",
           "LinkExcluido",
           "SegundoFatorLigado",
-          "SegundoFatorDesligado"
+          "SegundoFatorDesligado",
+          "EmpresaAlterada"
         ]
       },
       "AlterarAtivo": {
@@ -2859,6 +2987,56 @@
         "properties": {
           "ativo": {
             "type": "boolean"
+          }
+        }
+      },
+      "AlterarEmpresa": {
+        "required": [
+          "nome",
+          "celular"
+        ],
+        "type": "object",
+        "properties": {
+          "nome": {
+            "type": "string"
+          },
+          "celular": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "AlterarMeusDados": {
+        "required": [
+          "nome"
+        ],
+        "type": "object",
+        "properties": {
+          "nome": {
+            "type": "string"
+          }
+        }
+      },
+      "AlterarRecebimento": {
+        "required": [
+          "telefone",
+          "chavePix"
+        ],
+        "type": "object",
+        "properties": {
+          "telefone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "chavePix": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -3342,13 +3520,87 @@
           }
         }
       },
-      "DefinirCelular": {
+      "DadosDaConta": {
         "required": [
+          "nome",
+          "email",
+          "papel",
+          "empresa",
+          "recebimento"
+        ],
+        "type": "object",
+        "properties": {
+          "nome": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "papel": {
+            "$ref": "#/components/schemas/Papel"
+          },
+          "empresa": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/DadosDaEmpresa"
+              }
+            ]
+          },
+          "recebimento": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/DadosDeRecebimento"
+              }
+            ]
+          }
+        },
+        "description": "Empresa s\u00F3 para o dono; recebimento s\u00F3 para o vendedor."
+      },
+      "DadosDaEmpresa": {
+        "required": [
+          "nome",
+          "cnpj",
           "celular"
         ],
         "type": "object",
         "properties": {
+          "nome": {
+            "type": "string"
+          },
+          "cnpj": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
           "celular": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "DadosDeRecebimento": {
+        "required": [
+          "telefone",
+          "chavePix"
+        ],
+        "type": "object",
+        "properties": {
+          "telefone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "chavePix": {
             "type": [
               "null",
               "string"
@@ -5443,6 +5695,9 @@
     },
     {
       "name": "Chamados"
+    },
+    {
+      "name": "Conta"
     },
     {
       "name": "RotasDeWebhook"
