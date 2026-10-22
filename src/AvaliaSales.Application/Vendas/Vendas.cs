@@ -25,7 +25,9 @@ public sealed record NovaVenda(
     string? TokenDoCartao = null,
     int Parcelas = 1);
 
-public sealed record VendaRegistrada(Guid VendaId, string Codigo, string Endereco, long ValorCents, DateTimeOffset? VenceEm, CobrancaDto? Cobranca, string? SemCobranca);
+/// <summary><paramref name="LinkCurto"/> - o /L/ do negócio, quando o destino é a avaliação no Google.</summary>
+public sealed record VendaRegistrada(Guid VendaId, string Codigo, string Endereco, long ValorCents, DateTimeOffset? VenceEm, CobrancaDto? Cobranca, string? SemCobranca,
+    string? LinkCurto = null);
 
 public sealed record VendaDaLista(
     Guid Id, string Codigo, string Cliente, string Produto, Guid VendedorId, string Vendedor, long ValorCents, long ComissaoCents,
@@ -42,6 +44,7 @@ public sealed class Vendas(
     IRevendedorAtual atual,
     Cobrancas cobrancas,
     IContas contas,
+    Links.Links links,
     IOptions<OpcoesDaPlataforma> plataforma,
     TimeProvider relogio)
 {
@@ -75,12 +78,13 @@ public sealed class Vendas(
             placa.CustoCents, comissaoBps, pedido.Meio, agora);
         placa.Vender(venda.Id, destino, agora);
         banco.Vendas.Add(venda);
+        var linkCurto = pedido.Destino.Tipo == TipoDeDestino.Google ? await links.DoNegocio(cliente.Id, cliente.Nome, destino, ct) : null;
         banco.AvisarAoVivo("venda", placa.RevendedorId);
         await banco.SaveChangesAsync(ct);
         await transacao.CommitAsync(ct);
 
         var (cobranca, semCobranca) = await TentarCobrar(venda, cliente, placa.Codigo, pedido.TokenDoCartao, pedido.Parcelas, ct);
-        return new VendaRegistrada(venda.Id, placa.Codigo, plataforma.Value.EnderecoDaPlaca(placa.Codigo), venda.ValorCents, placa.VenceEm, cobranca, semCobranca);
+        return new VendaRegistrada(venda.Id, placa.Codigo, plataforma.Value.EnderecoDaPlaca(placa.Codigo), venda.ValorCents, placa.VenceEm, cobranca, semCobranca, linkCurto);
     }
 
     /// <summary>Gera de novo a cobrança que não saiu ou que falhou. A paga e a pendente ficam.</summary>

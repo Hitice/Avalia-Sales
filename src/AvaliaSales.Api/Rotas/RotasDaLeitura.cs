@@ -1,6 +1,7 @@
 using System.Net;
 using AvaliaSales.Api.Autenticacao;
 using AvaliaSales.Application;
+using AvaliaSales.Application.Links;
 using AvaliaSales.Application.Placas;
 using AvaliaSales.Domain.Placas;
 using AvaliaSales.Infrastructure.Banco;
@@ -23,8 +24,35 @@ public static class RotasDaLeitura
 
     private static readonly string[] Robos = ["bot", "crawler", "spider", "preview", "facebookexternalhit", "whatsapp", "telegram", "slack", "discord"];
 
-    public static void MapearLeitura(this IEndpointRouteBuilder rotas) =>
+    public static void MapearLeitura(this IEndpointRouteBuilder rotas)
+    {
         rotas.MapMethods("/q/{codigo}", ["GET", "HEAD"], Ler).AllowAnonymous().RequireRateLimiting(LimiteDeLeitura).WithTags("Leitura");
+        rotas.MapMethods("/l/{codigo}", ["GET", "HEAD"], Clicar).AllowAnonymous().RequireRateLimiting(LimiteDeLeitura).WithTags("Leitura");
+    }
+
+    /// <summary>O link curto: mesmo caminho da placa, pela tabela de códigos da plataforma.</summary>
+    private static async Task<IResult> Clicar(string codigo, HttpContext http, BancoDeDados banco, IServiceScopeFactory escopos, CancellationToken ct)
+    {
+        var normalizado = CodigoDaPlaca.Normalizar(codigo);
+        var dono = normalizado.Length == 0
+            ? null
+            : await banco.CodigosDeLink.AsNoTracking().Where(c => c.Codigo == normalizado).Select(c => (Guid?)c.RevendedorId).SingleOrDefaultAsync(ct);
+        if (dono is not { } revendedorId)
+        {
+            return Pagina(http, Aviso.LinkNaoEncontrado, codigo, HttpStatusCode.NotFound);
+        }
+
+        using var escopo = escopos.CreateScope();
+        escopo.ServiceProvider.GetRequiredService<AcessoDaRequisicao>().Assumir(revendedorId);
+        var contar = HttpMethods.IsGet(http.Request.Method) && !EhRobo(http.Request.Headers.UserAgent.ToString());
+        var lido = await escopo.ServiceProvider.GetRequiredService<Links>().Ler(normalizado, contar, ct);
+        return lido switch
+        {
+            null => Pagina(http, Aviso.LinkNaoEncontrado, normalizado, HttpStatusCode.NotFound),
+            { Ativo: false } => Pagina(http, Aviso.LinkDesligado, normalizado, HttpStatusCode.OK),
+            _ => Redirecionar(http, lido.Destino!),
+        };
+    }
 
     private static async Task<IResult> Ler(string codigo, HttpContext http, BancoDeDados banco, IServiceScopeFactory escopos,
         IOptions<OpcoesDaPlataforma> plataforma, CancellationToken ct)
@@ -91,6 +119,8 @@ public static class RotasDaLeitura
         Suspensa,
         Vencida,
         Baixada,
+        LinkNaoEncontrado,
+        LinkDesligado,
     }
 
     private static IResult Pagina(HttpContext http, Aviso aviso, string codigo, HttpStatusCode status)
@@ -102,6 +132,8 @@ public static class RotasDaLeitura
             Aviso.Suspensa => ("Placa fora do ar", "A loja pausou esta placa por enquanto. Fale com o atendimento da loja."),
             Aviso.Vencida => ("Placa vencida", "O serviço desta placa venceu. A loja pode renovar com quem vendeu a placa."),
             Aviso.Baixada => ("Placa encerrada", "Esta placa foi encerrada e não leva mais a lugar nenhum."),
+            Aviso.LinkNaoEncontrado => ("Link não encontrado", "Não achamos este link. Confira as letras e os números."),
+            Aviso.LinkDesligado => ("Link fora do ar", "A loja pausou este link por enquanto."),
             _ => ("Código não encontrado", "Não achamos este código. Confira as letras e os números impressos na placa."),
         };
         var html = $$"""
@@ -126,7 +158,7 @@ public static class RotasDaLeitura
             <body><main>
             <h1>{{titulo}}</h1>
             <p>{{texto}}</p>
-            <p>Placa <code>{{WebUtility.HtmlEncode(codigo.ToUpperInvariant())}}</code></p>
+            <p>{{(aviso is Aviso.LinkNaoEncontrado or Aviso.LinkDesligado ? "Link" : "Placa")}} <code>{{WebUtility.HtmlEncode(codigo.ToUpperInvariant())}}</code></p>
             </main></body>
             </html>
             """;

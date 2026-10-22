@@ -552,6 +552,93 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                     b.ToTable("vinculos_externos", (string)null);
                 });
 
+            modelBuilder.Entity("AvaliaSales.Domain.Links.CodigoDeLink", b =>
+                {
+                    b.Property<string>("Codigo")
+                        .HasMaxLength(6)
+                        .HasColumnType("character(6)")
+                        .HasColumnName("codigo")
+                        .IsFixedLength();
+
+                    b.Property<Guid>("RevendedorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("revendedor_id");
+
+                    b.HasKey("Codigo")
+                        .HasName("pk_codigos_de_link");
+
+                    b.HasIndex("RevendedorId")
+                        .HasDatabaseName("ix_codigos_de_link_revendedor_id");
+
+                    b.ToTable("codigos_de_link", (string)null);
+                });
+
+            modelBuilder.Entity("AvaliaSales.Domain.Links.LinkCurto", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("Ativo")
+                        .HasColumnType("boolean")
+                        .HasColumnName("ativo");
+
+                    b.Property<Guid?>("ClienteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("cliente_id");
+
+                    b.Property<long>("Cliques")
+                        .HasColumnType("bigint")
+                        .HasColumnName("cliques");
+
+                    b.Property<string>("Codigo")
+                        .IsRequired()
+                        .HasMaxLength(6)
+                        .HasColumnType("character(6)")
+                        .HasColumnName("codigo")
+                        .IsFixedLength();
+
+                    b.Property<DateTimeOffset>("CriadoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("criado_em");
+
+                    b.Property<string>("Destino")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("destino");
+
+                    b.Property<Guid>("RevendedorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("revendedor_id");
+
+                    b.Property<string>("Titulo")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("titulo");
+
+                    b.Property<DateTimeOffset?>("UltimoCliqueEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("ultimo_clique_em");
+
+                    b.HasKey("Id")
+                        .HasName("pk_links");
+
+                    b.HasIndex("ClienteId")
+                        .HasDatabaseName("ix_links_cliente_id");
+
+                    b.HasIndex("Codigo")
+                        .IsUnique()
+                        .HasDatabaseName("ix_links_codigo");
+
+                    b.HasIndex("RevendedorId", "Destino")
+                        .HasDatabaseName("ix_links_revendedor_id_destino");
+
+                    b.ToTable("links", (string)null);
+                });
+
             modelBuilder.Entity("AvaliaSales.Domain.Pagamentos.Cobranca", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1870,6 +1957,39 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_vinculos_externos_revendedores_revendedor_id");
+                });
+
+            modelBuilder.Entity("AvaliaSales.Domain.Links.CodigoDeLink", b =>
+                {
+                    b.HasOne("AvaliaSales.Domain.Revendedores.Revendedor", null)
+                        .WithMany()
+                        .HasForeignKey("RevendedorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_codigos_de_link_revendedores_revendedor_id");
+                });
+
+            modelBuilder.Entity("AvaliaSales.Domain.Links.LinkCurto", b =>
+                {
+                    b.HasOne("AvaliaSales.Domain.Vendas.Cliente", null)
+                        .WithMany()
+                        .HasForeignKey("ClienteId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_links_clientes_cliente_id");
+
+                    b.HasOne("AvaliaSales.Domain.Links.CodigoDeLink", null)
+                        .WithOne()
+                        .HasForeignKey("AvaliaSales.Domain.Links.LinkCurto", "Codigo")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_links_codigos_de_link_codigo");
+
+                    b.HasOne("AvaliaSales.Domain.Revendedores.Revendedor", null)
+                        .WithMany()
+                        .HasForeignKey("RevendedorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_links_revendedores_revendedor_id");
                 });
 
             modelBuilder.Entity("AvaliaSales.Domain.Pagamentos.Cobranca", b =>

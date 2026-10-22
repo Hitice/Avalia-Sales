@@ -204,6 +204,7 @@ if (app.Environment.IsDevelopment())
 
 app.MapearAcesso();
 app.MapearCatalogo();
+app.MapearLinks();
 app.MapearOperadora();
 app.MapearRevenda();
 app.MapearEquipe();

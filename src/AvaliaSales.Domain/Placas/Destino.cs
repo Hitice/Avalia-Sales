@@ -53,9 +53,9 @@ public static partial class Destino
         }
 
         if (string.Equals(uri.Host, hostDaPlataforma, StringComparison.OrdinalIgnoreCase)
-            && uri.AbsolutePath.StartsWith("/q/", StringComparison.OrdinalIgnoreCase))
+            && (uri.AbsolutePath.StartsWith("/q/", StringComparison.OrdinalIgnoreCase) || uri.AbsolutePath.StartsWith("/l/", StringComparison.OrdinalIgnoreCase)))
         {
-            throw new RegraDeNegocioException("O destino não pode ser o endereço de outra placa.");
+            throw new RegraDeNegocioException("O destino não pode ser o endereço de outra placa ou de outro link.");
         }
 
         return destino;

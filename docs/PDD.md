@@ -64,7 +64,7 @@ revendedor é a Avalia.
 5. Ativação - o revendedor digita o número do lote (LT-0001, lt 1 ou 1); as
    placas entram no estoque dele com o custo do pacote.
 6. Equipe - cadastro dos vendedores e da comissão de cada um.
-7. Leitura - o vendedor lê o QR da placa, ou digita o código, e o cadastro da venda abre. Depois da venda grava o endereço na tag NFC da placa.
+7. Venda - o vendedor busca o negócio no Google (ou cola o link de avaliação do perfil, ou o link do cliente), lê o QR da placa ou digita o código, preenche o cliente e cobra. No fim grava na tag NFC o mesmo endereço do QR (`/Q/{codigo}`).
 8. Venda - cliente, negócio, destino do QR e cobrança por Pix ou cartão.
 9. Pagamento - o cliente paga e o split divide na hora.
 10. Painel - vendas ao vivo, saldo de comissão e mapa dos lugares vendidos.
@@ -83,7 +83,8 @@ Todas no mesmo app, liberadas pelo papel do usuário.
 | Marca | Revendedor | Computador | Logo, cores e nome exibido, com prévia |
 | Painel | Revendedor | Computador | Vendas e pagamentos ao vivo, saldo de comissão, registro de repasse |
 | Mapa | Revendedor | Computador | Lugares vendidos, no Google Maps |
-| Nova venda | Vendedor | Celular | QR, negócio, destino, cobrança, gravação do NFC |
+| Nova venda | Vendedor | Celular | Negócio no Google, QR da placa, cliente, cobrança, gravação do NFC |
+| Links | Dono e vendedor | Celular | Link curto do negócio sem placa: copiar, gravar NFC; o dono edita, desliga e exclui |
 | Ficha da placa | Vendedor e revendedor | Celular | Destino, vencimento, leituras, troca, renovação |
 | Pedidos | Operadora | Computador | Pedidos pagos, lote despachado, envio |
 | Página do QR | Cliente final | Celular | Redireciona ao destino e conta a leitura |
@@ -154,6 +155,17 @@ Todas no mesmo app, liberadas pelo papel do usuário.
   paga. O mesmo pagamento nunca é lançado duas vezes.
 - Competência no fuso de Brasília. O líquido do mês é receita menos taxa menos
   comissão; a taxa do Pagar.me sai no extrato do Pagar.me.
+
+### Link curto
+
+- `/L/{codigo}` - mesmo formato do código da placa (6 caracteres Crockford),
+  cerca de 33 bytes; cabe em qualquer tag NFC.
+- A venda com destino no Google cria o link do negócio, ou reaproveita o que já
+  leva ao mesmo destino. A tela Links cria o do negócio sem placa.
+- O código nunca volta ao sorteio, nem depois de o link ser excluído.
+- Clique conta só no GET de gente; HEAD e robô não contam. Desligado mostra
+  aviso; excluído responde não encontrado.
+- Destino não pode ser outra placa nem outro link da plataforma.
 
 ### Lote e placa
 
@@ -360,6 +372,7 @@ Estimativa em semanas de cerca de 20 horas.
 
 | Data | Mudança |
 | --- | --- |
+| 22/10/2026 | Nova venda começa pelo negócio no Google, depois a placa. Link curto `/L/` do negócio, criado na venda com Google e na tela Links. |
 | 22/10/2026 | Vendedor convidado por e-mail cria a própria senha; o dono também pode mandar o link pelo WhatsApp. Esqueci a senha na entrada. |
 | 22/10/2026 | Texto das telas revisto - sem frase de explicação; rótulo, ação e recusa curta. |
 | 22/10/2026 | Renovação recebida por fora. Logo aceita foto grande e é reduzido no navegador. |

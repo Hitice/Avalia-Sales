@@ -122,8 +122,9 @@ negócio e duas travas independentes:
   logo vem com o token e vira URL local, com a versão da marca na chave. A
   conta de contraste é a mesma no front (`marca/contraste.ts`) e no Domain
   (`Contraste`).
-- Balcão - a Nova venda tem um passo por tela (placa, cliente, destino,
-  cobrança) com o botão no pé da tela. A placa entra pelo QR da câmera
+- Balcão - a Nova venda tem um passo por tela (negócio, placa, cliente,
+  cobrança) com o botão no pé da tela. O lugar escolhido no Google preenche a
+  empresa, e o resultado mostra o link curto `/L/` do negócio para copiar. A placa entra pelo QR da câmera
   traseira ou digitada, e a leitura da URL do QR em estoque abre a Nova venda
   com o código. O resultado mostra o QR do Pix, o copia e cola e confirma o
   pagamento sozinho (a ficha é refeita a cada 5 s). O NFC não é lido: a tela
@@ -571,6 +572,7 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
 
 | Data | Mudança |
 | --- | --- |
+| 22/10/2026 | Encurtador - `links` (RLS) e `codigos_de_link` (plataforma, sem RLS, como `placas_emitidas`), rotas `/links` e `GET/HEAD /l/{codigo}` com 302 sem cache, `Links.DoNegocio` na transação da venda, `VendaRegistrada.LinkCurto`. Destino recusa `/l/` da plataforma. Nova venda na ordem negócio, placa, cliente, cobrança. 184 testes na API. |
 | 22/10/2026 | Convite do vendedor e esqueci a senha (`POST /equipe/{id}/convite`, `POST /auth/senha/link`, `POST /auth/senha`, `GestorDeSenhas`, migration LinksDeSenha), telas `/convite`, `/senha` e `/esqueci`. Grade de duas colunas sem rolagem lateral no celular. 181 testes na API. |
 | 22/10/2026 | Revisão do texto das telas e das recusas da API (`RegraDeNegocioException`), mais curtas. |
 | 22/10/2026 | Renovação recebida por fora (`/placas/{codigo}/renovacao/recebimento`). Logo reduzido no navegador (`reduzirLogo`, canvas para WebP em até 512 px); `chamarResposta` só marca JSON quando o corpo é texto. 177 testes na API, 38 no front. |

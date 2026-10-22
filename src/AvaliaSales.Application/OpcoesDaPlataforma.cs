@@ -26,4 +26,7 @@ public sealed class OpcoesDaPlataforma
 
     public static string EnderecoDaPlaca(string urlPublica, string codigo) =>
         (urlPublica.TrimEnd('/') + "/Q/" + codigo).ToUpperInvariant();
+
+    /// <summary>O link curto, no mesmo formato do endereço da placa.</summary>
+    public string EnderecoDoLink(string codigo) => (UrlPublica.TrimEnd('/') + "/L/" + codigo).ToUpperInvariant();
 }

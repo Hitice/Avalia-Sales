@@ -16,13 +16,13 @@ import { extrairCodigo } from './codigo'
 import { useFicha, useVender } from './consultas'
 import { EscolhaDeDestino } from './EscolhaDeDestino'
 import { LeitorDeQr } from './LeitorDeQr'
-import { GravarNfc } from './BotoesDeNfc'
+import { CopiarLink, GravarNfc } from './BotoesDeNfc'
 
-type Passo = 'placa' | 'cliente' | 'destino' | 'cobranca'
+type Passo = 'destino' | 'placa' | 'cliente' | 'cobranca'
 const PASSOS: { id: Passo; rotulo: string }[] = [
+  { id: 'destino', rotulo: 'Negócio' },
   { id: 'placa', rotulo: 'Placa' },
   { id: 'cliente', rotulo: 'Cliente' },
-  { id: 'destino', rotulo: 'Destino' },
   { id: 'cobranca', rotulo: 'Cobrança' },
 ]
 
@@ -32,11 +32,12 @@ const DESTINO_VAZIO: DestinoInformado = { tipo: 'Google', lugarNoGoogle: null, l
 
 /**
  * A venda no balcão, um passo por tela, com o botão ao alcance do polegar:
- * ler a placa, o cliente, o destino do QR e a cobrança em Pix.
+ * o negócio no Google (ou o link do cliente), a placa pelo QR, o cliente e a
+ * cobrança em Pix. No fim, o NFC é gravado com o mesmo endereço do QR.
  */
 export function TelaDeNovaVenda() {
   const [parametros] = useSearchParams()
-  const [passo, setPasso] = useState<Passo>('placa')
+  const [passo, setPasso] = useState<Passo>('destino')
   const [codigo, setCodigo] = useState(() => extrairCodigo(parametros.get('codigo') ?? ''))
   const [digitado, setDigitado] = useState(parametros.get('codigo') ?? '')
   const [cliente, setCliente] = useState<Cliente>(CLIENTE_VAZIO)
@@ -47,7 +48,7 @@ export function TelaDeNovaVenda() {
   const vender = useVender()
 
   function recomecar() {
-    setPasso('placa')
+    setPasso('destino')
     setCodigo('')
     setDigitado('')
     setCliente(CLIENTE_VAZIO)
@@ -98,8 +99,15 @@ export function TelaDeNovaVenda() {
 
       {passo === 'destino' && (
         <Card>
-          <CardHeader><CardTitle>Para onde o QR leva</CardTitle></CardHeader>
-          <CardContent><EscolhaDeDestino valor={destino} aoMudar={setDestino} nomeSugerido={cliente.empresa} /></CardContent>
+          <CardHeader><CardTitle>Para onde a placa leva</CardTitle></CardHeader>
+          <CardContent>
+            <EscolhaDeDestino
+              valor={destino}
+              aoMudar={setDestino}
+              nomeSugerido=""
+              aoEscolherLugar={(lugar) => setCliente((c) => ({ ...c, empresa: lugar.nome }))}
+            />
+          </CardContent>
         </Card>
       )}
 
@@ -110,13 +118,13 @@ export function TelaDeNovaVenda() {
       <div className="fixed inset-x-0 bottom-0 border-t bg-card p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
         <div className="mx-auto flex max-w-md gap-2">
           {indice > 0 && <Button variant="outline" size="lg" onClick={() => setPasso(PASSOS[indice - 1].id)}>Voltar</Button>}
-          {passo === 'cliente' && (
-            <Button size="lg" className="flex-1" disabled={!cliente.empresa.trim() || !cliente.responsavel.trim() || cliente.telefone.replace(/\D/g, '').length < 10} onClick={() => setPasso('destino')}>
-              Escolher destino
-            </Button>
-          )}
           {passo === 'destino' && (
-            <Button size="lg" className="flex-1" disabled={!destino.link && !destino.lugarNoGoogle} onClick={() => setPasso('cobranca')}>Ir para a cobrança</Button>
+            <Button size="lg" className="flex-1" disabled={!destino.link && !destino.lugarNoGoogle} onClick={() => setPasso('placa')}>Ler a placa</Button>
+          )}
+          {passo === 'cliente' && (
+            <Button size="lg" className="flex-1" disabled={!cliente.empresa.trim() || !cliente.responsavel.trim() || cliente.telefone.replace(/\D/g, '').length < 10} onClick={() => setPasso('cobranca')}>
+              Ir para a cobrança
+            </Button>
           )}
           {passo === 'cobranca' && (
             <Button
@@ -254,6 +262,7 @@ function Resultado({ venda, aoRecomecar }: { venda: VendaRegistrada; aoRecomecar
           {pagamento === 'Paga' && <p role="status" className="text-center text-lg font-semibold">Pagamento confirmado</p>}
           {pagamento && pagamento !== 'Paga' && pagamento !== 'Pendente' && <Aviso>Pagamento {ROTULO_DO_PAGAMENTO[pagamento].toLowerCase()}.</Aviso>}
           <GravarNfc endereco={venda.endereco} />
+          {venda.linkCurto && <CopiarLink rotulo="Link de avaliação" endereco={venda.linkCurto} />}
         </CardContent>
       </Card>
       <div className="grid grid-cols-2 gap-2">

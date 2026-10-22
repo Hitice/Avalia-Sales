@@ -27,6 +27,7 @@ const MENU: Record<Papel, Item[]> = {
     { para: '/painel/pedidos', rotulo: 'Pedidos de placas' },
     { para: '/painel/equipe', rotulo: 'Equipe' },
     { para: '/painel/clientes', rotulo: 'Clientes' },
+    { para: '/links', rotulo: 'Links' },
     { para: '/painel/comissoes', rotulo: 'Comissões' },
     { para: '/painel/razao', rotulo: 'Razão' },
     { para: '/painel/mapa', rotulo: 'Mapa' },
@@ -38,6 +39,7 @@ const MENU: Record<Papel, Item[]> = {
     { para: '/vender', rotulo: 'Nova venda' },
     { para: '/vendedor/placas', rotulo: 'Minhas placas' },
     { para: '/vendedor/vendas', rotulo: 'Minhas vendas' },
+    { para: '/links', rotulo: 'Links' },
   ],
 }
 

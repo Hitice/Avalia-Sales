@@ -13,7 +13,13 @@ import { useBuscarLugar } from './consultas'
  * Para onde o QR leva: a avaliação no Google (negócio buscado ou link colado
  * do Perfil da Empresa; o colado vence) ou um link do cliente, como o cardápio.
  */
-export function EscolhaDeDestino({ valor, aoMudar, nomeSugerido }: { valor: DestinoInformado; aoMudar: (d: DestinoInformado) => void; nomeSugerido: string }) {
+export function EscolhaDeDestino({ valor, aoMudar, nomeSugerido, aoEscolherLugar }: {
+  valor: DestinoInformado
+  aoMudar: (d: DestinoInformado) => void
+  nomeSugerido: string
+  /** O nome do lugar escolhido, para preencher a empresa. */
+  aoEscolherLugar?: (lugar: Lugar) => void
+}) {
   const buscar = useBuscarLugar()
   const [busca, setBusca] = useState(nomeSugerido)
   const [escolhido, setEscolhido] = useState<Lugar | null>(null)
@@ -42,6 +48,7 @@ export function EscolhaDeDestino({ valor, aoMudar, nomeSugerido }: { valor: Dest
                   onClick={() => {
                     setEscolhido(lugar)
                     aoMudar({ tipo: 'Google', lugarNoGoogle: lugar.id, link: valor.link })
+                    aoEscolherLugar?.(lugar)
                   }}
                 >
                   <span className="block font-medium">{lugar.nome}</span>

@@ -9,6 +9,7 @@ using AvaliaSales.Domain.Equipe;
 using AvaliaSales.Domain.Erp;
 using AvaliaSales.Domain.Financeiro;
 using AvaliaSales.Domain.Integracoes;
+using AvaliaSales.Domain.Links;
 using AvaliaSales.Domain.Pagamentos;
 using AvaliaSales.Domain.Pedidos;
 using AvaliaSales.Domain.Placas;
@@ -51,6 +52,8 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
     public DbSet<EnvioAoErp> EnviosAoErp => Set<EnvioAoErp>();
     public DbSet<LogoDoRevendedor> Logos => Set<LogoDoRevendedor>();
     public DbSet<Mensagem> Mensagens => Set<Mensagem>();
+    public DbSet<LinkCurto> Links => Set<LinkCurto>();
+    public DbSet<CodigoDeLink> CodigosDeLink => Set<CodigoDeLink>();
 
     /// <summary>Lido pelo filtro global a cada consulta, e não na montagem do modelo.</summary>
     public Guid? RevendedorAtual => revendedor.RevendedorId;
@@ -99,6 +102,27 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
             m.HasOne<Usuario>().WithMany().HasForeignKey(x => x.AutorId).OnDelete(DeleteBehavior.Restrict);
             m.HasIndex(x => new { x.RevendedorId, x.EnviadaEm });
             m.HasIndex(x => new { x.RevendedorId, x.DaOperadora }).HasFilter("lida_em is null");
+        });
+
+        modelo.Entity<LinkCurto>(l =>
+        {
+            l.ToTable("links");
+            l.Property(x => x.Codigo).HasMaxLength(CodigoDaPlaca.Tamanho).IsFixedLength();
+            l.Property(x => x.Titulo).HasMaxLength(LinkCurto.TituloMaximo).IsRequired();
+            l.Property(x => x.Destino).HasMaxLength(Destino.TamanhoMaximo).IsRequired();
+            l.HasIndex(x => x.Codigo).IsUnique();
+            l.HasIndex(x => new { x.RevendedorId, x.Destino });
+            l.HasOne<Revendedor>().WithMany().HasForeignKey(x => x.RevendedorId).OnDelete(DeleteBehavior.Restrict);
+            l.HasOne<Cliente>().WithMany().HasForeignKey(x => x.ClienteId).OnDelete(DeleteBehavior.SetNull);
+            l.HasOne<CodigoDeLink>().WithOne().HasForeignKey<LinkCurto>(x => x.Codigo).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelo.Entity<CodigoDeLink>(c =>
+        {
+            c.ToTable("codigos_de_link");
+            c.HasKey(x => x.Codigo);
+            c.Property(x => x.Codigo).HasMaxLength(CodigoDaPlaca.Tamanho).IsFixedLength();
+            c.HasOne<Revendedor>().WithMany().HasForeignKey(x => x.RevendedorId).OnDelete(DeleteBehavior.Restrict);
         });
 
         modelo.Entity<LogoDoRevendedor>(l =>

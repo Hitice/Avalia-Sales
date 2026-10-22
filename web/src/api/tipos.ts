@@ -111,7 +111,9 @@ export type Cobranca = {
   urlDoLink: string | null
 }
 
-export type VendaRegistrada = { vendaId: string; codigo: string; endereco: string; valorCents: number; venceEm: string | null; cobranca: Cobranca | null; semCobranca: string | null }
+export type VendaRegistrada = { vendaId: string; codigo: string; endereco: string; valorCents: number; venceEm: string | null; cobranca: Cobranca | null; semCobranca: string | null; linkCurto: string | null }
+
+export type LinkCurto = { id: string; codigo: string; endereco: string; titulo: string; destino: string; clienteId: string | null; ativo: boolean; cliques: number; ultimoCliqueEm: string | null; criadoEm: string }
 
 export type Ficha = {
   endereco: string
