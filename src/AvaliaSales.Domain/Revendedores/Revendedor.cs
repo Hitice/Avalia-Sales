@@ -19,6 +19,9 @@ public sealed class Revendedor
     /// <summary>CNPJ, só dígitos. Nulo no revendedor criado antes do cadastro pela tela.</summary>
     public string? Cnpj { get; private set; }
 
+    /// <summary>Celular de contato da revenda, só dígitos com DDD. Nulo no revendedor criado antes do cadastro pela tela.</summary>
+    public string? Celular { get; private set; }
+
     /// <summary>Comissão de quem não tem a própria, em pontos base. Mudança vale para venda nova.</summary>
     public int ComissaoPadraoBps { get; private set; } = 2000;
 
@@ -64,6 +67,9 @@ public sealed class Revendedor
             ? recebedor
             : throw new RegraDeNegocioException("O recebedor do Pagar.me começa com rp_.");
     }
+
+    public void DefinirCelular(string? celular) =>
+        Celular = Telefones.Normalizar(celular, obrigatorio: false) ?? throw new RegraDeNegocioException("Informe o celular com DDD.");
 
     public void DefinirComissaoPadrao(int bps) => ComissaoPadraoBps = Comissao.Conferir(bps);
 

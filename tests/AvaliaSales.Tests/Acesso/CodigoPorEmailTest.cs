@@ -44,7 +44,7 @@ public sealed partial class CodigoPorEmailTest(ApiDeTeste api)
     {
         var email = $"dono-{Guid.NewGuid():N}@teste.com.br";
         var cliente = api.Fabrica.CreateClient();
-        var entrou = await cliente.Postar("/cadastro", new { empresa = "Revenda Sem Confirmar", cnpj = Cnpj(), nome = "Rui", email, senha = ApiDeTeste.Senha });
+        var entrou = await cliente.Postar("/cadastro", new { empresa = "Revenda Sem Confirmar", cnpj = Cnpj(), celular = "(11) 98765-4321", nome = "Rui", email, senha = ApiDeTeste.Senha });
         cliente.DefaultRequestHeaders.Authorization = new("Bearer", entrou.GetProperty("token").GetString());
 
         await cliente.Postar("/conta/segundo-fator/email/codigo", new { }, HttpStatusCode.UnprocessableEntity);

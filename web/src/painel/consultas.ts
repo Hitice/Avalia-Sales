@@ -61,3 +61,4 @@ export const useRazao = (competencia: string | undefined) =>
 export const useMesesDoRazao = () => useQuery({ queryKey: ['razao', 'meses'], queryFn: () => chamarApi<string[]>('/razao/meses') })
 export const usePagarPedido = () => useGravar((id: string) => chamarApi<{ url: string }>(`/pedidos/${id}/pagamento`, enviarJson('POST', {})), ['pedidos'])
 export const useDefinirRenovacao = () => useGravar((renovacaoBps: number) => chamarApi('/revenda/renovacao', enviarJson('PUT', { renovacaoBps })), ['revenda'])
+export const useDefinirCelular = () => useGravar((celular: string) => chamarApi('/revenda/celular', enviarJson('PUT', { celular })), ['revenda'])

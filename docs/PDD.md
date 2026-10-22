@@ -50,7 +50,7 @@ revendedor é a Avalia.
 
 ## 4. Jornada do revendedor
 
-1. Cadastro - pela tela, com empresa, CNPJ e o login do dono. A conta para
+1. Cadastro - pela tela, com empresa, CNPJ, celular e o login do dono. A conta para
    receber no Pagar.me é informada pela operadora até o cadastro de recebedor
    pela API entrar.
 2. Contrato - criado sozinho depois do cadastro e enviado pela D4Sign ao e-mail
@@ -424,6 +424,7 @@ O que está pronto no código e só fecha com a conta de verdade:
 
 | Data | Mudança |
 | --- | --- |
+| 22/10/2026 | Celular da revenda obrigatório no cadastro; o dono troca na tela inicial e a operadora vê na lista de revendedores. |
 | 22/10/2026 | Confirmação do e-mail por código digitado na tela, além do link, com reenvio depois de 1 minuto. E-mail recusado pelo provedor tenta de novo por uns 3 dias. Campos com máscara (só números em CNPJ, CPF, telefone e código), contorno no traço da marca e verde quando o dado confere. Logo Avalia Sales completo nas telas de entrada e só o gauge dentro do app. |
 | 22/10/2026 | Contrato de revenda formatado, com o logo e os dados da Avalia, em minuta para revisão jurídica. |
 | 22/10/2026 | Webhook da D4Sign aceita JSON além de formulário. Chave pública do Pagar.me e endereço de resposta do e-mail passam pelo compose. |

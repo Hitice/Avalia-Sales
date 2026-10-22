@@ -5,6 +5,7 @@ test('revenda recém-cadastrada só vê a confirmação do e-mail', async ({ pag
   await page.goto('/cadastro')
   await page.locator('#empresa').fill('Revenda Nova')
   await page.locator('#cnpj').fill(cnpjNovo())
+  await page.locator('#celular').fill('34999990000')
   await page.locator('#nome').fill('Dona Nova')
   await page.locator('#email').fill(`nova-${Date.now()}@revenda.dev`)
   await page.locator('#senha').fill('senha-de-teste-123')

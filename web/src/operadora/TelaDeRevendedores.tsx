@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { mascaraTelefone } from '@/lib/mascaras'
 import { useContratoAssinado, useDefinirRecebedor, useRevendedores } from './consultas'
 
 const formatarCnpj = (c: string | null) => c ? c.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5') : '-'
@@ -32,6 +33,7 @@ export function TelaDeRevendedores() {
                   <TableRow>
                     <TableHead>Revendedor</TableHead>
                     <TableHead>CNPJ</TableHead>
+                    <TableHead>Celular</TableHead>
                     <TableHead className="text-right">Taxa</TableHead>
                     <TableHead>Contrato</TableHead>
                     <TableHead>Recebedor no Pagar.me</TableHead>
@@ -42,6 +44,7 @@ export function TelaDeRevendedores() {
                     <TableRow key={r.id}>
                       <TableCell className="font-medium">{r.nome}</TableCell>
                       <TableCell className="tabular-nums">{formatarCnpj(r.cnpj)}</TableCell>
+                      <TableCell className="tabular-nums">{r.celular ? mascaraTelefone(r.celular) : '-'}</TableCell>
                       <TableCell className="text-right tabular-nums">{formatarBps(r.taxaAvaliaBps)}</TableCell>
                       <TableCell>
                         {r.contratoAssinadoEm

@@ -2305,6 +2305,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/revenda/celular": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["DefinirCelular"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/repasses": {
         parameters: {
             query?: never;
@@ -3764,6 +3801,9 @@ export interface components {
             usos: number;
             ativo: boolean;
         };
+        DefinirCelular: {
+            celular: null | string;
+        };
         DefinirComissao: {
             /** Format: int32 */
             comissaoBps: number;
@@ -3995,6 +4035,7 @@ export interface components {
         NovoCadastro: {
             empresa: string;
             cnpj: string;
+            celular: string;
             nome: string;
             email: string;
             senha: string;
@@ -4201,6 +4242,7 @@ export interface components {
             criadoEm: string;
             /** Format: int32 */
             renovacaoBps: number;
+            celular: null | string;
         };
         SaldoDeComissao: {
             /** Format: uuid */

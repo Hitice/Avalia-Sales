@@ -91,6 +91,7 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
             r.Property(x => x.Nome).HasMaxLength(Revendedor.NomeMaximo).IsRequired();
             r.Property(x => x.RecebedorPagarme).HasMaxLength(64);
             r.Property(x => x.Cnpj).HasMaxLength(14);
+            r.Property(x => x.Celular).HasMaxLength(13);
             r.Property(x => x.NomeExibido).HasMaxLength(Revendedor.NomeExibidoMaximo);
             r.Property(x => x.CorPrimaria).HasMaxLength(7).IsFixedLength();
             r.Property(x => x.CorDestaque).HasMaxLength(7).IsFixedLength();

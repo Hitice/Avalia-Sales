@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 namespace AvaliaSales.Application.Revendedores;
 
 public sealed record RevendedorDto(Guid Id, string Nome, string? Cnpj, int TaxaAvaliaBps, int ComissaoPadraoBps,
-    string? RecebedorPagarme, DateTimeOffset? ContratoAssinadoEm, DateTimeOffset CriadoEm, int RenovacaoBps);
+    string? RecebedorPagarme, DateTimeOffset? ContratoAssinadoEm, DateTimeOffset CriadoEm, int RenovacaoBps, string? Celular);
 
 public sealed record MinhaRevenda(RevendedorDto Revendedor, SituacaoDoContrato? Contrato);
 
@@ -14,7 +14,7 @@ public sealed class Revendedores(IBancoDeDados banco, IRevendedorAtual atual, Ti
 {
     public async Task<IReadOnlyList<RevendedorDto>> Listar(CancellationToken ct) =>
         await banco.Revendedores.AsNoTracking().OrderBy(r => r.Nome)
-            .Select(r => new RevendedorDto(r.Id, r.Nome, r.Cnpj, r.TaxaAvaliaBps, r.ComissaoPadraoBps, r.RecebedorPagarme, r.ContratoAssinadoEm, r.CriadoEm, r.RenovacaoBps))
+            .Select(r => new RevendedorDto(r.Id, r.Nome, r.Cnpj, r.TaxaAvaliaBps, r.ComissaoPadraoBps, r.RecebedorPagarme, r.ContratoAssinadoEm, r.CriadoEm, r.RenovacaoBps, r.Celular))
             .ToListAsync(ct);
 
     public async Task<MinhaRevenda> DoUsuario(CancellationToken ct)
@@ -26,7 +26,7 @@ public sealed class Revendedores(IBancoDeDados banco, IRevendedorAtual atual, Ti
             .Select(c => (SituacaoDoContrato?)c.Situacao)
             .FirstOrDefaultAsync(ct);
         return new MinhaRevenda(
-            new RevendedorDto(r.Id, r.Nome, r.Cnpj, r.TaxaAvaliaBps, r.ComissaoPadraoBps, r.RecebedorPagarme, r.ContratoAssinadoEm, r.CriadoEm, r.RenovacaoBps),
+            new RevendedorDto(r.Id, r.Nome, r.Cnpj, r.TaxaAvaliaBps, r.ComissaoPadraoBps, r.RecebedorPagarme, r.ContratoAssinadoEm, r.CriadoEm, r.RenovacaoBps, r.Celular),
             contrato);
     }
 
@@ -40,6 +40,13 @@ public sealed class Revendedores(IBancoDeDados banco, IRevendedorAtual atual, Ti
     public async Task DefinirRenovacao(int bps, CancellationToken ct)
     {
         (await Achar(atual.RevendedorId ?? Guid.Empty, ct)).DefinirRenovacao(bps);
+        await banco.SaveChangesAsync(ct);
+    }
+
+    /// <summary>O dono troca o celular de contato da revenda.</summary>
+    public async Task DefinirCelular(string? celular, CancellationToken ct)
+    {
+        (await Achar(atual.RevendedorId ?? Guid.Empty, ct)).DefinirCelular(celular);
         await banco.SaveChangesAsync(ct);
     }
 

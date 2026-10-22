@@ -1273,6 +1273,11 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<string>("Celular")
+                        .HasMaxLength(13)
+                        .HasColumnType("character varying(13)")
+                        .HasColumnName("celular");
+
                     b.Property<string>("Cnpj")
                         .HasMaxLength(14)
                         .HasColumnType("character varying(14)")

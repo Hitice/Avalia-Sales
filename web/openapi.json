@@ -1699,6 +1699,28 @@
         }
       }
     },
+    "/revenda/celular": {
+      "put": {
+        "tags": [
+          "Revenda"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DefinirCelular"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/repasses": {
       "get": {
         "tags": [
@@ -3160,6 +3182,20 @@
           }
         }
       },
+      "DefinirCelular": {
+        "required": [
+          "celular"
+        ],
+        "type": "object",
+        "properties": {
+          "celular": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "DefinirComissao": {
         "required": [
           "comissaoBps"
@@ -3989,6 +4025,7 @@
         "required": [
           "empresa",
           "cnpj",
+          "celular",
           "nome",
           "email",
           "senha"
@@ -3999,6 +4036,9 @@
             "type": "string"
           },
           "cnpj": {
+            "type": "string"
+          },
+          "celular": {
             "type": "string"
           },
           "nome": {
@@ -4689,7 +4729,8 @@
           "recebedorPagarme",
           "contratoAssinadoEm",
           "criadoEm",
-          "renovacaoBps"
+          "renovacaoBps",
+          "celular"
         ],
         "type": "object",
         "properties": {
@@ -4734,6 +4775,12 @@
           "renovacaoBps": {
             "type": "integer",
             "format": "int32"
+          },
+          "celular": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },

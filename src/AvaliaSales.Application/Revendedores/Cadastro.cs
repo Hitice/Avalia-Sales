@@ -6,10 +6,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AvaliaSales.Application.Revendedores;
 
-public sealed record NovoCadastro(string Empresa, string Cnpj, string Nome, string Email, string Senha);
+public sealed record NovoCadastro(string Empresa, string Cnpj, string Celular, string Nome, string Email, string Senha);
 
 /// <summary>
-/// O cadastro do revendedor pela tela: empresa, CNPJ e o login do dono numa
+/// O cadastro do revendedor pela tela: empresa, CNPJ, celular e o login do dono numa
 /// transação, com o pedido de confirmação do e-mail. O contrato de revenda sai
 /// depois, pelo Worker, só para e-mail confirmado, e sem esperar a D4Sign.
 /// </summary>
@@ -18,6 +18,7 @@ public sealed class Cadastro(IBancoDeDados banco, IContas contas)
     public async Task<Guid> Criar(NovoCadastro comando, CancellationToken ct)
     {
         var revendedor = new Revendedor(comando.Empresa, comando.Cnpj);
+        revendedor.DefinirCelular(comando.Celular);
         if (await banco.Revendedores.AnyAsync(r => r.Cnpj == revendedor.Cnpj, ct))
         {
             throw new RegraDeNegocioException("Este CNPJ já tem cadastro. Entre com o e-mail do dono.");

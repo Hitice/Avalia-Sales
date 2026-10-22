@@ -11,6 +11,8 @@ public sealed record NovoPedido(Guid PacoteId, string? Cupom);
 
 public sealed record DefinirRenovacao(int RenovacaoBps);
 
+public sealed record DefinirCelular(string? Celular);
+
 public sealed record AtivarLote(string Numero);
 
 public sealed record DefinirComissao(int ComissaoBps);
@@ -67,6 +69,11 @@ public static class RotasDaRevenda
         dono.MapPut("/revenda/renovacao", async (DefinirRenovacao pedido, Revendedores revendedores, CancellationToken ct) =>
         {
             await revendedores.DefinirRenovacao(pedido.RenovacaoBps, ct);
+            return Results.NoContent();
+        });
+        dono.MapPut("/revenda/celular", async (DefinirCelular pedido, Revendedores revendedores, CancellationToken ct) =>
+        {
+            await revendedores.DefinirCelular(pedido.Celular, ct);
             return Results.NoContent();
         });
         dono.MapGet("/repasses", (Comissoes comissoes, CancellationToken ct) => comissoes.Repasses(ct));

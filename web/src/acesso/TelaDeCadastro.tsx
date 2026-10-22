@@ -8,8 +8,8 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { FieldGroup } from '@/components/ui/field'
 import { Campo } from '@/componentes/Campo'
-import { email, senhaNova, texto } from '@/lib/esquemas'
-import { digitos, mascaraCnpj } from '@/lib/mascaras'
+import { email, senhaNova, telefone, texto } from '@/lib/esquemas'
+import { digitos, mascaraCnpj, mascaraTelefone } from '@/lib/mascaras'
 import { cnpjValido } from './documentos'
 import { type TokenEmitido, useSessao } from './sessao'
 import { MarcaAvalia } from '@/componentes/MarcaAvalia'
@@ -17,6 +17,7 @@ import { MarcaAvalia } from '@/componentes/MarcaAvalia'
 const esquema = z.object({
   empresa: texto('o nome da empresa'),
   cnpj: z.string().refine(cnpjValido, 'CNPJ com dígito errado.'),
+  celular: telefone,
   nome: texto('seu nome'),
   email,
   senha: senhaNova,
@@ -28,12 +29,12 @@ type Cadastro = z.infer<typeof esquema>
 export function TelaDeCadastro() {
   const entrar = useSessao((s) => s.entrar)
   const navegar = useNavigate()
-  const formulario = useForm<Cadastro>({ resolver: zodResolver(esquema), mode: 'onChange', defaultValues: { empresa: '', cnpj: '', nome: '', email: '', senha: '' } })
+  const formulario = useForm<Cadastro>({ resolver: zodResolver(esquema), mode: 'onChange', defaultValues: { empresa: '', cnpj: '', celular: '', nome: '', email: '', senha: '' } })
   const { errors, isSubmitting } = formulario.formState
 
   async function cadastrar(dados: Cadastro) {
     try {
-      entrar(await chamarApi<TokenEmitido>('/cadastro', { method: 'POST', body: JSON.stringify({ ...dados, cnpj: digitos(dados.cnpj), email: dados.email.trim() }) }))
+      entrar(await chamarApi<TokenEmitido>('/cadastro', { method: 'POST', body: JSON.stringify({ ...dados, cnpj: digitos(dados.cnpj), celular: digitos(dados.celular), email: dados.email.trim() }) }))
       navegar('/painel/inicio', { replace: true })
     } catch (erro) {
       formulario.setError('root', { message: mensagemDoErro(erro) })
@@ -54,6 +55,7 @@ export function TelaDeCadastro() {
               {errors.root && <Alert variant="destructive"><AlertDescription>{errors.root.message}</AlertDescription></Alert>}
               <Campo formulario={formulario} nome="empresa" rotulo="Empresa" autoComplete="organization" />
               <Campo formulario={formulario} nome="cnpj" rotulo="CNPJ" inputMode="numeric" placeholder="00.000.000/0000-00" mascara={mascaraCnpj} />
+              <Campo formulario={formulario} nome="celular" rotulo="Celular com DDD" type="tel" inputMode="numeric" autoComplete="tel" mascara={mascaraTelefone} />
               <Campo formulario={formulario} nome="nome" rotulo="Seu nome" autoComplete="name" />
               <Campo formulario={formulario} nome="email" rotulo="E-mail" type="email" autoComplete="email" />
               <Campo formulario={formulario} nome="senha" rotulo="Senha" type="password" autoComplete="new-password" />
