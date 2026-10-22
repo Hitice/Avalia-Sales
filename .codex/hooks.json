@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "'/Users/pedrohenriquemorais/Documents/Avalia-Sales/.codex/hooks/documentacao.sh'",
+            "timeout": 10,
+            "statusMessage": "Conferindo PDD e SDD"
+          }
+        ]
+      }
+    ]
+  }
+}

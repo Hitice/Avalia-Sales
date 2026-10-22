@@ -618,6 +618,7 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
 
 | Data | Mudança |
 | --- | --- |
+| 22/10/2026 | Versão 1.1.0. A versão do app mora em `web/package.json` (semver: correção sobe o último número, funcionalidade o do meio) e aparece no rodapé. |
 | 22/10/2026 | Coluna `celular` em `revendedores`: obrigatória no `POST /cadastro`, trocada pelo dono em `PUT /revenda/celular`, no `RevendedorDto` da operadora e da revenda. |
 | 22/10/2026 | Confirmação do e-mail também por código de 6 dígitos (`hash_do_codigo`, `erros_do_codigo` em `links_de_senha`) e reenvio só depois de 1 minuto. Fila de e-mail com `proxima_tentativa_em`, espera dobrando até 6 horas e 20 tentativas. Front - máscaras de CNPJ, CPF, telefone e código (`lib/mascaras.ts`), contorno do campo com o traço da marca no foco e verde quando confere, logo Avalia Sales em SVG (`public/marca`) e favicon do gauge. `.gitignore` com `.claude/settings.local.json` e `.claude/worktrees/`. |
 | 22/10/2026 | Produção no ar em sales.avaliaone.com.br (VPS com Ubuntu 24.04). Backup às 02:00 de Brasília, com cópia por e-mail pelo Resend (`BACKUP_PARA`); o `backup.sh` não estava no Git por causa de uma regra do `.gitignore`. |
