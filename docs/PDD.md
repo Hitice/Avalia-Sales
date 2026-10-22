@@ -251,6 +251,10 @@ Todas no mesmo app, liberadas pelo papel do usuário.
 ### Contrato
 
 - O contrato do revendedor e o termo do cliente são assinados na D4Sign.
+- O texto do contrato fica em `docs/contrato/contrato-de-revenda.html` e vira o PDF
+  embutido na API com `node docs/contrato/gerar.mjs`. É uma minuta de adesão: os dados
+  do revendedor vêm do cadastro e do registro da D4Sign, e o texto depende de revisão
+  jurídica antes de valer.
 - O PDF original e o hash SHA-256 dele ficam guardados, para provar qual texto
   foi assinado.
 - Contrato só anda para a frente - aguardando assinatura vira assinado ou
@@ -418,6 +422,7 @@ O que está pronto no código e só fecha com a conta de verdade:
 
 | Data | Mudança |
 | --- | --- |
+| 22/10/2026 | Contrato de revenda formatado, com o logo e os dados da Avalia, em minuta para revisão jurídica. |
 | 22/10/2026 | Webhook da D4Sign aceita JSON além de formulário. Chave pública do Pagar.me e endereço de resposta do e-mail passam pelo compose. |
 | 22/10/2026 | O dono só usa o painel depois de confirmar o e-mail. Segundo fator também por código no e-mail. Aviso por e-mail de acesso de aparelho novo. Entrada clara com o logo da Avalia. |
 | 22/10/2026 | Renovação pedida e não paga (sem Pix vivo) não impede mais cancelar a venda nem trocar a placa: ela é cancelada junto. |
