@@ -19,7 +19,7 @@ function useOrdens(caminho: string) {
   return useQuery({ queryKey: ['servicos', caminho], queryFn: () => chamarApi<OrdemDeServico[]>(caminho) })
 }
 
-/** O revendedor acompanha os serviços que a Avalia executa para os clientes dele (aba Acompanhar de Serviços). */
+/** O revendedor acompanha os serviços que a Avalia executa para os clientes dele (aba Status de Serviços). */
 export function OrdensDaRevenda() {
   const ordens = useOrdens('/servicos')
   return <ListaDeOrdens ordens={ordens.data} carregando={ordens.isPending} erro={ordens.error} />

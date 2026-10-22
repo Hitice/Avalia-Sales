@@ -50,7 +50,7 @@ public sealed class Servicos(IBancoDeDados banco, IRevendedorAtual atual, Notifi
 
         var ordem = await Achar(id, ct);
         mudar(ordem, relogio.GetUtcNow());
-        notificacoes.ParaDono(ordem.RevendedorId, titulo, $"{acao} {ordem.Produto} de {ordem.Cliente} (ordem {ordem.Numero}).", "/links?aba=acompanhar");
+        notificacoes.ParaDono(ordem.RevendedorId, titulo, $"{acao} {ordem.Produto} de {ordem.Cliente} (ordem {ordem.Numero}).", "/links?aba=status");
         banco.AvisarAoVivo("servico", ordem.RevendedorId, operadora: true);
         await banco.SaveChangesAsync(ct);
     }

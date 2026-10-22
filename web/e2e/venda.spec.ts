@@ -40,3 +40,15 @@ test('voltar no primeiro passo sai da venda', async ({ page }) => {
   await page.getByRole('button', { name: 'Voltar' }).click()
   await expect(page).not.toHaveURL(/\/vender/)
 })
+
+test('a busca do negócio no Google, na aba Maps, chama a API sem recarregar a página', async ({ page }) => {
+  await entrar(page)
+  await page.goto('/links?aba=maps')
+  const busca = page.waitForResponse((r) => r.url().includes('/api/lugares'))
+  await page.getByLabel('Nome do negócio no Google').fill('subway uberlandia')
+  await page.getByLabel('Nome do negócio no Google').press('Enter')
+  await busca
+  // Sem chave do Google no ambiente de teste, a API responde que a busca não está ligada.
+  await expect(page.getByText('A busca no Google não está ligada')).toBeVisible()
+  await expect(page).toHaveURL(/\/links\?aba=maps$/)
+})

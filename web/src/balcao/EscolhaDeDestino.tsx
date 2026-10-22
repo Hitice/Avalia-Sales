@@ -24,8 +24,6 @@ export function EscolhaDeDestino({ valor, aoMudar, nomeSugerido, lugar, aoEscolh
   lugar?: Lugar | null
   aoEscolherLugar?: (lugar: Lugar | null) => void
 }) {
-  const buscar = useBuscarLugar()
-  const [busca, setBusca] = useState(nomeSugerido)
   const linkRecusado = valor.tipo === 'Google' && !!valor.link && !linkDoGoogleValido(valor.link)
 
   return (
@@ -41,41 +39,15 @@ export function EscolhaDeDestino({ valor, aoMudar, nomeSugerido, lugar, aoEscolh
         <TabsTrigger value="Link">Link do cliente</TabsTrigger>
       </TabsList>
       <TabsContent value="Google" className="grid gap-4 pt-2">
-        <form
-          className="flex gap-2"
-          onSubmit={(e) => {
-            e.preventDefault()
-            if (busca.trim().length >= 3) buscar.mutate(busca)
+        <BuscaNoGoogle
+          nomeSugerido={nomeSugerido}
+          escolhido={valor.lugarNoGoogle}
+          lugar={lugar}
+          aoEscolher={(achado) => {
+            aoEscolherLugar?.(achado)
+            aoMudar({ tipo: 'Google', lugarNoGoogle: achado.id, link: null })
           }}
-        >
-          <Input aria-label="Nome do negócio no Google" enterKeyHint="search" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Nome e cidade do negócio" />
-          <Button type="submit" variant="outline" disabled={busca.trim().length < 3 || buscar.isPending}>Buscar</Button>
-        </form>
-        <Erro erro={buscar.error ? mensagemDoErro(buscar.error) : null} />
-        {buscar.data?.length === 0 && <p className="text-sm text-muted-foreground">Nada encontrado. Inclua a cidade.</p>}
-        {lugar && valor.lugarNoGoogle === lugar.id && !buscar.data && (
-          <p className="rounded-lg border border-sucesso p-3 text-sm"><span className="block font-medium">{lugar.nome}</span>{lugar.endereco}</p>
-        )}
-        {buscar.data && buscar.data.length > 0 && (
-          <ul className="grid gap-2" aria-label="Negócios encontrados">
-            {buscar.data.map((achado) => (
-              <li key={achado.id}>
-                <button
-                  type="button"
-                  aria-pressed={valor.lugarNoGoogle === achado.id}
-                  className={cn('min-h-11 w-full rounded-lg border p-3 text-left text-sm', valor.lugarNoGoogle === achado.id ? 'border-sucesso bg-accent' : 'hover:bg-muted')}
-                  onClick={() => {
-                    aoEscolherLugar?.(achado)
-                    aoMudar({ tipo: 'Google', lugarNoGoogle: achado.id, link: null })
-                  }}
-                >
-                  <span className="block font-medium">{achado.nome}</span>
-                  {achado.endereco && <span className="block text-muted-foreground">{achado.endereco}</span>}
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
+        />
         <Field data-invalid={linkRecusado}>
           <FieldLabel htmlFor="link-google">Ou o link de avaliação do perfil</FieldLabel>
           <Input
@@ -100,5 +72,63 @@ export function EscolhaDeDestino({ valor, aoMudar, nomeSugerido, lugar, aoEscolh
         </Field>
       </TabsContent>
     </Tabs>
+  )
+}
+
+/**
+ * Busca do negócio no Google (Places API). Sem <form> próprio: ela entra em
+ * formulários de outras telas, e form dentro de form faz o navegador enviar o
+ * de fora e recarregar a página. O Enter no campo busca.
+ */
+export function BuscaNoGoogle({ nomeSugerido, escolhido, lugar, aoEscolher }: {
+  nomeSugerido: string
+  escolhido: string | null
+  lugar?: Lugar | null
+  aoEscolher: (lugar: Lugar) => void
+}) {
+  const buscar = useBuscarLugar()
+  const [busca, setBusca] = useState(nomeSugerido)
+  const pronta = busca.trim().length >= 3
+
+  return (
+    <div className="grid gap-4">
+      <div className="flex gap-2">
+        <Input
+          aria-label="Nome do negócio no Google"
+          enterKeyHint="search"
+          value={busca}
+          onChange={(e) => setBusca(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key !== 'Enter') return
+            e.preventDefault()
+            if (pronta) buscar.mutate(busca)
+          }}
+          placeholder="Nome e cidade do negócio"
+        />
+        <Button type="button" variant="outline" disabled={!pronta || buscar.isPending} onClick={() => buscar.mutate(busca)}>Buscar</Button>
+      </div>
+      <Erro erro={buscar.error ? mensagemDoErro(buscar.error) : null} />
+      {buscar.data?.length === 0 && <p className="text-sm text-muted-foreground">Nada encontrado. Inclua a cidade.</p>}
+      {lugar && escolhido === lugar.id && !buscar.data && (
+        <p className="rounded-lg border border-sucesso p-3 text-sm"><span className="block font-medium">{lugar.nome}</span>{lugar.endereco}</p>
+      )}
+      {buscar.data && buscar.data.length > 0 && (
+        <ul className="grid gap-2" aria-label="Negócios encontrados">
+          {buscar.data.map((achado) => (
+            <li key={achado.id}>
+              <button
+                type="button"
+                aria-pressed={escolhido === achado.id}
+                className={cn('min-h-11 w-full rounded-lg border p-3 text-left text-sm', escolhido === achado.id ? 'border-sucesso bg-accent' : 'hover:bg-muted')}
+                onClick={() => aoEscolher(achado)}
+              >
+                <span className="block font-medium">{achado.nome}</span>
+                {achado.endereco && <span className="block text-muted-foreground">{achado.endereco}</span>}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   )
 }

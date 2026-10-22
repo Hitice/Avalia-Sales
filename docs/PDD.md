@@ -106,7 +106,7 @@ Todas no mesmo app, liberadas pelo papel do usuário.
 | Mapa | Revendedor | Computador | Lugares vendidos, no Google Maps |
 | Painel do vendedor | Vendedor | Celular | Vendas do mês, comissão a receber, esperando pagamento e recebida, placas com ele |
 | Nova venda | Vendedor | Celular | Negócio no Google, QR da placa, cliente, cobrança, gravação do NFC |
-| Serviços | Dono e vendedor | Celular | Abas Encurtador (link curto /L/ de qualquer endereço colado, ou do negócio buscado no Google), NFC (grava o link curto na tag) e Acompanhar (só o dono; as ordens dos serviços vendidos que a Avalia executa); o dono edita, desliga e exclui o link |
+| Serviços | Dono e vendedor | Celular | Abas Link (link curto /L/ de qualquer endereço colado), NFC (grava o link curto na tag), Maps (busca o negócio no Google e cria o link curto da avaliação) e Status (só o dono; as ordens dos serviços vendidos que a Avalia executa); o dono edita, desliga e exclui o link |
 | Ficha da placa | Vendedor e revendedor | Celular | Destino, vencimento, leituras, troca, renovação |
 | Pedidos | Operadora | Computador | Pedidos pagos, em produção, lote despachado, envio |
 | Catálogo da Avalia | Operadora | Computador | Cadastrar e editar produto, foto com recorte, preço sugerido, ordem e situação |
@@ -457,6 +457,7 @@ O que está pronto no código e só fecha com a conta de verdade:
 
 | Data | Mudança |
 | --- | --- |
+| 22/10/2026 | Serviços em quatro abas - Link (endereço colado), NFC, Maps (busca do negócio no Google) e Status (ordens de serviço). A busca no Google não recarrega mais a página. |
 | 22/10/2026 | Contrato em Configurações com reenviar o e-mail de assinatura e baixar a cópia. Na Nova venda, a barra de baixo aparece, com o botão da venda acima dela. |
 | 22/10/2026 | Configurações com a comissão padrão e a renovação; gráficos no Início; pendências da revenda no sino; Links vira Serviços com a aba Acompanhar; convite do vendedor vale 24 horas; Meus dados com um Salvar só; chamado se fecha (Fechar); auditoria abre o antes e o depois num modal; Catálogo na barra de baixo do celular; foto do QR Code Dinâmico Pro. |
 | 22/10/2026 | Catálogo da Avalia com os 8 produtos do site, foto e situação; a revenda só define o preço dela, nunca abaixo do custo. Pacotes de 20, 50 e 100 placas com o preço por placa. Pedido com em produção e entregue. Venda de serviço sem placa, que paga vira ordem de serviço para a Avalia. Sino de notificações para o dono e a operadora. |
