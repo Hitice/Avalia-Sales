@@ -101,6 +101,17 @@ jobs:
           path: web/test-results/
           retention-days: 7
 
+  # Segredo no código ou no histórico falha aqui. Falso positivo vai para o .gitleaksignore, com o motivo.
+  segredos:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   # SonarCloud só com o segredo SONAR_TOKEN e as variáveis SONAR_ORGANIZACAO e
   # SONAR_PROJETO; sem eles, o passo avisa e sai sem falhar.
   qualidade:

@@ -1,0 +1,3 @@
+# .env.example: D4SIGN_TOKEN_API vazio; a regra genérica casa pelo nome da variável.
+.env.example:generic-api-key:14
+c93d056d6ac54274142f1a398e771f2e0cbc176b:.env.example:generic-api-key:14
