@@ -551,8 +551,8 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
   até lá a venda sai em Pix.
 - Cadastro de recebedor pela API do Pagar.me (`POST /recipients`); até lá a
   operadora informa o `rp_` do revendedor.
-- Link de pagamento do Pagar.me (`POST /paymentlinks`) entra com o pedido de
-  placas.
+- Valor da renovação de venda dada em cortesia (60% de zero dá R$ 0,01); a
+  definir se usa a tabela gravada na venda.
 - Pacote inicial do front com 460 kB (React, Router, Query, Zod e o
   formulário de entrada); o polyfill de QR (44 kB e 1,1 MB de WebAssembly) só
   baixa no aparelho sem `BarcodeDetector`.
@@ -569,6 +569,7 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
 
 | Data | Mudança |
 | --- | --- |
+| 22/10/2026 | Renovação recebida por fora (`/placas/{codigo}/renovacao/recebimento`). Logo reduzido no navegador (`reduzirLogo`, canvas para WebP em até 512 px); `chamarResposta` só marca JSON quando o corpo é texto. 177 testes na API, 38 no front. |
 | 22/10/2026 | Cancelamento, cortesia, troca de placa e recebido por fora (rotas `/vendas/{id}/cancelamento`, `/cortesia`, `/troca-de-placa`, `/recebimento`), migration VendaDesfeita, diálogo de ações na tela Vendas. 176 testes. |
 | 21/10/2026 | LGPD - exportação e anonimização do cliente, tela Clientes. 172 testes. |
 | 21/10/2026 | Comandos `--reservar-codigos` e `--importar-placas` (CSV pelo leitor do .NET, colunas pelo nome, tudo ou nada com `--ensaio`), fábricas de importação no Domain (placa, venda, cliente, lote sem o limite de tiragem). 170 testes. |

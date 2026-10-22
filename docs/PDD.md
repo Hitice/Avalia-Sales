@@ -265,7 +265,7 @@ porta o negócio e troca a tecnologia onde a stack pede.
   dono, também só sem Pix em aberto. O razão recebe a venda como se o Pix
   tivesse caído, com a comissão devida, e a taxa da Avalia como "a acertar",
   porque não passou pelo split. Só o dono desfaz, e só antes do repasse da
-  comissão.
+  comissão. A renovação também se confirma por fora, na ficha da placa.
 - Renovação em aberto segura o cancelamento e a troca: paga depois, ela
   estenderia uma placa fora da venda.
 - A definir - como a Avalia cobra a taxa das vendas recebidas por fora.
@@ -297,7 +297,7 @@ A tela mostra a prévia e o contraste antes de salvar, e a API confere de novo:
   contraste) precisa de 4,5:1.
 - Cor de destaque - anel de foco e realce do menu; precisa de 3:1 sobre o
   branco.
-- Logo - PNG ou WebP, conferido pelos bytes do arquivo, até 512 KB.
+- Logo - qualquer foto ou imagem de até 25 MB; o navegador reduz para 512 px no lado maior e grava em WebP (PNG onde não há WebP). A API guarda até 512 KB, conferido pelos bytes do arquivo.
 
 A tela de login e a área da operadora usam a marca da plataforma. Voltar à
 marca da plataforma apaga cores, nome e logo. O e-mail com a marca do
@@ -360,6 +360,7 @@ Estimativa em semanas de cerca de 20 horas.
 
 | Data | Mudança |
 | --- | --- |
+| 22/10/2026 | Renovação recebida por fora. Logo aceita foto grande e é reduzido no navegador. |
 | 22/10/2026 | Depois da venda - cancelamento, cortesia, troca de placa e recebido em dinheiro ou outro Pix, na tela Vendas. |
 | 21/10/2026 | LGPD - papéis de controlador e operadora, dado mínimo, exportação e anonimização do cliente na tela Clientes. |
 | 21/10/2026 | Fase 4, ferramentas - reserva de códigos de outro sistema e importação de placas tudo ou nada, com ensaio e totais. |

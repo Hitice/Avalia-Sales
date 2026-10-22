@@ -57,7 +57,10 @@ export function useAlternar(codigo: string) {
 export function useRenovar(codigo: string) {
   const cliente = useQueryClient()
   return useMutation({
-    mutationFn: () => chamarApi<RenovacaoAberta>(`/placas/${codigo}/renovacao`, enviarJson('POST', {})),
+    mutationFn: (porFora?: 'Dinheiro' | 'OutroPix') =>
+      porFora
+        ? chamarApi<RenovacaoAberta>(`/placas/${codigo}/renovacao/recebimento`, enviarJson('POST', { meio: porFora }))
+        : chamarApi<RenovacaoAberta>(`/placas/${codigo}/renovacao`, enviarJson('POST', {})),
     onSuccess: () => cliente.invalidateQueries({ queryKey: ['placa', codigo] }),
   })
 }

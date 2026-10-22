@@ -129,4 +129,25 @@ public sealed class VendaDesfeitaTest(ApiDeTeste api)
         Assert.Equal(0, (await caio.Pegar("/comissoes")).EnumerateArray().Single().GetProperty("abertaCents").GetInt64());
         Assert.Equal("Estornada", (await caio.Pegar("/vendas")).EnumerateArray().Single().GetProperty("pagamento").GetString());
     }
+
+    [Fact]
+    public async Task Renovacao_recebida_por_fora_estende_a_placa_depois_do_Pix_vencer()
+    {
+        var revenda = await api.RevendaComEstoque("Revenda da Renovação no Balcão");
+        var codigo = revenda.Codigos[6];
+        await revenda.Dono.Postar("/vendas", Cenarios.Venda(codigo, revenda.ProdutoId, "11977770008"), HttpStatusCode.Created);
+        await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
+        var venciaEm = await banco.Texto($"select to_char(vence_em at time zone 'UTC', 'YYYY-MM-DD') from placas where codigo = '{codigo}'");
+
+        await revenda.Dono.Postar($"/placas/{codigo}/renovacao", new { });
+        await revenda.Dono.Postar($"/placas/{codigo}/renovacao/recebimento", new { meio = "OutroPix" }, HttpStatusCode.UnprocessableEntity);
+        await VencerPix(revenda.Id);
+        var renovada = await revenda.Dono.Postar($"/placas/{codigo}/renovacao/recebimento", new { meio = "OutroPix" });
+
+        Assert.Equal("Paga", renovada.GetProperty("cobranca").GetProperty("situacao").GetString());
+        Assert.Equal(8_994, renovada.GetProperty("valorCents").GetInt64());
+        var venceAgora = await banco.Texto($"select to_char(vence_em at time zone 'UTC', 'YYYY-MM-DD') from placas where codigo = '{codigo}'");
+        Assert.Equal(DateOnly.Parse(venciaEm, System.Globalization.CultureInfo.InvariantCulture).AddYears(1), DateOnly.Parse(venceAgora, System.Globalization.CultureInfo.InvariantCulture));
+        Assert.Equal(1, await banco.Contar($"select count(*) from lancamentos where revendedor_id = '{revenda.Id}' and descricao like 'Taxa da plataforma a acertar, renovação%'"));
+    }
 }

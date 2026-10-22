@@ -95,7 +95,13 @@ export function TelaDaPlaca() {
                 <PixNaTela copiaECola={renovar.data.cobranca.pixCopiaECola} imagemDoGateway={renovar.data.cobranca.pixQrCodeUrl} />
               </>
             )}
-            {!renovar.data && <Button disabled={renovar.isPending} onClick={() => renovar.mutate()}>{renovar.isPending ? 'Gerando o Pix...' : 'Renovar'}</Button>}
+            {!renovar.data && (
+              <div className="flex flex-wrap gap-2">
+                <Button disabled={renovar.isPending} onClick={() => renovar.mutate(undefined)}>Renovar com Pix</Button>
+                <Button variant="outline" disabled={renovar.isPending} onClick={() => renovar.mutate('Dinheiro')}>Recebido em dinheiro</Button>
+                <Button variant="outline" disabled={renovar.isPending} onClick={() => renovar.mutate('OutroPix')}>Recebido por outro Pix</Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}

@@ -110,7 +110,8 @@ public sealed class EfeitosDaCobranca(IBancoDeDados banco, FilaDeEmails avisos, 
         banco.AvisarAoVivo("pagamento", placa.RevendedorId);
         if (cobranca.TaxaAvaliaCents > 0)
         {
-            banco.Lancamentos.Add(new Lancamento(TipoDeLancamento.TaxaAvalia, cobranca.Id, -cobranca.TaxaAvaliaCents, $"Taxa da plataforma, renovação {placa.Codigo}", quando, renovacao.VendaId));
+            var taxa = cobranca.PorFora ? $"Taxa da plataforma a acertar, renovação {placa.Codigo} recebida por fora" : $"Taxa da plataforma, renovação {placa.Codigo}";
+            banco.Lancamentos.Add(new Lancamento(TipoDeLancamento.TaxaAvalia, cobranca.Id, -cobranca.TaxaAvaliaCents, taxa, quando, renovacao.VendaId));
         }
     }
 

@@ -23,7 +23,7 @@ const FOLGA_DA_RENOVACAO = 60_000
 async function enviar(caminho: string, opcoes: RequestInit): Promise<Response> {
   const { token } = useSessao.getState()
   const cabecalhos = new Headers(opcoes.headers)
-  if (opcoes.body !== undefined && !(opcoes.body instanceof FormData)) cabecalhos.set('Content-Type', 'application/json')
+  if (typeof opcoes.body === 'string' && !cabecalhos.has('Content-Type')) cabecalhos.set('Content-Type', 'application/json')
   if (token) cabecalhos.set('Authorization', `Bearer ${token}`)
   return fetch(`/api${caminho}`, { ...opcoes, headers: cabecalhos, credentials: 'same-origin' })
 }

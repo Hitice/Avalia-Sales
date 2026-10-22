@@ -9,9 +9,9 @@ import { Field, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { ESCURO, corValida, problemasDaMarca, razao, textoSobre } from './contraste'
 import { type Marca, useLogo, useMarca } from './marca'
+import { LOGO_ESCOLHIDO, reduzirLogo } from './reduzirLogo'
 
 const PADRAO = { primaria: '#120C2B', destaque: '#D1006F' }
-const LOGO_MAXIMO = 512 * 1024
 
 /**
  * A marca do revendedor: nome, cor primária, cor de destaque e logo. A prévia
@@ -53,13 +53,14 @@ function FormularioDaMarca({ marca, salvo, setSalvo }: { marca: Marca; salvo: bo
   async function enviarLogo(arquivo: File | undefined) {
     if (!arquivo) return
     setErro(null)
-    if (arquivo.size > LOGO_MAXIMO || !['image/png', 'image/webp'].includes(arquivo.type)) {
-      setErro('O logo vai em PNG ou WebP, com até 512 KB.')
+    if (!arquivo.type.startsWith('image/') || arquivo.size > LOGO_ESCOLHIDO) {
+      setErro('Escolha uma imagem de até 25 MB.')
       return
     }
 
     try {
-      await chamarResposta('/revenda/marca/logo', { method: 'PUT', body: arquivo, headers: { 'Content-Type': arquivo.type } })
+      const logo = await reduzirLogo(arquivo)
+      await chamarResposta('/revenda/marca/logo', { method: 'PUT', body: logo, headers: { 'Content-Type': logo.type } })
       await refazer()
     } catch (e) {
       setErro(e)
@@ -99,8 +100,8 @@ function FormularioDaMarca({ marca, salvo, setSalvo }: { marca: Marca; salvo: bo
             {problemas.map((p) => <p key={p} role="alert" className="text-sm text-destructive">{p}</p>)}
             <Button disabled={problemas.length > 0} onClick={salvar}>Salvar marca</Button>
             <Field>
-              <FieldLabel htmlFor="logo">Logo (PNG ou WebP, até 512 KB)</FieldLabel>
-              <Input id="logo" type="file" accept="image/png,image/webp" onChange={(e) => enviarLogo(e.target.files?.[0])} />
+              <FieldLabel htmlFor="logo">Logo</FieldLabel>
+              <Input id="logo" type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => enviarLogo(e.target.files?.[0])} />
             </Field>
             {marca.temLogo && <Button variant="outline" onClick={() => chamarApi('/revenda/marca/logo', { method: 'DELETE' }).then(refazer).catch(setErro)}>Remover logo</Button>}
             <Button variant="ghost" onClick={restaurar}>Voltar à marca da plataforma</Button>

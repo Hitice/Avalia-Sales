@@ -18,29 +18,7 @@ public sealed class Renovacoes(IBancoDeDados banco, IUsuarioAtual usuario, Cobra
 {
     public async Task<RenovacaoAberta> Renovar(string codigo, CancellationToken ct)
     {
-        var normalizado = CodigoDaPlaca.Normalizar(codigo);
-        var placa = await banco.Placas.SingleOrDefaultAsync(p => p.Codigo == normalizado, ct)
-            ?? throw new RegraDeNegocioException("Código não encontrado, verifique novamente.");
-        var venda = placa.VendaId is { } vendaId ? await banco.Vendas.SingleAsync(v => v.Id == vendaId, ct) : null;
-        if (venda is null)
-        {
-            throw new RegraDeNegocioException("Placa sem venda não tem o que renovar.");
-        }
-
-        if (usuario.Papel == Papel.Vendedor && venda.VendedorId != usuario.UsuarioId)
-        {
-            throw new RegraDeNegocioException("Só quem vendeu a placa, ou o dono, renova.");
-        }
-
-        var renovacao = await banco.Renovacoes.SingleOrDefaultAsync(r => r.PlacaId == placa.Id && r.Situacao == SituacaoDaRenovacao.Aberta, ct);
-        if (renovacao is null)
-        {
-            var percentual = await banco.Revendedores.Where(r => r.Id == placa.RevendedorId).Select(r => r.RenovacaoBps).SingleAsync(ct);
-            renovacao = new Renovacao(placa, venda.ValorCents, percentual, relogio.GetUtcNow());
-            banco.Renovacoes.Add(renovacao);
-            await banco.SaveChangesAsync(ct);
-        }
-
+        var (placa, venda, renovacao) = await AbrirRenovacao(codigo, ct);
         var cobranca = await banco.Cobrancas.AsNoTracking()
             .Where(c => c.Origem == OrigemDaCobranca.Renovacao && c.OrigemId == renovacao.Id && (c.Situacao == SituacaoDaCobranca.Pendente || c.Situacao == SituacaoDaCobranca.Paga))
             .OrderByDescending(c => c.CriadaEm).FirstOrDefaultAsync(ct);
@@ -69,5 +47,52 @@ public sealed class Renovacoes(IBancoDeDados banco, IUsuarioAtual usuario, Cobra
         {
             return new RenovacaoAberta(renovacao.Id, placa.Codigo, renovacao.ValorCents, placa.VenceEm, null, "O Pagar.me não respondeu. Tente renovar de novo.");
         }
+    }
+
+    /// <summary>
+    /// Renovação paga no balcão, em dinheiro ou por outro Pix. Com Pix da
+    /// renovação em aberto, espera ele vencer: o cliente pagaria duas vezes.
+    /// </summary>
+    public async Task<RenovacaoAberta> ReceberPorFora(string codigo, MeioDePagamento meio, CancellationToken ct)
+    {
+        var (placa, _, renovacao) = await AbrirRenovacao(codigo, ct);
+        if (await banco.Cobrancas.AnyAsync(c => c.Origem == OrigemDaCobranca.Renovacao && c.OrigemId == renovacao.Id
+                && (c.Situacao == SituacaoDaCobranca.Pendente || c.Situacao == SituacaoDaCobranca.Paga), ct))
+        {
+            throw new RegraDeNegocioException("A renovação tem Pix em aberto. Espere o Pix vencer para confirmar por fora.");
+        }
+
+        var cobranca = await cobrancas.RegistrarPorFora(OrigemDaCobranca.Renovacao, renovacao.Id, meio, renovacao.ValorCents, ct);
+        await banco.SaveChangesAsync(ct);
+        return new RenovacaoAberta(renovacao.Id, placa.Codigo, renovacao.ValorCents, placa.VenceEm, Cobrancas.ParaDto(cobranca), null);
+    }
+
+    /// <summary>A renovação em aberto da placa, ou uma nova pelo percentual de hoje do revendedor.</summary>
+    private async Task<(Placa Placa, Domain.Vendas.Venda Venda, Renovacao Renovacao)> AbrirRenovacao(string codigo, CancellationToken ct)
+    {
+        var normalizado = CodigoDaPlaca.Normalizar(codigo);
+        var placa = await banco.Placas.SingleOrDefaultAsync(p => p.Codigo == normalizado, ct)
+            ?? throw new RegraDeNegocioException("Código não encontrado, verifique novamente.");
+        var venda = placa.VendaId is { } vendaId ? await banco.Vendas.SingleAsync(v => v.Id == vendaId, ct) : null;
+        if (venda is null)
+        {
+            throw new RegraDeNegocioException("Placa sem venda não tem o que renovar.");
+        }
+
+        if (usuario.Papel == Papel.Vendedor && venda.VendedorId != usuario.UsuarioId)
+        {
+            throw new RegraDeNegocioException("Só quem vendeu a placa, ou o dono, renova.");
+        }
+
+        var renovacao = await banco.Renovacoes.SingleOrDefaultAsync(r => r.PlacaId == placa.Id && r.Situacao == SituacaoDaRenovacao.Aberta, ct);
+        if (renovacao is null)
+        {
+            var percentual = await banco.Revendedores.Where(r => r.Id == placa.RevendedorId).Select(r => r.RenovacaoBps).SingleAsync(ct);
+            renovacao = new Renovacao(placa, venda.ValorCents, percentual, relogio.GetUtcNow());
+            banco.Renovacoes.Add(renovacao);
+            await banco.SaveChangesAsync(ct);
+        }
+
+        return (placa, venda, renovacao);
     }
 }
