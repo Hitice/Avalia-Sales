@@ -1,4 +1,4 @@
-import { type LucideIcon, ClipboardList, Headset, Home, Link2, Menu, Package, PlusCircle, Receipt, Store } from 'lucide-react'
+import { type LucideIcon, ClipboardList, Headset, Home, Menu, Package, PlusCircle, Receipt, Store } from 'lucide-react'
 import { useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router'
 import { sairDaSessao } from '@/acesso/renovacao'
@@ -29,10 +29,10 @@ const PRINCIPAIS: Record<Papel, { para: string; rotulo: string; icone: LucideIco
     { para: '/painel/estoque', rotulo: 'Estoque', icone: Package },
   ],
   Vendedor: [
+    { para: '/vendedor/inicio', rotulo: 'Início', icone: Home },
     { para: '/vender', rotulo: 'Vender', icone: PlusCircle },
-    { para: '/vendedor/placas', rotulo: 'Placas', icone: Package },
     { para: '/vendedor/vendas', rotulo: 'Vendas', icone: Receipt },
-    { para: '/links', rotulo: 'Links', icone: Link2 },
+    { para: '/vendedor/placas', rotulo: 'Placas', icone: Package },
   ],
 }
 
@@ -64,6 +64,7 @@ const MENU: Record<Papel, Item[]> = {
     { para: '/painel/suporte', rotulo: 'Falar com a Avalia' },
   ],
   Vendedor: [
+    { para: '/vendedor/inicio', rotulo: 'Início' },
     { para: '/vender', rotulo: 'Nova venda' },
     { para: '/vendedor/placas', rotulo: 'Minhas placas' },
     { para: '/vendedor/vendas', rotulo: 'Minhas vendas' },

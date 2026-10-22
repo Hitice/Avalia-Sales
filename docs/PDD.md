@@ -83,6 +83,7 @@ Todas no mesmo app, liberadas pelo papel do usuário.
 | Marca | Revendedor | Computador | Logo, cores e nome exibido, com prévia |
 | Painel | Revendedor | Computador | Vendas e pagamentos ao vivo, saldo de comissão, registro de repasse |
 | Mapa | Revendedor | Computador | Lugares vendidos, no Google Maps |
+| Painel do vendedor | Vendedor | Celular | Vendas do mês, comissão a receber, esperando pagamento e recebida, placas com ele |
 | Nova venda | Vendedor | Celular | Negócio no Google, QR da placa, cliente, cobrança, gravação do NFC |
 | Links | Dono e vendedor | Celular | Link curto do negócio sem placa: copiar, gravar NFC; o dono edita, desliga e exclui |
 | Ficha da placa | Vendedor e revendedor | Celular | Destino, vencimento, leituras, troca, renovação |
@@ -372,6 +373,7 @@ Estimativa em semanas de cerca de 20 horas.
 
 | Data | Mudança |
 | --- | --- |
+| 22/10/2026 | Painel do vendedor (primeira tela dele) - vendas e valor do mês, comissão a receber, esperando o cliente pagar, recebida, placas com ele e últimas vendas. |
 | 22/10/2026 | Celular - menu na barra de baixo (telas de todo dia e "Mais"); Nova venda com "‹ Voltar" no topo (um passo para trás; no primeiro, sai) e só o botão de avançar no pé, campo do cliente verde quando o dado confere e link do Google conferido no passo do negócio. |
 | 22/10/2026 | Nova venda começa pelo negócio no Google, depois a placa. Link curto `/L/` do negócio, criado na venda com Google e na tela Links. |
 | 22/10/2026 | Vendedor convidado por e-mail cria a própria senha; o dono também pode mandar o link pelo WhatsApp. Esqueci a senha na entrada. |

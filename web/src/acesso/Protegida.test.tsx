@@ -16,7 +16,7 @@ function abrir(papel: Papel | null, iniciada = true) {
 
   const roteador = createMemoryRouter([
     { path: '/entrar', element: <p>Entrada</p> },
-    { path: '/vender', element: <p>Nova venda</p> },
+    { path: '/vendedor/inicio', element: <p>Painel do vendedor</p> },
     { element: <Protegida papeis={['Operadora']} />, children: [{ path: '/operadora', element: <p>Operação</p> }] },
   ], { initialEntries: ['/operadora'] })
   render(<RouterProvider router={roteador} />)
@@ -40,7 +40,7 @@ describe('Protegida', () => {
 
   it('papel errado vai para a área do próprio papel', () => {
     abrir('Vendedor')
-    expect(screen.getByText('Nova venda')).toBeInTheDocument()
+    expect(screen.getByText('Painel do vendedor')).toBeInTheDocument()
   })
 
   it('papel certo abre a área', () => {

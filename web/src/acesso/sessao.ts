@@ -50,7 +50,7 @@ export function inicioDoPapel(papel: Papel | undefined): string {
     case 'Operadora':
       return '/operadora'
     case 'Vendedor':
-      return '/vender'
+      return '/vendedor/inicio'
     default:
       return '/painel'
   }
