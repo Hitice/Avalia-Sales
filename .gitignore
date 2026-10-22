@@ -484,3 +484,7 @@ $RECYCLE.BIN/
 # Segredos locais do Docker Compose
 .env
 *.pem
+
+# Playwright
+web/playwright-report/
+web/test-results/

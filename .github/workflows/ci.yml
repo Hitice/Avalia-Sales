@@ -60,6 +60,47 @@ jobs:
       - run: npm test
       - run: npx vite build
 
+  # Ponta a ponta a 390 px e no computador, com axe: o front compilado contra a
+  # API de verdade e os dados da demonstração.
+  e2e:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: web/.nvmrc
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+        working-directory: web
+      - run: npx playwright install --with-deps chromium
+        working-directory: web
+      - name: API da demonstração
+        run: web/e2e/api.sh
+      - run: npm run e2e
+        working-directory: web
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright
+          path: web/test-results/
+          retention-days: 7
+
   # SonarCloud só com o segredo SONAR_TOKEN e as variáveis SONAR_ORGANIZACAO e
   # SONAR_PROJETO; sem eles, o passo avisa e sai sem falhar.
   qualidade:

@@ -134,6 +134,14 @@ negócio e duas travas independentes:
   pagamento sozinho (a ficha é refeita a cada 5 s). O NFC não é lido: a tela
   grava o endereço da placa na tag (Web NFC, só Chrome do Android), no fim da
   venda e na ficha.
+- Ponta a ponta - Playwright (`web/e2e`, `npm run e2e`) contra o front
+  compilado (vite preview) e a API de verdade com a demonstração: entrada,
+  venda no balcão até o link curto, convite do vendedor até o painel dele e
+  todas as telas do dono, a 390 px e a 1440 px. Cada tela passa no axe
+  (WCAG 2.2 AA; violação séria ou crítica falha) e sem rolagem lateral. No
+  CI, o job `e2e` sobe Postgres, migra, semeia e liga a API pelo
+  `web/e2e/api.sh`. Roda com movimento reduzido, para o axe não medir botão
+  no meio da transição.
 - Testes - Vitest e Testing Library: dinheiro, sessão, renovação (uma só para
   chamadas simultâneas), rota protegida por papel, código da placa, percentual,
   CNPJ, telefone, contraste da marca e a tela de entrada. 36 testes em
@@ -592,6 +600,7 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
 
 | Data | Mudança |
 | --- | --- |
+| 22/10/2026 | Testes de ponta a ponta com Playwright e axe, job `e2e` no CI. O axe achou e foram corrigidos: contraste da aba inativa e telas sem `h1` (entrada, cadastro, senha, catálogo). |
 | 22/10/2026 | Formulários de cadastro em React Hook Form + Zod com `Campo` e `lib/esquemas.ts` (Nova venda, Equipe, Links, senha, Pacotes, Cupons); o de Pacotes não limpa mais o que foi digitado quando a gravação falha. |
 | 22/10/2026 | Contrato da API versionado em `web/openapi.json` (ContratoDaApiTest falha se divergir e regrava fora do CI); tipos do front gerados dele com openapi-typescript (`npm run tipos`, `src/api/esquema.d.ts`), conferidos no CI. JSON da API com número estrito; papel do perfil como enumeração. |
 | 22/10/2026 | Front - `Table` rotula as células pelo cabeçalho e vira cartão abaixo de `md`; menu lateral a partir de `lg`, de cima com quebra em `md`, barra de baixo no celular; `--traco`, `--noite` e Inter Display (`public/fonts/inter-display.woff2`) nos títulos. |

@@ -21,7 +21,7 @@ function Moldura({ titulo, children }: { titulo: string; children: React.ReactNo
       <MarcaAvalia />
       <Card className="relative w-full max-w-sm border-0">
         <span aria-hidden className="traco absolute inset-x-0 top-0 h-1" />
-        <CardHeader><CardTitle className="text-xl">{titulo}</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-xl"><h1>{titulo}</h1></CardTitle></CardHeader>
         <CardContent>{children}</CardContent>
       </Card>
       <Link to="/entrar" className="text-sm text-white/75 underline underline-offset-4">Voltar à entrada</Link>

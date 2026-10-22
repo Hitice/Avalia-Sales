@@ -47,7 +47,7 @@ export function TelaDeEntrada() {
       <Card className="relative w-full max-w-sm border-0">
         <span aria-hidden className="traco absolute inset-x-0 top-0 h-1" />
         <CardHeader>
-          <CardTitle className="text-xl">Entrar</CardTitle>
+          <CardTitle className="text-xl"><h1>Entrar</h1></CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={formulario.handleSubmit(entrar)} noValidate>

@@ -52,7 +52,7 @@ export function TelaDeCadastro() {
       <Card className="relative w-full max-w-md border-0">
         <span aria-hidden className="traco absolute inset-x-0 top-0 h-1" />
         <CardHeader>
-          <CardTitle className="text-xl">Cadastrar revenda</CardTitle>
+          <CardTitle className="text-xl"><h1>Cadastrar revenda</h1></CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={formulario.handleSubmit(cadastrar)} noValidate>

@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { mensagemDoErro } from '@/api/cliente'
-import { Erro } from '@/componentes/Tela'
+import { Cabecalho, Erro } from '@/componentes/Tela'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -50,10 +50,9 @@ export function TelaDoCatalogo() {
 
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
+      <div>
+      <Cabecalho titulo="Catálogo" />
       <Card>
-        <CardHeader>
-          <CardTitle>Catálogo</CardTitle>
-        </CardHeader>
         <CardContent className="grid gap-3">
           <Erro erro={erroDaLista ? mensagemDoErro(erroDaLista) : null} />
           {produtos.isPending && <p className="text-sm text-muted-foreground">Carregando...</p>}
@@ -91,6 +90,7 @@ export function TelaDoCatalogo() {
           )}
         </CardContent>
       </Card>
+      </div>
 
       <Card className="self-start">
         <CardHeader>

@@ -36,6 +36,8 @@ export default defineConfig({
     },
   },
   test: {
+    // Os testes de ponta a ponta (e2e/) rodam no Playwright, não no Vitest.
+    include: ['src/**/*.test.{ts,tsx}'],
     environment: 'jsdom',
     setupFiles: ['./src/testes/preparar.ts'],
     css: false,
