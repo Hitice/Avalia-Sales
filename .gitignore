@@ -488,3 +488,4 @@ $RECYCLE.BIN/
 # Playwright
 web/playwright-report/
 web/test-results/
+web/storybook-static/

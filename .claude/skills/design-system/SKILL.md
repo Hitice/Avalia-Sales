@@ -150,7 +150,7 @@ Conferidas na API do GitHub e no npm em 21/10/2026, pelo critério da skill
 | [Playwright](https://github.com/microsoft/playwright) | Teste de ponta a ponta | 98 mil | |
 | [Style Dictionary](https://github.com/style-dictionary/style-dictionary) | Tokens em JSON, só se surgir outro consumidor | 4,9 mil | 5.7.0 |
 
-Estado em 22/10/2026: traço, Inter Display, navegação por tamanho e tabela em cartão no celular; axe no Playwright (`web/e2e`) em todas as telas do dono e nos fluxos de venda e convite. Storybook ainda não instalado. Em 21/10/2026 o front tinha as telas das Fases 1 a 3 e a marca do revendedor aplicada nas variáveis (`web/src/marca`). Tokens
+Estado em 22/10/2026: traço, Inter Display, navegação por tamanho e tabela em cartão no celular; axe no Playwright (`web/e2e`) em todas as telas do dono e nos fluxos de venda e convite. Storybook 10 (`npm run storybook`, porta 6006) com o addon de acessibilidade em modo erro e a troca de marca na barra (plataforma ou revenda); histórias de botão, campo, tabela (computador e celular), histórico e NFC. O CI compila o catálogo. Em 21/10/2026 o front tinha as telas das Fases 1 a 3 e a marca do revendedor aplicada nas variáveis (`web/src/marca`). Tokens
 em `web/src/estilos/tokens.css`; toque de 44 px aplicado nos tamanhos de
 `components/ui/button.tsx` e `input.tsx`; anel de foco em cor cheia. Storybook e
 axe ainda não instalados (pendência no SDD).

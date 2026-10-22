@@ -59,6 +59,8 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npx vite build
+      # O catálogo vivo precisa compilar: história quebrada falha aqui.
+      - run: npm run build-storybook -- --quiet
 
   # Ponta a ponta a 390 px e no computador, com axe: o front compilado contra a
   # API de verdade e os dados da demonstração.
