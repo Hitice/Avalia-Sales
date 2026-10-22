@@ -58,12 +58,11 @@ cd web && npm ci && npm run dev   # http://localhost:5173, /api vai para a API l
 Páginas - `http://127.0.0.1:5199/swagger` (Swagger UI com todas as rotas e o
 botão Authorize para o token), `/health` e a leitura de placa em `/q/{codigo}`.
 
-A demonstração cria, com a senha `demonstracao-123` - a operadora
-`operadora@avalia.dev`; a revenda A com `dono@revenda-a.dev`, `bruna@revenda-a.dev`
-e `carlos@revenda-a.dev`, placas ativas, vendas pagas e pendentes, leituras e um
-lote (LT-0002) esperando ativação; a revenda B com `dono@revenda-b.dev` e um
-pedido aguardando pagamento. Preços, contratos, recebedores e pagamentos são
-simulados.
+A demonstração cria, com a senha `demo-123` (curta só na demonstração): a
+operadora `operador@avalia.dev`; a revenda A com o dono `cliente@a.dev` e a
+vendedora `vendedor@a.dev`, placas ativas, vendas pagas e pendentes, leituras e
+um lote (LT-0002) esperando ativação; a revenda B com o dono `cliente@b.dev`, o
+vendedor `vendedor@b.dev`, lote ativado e vendas.
 
 Revendedor e operadora pela linha de comando (o revendedor também se cadastra
 pela tela):

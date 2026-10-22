@@ -91,7 +91,7 @@ function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
     <tr
       data-slot="table-row"
       className={cn(
-        "border-b transition-colors hover:bg-muted/50 has-aria-expanded:bg-muted/50 data-[state=selected]:bg-muted max-md:grid max-md:grid-cols-2 max-md:gap-x-4 max-md:gap-y-2 max-md:py-3",
+        "border-b transition-colors hover:bg-muted/50 has-aria-expanded:bg-muted/50 data-[state=selected]:bg-muted max-md:flex max-md:flex-col max-md:py-4 max-md:hover:bg-transparent",
         className
       )}
       {...props}
@@ -118,8 +118,14 @@ function TableCell({ className, ...props }: React.ComponentProps<"td">) {
       data-slot="table-cell"
       className={cn(
         "p-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0",
-        // Celular: sem rótulo ocupa a linha toda (título do cartão ou ações); com rótulo, o rótulo vai em cima.
-        "max-md:min-w-0 max-md:p-0 max-md:text-left max-md:whitespace-normal max-md:[&:not([data-rotulo])]:col-span-2 max-md:first:text-base max-md:first:font-semibold max-md:[&:not([data-rotulo])>div]:justify-start max-md:before:block max-md:before:text-xs max-md:before:text-muted-foreground max-md:before:content-[attr(data-rotulo)]",
+        // Celular: a primeira célula é o título do cartão; com rótulo, uma linha de rótulo à esquerda e valor à direita;
+        // sem rótulo e não primeira, as ações, numa fileira de botões de mesma largura.
+        "max-md:min-w-0 max-md:p-0 max-md:whitespace-normal",
+        "max-md:first:pb-2 max-md:first:text-base max-md:first:font-semibold",
+        // O rótulo flutua à esquerda e o valor, inteiro (mesmo com mais de um pedaço), fica à direita.
+        "max-md:data-[rotulo]:flow-root max-md:data-[rotulo]:py-1.5 max-md:data-[rotulo]:text-right",
+        "max-md:before:float-left max-md:before:pr-4 max-md:before:text-left max-md:before:text-sm max-md:before:font-normal max-md:before:text-muted-foreground max-md:before:content-[attr(data-rotulo)]",
+        "max-md:[&:not([data-rotulo]):not(:first-child)]:pt-3 max-md:[&:not([data-rotulo]):not(:first-child)>div]:grid max-md:[&:not([data-rotulo]):not(:first-child)>div]:auto-cols-fr max-md:[&:not([data-rotulo]):not(:first-child)>div]:grid-flow-col",
         className
       )}
       {...props}

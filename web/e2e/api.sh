@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Sobe a API para os testes de ponta a ponta do CI: banco novo, papel da
-# aplicação, migração, dados da demonstração e a API em segundo plano na 5199.
+# Sobe a API e o Worker para os testes de ponta a ponta do CI: banco novo,
+# papel da aplicação, migração, dados da demonstração, a API na 5199 e o
+# Worker, que confere o Pix simulado.
 # Localmente os testes usam a API que já estiver de pé.
 set -euo pipefail
 
@@ -31,10 +32,12 @@ export ASPNETCORE_URLS=http://127.0.0.1:5199
 
 cd "$RAIZ"
 dotnet build src/AvaliaSales.Api -c Release -v quiet
+dotnet build src/AvaliaSales.Worker -c Release -v quiet
 ConnectionStrings__Dono="Host=localhost;Username=postgres;Password=postgres;Database=$BANCO" \
   dotnet run --project src/AvaliaSales.Api -c Release --no-build --no-launch-profile -- --migrar
 dotnet run --project src/AvaliaSales.Api -c Release --no-build --no-launch-profile -- --demonstracao
 nohup dotnet run --project src/AvaliaSales.Api -c Release --no-build --no-launch-profile > /tmp/api-e2e.log 2>&1 &
+nohup dotnet run --project src/AvaliaSales.Worker -c Release --no-build --no-launch-profile > /tmp/worker-e2e.log 2>&1 &
 
 for _ in $(seq 1 60); do
   if curl -fs http://127.0.0.1:5199/health > /dev/null; then echo "API de pé"; exit 0; fi

@@ -1,13 +1,9 @@
 import { expect, test } from '@playwright/test'
-import { entrar, semRolagemLateral, semViolacaoGrave } from './apoio'
+import { entrar, placaLivre, semRolagemLateral, semViolacaoGrave } from './apoio'
 
 test('venda no balcão: negócio, placa, cliente e cobrança, com o link curto no fim', async ({ page }) => {
+  const codigo = await placaLivre()
   await entrar(page)
-  await page.goto('/painel/estoque')
-  await page.getByRole('combobox').first().click()
-  await page.getByRole('option', { name: /Em estoque/ }).click()
-  const codigo = (await page.locator('tbody tr td').first().innerText()).trim()
-  expect(codigo).toMatch(/^[0-9A-Z]{6}$/)
 
   await page.goto('/vender')
   await semViolacaoGrave(page)

@@ -13,6 +13,7 @@ import { destinoPronto } from './destino'
 import { Historico } from '@/auditoria/Historico'
 import { EscolhaDeDestino } from './EscolhaDeDestino'
 import { GravarNfc } from './BotoesDeNfc'
+import { Dados } from '@/componentes/Dados'
 
 /** A ficha da placa: destino, vencimento, leituras do mês e o liga e desliga. */
 export function TelaDaPlaca() {
@@ -46,12 +47,20 @@ export function TelaDaPlaca() {
       {f.venda && (
         <Card>
           <CardHeader><CardTitle>Venda</CardTitle></CardHeader>
-          <CardContent className="grid gap-1 text-sm">
-            <p className="font-medium">{f.venda.cliente}</p>
-            <p className="text-muted-foreground">{f.venda.responsavel} - {formatarTelefone(f.venda.telefone)}</p>
-            <p>{f.venda.produto}, {formatarCentavos(f.venda.valorCents)}, vendida por {f.venda.vendedor} em {formatarData(f.venda.vendidaEm)}</p>
-            <p>Pagamento: {f.venda.pagamento ? ROTULO_DO_PAGAMENTO[f.venda.pagamento] : 'sem cobrança'}. Comissão: {formatarCentavos(f.venda.comissaoCents)}</p>
-            <p>Vence em {formatarData(f.venceEm)}. Carência até {formatarData(f.fimDaCarencia)}.</p>
+          <CardContent>
+            <Dados itens={[
+              ['Cliente', f.venda.cliente],
+              ['Responsável', f.venda.responsavel],
+              ['Telefone', formatarTelefone(f.venda.telefone)],
+              ['Produto', f.venda.produto],
+              ['Valor', formatarCentavos(f.venda.valorCents)],
+              ['Pagamento', f.venda.pagamento ? ROTULO_DO_PAGAMENTO[f.venda.pagamento] : 'Sem cobrança'],
+              ['Vendedor', f.venda.vendedor],
+              ['Comissão', formatarCentavos(f.venda.comissaoCents)],
+              ['Vendida em', formatarData(f.venda.vendidaEm)],
+              ['Vence em', formatarData(f.venceEm)],
+              ['Carência até', formatarData(f.fimDaCarencia)],
+            ]} />
           </CardContent>
         </Card>
       )}
@@ -72,7 +81,7 @@ export function TelaDaPlaca() {
                   </>
                 )
               : (
-                  <div className="flex flex-wrap gap-2">
+                  <div className="grid grid-cols-2 gap-2 [&>*:last-child:nth-child(odd)]:col-span-2">
                     <Button variant="outline" onClick={() => setTrocando(true)}>Trocar destino</Button>
                     {(f.estado === 'Ativa' || f.estado === 'Carencia' || f.estado === 'Suspensa' || f.estado === 'Vencida') && (
                       <Button variant="outline" disabled={alternar.isPending} onClick={() => alternar.mutate()}>{f.estado === 'Suspensa' ? 'Pôr no ar' : 'Suspender'}</Button>

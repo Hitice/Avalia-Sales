@@ -255,9 +255,12 @@ Todas no mesmo app, liberadas pelo papel do usuário.
   foi assinado.
 - Contrato só anda para a frente - aguardando assinatura vira assinado ou
   cancelado.
-- O contrato de revenda e os avisos ao dono só vão para e-mail confirmado. O
-  cadastro manda o link de confirmação (vale 2 dias); o painel lembra e
-  reenvia. Conta criada pela operadora já nasce confirmada.
+- O dono só usa o painel depois de confirmar o e-mail: o cadastro manda o link
+  (vale 2 dias) e, até lá, o painel mostra só a confirmação, com reenviar.
+  Contrato e avisos também só vão para e-mail confirmado. Conta criada pela
+  operadora já nasce confirmada. O vendedor não passa por essa trava.
+- Entrada de aparelho novo na conta gera um e-mail ao dono da conta, com
+  navegador, sistema, horário e IP, e o link para trocar a senha.
 
 ### E-mail
 
@@ -415,6 +418,7 @@ O que está pronto no código e só fecha com a conta de verdade:
 
 | Data | Mudança |
 | --- | --- |
+| 22/10/2026 | O dono só usa o painel depois de confirmar o e-mail. Segundo fator também por código no e-mail. Aviso por e-mail de acesso de aparelho novo. Entrada clara com o logo da Avalia. |
 | 22/10/2026 | Renovação pedida e não paga (sem Pix vivo) não impede mais cancelar a venda nem trocar a placa: ela é cancelada junto. |
 | 22/10/2026 | Venda no cartão de crédito na Nova venda, em até 12 vezes, quando a revenda tem a chave pública do Pagar.me. |
 | 22/10/2026 | Segundo fator por app autenticador para o dono e a operadora, opcional. |

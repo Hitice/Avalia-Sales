@@ -3,11 +3,12 @@ import { formatarDataHora } from '@/api/rotulos'
 import type { TipoDeLancamento } from '@/api/tipos'
 import { Cabecalho, EstadoDaConsulta, Rolagem } from '@/componentes/Tela'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { formatarCentavos } from '@/dinheiro/dinheiro'
 import { useMesesDoRazao, useRazao } from './consultas'
+import { Indicador, Indicadores } from '@/componentes/Indicador'
 
 const ROTULO: Record<TipoDeLancamento, string> = {
   Receita: 'Receita',
@@ -44,14 +45,9 @@ export function TelaDoRazao() {
           </SelectContent>
         </Select>
       </Cabecalho>
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {totais.map((t) => (
-          <Card key={t.rotulo}>
-            <CardHeader><CardTitle className="text-sm font-normal text-muted-foreground">{t.rotulo}</CardTitle></CardHeader>
-            <CardContent><p className="text-2xl font-semibold tabular-nums">{formatarCentavos(t.valor)}</p></CardContent>
-          </Card>
-        ))}
-      </div>
+      <Indicadores>
+        {totais.map((t) => <Indicador key={t.rotulo} rotulo={t.rotulo} valor={formatarCentavos(t.valor)} />)}
+      </Indicadores>
       <Card className="mt-4">
         <CardContent>
           <EstadoDaConsulta carregando={razao.isPending} erro={razao.error} vazio={r?.lancamentos.length === 0} textoVazio="Nenhum lançamento neste mês." />

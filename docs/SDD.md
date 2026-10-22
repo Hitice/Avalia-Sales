@@ -488,7 +488,9 @@ tentativas.
 | CSP no HTML do front (Nginx): só o próprio domínio, Pagar.me (token do cartão), Google Maps e Places, Sentry e `wasm-unsafe-eval` para o leitor de QR; `frame-ancestors 'none'` | No código; conferir com `curl -sI` no primeiro deploy |
 | Segredos - gitleaks no CI (job `segredos`) e sem achado no histórico; falso positivo conferido no `.gitleaksignore` | No código |
 | Auditoria - tabela `auditoria` com RLS, só de inserção (`REVOKE UPDATE, DELETE` do papel da aplicação, com teste), gravada na transação da ação; `GET /auditoria` só do dono e o histórico na ficha | No código |
-| Segundo fator (TOTP) opcional para dono e operadora: entrada em dois passos com desafio de 5 minutos, 10 códigos de recuperação, erro de código conta para o bloqueio, link de senha não pula o fator (ADR 0017) | No código |
+| Aviso por e-mail quando a conta entra de um aparelho novo (o primeiro entra calado) | No código |
+| Dono só opera com e-mail confirmado; sem ele, só `/conta` | No código |
+| Segundo fator (app TOTP ou código por e-mail) opcional para dono e operadora: entrada em dois passos com desafio de 5 minutos, 10 códigos de recuperação, erro de código conta para o bloqueio, link de senha não pula o fator (ADR 0017) | No código |
 | LGPD - exportação dos dados do cliente (`GET /clientes/{id}/dados`) e anonimização (`POST /clientes/{id}/anonimizacao`, recusada com cobrança em aberto), só pelo dono e dentro do revendedor; valores ficam no razão | No código; prazo de guarda a definir (PDD 6b) |
 
 Revisão pela skill `seguranca` (OWASP ASVS 5.0).
@@ -613,6 +615,7 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
 
 | Data | Mudança |
 | --- | --- |
+| 22/10/2026 | Dono sem e-mail confirmado só abre `/conta` (claim `email_confirmado` nas políticas Dono e Equipe; o painel mostra só a confirmação). Segundo fator também por código no e-mail (`EmailTokenProvider`, `usuarios.segundo_fator_por_email`, `/auth/entrar/codigo/reenvio`). Aviso de aparelho novo por e-mail (`aparelhos_conhecidos`, cookie `avalia_aparelho` de 2 anos, só o hash). Entrada clara com o logo da AvaliaOne e rodapé com direitos e versão; `Indicador` e `Dados` no design system; tabela no celular em linhas de rótulo e valor. Demonstração com cinco logins e senha `demo-123`; teste de ponta a ponta da jornada entre operadora, revenda e vendedora, com isolamento. |
 | 22/10/2026 | Storybook 10 (`web/.storybook`, histórias ao lado dos componentes, addon a11y, marca da plataforma e de revenda na barra), compilado no CI. |
 | 22/10/2026 | Revisão pelas skills `seguranca` e `codigo-morto` - CSP no Nginx, gitleaks no CI, knip no front; removidos `radio-group`, esquemas e apelidos sem uso, `Mensagem.MarcarLida` e `CodigoDaPlaca.RestricaoDaRota`. Renovação aberta sem Pix vivo deixa de travar cancelamento e troca de placa: é cancelada na hora. |
 | 22/10/2026 | Cartão no balcão - tokenização no navegador (`lib/cartao.ts`, Luhn e validade), `GET /pagamento/cartao`, `Pagarme:ChavePublica`, cartão no simulador; testes de ponta a ponta com cartão aprovado e recusado. |

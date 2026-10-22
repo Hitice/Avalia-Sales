@@ -3,10 +3,10 @@ import { Link } from 'react-router'
 import { formatarBps, paraBps, ROTULO_DO_CONTRATO } from '@/api/rotulos'
 import { Aviso, Cabecalho, Erro } from '@/componentes/Tela'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatarCentavos } from '@/dinheiro/dinheiro'
 import { useDefinirRenovacao, useMinhaRevenda, usePlacas, useVendas } from './consultas'
 import { Input } from '@/components/ui/input'
+import { Indicador, Indicadores } from '@/componentes/Indicador'
 
 /** O resumo do dono: contrato, estoque, vendas do mês e o que fazer a seguir. */
 export function TelaInicial() {
@@ -44,13 +44,8 @@ export function TelaInicial() {
         </Aviso>
       )}
       {r && !r.recebedorPagarme && <div className="mt-3"><Aviso>Conta de recebimento no Pagar.me pendente.</Aviso></div>}
-      <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {numeros.map((n) => (
-          <Card key={n.rotulo}>
-            <CardHeader><CardTitle className="text-sm font-normal text-muted-foreground">{n.rotulo}</CardTitle></CardHeader>
-            <CardContent><p className="text-2xl font-semibold tabular-nums">{n.valor}</p></CardContent>
-          </Card>
-        ))}
+      <div className="mt-4">
+        <Indicadores>{numeros.map((n) => <Indicador key={n.rotulo} rotulo={n.rotulo} valor={n.valor} />)}</Indicadores>
       </div>
       {r && <p className="mt-4 text-sm text-muted-foreground">Comissão padrão: {formatarBps(r.comissaoPadraoBps)}. Taxa da plataforma: {formatarBps(r.taxaAvaliaBps)}.</p>}
       {r && (

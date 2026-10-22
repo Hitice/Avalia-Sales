@@ -69,16 +69,14 @@ export function TelaDeLinks() {
                 <Badge variant={l.ativo ? 'default' : 'outline'}>{l.ativo ? `${l.cliques} ${l.cliques === 1 ? 'clique' : 'cliques'}` : 'Desligado'}</Badge>
               </div>
               <CopiarLink rotulo="Endereço" endereco={l.endereco} />
-              <div className="flex flex-wrap gap-2">
-                <GravarNfc endereco={l.endereco} />
-                {dono && (
-                  <>
-                    <Button variant="outline" onClick={() => editar(l)}>Editar</Button>
-                    <Button variant="outline" onClick={() => ativar.mutate({ id: l.id, ativo: !l.ativo })}>{l.ativo ? 'Desligar' : 'Religar'}</Button>
-                    <Button variant="ghost" onClick={() => excluir.mutate(l.id)}>Excluir</Button>
-                  </>
-                )}
-              </div>
+              <GravarNfc endereco={l.endereco} />
+              {dono && (
+                <div className="grid grid-cols-3 gap-2">
+                  <Button variant="outline" onClick={() => editar(l)}>Editar</Button>
+                  <Button variant="outline" onClick={() => ativar.mutate({ id: l.id, ativo: !l.ativo })}>{l.ativo ? 'Desligar' : 'Religar'}</Button>
+                  <Button variant="ghost" className="text-destructive" onClick={() => excluir.mutate(l.id)}>Excluir</Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         ))}

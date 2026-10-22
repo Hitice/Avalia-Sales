@@ -1,12 +1,17 @@
 import { createHmac } from 'node:crypto'
 import AxeBuilder from '@axe-core/playwright'
-import { type Page, expect } from '@playwright/test'
+import { type APIRequestContext, type Page, expect, request } from '@playwright/test'
 
-/** Logins da demonstração (Demonstracao.cs). */
-export const DONO = 'dono@revenda-a.dev'
-const SENHA = 'demonstracao-123'
+/** Logins da demonstração (Demonstracao.cs), todos com a mesma senha. */
+export const OPERADOR = 'operador@avalia.dev'
+export const CLIENTE_A = 'cliente@a.dev'
+export const CLIENTE_B = 'cliente@b.dev'
+export const VENDEDOR_A = 'vendedor@a.dev'
+export const VENDEDOR_B = 'vendedor@b.dev'
+export const SENHA = 'demo-123'
+const API = 'http://localhost:4173/api/'
 
-export async function entrar(page: Page, email = DONO, senha = SENHA) {
+export async function entrar(page: Page, email = CLIENTE_A, senha = SENHA) {
   await page.goto('/entrar')
   await page.getByLabel('E-mail').fill(email)
   await page.getByLabel('Senha').fill(senha)
@@ -51,6 +56,50 @@ export function cnpjNovo(): string {
   const d = Array.from({ length: 12 }, () => Math.floor(Math.random() * 10))
   for (const pesos of [[5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2], [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]]) {
     const resto = d.reduce((s, n, i) => s + n * pesos[i], 0) % 11
+    d.push(resto < 2 ? 0 : 11 - resto)
+  }
+  return d.join('')
+}
+
+/** A API como um dos usuários da demonstração, pelo mesmo proxy do front. */
+export async function apiComo(email: string): Promise<APIRequestContext> {
+  const anonimo = await request.newContext({ baseURL: API })
+  const resposta = await anonimo.post('auth/entrar', { data: { email, senha: SENHA } })
+  expect(resposta.ok(), `entrada de ${email}`).toBeTruthy()
+  const { token } = await resposta.json() as { token: string }
+  await anonimo.dispose()
+  return request.newContext({ baseURL: API, extraHTTPHeaders: { Authorization: `Bearer ${token}` } })
+}
+
+/**
+ * Um código de placa no estoque da revenda A. Com pouco estoque, reabastece
+ * pelo caminho de verdade: a operadora gera o lote, a revenda pede, a
+ * operadora registra o pagamento e despacha, e a revenda ativa.
+ */
+export async function placaLivre(): Promise<string> {
+  const dono = await apiComo(CLIENTE_A)
+  const livres = async () => ((await (await dono.get('placas?estado=EmEstoque')).json()) as { placas: { codigo: string; consignadaA: string | null }[] })
+    .placas.filter((p) => p.consignadaA === null)
+  if ((await livres()).length < 2) {
+    const operador = await apiComo(OPERADOR)
+    const pacote = ((await (await operador.get('operadora/pacotes')).json()) as { id: string; quantidade: number }[]).find((p) => p.quantidade === 10)!
+    const lote = (await (await operador.post('operadora/lotes', { data: { quantidade: 10 } })).json()) as { numero: number; rotulo: string }
+    const pedido = (await (await dono.post('pedidos', { data: { pacoteId: pacote.id } })).json()) as { id: string }
+    expect((await operador.post(`operadora/pedidos/${pedido.id}/pagamento`, { data: {} })).ok()).toBeTruthy()
+    expect((await operador.post(`operadora/pedidos/${pedido.id}/despacho`, { data: { lote: lote.numero } })).ok()).toBeTruthy()
+    expect((await dono.post('lotes/ativacao', { data: { numero: lote.rotulo } })).ok()).toBeTruthy()
+    await operador.dispose()
+  }
+  const codigo = (await livres())[0].codigo
+  await dono.dispose()
+  return codigo
+}
+
+/** CPF válido novo: a venda reaproveita o cliente pelo documento, e cada teste quer o seu. */
+export function cpfNovo(): string {
+  const d = Array.from({ length: 9 }, () => Math.floor(Math.random() * 10))
+  for (const tamanho of [9, 10]) {
+    const resto = d.reduce((s, n, i) => s + n * (tamanho + 1 - i), 0) % 11
     d.push(resto < 2 ? 0 : 11 - resto)
   }
   return d.join('')

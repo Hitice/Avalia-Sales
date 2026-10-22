@@ -1,14 +1,11 @@
 import { expect, test } from '@playwright/test'
-import { entrar } from './apoio'
+import { entrar, placaLivre } from './apoio'
 
 /** No simulador, cartão aprova na hora; final 0002 simula recusa. */
 for (const [numero, esperado] of [['4000 0000 0000 0010', 'Pagamento confirmado'], ['4000 0000 0000 0002', 'Pagamento falhou']] as const) {
   test(`venda no cartão ${numero.slice(-4)}: ${esperado.toLowerCase()}`, async ({ page }) => {
     await entrar(page)
-    await page.goto('/painel/estoque')
-    await page.getByRole('combobox').first().click()
-    await page.getByRole('option', { name: /Em estoque/ }).click()
-    const codigo = (await page.locator('tbody tr td').first().innerText()).trim()
+    const codigo = await placaLivre()
 
     await page.goto('/vender')
     await page.getByLabel('Ou o link de avaliação do perfil').fill('g.page/r/CartaoDeTeste/review')

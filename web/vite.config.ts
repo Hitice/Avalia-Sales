@@ -15,8 +15,12 @@ const certificado = process.env.FRONT_CERTIFICADO
 const chave = process.env.FRONT_CHAVE
 const https = certificado && chave ? { cert: readFileSync(certificado), key: readFileSync(chave) } : undefined
 
+// A versão do rodapé da entrada, a do package.json.
+const pacote = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as { version: string }
+
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  define: { __VERSAO__: JSON.stringify(pacote.version) },
   resolve: {
     alias: { '@': path.resolve(import.meta.dirname, './src') },
   },

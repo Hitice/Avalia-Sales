@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatarCentavos } from '@/dinheiro/dinheiro'
 import { usePlacas, useSaldosDeComissao, useVendas } from './consultas'
+import { Indicador, Indicadores } from '@/componentes/Indicador'
 
 /**
  * O painel do vendedor: o que vendeu no mês, a comissão a receber (venda paga,
@@ -34,7 +35,7 @@ export function TelaDoVendedor() {
     { rotulo: 'Vendas no mês', valor: String(doMes.length) },
     { rotulo: 'Vendido no mês', valor: formatarCentavos(soma(doMes.filter((v) => v.pagamento === 'Paga'), 'valorCents')) },
     { rotulo: 'Comissão a receber', valor: formatarCentavos(saldo?.abertaCents ?? 0), destaque: true },
-    { rotulo: 'Esperando o cliente pagar', valor: formatarCentavos(soma(esperando, 'comissaoCents')) },
+    { rotulo: 'A pagar pelo cliente', valor: formatarCentavos(soma(esperando, 'comissaoCents')) },
     { rotulo: 'Comissão recebida', valor: formatarCentavos(saldo?.repassadaCents ?? 0) },
     { rotulo: 'Placas comigo', valor: String(placas.data?.porEstado.EmEstoque ?? 0) },
   ]
@@ -45,14 +46,9 @@ export function TelaDoVendedor() {
         <Button asChild><Link to="/vender">Nova venda</Link></Button>
       </Cabecalho>
       <Erro erro={vendas.error ?? saldos.error} />
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-        {numeros.map((n) => (
-          <Card key={n.rotulo} className={n.destaque ? 'ring-2 ring-sucesso' : undefined}>
-            <CardHeader><CardTitle className="text-sm font-normal text-muted-foreground">{n.rotulo}</CardTitle></CardHeader>
-            <CardContent><p className="text-2xl font-semibold tabular-nums">{n.valor}</p></CardContent>
-          </Card>
-        ))}
-      </div>
+      <Indicadores colunas={3}>
+        {numeros.map((n) => <Indicador key={n.rotulo} rotulo={n.rotulo} valor={n.valor} destaque={n.destaque} />)}
+      </Indicadores>
       {saldo?.ultimoRepasse && <p className="mt-3 text-sm text-muted-foreground">Último repasse em {formatarData(saldo.ultimoRepasse)}.</p>}
       <Card className="mt-4">
         <CardHeader><CardTitle>Últimas vendas</CardTitle></CardHeader>

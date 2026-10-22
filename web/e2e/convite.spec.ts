@@ -4,7 +4,7 @@ import { entrar, semViolacaoGrave } from './apoio'
 test('o vendedor convidado cria a senha pelo link e cai no painel dele', async ({ page, browser }) => {
   await entrar(page)
   await page.goto('/painel/equipe')
-  const email = `convite-${Date.now()}@revenda-a.dev`
+  const email = `convite-${Date.now()}@a.dev`
   await page.getByLabel('Nome').fill('Vendedor de Teste')
   await page.getByLabel('E-mail de acesso').fill(email)
   await page.getByRole('button', { name: 'Cadastrar vendedor' }).click()
