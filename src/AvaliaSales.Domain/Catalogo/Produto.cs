@@ -1,8 +1,11 @@
 namespace AvaliaSales.Domain.Catalogo;
 
 /// <summary>
-/// Item da tabela de preço do revendedor. Preço em centavos: dinheiro não passa
-/// por ponto flutuante em nenhuma camada.
+/// O preço que o revendedor pratica para um produto do catálogo da Avalia
+/// (ProdutoDaPlataforma). Nasce com o preço sugerido na primeira vez que a
+/// revenda ajusta ou vende o produto. O produto sem catálogo é o de antes do
+/// catálogo da Avalia, mantido para as vendas antigas. Preço em centavos:
+/// dinheiro não passa por ponto flutuante em nenhuma camada.
 /// </summary>
 public sealed class Produto : IDoRevendedor
 {
@@ -10,6 +13,7 @@ public sealed class Produto : IDoRevendedor
 
     public Guid Id { get; private set; } = Guid.CreateVersion7();
     public Guid RevendedorId { get; private set; }
+    public Guid? ProdutoDaPlataformaId { get; private set; }
     public string Nome { get; private set; }
     public long PrecoCents { get; private set; }
     public bool Ativo { get; private set; } = true;
@@ -36,6 +40,29 @@ public sealed class Produto : IDoRevendedor
     }
 
     public void DefinirAtivo(bool ativo) => Ativo = ativo;
+
+    public static Produto DaPlataforma(ProdutoDaPlataforma produto) =>
+        new(produto.Nome, produto.PrecoSugeridoCents) { ProdutoDaPlataformaId = produto.Id };
+
+    /// <summary>
+    /// O revendedor define o preço livremente, sem ficar abaixo do custo dele:
+    /// na placa, o que pagou por ela no pacote; no serviço, nada além de ser
+    /// maior que zero (a Avalia fica com a taxa de cada venda).
+    /// </summary>
+    public void AjustarPreco(string nome, long precoCents, int? comissaoBps, long pisoCents)
+    {
+        if (precoCents <= 0)
+        {
+            throw new RegraDeNegocioException("O preço precisa ser maior que zero.");
+        }
+
+        if (precoCents < pisoCents)
+        {
+            throw new RegraDeNegocioException($"O preço não pode ficar abaixo do seu custo, R$ {pisoCents / 100}," + $"{pisoCents % 100:00}.");
+        }
+
+        Alterar(nome, precoCents, comissaoBps);
+    }
 
     private static string ValidarNome(string nome)
     {

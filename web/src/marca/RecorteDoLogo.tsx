@@ -6,22 +6,26 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { Area } from './reduzirLogo'
 
 /** O cabeçalho mostra o logo com até 4 de largura para 1 de altura: horizontal em 3:1 cabe com folga. */
-const FORMATOS = { Horizontal: 3, Quadrado: 1 } as const
-type Formato = keyof typeof FORMATOS
+const FORMATOS_DO_LOGO: Record<string, number> = { Horizontal: 3, Quadrado: 1 }
+type Formato = string
 
 /**
  * A caixa de recorte do logo: arrasta para enquadrar, zoom para aproximar ou
  * afastar. Afastar abaixo de 100% deixa sobra transparente, para logo largo
  * caber inteiro. O recorte sai em pixels da imagem original.
  */
-export function RecorteDoLogo({ arquivo, aoCancelar, aoConfirmar, enviando }: {
+export function RecorteDoLogo({ arquivo, aoCancelar, aoConfirmar, enviando, titulo = 'Recortar logo', formatos = FORMATOS_DO_LOGO }: {
   arquivo: File | null
   aoCancelar: () => void
   aoConfirmar: (area: Area) => void
   enviando: boolean
+  titulo?: string
+  /** Nome do formato e a proporção (largura sobre altura). Com um só, as abas somem. */
+  formatos?: Record<string, number>
 }) {
+  const FORMATOS = formatos
   const [endereco, setEndereco] = useState<string | null>(null)
-  const [formato, setFormato] = useState<Formato>('Horizontal')
+  const [formato, setFormato] = useState<Formato>(Object.keys(formatos)[0])
   const [posicao, setPosicao] = useState({ x: 0, y: 0 })
   const [zoom, setZoom] = useState(1)
   const [area, setArea] = useState<AreaDoCropper | null>(null)
@@ -47,14 +51,16 @@ export function RecorteDoLogo({ arquivo, aoCancelar, aoConfirmar, enviando }: {
     <Dialog open={!!arquivo} onOpenChange={(aberto) => !aberto && !enviando && aoCancelar()}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Recortar logo</DialogTitle>
+          <DialogTitle>{titulo}</DialogTitle>
           <DialogDescription>Arraste para enquadrar e use o zoom.</DialogDescription>
         </DialogHeader>
-        <Tabs value={formato} onValueChange={(f) => { setFormato(f as Formato); enquadrar(f as Formato, proporcao) }}>
-          <TabsList className="w-full">
-            {Object.keys(FORMATOS).map((f) => <TabsTrigger key={f} value={f}>{f}</TabsTrigger>)}
-          </TabsList>
-        </Tabs>
+        {Object.keys(FORMATOS).length > 1 && (
+          <Tabs value={formato} onValueChange={(f) => { setFormato(f); enquadrar(f, proporcao) }}>
+            <TabsList className="w-full">
+              {Object.keys(FORMATOS).map((f) => <TabsTrigger key={f} value={f}>{f}</TabsTrigger>)}
+            </TabsList>
+          </Tabs>
+        )}
         <div className="xadrez relative h-64 overflow-hidden rounded-lg sm:h-72">
           {endereco && (
             <Cropper

@@ -138,8 +138,10 @@ internal static class Demonstracao
         var banco = escopo.ServiceProvider.GetRequiredService<BancoDeDados>();
         var agora = DateTimeOffset.UtcNow;
 
-        var produtos = new[] { new Produto("Placa de avaliação Google", 14_990), new Produto("Placa NFC e QR", 19_990), new Produto("Placa cardápio", 12_990) };
-        banco.Produtos.AddRange(produtos);
+        // O preço da revenda para três produtos do catálogo da Avalia (a migration traz o catálogo).
+        // Os dois que levam placa; a terceira venda repete o primeiro.
+        var daPlaca = await DoCatalogo(banco, "placa-avaliacao-google", 14_990, ct);
+        var produtos = new[] { daPlaca, await DoCatalogo(banco, "perfil-google-placa", 19_990, ct), daPlaca };
 
         var bruna = await Vendedor(escopo.ServiceProvider, banco, revendedorId, "Bruna Lima", "vendedor@a.dev", 2_500, agora);
         var dono = (await banco.Users.SingleAsync(u => u.RevendedorId == revendedorId && u.Papel == Papel.Dono, ct)).Id;
@@ -267,6 +269,15 @@ internal static class Demonstracao
         return lote.Rotulo;
     }
 
+    /// <summary>A linha da tabela da revenda para um produto do catálogo da Avalia, com o preço dela.</summary>
+    private static async Task<Produto> DoCatalogo(BancoDeDados banco, string chave, long precoCents, CancellationToken ct)
+    {
+        var produto = Produto.DaPlataforma(await banco.ProdutosDaPlataforma.SingleAsync(p => p.Chave == chave, ct));
+        produto.AjustarPreco(produto.Nome, precoCents, null, pisoCents: 1);
+        banco.Produtos.Add(produto);
+        return produto;
+    }
+
     /// <summary>A revenda B com lote ativado, catálogo, o vendedor dela com placas consignadas e duas vendas, uma paga.</summary>
     private static async Task PopularRevendaB(IServiceProvider servicos, Guid revendedorId, CancellationToken ct)
     {
@@ -274,8 +285,7 @@ internal static class Demonstracao
         escopo.ServiceProvider.GetRequiredService<AcessoDaRequisicao>().Assumir(revendedorId);
         var banco = escopo.ServiceProvider.GetRequiredService<BancoDeDados>();
         var agora = DateTimeOffset.UtcNow;
-        var produto = new Produto("Placa de avaliação Google", 15_990);
-        banco.Produtos.Add(produto);
+        var produto = await DoCatalogo(banco, "placa-avaliacao-google", 15_990, ct);
         var vendedor = await Vendedor(escopo.ServiceProvider, banco, revendedorId, "Carlos Souza", "vendedor@b.dev", null, agora);
         var lote = await Despachado(banco, await banco.Pacotes.SingleAsync(p => p.Quantidade == 20, ct), numeroDoLote: 3, revendedorId, agora.AddDays(-20), ct);
         await banco.SaveChangesAsync(ct);

@@ -70,6 +70,11 @@ public static class RotasDaOperadora
             await pedidos.RegistrarPagamento(id, ct);
             return Results.NoContent();
         });
+        operadora.MapPost("/pedidos/{id:guid}/producao", async (Guid id, PedidosDePlacas pedidos, CancellationToken ct) =>
+        {
+            await pedidos.IniciarProducao(id, ct);
+            return Results.NoContent();
+        });
         operadora.MapPost("/pedidos/{id:guid}/despacho", async (Guid id, DespacharPedido pedido, PedidosDePlacas pedidos, CancellationToken ct) =>
         {
             await pedidos.Despachar(id, pedido.Lote, ct);

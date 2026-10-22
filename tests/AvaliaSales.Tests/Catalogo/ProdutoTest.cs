@@ -34,10 +34,12 @@ public sealed class CadastroDeProdutoTest(ApiDeTeste api)
         var (_, email) = await api.CriarRevendedor("Revenda Regra");
         var cliente = await api.ClienteLogado(email);
 
-        var resposta = await cliente.PostAsJsonAsync("/produtos", new { nome = "Placa", precoCents = -5 }, TestContext.Current.CancellationToken);
+        var placa = (await cliente.Pegar("/catalogo")).EnumerateArray().Single(i => i.GetProperty("chave").GetString() == "placa-avaliacao-google").GetProperty("id").GetGuid();
+
+        var resposta = await cliente.PutAsJsonAsync($"/catalogo/{placa}", new { precoCents = -5 }, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.UnprocessableEntity, resposta.StatusCode);
-        Assert.Contains("negativo", await resposta.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+        Assert.Contains("maior que zero", await resposta.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]

@@ -68,6 +68,28 @@
         }
       }
     },
+    "/servicos": {
+      "get": {
+        "tags": [
+          "Servi\u00E7os"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OrdemDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/marca": {
       "get": {
         "tags": [
@@ -521,7 +543,7 @@
         }
       }
     },
-    "/produtos": {
+    "/catalogo": {
       "get": {
         "tags": [
           "Cat\u00E1logo"
@@ -534,36 +556,16 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/ProdutoDto"
+                    "$ref": "#/components/schemas/ItemDoCatalogo"
                   }
                 }
               }
             }
           }
         }
-      },
-      "post": {
-        "tags": [
-          "Cat\u00E1logo"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CadastrarProduto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
       }
     },
-    "/produtos/{id}": {
+    "/catalogo/{id}": {
       "put": {
         "tags": [
           "Cat\u00E1logo"
@@ -583,7 +585,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CadastrarProduto"
+                "$ref": "#/components/schemas/AjustarProduto"
               }
             }
           },
@@ -595,36 +597,15 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProdutoDto"
+                  "$ref": "#/components/schemas/ItemDoCatalogo"
                 }
               }
             }
           }
         }
-      },
-      "delete": {
-        "tags": [
-          "Cat\u00E1logo"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
       }
     },
-    "/produtos/{id}/ativo": {
+    "/catalogo/{id}/ativo": {
       "put": {
         "tags": [
           "Cat\u00E1logo"
@@ -650,6 +631,410 @@
           },
           "required": true
         },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/catalogo/{id}/foto": {
+      "get": {
+        "tags": [
+          "Cat\u00E1logo"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/operadora/catalogo": {
+      "get": {
+        "tags": [
+          "Cat\u00E1logo"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProdutoDaPlataformaDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Cat\u00E1logo"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GravarProdutoDaPlataforma"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/operadora/catalogo/{id}": {
+      "put": {
+        "tags": [
+          "Cat\u00E1logo"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GravarProdutoDaPlataforma"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProdutoDaPlataformaDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/operadora/catalogo/{id}/situacao": {
+      "put": {
+        "tags": [
+          "Cat\u00E1logo"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DefinirSituacaoDoProduto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProdutoDaPlataformaDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/operadora/catalogo/{id}/foto": {
+      "put": {
+        "tags": [
+          "Cat\u00E1logo"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "image/webp": {
+              "schema": {
+                "type": "string",
+                "format": "byte"
+              }
+            },
+            "image/png": {
+              "schema": {
+                "type": "string",
+                "format": "byte"
+              }
+            },
+            "image/jpeg": {
+              "schema": {
+                "type": "string",
+                "format": "byte"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProdutoDaPlataformaDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Cat\u00E1logo"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProdutoDaPlataformaDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/operadora/servicos": {
+      "get": {
+        "tags": [
+          "Servi\u00E7os"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OrdemDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/operadora/servicos/{id}/iniciar": {
+      "post": {
+        "tags": [
+          "Servi\u00E7os"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/operadora/servicos/{id}/entregar": {
+      "post": {
+        "tags": [
+          "Servi\u00E7os"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/operadora/servicos/{id}/cancelar": {
+      "post": {
+        "tags": [
+          "Servi\u00E7os"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/operadora/servicos/{id}/observacao": {
+      "put": {
+        "tags": [
+          "Servi\u00E7os"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnotarOrdem"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/notificacoes": {
+      "get": {
+        "tags": [
+          "Notifica\u00E7\u00F5es"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaixaDeNotificacoes"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/notificacoes/lidas": {
+      "post": {
+        "tags": [
+          "Notifica\u00E7\u00F5es"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/notificacoes/{id}/lida": {
+      "post": {
+        "tags": [
+          "Notifica\u00E7\u00F5es"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK"
@@ -1153,6 +1538,29 @@
       }
     },
     "/operadora/pedidos/{id}/pagamento": {
+      "post": {
+        "tags": [
+          "Operadora"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/operadora/pedidos/{id}/producao": {
       "post": {
         "tags": [
           "Operadora"
@@ -2979,6 +3387,26 @@
           "EmpresaAlterada"
         ]
       },
+      "AjustarProduto": {
+        "required": [
+          "precoCents",
+          "comissaoBps"
+        ],
+        "type": "object",
+        "properties": {
+          "precoCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "comissaoBps": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        }
+      },
       "AlterarAtivo": {
         "required": [
           "ativo"
@@ -3094,6 +3522,20 @@
           }
         }
       },
+      "AnotarOrdem": {
+        "required": [
+          "observacao"
+        ],
+        "type": "object",
+        "properties": {
+          "observacao": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "AtivacaoDto": {
         "required": [
           "lote",
@@ -3129,29 +3571,24 @@
           }
         }
       },
-      "CadastrarProduto": {
+      "CaixaDeNotificacoes": {
         "required": [
-          "nome",
-          "precoCents"
+          "notificacoes",
+          "naoLidas"
         ],
         "type": "object",
         "properties": {
-          "nome": {
-            "type": "string"
+          "notificacoes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NotificacaoDto"
+            }
           },
-          "precoCents": {
+          "naoLidas": {
             "type": "integer",
-            "format": "int64"
-          },
-          "comissaoBps": {
-            "type": [
-              "null",
-              "integer"
-            ],
             "format": "int32"
           }
-        },
-        "description": "Sem comiss\u00E3o, o produto segue a do vendedor ou a padr\u00E3o."
+        }
       },
       "ChamadoComMensagens": {
         "required": [
@@ -3643,6 +4080,17 @@
           }
         }
       },
+      "DefinirSituacaoDoProduto": {
+        "required": [
+          "situacao"
+        ],
+        "type": "object",
+        "properties": {
+          "situacao": {
+            "$ref": "#/components/schemas/SituacaoDoProduto"
+          }
+        }
+      },
       "DesafioDaEntrada": {
         "required": [
           "desafio",
@@ -3982,6 +4430,109 @@
             "format": "int64"
           }
         }
+      },
+      "GravarProdutoDaPlataforma": {
+        "required": [
+          "chave",
+          "nome",
+          "descricao",
+          "tipo",
+          "precoSugeridoCents",
+          "ordem"
+        ],
+        "type": "object",
+        "properties": {
+          "chave": {
+            "type": "string"
+          },
+          "nome": {
+            "type": "string"
+          },
+          "descricao": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "tipo": {
+            "$ref": "#/components/schemas/TipoDeProduto"
+          },
+          "precoSugeridoCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "ordem": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ItemDoCatalogo": {
+        "required": [
+          "id",
+          "chave",
+          "nome",
+          "descricao",
+          "tipo",
+          "situacao",
+          "fotoUrl",
+          "precoSugeridoCents",
+          "precoCents",
+          "comissaoBps",
+          "pisoCents",
+          "ativo"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "chave": {
+            "type": "string"
+          },
+          "nome": {
+            "type": "string"
+          },
+          "descricao": {
+            "type": "string"
+          },
+          "tipo": {
+            "$ref": "#/components/schemas/TipoDeProduto"
+          },
+          "situacao": {
+            "$ref": "#/components/schemas/SituacaoDoProduto"
+          },
+          "fotoUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "precoSugeridoCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "precoCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "comissaoBps": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "pisoCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "ativo": {
+            "type": "boolean"
+          }
+        },
+        "description": "Um produto como a revenda v\u00EA: o do cat\u00E1logo da Avalia com o pre\u00E7o dela.\nId \u00E9 o do produto da Avalia. O produto antigo, de antes\ndo cat\u00E1logo, n\u00E3o aparece: s\u00F3 as vendas feitas com ele continuam apontando para ele."
       },
       "LancamentoDto": {
         "required": [
@@ -4333,6 +4884,49 @@
           }
         }
       },
+      "NotificacaoDto": {
+        "required": [
+          "id",
+          "titulo",
+          "texto",
+          "link",
+          "criadaEm",
+          "lida",
+          "revendedor"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "titulo": {
+            "type": "string"
+          },
+          "texto": {
+            "type": "string"
+          },
+          "link": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "criadaEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lida": {
+            "type": "boolean"
+          },
+          "revendedor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "NovaMensagem": {
         "required": [
           "texto"
@@ -4408,7 +5002,14 @@
             ]
           },
           "destino": {
-            "$ref": "#/components/schemas/DestinoInformado"
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/DestinoInformado"
+              }
+            ]
           },
           "valorCents": {
             "type": [
@@ -4570,6 +5171,67 @@
         },
         "description": "Sem senha, o vendedor recebe o convite e cria a dele."
       },
+      "OrdemDto": {
+        "required": [
+          "id",
+          "numero",
+          "revendedor",
+          "produto",
+          "cliente",
+          "situacao",
+          "observacao",
+          "criadaEm",
+          "iniciadaEm",
+          "entregueEm"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "numero": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "revendedor": {
+            "type": "string"
+          },
+          "produto": {
+            "type": "string"
+          },
+          "cliente": {
+            "type": "string"
+          },
+          "situacao": {
+            "$ref": "#/components/schemas/SituacaoDaOrdem"
+          },
+          "observacao": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "criadaEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "iniciadaEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "entregueEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
       "PacoteDto": {
         "required": [
           "id",
@@ -4725,6 +5387,7 @@
           "lote",
           "despachadoEm",
           "ativadoEm",
+          "producaoEm",
           "precoDoPacoteCents",
           "cupom",
           "descontoCents",
@@ -4779,6 +5442,13 @@
             "format": "date-time"
           },
           "ativadoEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "producaoEm": {
             "type": [
               "null",
               "string"
@@ -4922,13 +5592,18 @@
           }
         }
       },
-      "ProdutoDto": {
+      "ProdutoDaPlataformaDto": {
         "required": [
           "id",
+          "chave",
           "nome",
-          "precoCents",
-          "ativo",
-          "comissaoBps"
+          "descricao",
+          "tipo",
+          "precoSugeridoCents",
+          "situacao",
+          "ordem",
+          "fotoUrl",
+          "temFotoEnviada"
         ],
         "type": "object",
         "properties": {
@@ -4936,22 +5611,37 @@
             "type": "string",
             "format": "uuid"
           },
+          "chave": {
+            "type": "string"
+          },
           "nome": {
             "type": "string"
           },
-          "precoCents": {
+          "descricao": {
+            "type": "string"
+          },
+          "tipo": {
+            "$ref": "#/components/schemas/TipoDeProduto"
+          },
+          "precoSugeridoCents": {
             "type": "integer",
             "format": "int64"
           },
-          "ativo": {
-            "type": "boolean"
+          "situacao": {
+            "$ref": "#/components/schemas/SituacaoDoProduto"
           },
-          "comissaoBps": {
+          "ordem": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "fotoUrl": {
             "type": [
               "null",
-              "integer"
-            ],
-            "format": "int32"
+              "string"
+            ]
+          },
+          "temFotoEnviada": {
+            "type": "boolean"
           }
         }
       },
@@ -5267,6 +5957,14 @@
           null
         ]
       },
+      "SituacaoDaOrdem": {
+        "enum": [
+          "AFazer",
+          "EmAndamento",
+          "Entregue",
+          "Cancelada"
+        ]
+      },
       "SituacaoDaVenda": {
         "enum": [
           "Registrada",
@@ -5302,7 +6000,15 @@
           "Pago",
           "Despachado",
           "Ativado",
-          "Cancelado"
+          "Cancelado",
+          "EmProducao"
+        ]
+      },
+      "SituacaoDoProduto": {
+        "enum": [
+          "Disponivel",
+          "Esgotado",
+          "ForaDeLinha"
         ]
       },
       "SituacaoDoSegundoFator": {
@@ -5345,6 +6051,13 @@
           "ComissaoPaga"
         ],
         "description": "O que o lan\u00E7amento registra, do ponto de vista do revendedor."
+      },
+      "TipoDeProduto": {
+        "enum": [
+          "Placa",
+          "PlacaComServico",
+          "Servico"
+        ]
       },
       "TokenEmitido": {
         "required": [
@@ -5673,6 +6386,9 @@
       "name": "RotasDeAcesso"
     },
     {
+      "name": "Servi\u00E7os"
+    },
+    {
       "name": "Marca"
     },
     {
@@ -5680,6 +6396,9 @@
     },
     {
       "name": "Cat\u00E1logo"
+    },
+    {
+      "name": "Notifica\u00E7\u00F5es"
     },
     {
       "name": "Links"

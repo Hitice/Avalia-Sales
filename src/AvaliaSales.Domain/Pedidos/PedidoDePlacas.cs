@@ -7,6 +7,7 @@ public enum SituacaoDoPedido
     Despachado = 3,
     Ativado = 4,
     Cancelado = 5,
+    EmProducao = 6,
 }
 
 /// <summary>
@@ -31,6 +32,7 @@ public sealed class PedidoDePlacas : IAtendidoPelaOperadora
     public DateTimeOffset CriadoEm { get; private set; }
     public DateTimeOffset? PagoEm { get; private set; }
     public Guid? LoteId { get; private set; }
+    public DateTimeOffset? ProducaoEm { get; private set; }
     public DateTimeOffset? DespachadoEm { get; private set; }
     public DateTimeOffset? AtivadoEm { get; private set; }
 
@@ -66,9 +68,21 @@ public sealed class PedidoDePlacas : IAtendidoPelaOperadora
         PagoEm = agora;
     }
 
+    /// <summary>A Avalia começou a produzir as placas do pedido pago.</summary>
+    public void IniciarProducao(DateTimeOffset agora)
+    {
+        Exigir(SituacaoDoPedido.Pago, "Só pedido pago entra em produção.");
+        Situacao = SituacaoDoPedido.EmProducao;
+        ProducaoEm = agora;
+    }
+
     public void Despachar(Guid loteId, DateTimeOffset agora)
     {
-        Exigir(SituacaoDoPedido.Pago, "Só pedido pago é despachado.");
+        if (Situacao is not (SituacaoDoPedido.Pago or SituacaoDoPedido.EmProducao))
+        {
+            throw new RegraDeNegocioException("Só pedido pago é despachado.");
+        }
+
         Situacao = SituacaoDoPedido.Despachado;
         LoteId = loteId;
         DespachadoEm = agora;

@@ -1,5 +1,4 @@
 using AvaliaSales.Application.Avisos;
-using AvaliaSales.Application.Catalogo;
 using AvaliaSales.Application.Financeiro;
 using AvaliaSales.Application.Pedidos;
 using AvaliaSales.Application.Placas;
@@ -14,7 +13,10 @@ public static class InjecaoDeDependencias
     public static IServiceCollection AdicionarCasosDeUso(this IServiceCollection servicos)
     {
         servicos.AddScoped<FilaDeEmails>();
-        servicos.AddScoped<Produtos>();
+        servicos.AddScoped<Catalogo.Catalogo>();
+        servicos.AddScoped<Catalogo.CatalogoDaPlataforma>();
+        servicos.AddScoped<Servicos.Servicos>();
+        servicos.AddScoped<Notificacoes.Notificacoes>();
         servicos.AddScoped<Auditoria.Auditoria>();
         servicos.AddScoped<Links.Links>();
         servicos.AddScoped<Pacotes>();

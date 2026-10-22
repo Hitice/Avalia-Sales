@@ -1,7 +1,7 @@
 import { useIsFetching, useIsMutating } from '@tanstack/react-query'
 import {
   type LucideIcon, BookOpen, Boxes, ClipboardList, HandCoins, Headset, History, Home, Landmark, Link2, MapPin, Menu, Package,
-  ChevronDown, LogOut, Palette, PlusCircle, Receipt, Server, ShieldCheck, Store, TicketPercent, UserRound, Users, UsersRound,
+  ChevronDown, LogOut, Palette, PlusCircle, Receipt, Server, ShieldCheck, Store, TicketPercent, UserRound, Users, UsersRound, Wrench,
 } from 'lucide-react'
 import { useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate, useNavigation } from 'react-router'
@@ -16,6 +16,7 @@ import {
 import { cn } from '@/lib/utils'
 import { useLogo, useMarca } from '@/marca/marca'
 import { useAvisosAoVivo } from './avisosAoVivo'
+import { Sino } from './Sino'
 
 type Item = { para: string; rotulo: string; icone: LucideIcon }
 type Grupo = { titulo?: string; itens: Item[] }
@@ -51,6 +52,8 @@ const MENU: Record<Papel, Grupo[]> = {
     { itens: [
       { para: '/operadora/pedidos', rotulo: 'Pedidos', icone: ClipboardList },
       { para: '/operadora/lotes', rotulo: 'Lotes', icone: Package },
+      { para: '/operadora/servicos', rotulo: 'Serviços', icone: Wrench },
+      { para: '/operadora/catalogo', rotulo: 'Catálogo', icone: BookOpen },
       { para: '/operadora/pacotes', rotulo: 'Pacotes', icone: Boxes },
       { para: '/operadora/cupons', rotulo: 'Cupons', icone: TicketPercent },
     ] },
@@ -72,10 +75,11 @@ const MENU: Record<Papel, Grupo[]> = {
       { para: '/links', rotulo: 'Links', icone: Link2 },
       { para: '/painel/mapa', rotulo: 'Mapa', icone: MapPin },
     ] },
-    { titulo: 'Placas', itens: [
+    { titulo: 'Produtos', itens: [
+      { para: '/catalogo', rotulo: 'Catálogo', icone: BookOpen },
       { para: '/painel/estoque', rotulo: 'Estoque', icone: Package },
       { para: '/painel/pedidos', rotulo: 'Pedidos', icone: ClipboardList },
-      { para: '/painel/catalogo', rotulo: 'Catálogo', icone: BookOpen },
+      { para: '/painel/servicos', rotulo: 'Serviços', icone: Wrench },
     ] },
     { titulo: 'Equipe e dinheiro', itens: [
       { para: '/painel/equipe', rotulo: 'Equipe', icone: UsersRound },
@@ -95,6 +99,7 @@ const MENU: Record<Papel, Grupo[]> = {
       { para: '/vender', rotulo: 'Nova venda', icone: PlusCircle },
       { para: '/vendedor/placas', rotulo: 'Minhas placas', icone: Package },
       { para: '/vendedor/vendas', rotulo: 'Minhas vendas', icone: Receipt },
+      { para: '/catalogo', rotulo: 'Catálogo', icone: BookOpen },
       { para: '/links', rotulo: 'Links', icone: Link2 },
     ] },
   ],
@@ -140,14 +145,15 @@ export function Moldura() {
               : <img src="/marca/gauge.svg" alt="Avalia Sales" width={61} height={32} className="h-8 w-auto" />}
           {perfil?.revendedor && !marca?.nomeExibido && <span className="hidden truncate text-sm text-muted-foreground sm:inline">{perfil.revendedor}</span>}
           {perfil?.papel === 'Operadora' && <span className="hidden text-sm text-muted-foreground sm:inline">Operação</span>}
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-1">
+            {perfil?.papel !== 'Vendedor' && !travado && <Sino />}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="gap-2 px-2">
                   <span aria-hidden className="flex size-8 items-center justify-center rounded-full bg-accent text-xs font-semibold text-accent-foreground">{iniciais(perfil?.nome)}</span>
                   {/* O nome lido é "Conta de Fulano" e contém o nome visível, como pede a WCAG 2.5.3. */}
                   <span className="sr-only">Conta de </span>
-                  <span className="sr-only max-w-40 truncate text-sm md:not-sr-only">{perfil?.nome}</span>
+                  <span className="sr-only max-w-40 truncate text-sm md:not-sr-only md:whitespace-nowrap">{perfil?.nome}</span>
                   <ChevronDown aria-hidden className="size-4 text-muted-foreground" />
                 </Button>
               </DropdownMenuTrigger>

@@ -41,8 +41,20 @@ revendedor é a Avalia.
 
 - Taxa da Avalia - 1,99% de cada venda paga, gravada na cobrança no momento
   dela. A confirmar se é 1,99% ou R$ 1,99 fixo.
-- Pacotes de placas - configuráveis pela operadora - 20, 50 e 100, e um de 10
-  para o teste da revendedora Avalia. Preço a definir.
+- Pacotes de placas - configuráveis pela operadora - 20, 50 e 100 placas a
+  R$ 23,90, R$ 16,90 e R$ 13,90 a placa (R$ 478,00, R$ 845,00 e R$ 1.390,00),
+  e um de 10 para o teste da revendedora Avalia. O preço do pacote já cobre a
+  produção e a margem da Avalia; na venda, a Avalia fica só com a taxa.
+- Catálogo - a Avalia cadastra os produtos (placa, placa com serviço e
+  serviço) com foto, preço sugerido e situação (disponível, esgotado, fora de
+  linha). O revendedor não cria produto: define o preço dele, livre, nunca
+  abaixo do custo - na placa, o que pagou por ela no pacote (sem estoque, o
+  preço por placa do pacote mais caro); no serviço, só maior que zero. Por
+  enquanto só a placa é comprada no atacado.
+- Serviço vendido - a venda paga de serviço (Perfil no Google, cardápio,
+  landing page, sistema, kit mesa, QR dinâmico) vira ordem de serviço para a
+  Avalia executar, com a situação a fazer, em andamento, entregue ou
+  cancelada, que o revendedor acompanha. A Avalia recebe a taxa da venda.
 - Taxa do Pagar.me - paga pelo revendedor.
 - Exemplo - venda de R$ 100,00 com comissão de 20%: R$ 1,99 para a Avalia,
   R$ 98,01 para o revendedor (de onde sai a taxa do Pagar.me), e R$ 20,00
@@ -56,13 +68,16 @@ revendedor é a Avalia.
 2. Contrato - criado sozinho depois do cadastro e enviado pela D4Sign ao e-mail
    do dono. Sem contrato assinado, não há pedido. Contrato assinado em papel é
    registrado pela operadora.
-3. Pedido - pacote de placas, com cupom opcional, pago antes do envio pelo
-   checkout do Pagar.me (Pix, cartão ou boleto, tudo para a Avalia). A
-   operadora também pode registrar um pagamento recebido por fora.
-4. Envio - a Avalia recebe o pedido por e-mail e na fila, e despacha um lote da
-   mesma quantidade; o dono recebe o e-mail com o número do lote.
+3. Pedido - "Pedir placas" no catálogo ou em Pedidos: pacote, cupom opcional,
+   pago antes do envio pelo checkout do Pagar.me (Pix, cartão ou boleto, tudo
+   para a Avalia). A operadora também pode registrar um pagamento recebido por
+   fora. Situação do pedido - aguardando pagamento, pago, em produção,
+   enviado, entregue (ou cancelado).
+4. Envio - a Avalia recebe o pedido por e-mail, no sino e na fila, marca em
+   produção e despacha um lote da mesma quantidade; o dono recebe o e-mail e a
+   notificação com o número do lote.
 5. Ativação - o revendedor digita o número do lote (LT-0001, lt 1 ou 1); as
-   placas entram no estoque dele com o custo do pacote.
+   placas entram no estoque dele com o custo do pacote, e o pedido fica entregue.
 6. Equipe - cadastro dos vendedores e da comissão de cada um.
 7. Venda - o vendedor busca o negócio no Google (ou cola o link de avaliação do perfil, ou o link do cliente), lê o QR da placa ou digita o código, preenche o cliente e cobra. No fim grava na tag NFC o mesmo endereço do QR (`/Q/{codigo}`).
 8. Venda - cliente, negócio, destino do QR e cobrança por Pix ou cartão.
@@ -79,7 +94,9 @@ Todas no mesmo app, liberadas pelo papel do usuário.
 | Pedido de placas | Revendedor | Computador | Pacote, pagamento, acompanhamento do envio |
 | Ativar lote | Revendedor | Computador | Número do lote recebido |
 | Vendedores | Revendedor | Computador | Criar, editar, desativar, excluir, comissão |
-| Catálogo | Revendedor | Computador e celular | Produtos e preço da tabela do revendedor |
+| Catálogo | Revendedor e vendedor | Computador e celular | Produtos da Avalia com foto, preço sugerido e o preço da revenda; o dono ajusta o preço e pede placas; a equipe vende daqui (serviço abre a venda sem placa) |
+| Serviços | Revendedor | Computador e celular | As ordens de serviço que a Avalia executa para os clientes da revenda, com a situação |
+| Notificações | Dono e operadora | Celular e computador | O sino do cabeçalho - venda paga da equipe, pedido, serviço e chamado, ao vivo; marcar como lida |
 | Marca | Revendedor | Computador | Logo com recorte (horizontal ou quadrado, arrastar e zoom), cores e nome exibido, com prévia do app nas cores escolhidas |
 | Painel | Revendedor | Computador | Vendas e pagamentos ao vivo, saldo de comissão, registro de repasse |
 | Auditoria | Revendedor | Computador | Quem mudou o quê, em tabela com antes e depois, busca pelo código, filtro pela ação, 20 por página e exportação em JSON |
@@ -90,7 +107,9 @@ Todas no mesmo app, liberadas pelo papel do usuário.
 | Nova venda | Vendedor | Celular | Negócio no Google, QR da placa, cliente, cobrança, gravação do NFC |
 | Links | Dono e vendedor | Celular | Link curto do negócio sem placa, em duas abas - Encurtador (cola qualquer endereço, como avaliação do Google, cardápio ou Instagram, ou busca o negócio no Google) e NFC (grava o link curto na tag); o dono edita, desliga e exclui |
 | Ficha da placa | Vendedor e revendedor | Celular | Destino, vencimento, leituras, troca, renovação |
-| Pedidos | Operadora | Computador | Pedidos pagos, lote despachado, envio |
+| Pedidos | Operadora | Computador | Pedidos pagos, em produção, lote despachado, envio |
+| Catálogo da Avalia | Operadora | Computador | Cadastrar e editar produto, foto com recorte, preço sugerido, ordem e situação |
+| Serviços | Operadora | Computador | A fila de ordens de serviço - iniciar, entregar, cancelar |
 | Página do QR | Cliente final | Celular | Redireciona ao destino e conta a leitura |
 
 ## 6. Regras de negócio
@@ -409,7 +428,7 @@ Estimativa em semanas de cerca de 20 horas.
 | Decisão | Opções | Recomendação |
 | --- | --- | --- |
 | Taxa da Avalia | 1,99% ou R$ 1,99 fixo por venda | 1,99% (o código assume) |
-| Preço dos pacotes | Por pacote | A definir; a demonstração usa R$ 150 (10), R$ 280 (20), R$ 650 (50) e R$ 1.200 (100), simulados |
+| Preço dos pacotes | Por pacote | Definido - 20, 50 e 100 placas a R$ 23,90, R$ 16,90 e R$ 13,90 a placa |
 | Confirmação de pagamento por fora | Baixa manual no Pagar.me ou só registro na plataforma | Conferir a API do Pagar.me na Fase 2 |
 | Nome e domínio | Subdomínio de avaliaone.com.br ou domínio próprio | A definir |
 | Recebedor da revendedora Avalia | Mesmo da conta do marketplace ou separado | Confirmar com o Pagar.me |
@@ -434,6 +453,7 @@ O que está pronto no código e só fecha com a conta de verdade:
 
 | Data | Mudança |
 | --- | --- |
+| 22/10/2026 | Catálogo da Avalia com os 8 produtos do site, foto e situação; a revenda só define o preço dela, nunca abaixo do custo. Pacotes de 20, 50 e 100 placas com o preço por placa. Pedido com em produção e entregue. Venda de serviço sem placa, que paga vira ordem de serviço para a Avalia. Sino de notificações para o dono e a operadora. |
 | 22/10/2026 | Menu da conta no cabeçalho com Meus dados, Segurança e Sair; o celular da revenda passa da tela inicial para Meus dados. Auditoria em tabela, com filtro pela ação, paginação e exportação em JSON. |
 | 22/10/2026 | Suporte em chamados com prazo de 24 horas úteis (segunda a sexta, 8h às 18h, sem feriado nacional), fila da operadora pelo prazo e aviso por e-mail. As conversas do chat anterior viram um chamado resolvido por revenda. |
 | 22/10/2026 | Contrato de revenda aprovado (versão 1), sem o aviso de minuta. Menu lateral em grupos com ícones; "Pedidos de placas" vira Pedidos e "Falar com a Avalia" vira Suporte. Links em abas Encurtador e NFC, com qualquer endereço colado. Logo com recorte. Avisos do contrato na tela inicial reescritos. |

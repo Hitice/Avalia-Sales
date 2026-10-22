@@ -11,10 +11,14 @@ public static class Politicas
     /// <summary>Dono ou vendedor: quem vende no balcão.</summary>
     public const string Equipe = "equipe";
 
+    /// <summary>Dono ou operadora: o sino de notificações.</summary>
+    public const string DonoOuOperadora = "dono-ou-operadora";
+
     public static void Registrar(Microsoft.AspNetCore.Authorization.AuthorizationOptions opcoes)
     {
         opcoes.AddPolicy(Operadora, p => p.RequireClaim(Reivindicacoes.Papel, nameof(Papel.Operadora)));
         opcoes.AddPolicy(Dono, p => p.RequireClaim(Reivindicacoes.Papel, nameof(Papel.Dono)).RequireAssertion(c => DonoConfirmado(c.User)));
+        opcoes.AddPolicy(DonoOuOperadora, p => p.RequireClaim(Reivindicacoes.Papel, nameof(Papel.Dono), nameof(Papel.Operadora)).RequireAssertion(c => DonoConfirmado(c.User)));
         opcoes.AddPolicy(Equipe, p => p.RequireClaim(Reivindicacoes.Papel, nameof(Papel.Dono), nameof(Papel.Vendedor)).RequireAssertion(c => DonoConfirmado(c.User)));
     }
 

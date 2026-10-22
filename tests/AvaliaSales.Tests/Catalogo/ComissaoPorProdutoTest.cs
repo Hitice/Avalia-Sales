@@ -10,7 +10,7 @@ public sealed class ComissaoPorProdutoTest(ApiDeTeste api)
     public async Task Vale_a_comissao_mais_especifica_vendedor_depois_produto_depois_padrao()
     {
         var revenda = await api.RevendaComEstoque("Revenda Comissão por Produto");
-        var premium = (await revenda.Dono.Postar("/produtos", new { nome = "Placa premium", precoCents = 20_000L, comissaoBps = 3_000 }, HttpStatusCode.Created)).GetProperty("id").GetGuid();
+        var premium = await Cenarios.ProdutoDoCatalogo(revenda.Dono, "perfil-google-placa", 20_000L, 3_000);
         var semExcecao = $"vendedor-{Guid.NewGuid():N}@teste.com.br";
         var comExcecao = $"vendedor-{Guid.NewGuid():N}@teste.com.br";
         await revenda.Dono.Postar("/equipe", new { nome = "Ana", email = semExcecao, senha = ApiDeTeste.Senha }, HttpStatusCode.Created);
@@ -31,6 +31,6 @@ public sealed class ComissaoPorProdutoTest(ApiDeTeste api)
     {
         var revenda = await api.RevendaComEstoque("Revenda Comissão Alta");
 
-        await revenda.Dono.Postar("/produtos", new { nome = "Placa", precoCents = 10_000L, comissaoBps = 9_000 }, HttpStatusCode.UnprocessableEntity);
+        await revenda.Dono.Colocar($"/catalogo/{revenda.ProdutoId}", new { precoCents = 10_000L, comissaoBps = 9_000 }, HttpStatusCode.UnprocessableEntity);
     }
 }

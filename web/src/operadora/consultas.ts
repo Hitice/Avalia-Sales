@@ -21,6 +21,7 @@ function useGravar<T>(fazer: (dados: T) => Promise<unknown>) {
 }
 
 export const useRegistrarPagamento = () => useGravar((id: string) => chamarApi(`/operadora/pedidos/${id}/pagamento`, enviarJson('POST', {})))
+export const useIniciarProducao = () => useGravar((id: string) => chamarApi(`/operadora/pedidos/${id}/producao`, enviarJson('POST', {})))
 export const useDespachar = () => useGravar(({ id, lote }: { id: string; lote: number }) => chamarApi(`/operadora/pedidos/${id}/despacho`, enviarJson('POST', { lote })))
 export const useGerarLote = () => useGravar((quantidade: number) => chamarApi<Lote>('/operadora/lotes', enviarJson('POST', { quantidade })))
 export const useCriarPacote = () => useGravar((p: { quantidade: number; precoCents: number }) => chamarApi('/operadora/pacotes', enviarJson('POST', p)))

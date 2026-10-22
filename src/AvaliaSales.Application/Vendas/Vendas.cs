@@ -20,7 +20,7 @@ public sealed record NovaVenda(
     string Telefone,
     string? Documento,
     string? Email,
-    DestinoInformado Destino,
+    DestinoInformado? Destino,
     long? ValorCents,
     MeioDePagamento Meio = MeioDePagamento.Pix,
     string? TokenDoCartao = null,
@@ -57,12 +57,16 @@ public sealed class Vendas(
             throw new RegraDeNegocioException("Escolha Pix ou cartão.");
         }
 
-        var produto = await banco.Produtos.AsNoTracking().SingleOrDefaultAsync(p => p.Id == pedido.ProdutoId && p.Ativo, ct)
-            ?? throw new RegraDeNegocioException("Este produto não está no catálogo.");
+        var (produto, doCatalogo) = await ProdutoDaVenda(pedido.ProdutoId, ct);
         var (vendedorId, comissaoBps) = await QuemVende(produto.ComissaoBps, ct);
-        var codigo = CodigoDaPlaca.Normalizar(pedido.Codigo);
-        var destino = pedido.Destino.Resolver(plataforma.Value.HostPublico);
         var agora = relogio.GetUtcNow();
+        if (doCatalogo is { UsaPlaca: false })
+        {
+            return await RegistrarServico(pedido, produto, vendedorId, comissaoBps, agora, ct);
+        }
+
+        var codigo = CodigoDaPlaca.Normalizar(pedido.Codigo);
+        var destino = (pedido.Destino ?? throw new RegraDeNegocioException("Informe para onde a placa leva.")).Resolver(plataforma.Value.HostPublico);
 
         await using var transacao = await banco.Database.BeginTransactionAsync(ct);
 
@@ -86,8 +90,64 @@ public sealed class Vendas(
         await banco.SaveChangesAsync(ct);
         await transacao.CommitAsync(ct);
 
-        var (cobranca, semCobranca) = await TentarCobrar(venda, cliente, placa.Codigo, pedido.TokenDoCartao, pedido.Parcelas, ct);
+        var (cobranca, semCobranca) = await TentarCobrar(venda, cliente, $"Placa {placa.Codigo}", pedido.TokenDoCartao, pedido.Parcelas, ct);
         return new VendaRegistrada(venda.Id, placa.Codigo, plataforma.Value.EnderecoDaPlaca(placa.Codigo), venda.ValorCents, placa.VenceEm, cobranca, semCobranca, linkCurto);
+    }
+
+    /// <summary>
+    /// Serviço que a Avalia executa: sem placa nem destino. A ordem de serviço
+    /// nasce quando o cliente paga (EfeitosDaCobranca).
+    /// </summary>
+    private async Task<VendaRegistrada> RegistrarServico(NovaVenda pedido, Domain.Catalogo.Produto produto, Guid vendedorId, int comissaoBps,
+        DateTimeOffset agora, CancellationToken ct)
+    {
+        await using var transacao = await banco.Database.BeginTransactionAsync(ct);
+        var cliente = await EncontrarCliente(pedido, agora, ct);
+        var venda = new Venda(null, cliente.Id, produto.Id, produto.PrecoCents, vendedorId, pedido.ValorCents, 0, comissaoBps, pedido.Meio, agora);
+        banco.Vendas.Add(venda);
+        banco.AvisarAoVivo("venda", atual.RevendedorId ?? Guid.Empty);
+        await banco.SaveChangesAsync(ct);
+        await transacao.CommitAsync(ct);
+
+        var (cobranca, semCobranca) = await TentarCobrar(venda, cliente, produto.Nome, pedido.TokenDoCartao, pedido.Parcelas, ct);
+        return new VendaRegistrada(venda.Id, "", "", venda.ValorCents, null, cobranca, semCobranca);
+    }
+
+    /// <summary>
+    /// O produto vem pela tabela da revenda (o id de lá) ou pelo catálogo da
+    /// Avalia (o id do produto da plataforma). Na primeira venda pelo catálogo,
+    /// a tabela da revenda ganha a linha com o preço sugerido.
+    /// </summary>
+    private async Task<(Domain.Catalogo.Produto Produto, Domain.Catalogo.ProdutoDaPlataforma? DoCatalogo)> ProdutoDaVenda(Guid id, CancellationToken ct)
+    {
+        var daRevenda = await banco.Produtos.SingleOrDefaultAsync(p => p.Id == id && p.Ativo, ct);
+        var catalogoId = daRevenda?.ProdutoDaPlataformaId ?? (daRevenda is null ? id : null);
+        var doCatalogo = catalogoId is { } c ? await banco.ProdutosDaPlataforma.AsNoTracking().SingleOrDefaultAsync(p => p.Id == c, ct) : null;
+        if (daRevenda is null && doCatalogo is null)
+        {
+            throw new RegraDeNegocioException("Este produto não está no catálogo.");
+        }
+
+        if (doCatalogo is { AVenda: false })
+        {
+            throw new RegraDeNegocioException($"{doCatalogo.Nome} não está à venda agora.");
+        }
+
+        if (daRevenda is null)
+        {
+            daRevenda = await banco.Produtos.SingleOrDefaultAsync(p => p.ProdutoDaPlataformaId == doCatalogo!.Id, ct);
+            if (daRevenda is null)
+            {
+                daRevenda = Domain.Catalogo.Produto.DaPlataforma(doCatalogo!);
+                banco.Produtos.Add(daRevenda);
+            }
+            else if (!daRevenda.Ativo)
+            {
+                throw new RegraDeNegocioException("Este produto está desligado na sua tabela.");
+            }
+        }
+
+        return (daRevenda, doCatalogo);
     }
 
     /// <summary>Gera de novo a cobrança que não saiu ou que falhou. A paga e a pendente ficam.</summary>
@@ -106,8 +166,15 @@ public sealed class Vendas(
         }
 
         var cliente = await banco.Clientes.SingleAsync(c => c.Id == venda.ClienteId, ct);
-        var placa = await banco.Placas.AsNoTracking().SingleAsync(p => p.Id == venda.PlacaId, ct);
-        var (cobranca, semCobranca) = await TentarCobrar(venda, cliente, placa.Codigo, null, 1, ct);
+        var placa = venda.PlacaId is { } placaId ? await banco.Placas.AsNoTracking().SingleAsync(p => p.Id == placaId, ct) : null;
+        if (placa is null)
+        {
+            var nome = await banco.Produtos.Where(p => p.Id == venda.ProdutoId).Select(p => p.Nome).SingleAsync(ct);
+            var (doServico, semCobrancaDoServico) = await TentarCobrar(venda, cliente, nome, null, 1, ct);
+            return new VendaRegistrada(venda.Id, "", "", venda.ValorCents, null, doServico, semCobrancaDoServico);
+        }
+
+        var (cobranca, semCobranca) = await TentarCobrar(venda, cliente, $"Placa {placa.Codigo}", null, 1, ct);
         return new VendaRegistrada(venda.Id, placa.Codigo, plataforma.Value.EnderecoDaPlaca(placa.Codigo), venda.ValorCents, placa.VenceEm, cobranca, semCobranca);
     }
 
@@ -156,11 +223,19 @@ public sealed class Vendas(
     {
         var venda = await AcharVenda(vendaId, ct);
         await ExigirSemCobrancaViva(venda, "Venda com cobrança em aberto ou paga.", ct);
-        await ExigirSemRenovacaoAberta(venda.PlacaId, ct);
-        var placa = await banco.Placas.SingleAsync(p => p.Id == venda.PlacaId, ct);
         venda.Cancelar();
-        auditoria.Registrar(AcaoAuditada.VendaCancelada, $"Venda da placa {placa.Codigo}", placa.Codigo, placa.Destino, null);
-        placa.DesfazerVenda();
+        if (venda.PlacaId is { } placaId)
+        {
+            await ExigirSemRenovacaoAberta(placaId, ct);
+            var placa = await banco.Placas.SingleAsync(p => p.Id == placaId, ct);
+            auditoria.Registrar(AcaoAuditada.VendaCancelada, $"Venda da placa {placa.Codigo}", placa.Codigo, placa.Destino, null);
+            placa.DesfazerVenda();
+        }
+        else
+        {
+            auditoria.Registrar(AcaoAuditada.VendaCancelada, "Venda de serviço", venda.Id.ToString(), null, null);
+        }
+
         banco.AvisarAoVivo("venda", venda.RevendedorId);
         await banco.SaveChangesAsync(ct);
     }
@@ -183,10 +258,11 @@ public sealed class Vendas(
         var venda = await AcharVenda(vendaId, ct);
         var codigo = CodigoDaPlaca.Normalizar(codigoNovo);
         await using var transacao = await banco.Database.BeginTransactionAsync(ct);
+        var placaDaVenda = venda.PlacaId ?? throw new RegraDeNegocioException("Venda de serviço não tem placa.");
         var nova = (codigo.Length == 0 ? null : await banco.TravarPlaca(codigo, ct))
             ?? throw new RegraDeNegocioException("Código não encontrado, verifique novamente.");
-        await ExigirSemRenovacaoAberta(venda.PlacaId, ct);
-        var antiga = await banco.Placas.SingleAsync(p => p.Id == venda.PlacaId, ct);
+        await ExigirSemRenovacaoAberta(placaDaVenda, ct);
+        var antiga = await banco.Placas.SingleAsync(p => p.Id == placaDaVenda, ct);
         if (nova.Id == antiga.Id)
         {
             throw new RegraDeNegocioException("A placa nova é a mesma da venda.");
@@ -205,7 +281,13 @@ public sealed class Vendas(
 
     private async Task RegistrarNaPlaca(Venda venda, AcaoAuditada acao, string? depois, CancellationToken ct)
     {
-        var codigo = await banco.Placas.Where(p => p.Id == venda.PlacaId).Select(p => p.Codigo).SingleAsync(ct);
+        if (venda.PlacaId is not { } placaId)
+        {
+            auditoria.Registrar(acao, "Venda de serviço", venda.Id.ToString(), null, depois);
+            return;
+        }
+
+        var codigo = await banco.Placas.Where(p => p.Id == placaId).Select(p => p.Codigo).SingleAsync(ct);
         auditoria.Registrar(acao, $"Venda da placa {codigo}", codigo, null, depois);
     }
 
@@ -250,12 +332,13 @@ public sealed class Vendas(
 
         var linhas = await (
             from v in consulta
-            join p in banco.Placas on v.PlacaId equals p.Id
+            join p in banco.Placas on v.PlacaId equals p.Id into placas
+            from p in placas.DefaultIfEmpty()
             join c in banco.Clientes on v.ClienteId equals c.Id
             join pr in banco.Produtos on v.ProdutoId equals pr.Id
             let cb = banco.Cobrancas.Where(x => x.Origem == OrigemDaCobranca.Venda && x.OrigemId == v.Id).OrderByDescending(x => x.CriadaEm).FirstOrDefault()
             orderby v.VendidaEm descending
-            select new { v, p.Codigo, Cliente = c.Nome, Produto = pr.Nome, Pagamento = cb == null ? (SituacaoDaCobranca?)null : cb.Situacao, PagaEm = cb == null ? null : cb.PagaEm, PagoPor = cb == null ? (MeioDePagamento?)null : cb.Meio })
+            select new { v, Codigo = p == null ? "" : p.Codigo, Cliente = c.Nome, Produto = pr.Nome, Pagamento = cb == null ? (SituacaoDaCobranca?)null : cb.Situacao, PagaEm = cb == null ? null : cb.PagaEm, PagoPor = cb == null ? (MeioDePagamento?)null : cb.Meio })
             .Take(500)
             .ToListAsync(ct);
         var nomes = await contas.Nomes(linhas.Select(l => l.v.VendedorId).Distinct(), ct);
@@ -286,7 +369,7 @@ public sealed class Vendas(
     private async Task<Cliente> EncontrarCliente(NovaVenda pedido, DateTimeOffset agora, CancellationToken ct)
     {
         var novo = new Cliente(pedido.Empresa, pedido.Responsavel, pedido.Telefone, pedido.Documento, agora);
-        novo.Completar(null, pedido.Email, pedido.Destino.LugarNoGoogle);
+        novo.Completar(null, pedido.Email, pedido.Destino?.LugarNoGoogle);
 
         var existente = novo.Documento is { } documento
             ? await banco.Clientes.SingleOrDefaultAsync(c => c.Documento == documento, ct)
@@ -303,7 +386,7 @@ public sealed class Vendas(
     }
 
     private async Task<(CobrancaDto? Cobranca, string? SemCobranca)> TentarCobrar(
-        Venda venda, Cliente cliente, string codigo, string? tokenDoCartao, int parcelas, CancellationToken ct)
+        Venda venda, Cliente cliente, string descricao, string? tokenDoCartao, int parcelas, CancellationToken ct)
     {
         if (cliente.Documento is null || cliente.Email is null)
         {
@@ -313,7 +396,7 @@ public sealed class Vendas(
         try
         {
             var cobranca = await cobrancas.Criar(new CriarCobranca(OrigemDaCobranca.Venda, venda.Id, venda.Meio, venda.ValorCents,
-                $"Placa {codigo}", new Pagador(cliente.Nome, cliente.Email, cliente.Documento, cliente.Telefone), tokenDoCartao, parcelas), ct);
+                descricao, new Pagador(cliente.Nome, cliente.Email, cliente.Documento, cliente.Telefone), tokenDoCartao, parcelas), ct);
             return (cobranca, null);
         }
         catch (RegraDeNegocioException recusa)

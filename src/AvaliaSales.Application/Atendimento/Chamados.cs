@@ -22,7 +22,7 @@ public sealed record ChamadoComMensagens(ChamadoDto Chamado, IReadOnlyList<Mensa
 /// lado ao vivo e por e-mail.
 /// </summary>
 public sealed class Chamados(IBancoDeDados banco, IUsuarioAtual usuario, IRevendedorAtual atual, IContas contas, FilaDeEmails emails,
-    IOptions<OpcoesDaPlataforma> plataforma, TimeProvider relogio)
+    Notificacoes.Notificacoes notificacoes, IOptions<OpcoesDaPlataforma> plataforma, TimeProvider relogio)
 {
     public const int MensagensPorChamado = 200;
 
@@ -76,6 +76,7 @@ public sealed class Chamados(IBancoDeDados banco, IUsuarioAtual usuario, IRevend
 
             Abrir o chamado: {site.UrlDoPainel.TrimEnd('/')}/operadora/atendimento
             """);
+        notificacoes.ParaOperadora(revendedor, $"Chamado {chamado.Numero}", $"{nome}: {chamado.Assunto}", "/operadora/atendimento");
         await banco.SaveChangesAsync(ct);
         return Dto(chamado, new Dictionary<Guid, string> { [revendedor] = nome }, agora, 0);
     }
@@ -112,8 +113,13 @@ public sealed class Chamados(IBancoDeDados banco, IUsuarioAtual usuario, IRevend
         chamado.RegistrarMensagem(daOperadora, agora);
         banco.AvisarAoVivo("chat", chamado.RevendedorId, operadora: !daOperadora);
 
-        if (daOperadora)
+        if (!daOperadora)
         {
+            notificacoes.ParaOperadora(chamado.RevendedorId, $"Chamado {chamado.Numero}", "Nova mensagem da revenda.", "/operadora/atendimento");
+        }
+        else
+        {
+            notificacoes.ParaDono(chamado.RevendedorId, $"Resposta no chamado {chamado.Numero}", chamado.Assunto, "/painel/suporte");
             foreach (var dono in await contas.EmailsDosDonos(chamado.RevendedorId, ct))
             {
                 emails.Enfileirar($"mensagem:{mensagem.Id:N}:{dono}", dono, $"Resposta da Avalia no chamado {chamado.Numero}",

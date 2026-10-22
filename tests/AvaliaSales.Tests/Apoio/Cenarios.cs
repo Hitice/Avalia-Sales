@@ -25,11 +25,35 @@ public static class Cenarios
         await operadora.Postar($"/operadora/pedidos/{pedido}/despacho", new { lote = lote.GetProperty("numero").GetInt32() }, HttpStatusCode.NoContent);
         await dono.Postar("/lotes/ativacao", new { numero = lote.GetProperty("rotulo").GetString() });
         var placas = await dono.Pegar("/placas");
-        var produto = await dono.Postar("/produtos", new { nome = "Placa de avaliação", precoCents = 14_990L }, HttpStatusCode.Created);
+        var produto = await ProdutoDoCatalogo(dono, "placa-avaliacao-google", 14_990L);
         return new Revenda(id, dono,
             placas.GetProperty("placas").EnumerateArray().Select(p => p.GetProperty("codigo").GetString()!).ToList(),
-            produto.GetProperty("id").GetGuid());
+            produto);
     }
+
+    /// <summary>O produto do catálogo da Avalia pela chave, com o preço (e a comissão) da revenda.</summary>
+    public static async Task<Guid> ProdutoDoCatalogo(HttpClient dono, string chave, long precoCents, int? comissaoBps = null)
+    {
+        var item = (await dono.Pegar("/catalogo")).EnumerateArray().Single(i => i.GetProperty("chave").GetString() == chave);
+        var id = item.GetProperty("id").GetGuid();
+        await dono.Colocar($"/catalogo/{id}", new { precoCents, comissaoBps });
+        return id;
+    }
+
+    /// <summary>Venda de serviço: sem placa, sem destino e, sem documento, sem cobrança (o dono recebe por fora).</summary>
+    public static object Servico(Guid produtoId, string telefone) => new
+    {
+        codigo = "",
+        produtoId,
+        empresa = "Padaria do Serviço",
+        responsavel = "Rita",
+        telefone,
+        documento = (string?)null,
+        email = (string?)null,
+        destino = (object?)null,
+        valorCents = (long?)null,
+        meio = "Pix",
+    };
 
     public static object Venda(string codigo, Guid produtoId, string telefone, long? valor = null, string? documento = "11222333000181") => new
     {

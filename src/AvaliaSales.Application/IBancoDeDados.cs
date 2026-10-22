@@ -22,6 +22,9 @@ public interface IBancoDeDados
 {
     DbSet<Revendedor> Revendedores { get; }
     DbSet<Produto> Produtos { get; }
+    DbSet<ProdutoDaPlataforma> ProdutosDaPlataforma { get; }
+    DbSet<Domain.Servicos.OrdemDeServico> OrdensDeServico { get; }
+    DbSet<Domain.Notificacoes.Notificacao> Notificacoes { get; }
     DbSet<Cobranca> Cobrancas { get; }
     DbSet<Contrato> Contratos { get; }
     DbSet<VinculoExterno> Vinculos { get; }

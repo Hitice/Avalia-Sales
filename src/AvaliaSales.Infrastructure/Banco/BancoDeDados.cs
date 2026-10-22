@@ -29,6 +29,9 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
 {
     public DbSet<Revendedor> Revendedores => Set<Revendedor>();
     public DbSet<Produto> Produtos => Set<Produto>();
+    public DbSet<ProdutoDaPlataforma> ProdutosDaPlataforma => Set<ProdutoDaPlataforma>();
+    public DbSet<Domain.Servicos.OrdemDeServico> OrdensDeServico => Set<Domain.Servicos.OrdemDeServico>();
+    public DbSet<Domain.Notificacoes.Notificacao> Notificacoes => Set<Domain.Notificacoes.Notificacao>();
     public DbSet<Cobranca> Cobrancas => Set<Cobranca>();
     public DbSet<Contrato> Contratos => Set<Contrato>();
     public DbSet<VinculoExterno> Vinculos => Set<VinculoExterno>();
@@ -172,7 +175,54 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
             p.ToTable("produtos");
             p.Property(x => x.Nome).HasMaxLength(Produto.NomeMaximo).IsRequired();
             p.HasOne<Revendedor>().WithMany().HasForeignKey(x => x.RevendedorId).OnDelete(DeleteBehavior.Restrict);
+            p.HasOne<ProdutoDaPlataforma>().WithMany().HasForeignKey(x => x.ProdutoDaPlataformaId).OnDelete(DeleteBehavior.Restrict);
             p.HasIndex(x => new { x.RevendedorId, x.Nome });
+            p.HasIndex(x => new { x.RevendedorId, x.ProdutoDaPlataformaId }).IsUnique().HasFilter("produto_da_plataforma_id is not null");
+        });
+
+        modelo.Entity<ProdutoDaPlataforma>(p =>
+        {
+            p.ToTable("produtos_da_plataforma");
+            p.Property(x => x.Id).ValueGeneratedNever();
+            p.Property(x => x.Chave).HasMaxLength(60).IsRequired();
+            p.HasIndex(x => x.Chave).IsUnique();
+            p.Property(x => x.Nome).HasMaxLength(ProdutoDaPlataforma.NomeMaximo).IsRequired();
+            p.Property(x => x.Descricao).HasMaxLength(ProdutoDaPlataforma.DescricaoMaxima).IsRequired();
+            p.Property(x => x.Tipo).HasConversion<string>().HasMaxLength(20);
+            p.Property(x => x.Situacao).HasConversion<string>().HasMaxLength(20);
+            p.Property(x => x.FotoPadrao).HasMaxLength(200);
+            p.Property(x => x.FotoTipo).HasMaxLength(20);
+            p.Ignore(x => x.UsaPlaca);
+            p.Ignore(x => x.GeraServico);
+            p.Ignore(x => x.AVenda);
+        });
+
+        modelo.Entity<Domain.Servicos.OrdemDeServico>(o =>
+        {
+            o.ToTable("ordens_de_servico");
+            o.Property(x => x.Id).ValueGeneratedNever();
+            o.Property(x => x.Numero).UseIdentityAlwaysColumn();
+            o.HasIndex(x => x.Numero).IsUnique();
+            o.Property(x => x.Produto).HasMaxLength(ProdutoDaPlataforma.NomeMaximo).IsRequired();
+            o.Property(x => x.Cliente).HasMaxLength(160).IsRequired();
+            o.Property(x => x.Observacao).HasMaxLength(Domain.Servicos.OrdemDeServico.ObservacaoMaxima);
+            o.Property(x => x.Situacao).HasConversion<string>().HasMaxLength(20);
+            o.HasOne<Revendedor>().WithMany().HasForeignKey(x => x.RevendedorId).OnDelete(DeleteBehavior.Restrict);
+            o.HasOne<Venda>().WithMany().HasForeignKey(x => x.VendaId).OnDelete(DeleteBehavior.Restrict);
+            o.HasOne<ProdutoDaPlataforma>().WithMany().HasForeignKey(x => x.ProdutoDaPlataformaId).OnDelete(DeleteBehavior.Restrict);
+            o.HasIndex(x => x.VendaId).IsUnique();
+            o.HasIndex(x => new { x.Situacao, x.CriadaEm });
+        });
+
+        modelo.Entity<Domain.Notificacoes.Notificacao>(n =>
+        {
+            n.ToTable("notificacoes");
+            n.Property(x => x.Id).ValueGeneratedNever();
+            n.Property(x => x.Titulo).HasMaxLength(Domain.Notificacoes.Notificacao.TituloMaximo).IsRequired();
+            n.Property(x => x.Texto).HasMaxLength(Domain.Notificacoes.Notificacao.TextoMaximo).IsRequired();
+            n.Property(x => x.Link).HasMaxLength(200);
+            n.HasOne<Revendedor>().WithMany().HasForeignKey(x => x.RevendedorId).OnDelete(DeleteBehavior.Restrict);
+            n.HasIndex(x => new { x.ParaOperadora, x.RevendedorId, x.CriadaEm });
         });
 
         modelo.Entity<Cobranca>(c =>

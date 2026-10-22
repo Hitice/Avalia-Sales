@@ -10,18 +10,16 @@ import { Field, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { formatarCentavos } from '@/dinheiro/dinheiro'
-import { useAtivarLote, useCancelarPedido, usePacotes, usePagarPedido, usePedidos, usePedir } from './consultas'
+import { useAtivarLote, useCancelarPedido, usePagarPedido, usePedidos } from './consultas'
+import { PacotesParaPedir } from './PacotesParaPedir'
 
 /** Pedir placas e ativar o lote que chegou. */
 export function TelaDePedidosDePlacas() {
-  const pacotes = usePacotes()
   const pedidos = usePedidos()
-  const pedir = usePedir()
   const cancelar = useCancelarPedido()
   const ativar = useAtivarLote()
   const pagar = usePagarPedido()
   const [numero, setNumero] = useState('')
-  const [cupom, setCupom] = useState('')
 
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
@@ -29,22 +27,8 @@ export function TelaDePedidosDePlacas() {
         <Cabecalho titulo="Pedidos" />
         <Card>
           <CardHeader><CardTitle>Pacotes</CardTitle></CardHeader>
-          <CardContent className="grid gap-3">
-            <Erro erro={pedir.error ? mensagemDoErro(pedir.error) : null} />
-            <div className="flex max-w-xs items-end gap-2">
-              <Input aria-label="Cupom de desconto" placeholder="Cupom" className="uppercase" value={cupom} onChange={(e) => setCupom(e.target.value)} />
-            </div>
-            <EstadoDaConsulta carregando={pacotes.isPending} erro={pacotes.error} vazio={pacotes.data?.length === 0} textoVazio="Nenhum pacote à venda agora." />
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              {pacotes.data?.map((p) => (
-                <div key={p.id} className="grid gap-2 rounded-lg border p-3">
-                  <p className="text-lg font-semibold tabular-nums">{p.quantidade} placas</p>
-                  <p className="text-sm tabular-nums">{formatarCentavos(p.precoCents)}</p>
-                  <p className="text-xs text-muted-foreground tabular-nums">{formatarCentavos(p.custoPorPlacaCents)} por placa</p>
-                  <Button disabled={pedir.isPending} onClick={() => pedir.mutate({ pacoteId: p.id, cupom: cupom.trim() || null }, { onSuccess: () => setCupom('') })}>Pedir</Button>
-                </div>
-              ))}
-            </div>
+          <CardContent>
+            <PacotesParaPedir />
           </CardContent>
         </Card>
         <Card>
@@ -74,7 +58,7 @@ export function TelaDePedidosDePlacas() {
                           {formatarCentavos(p.valorCents)}
                           {p.cupom && <span className="block text-xs text-muted-foreground">cupom {p.cupom}, menos {formatarCentavos(p.descontoCents)}</span>}
                         </TableCell>
-                        <TableCell><Badge variant={p.situacao === 'Ativado' ? 'default' : 'secondary'}>{ROTULO_DO_PEDIDO[p.situacao]}</Badge></TableCell>
+                        <TableCell><Badge variant={p.situacao === 'Ativado' ? 'default' : p.situacao === 'Cancelado' ? 'outline' : 'secondary'}>{ROTULO_DO_PEDIDO[p.situacao]}</Badge></TableCell>
                         <TableCell>{p.lote ?? '-'}</TableCell>
                         <TableCell className="text-right">
                           {p.situacao === 'AguardandoPagamento' && (

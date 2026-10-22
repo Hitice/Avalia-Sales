@@ -48,9 +48,10 @@ public sealed class Clientes(IBancoDeDados banco, IRevendedorAtual atual, Audito
         var revendedor = await banco.Revendedores.AsNoTracking().Where(r => r.Id == atual.RevendedorId).Select(r => r.Nome).SingleAsync(ct);
         var vendas = await (
             from v in banco.Vendas.AsNoTracking().Where(v => v.ClienteId == id)
-            join p in banco.Placas on v.PlacaId equals p.Id
+            join p in banco.Placas on v.PlacaId equals p.Id into placas
+            from p in placas.DefaultIfEmpty()
             orderby v.VendidaEm
-            select new { v.Id, v.VendidaEm, p.Codigo, p.Destino, p.VenceEm, v.ValorCents })
+            select new { v.Id, v.VendidaEm, Codigo = p == null ? "" : p.Codigo, Destino = p == null ? null : p.Destino, VenceEm = p == null ? null : p.VenceEm, v.ValorCents })
             .ToListAsync(ct);
         var ids = vendas.Select(v => (Guid?)v.Id).ToList();
         var cobrancas = await banco.Cobrancas.AsNoTracking()

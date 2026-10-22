@@ -1,6 +1,4 @@
-using System.Net;
 using System.Net.Http.Json;
-using AvaliaSales.Application.Catalogo;
 using AvaliaSales.Domain.Catalogo;
 using AvaliaSales.Infrastructure.Banco;
 using AvaliaSales.Tests.Apoio;
@@ -27,13 +25,11 @@ public sealed class IsolamentoEntreRevendedoresTest(ApiDeTeste api)
         var clienteA = await api.ClienteLogado(emailA);
         var clienteB = await api.ClienteLogado(emailB);
 
-        var criado = await clienteA.PostAsJsonAsync("/produtos", new { nome = "Placa NFC", precoCents = 14990 }, Ct);
-        Assert.Equal(HttpStatusCode.Created, criado.StatusCode);
+        var placa = await Cenarios.ProdutoDoCatalogo(clienteA, "placa-avaliacao-google", 14_990L);
 
-        var deA = await clienteA.GetFromJsonAsync<List<ProdutoDto>>("/produtos", Ct);
-        var deB = await clienteB.GetFromJsonAsync<List<ProdutoDto>>("/produtos", Ct);
-        Assert.Contains(deA!, p => p.Nome == "Placa NFC" && p.PrecoCents == 14990);
-        Assert.Empty(deB!);
+        // O preço da revenda A não aparece para a B, que vê o sugerido da Avalia.
+        Assert.Equal(14_990, PrecoDe(await clienteA.Pegar("/catalogo"), placa));
+        Assert.Equal(9_990, PrecoDe(await clienteB.Pegar("/catalogo"), placa));
     }
 
     [Fact]
@@ -43,7 +39,8 @@ public sealed class IsolamentoEntreRevendedoresTest(ApiDeTeste api)
         var (_, emailB) = await api.CriarRevendedor("Revenda Intrusa");
         var clienteB = await api.ClienteLogado(emailB);
 
-        await clienteB.PostAsJsonAsync("/produtos", new { nome = "Placa intrusa", precoCents = 100, revendedorId = revendedorA }, Ct);
+        var placa = (await clienteB.Pegar("/catalogo")).EnumerateArray().Single(i => i.GetProperty("chave").GetString() == "placa-avaliacao-google").GetProperty("id").GetGuid();
+        await clienteB.PutAsJsonAsync($"/catalogo/{placa}", new { precoCents = 5_000, revendedorId = revendedorA }, Ct);
 
         await using var dono = new NpgsqlConnection(api.ConexaoDoDono);
         await dono.OpenAsync(Ct);
@@ -55,7 +52,7 @@ public sealed class IsolamentoEntreRevendedoresTest(ApiDeTeste api)
     {
         var (_, email) = await api.CriarRevendedor("Revenda Com Produto");
         var cliente = await api.ClienteLogado(email);
-        await cliente.PostAsJsonAsync("/produtos", new { nome = "Placa QR", precoCents = 9990 }, Ct);
+        await Cenarios.ProdutoDoCatalogo(cliente, "placa-avaliacao-google", 9_990L);
 
         await using var dono = new NpgsqlConnection(api.ConexaoDoDono);
         await dono.OpenAsync(Ct);
@@ -90,7 +87,7 @@ public sealed class IsolamentoEntreRevendedoresTest(ApiDeTeste api)
         var (revendedorA, emailA) = await api.CriarRevendedor("Revenda Filtro A");
         var (revendedorB, _) = await api.CriarRevendedor("Revenda Filtro B");
         var clienteA = await api.ClienteLogado(emailA);
-        await clienteA.PostAsJsonAsync("/produtos", new { nome = "Placa do filtro", precoCents = 500 }, Ct);
+        await Cenarios.ProdutoDoCatalogo(clienteA, "placa-avaliacao-google", 5_000L);
 
         var opcoes = new DbContextOptionsBuilder<BancoDeDados>()
             .UseNpgsql(api.ConexaoDoDono).UseSnakeCaseNamingConvention().Options;
@@ -98,7 +95,7 @@ public sealed class IsolamentoEntreRevendedoresTest(ApiDeTeste api)
         await using var comoA = new BancoDeDados(opcoes, new RevendedorFixo(revendedorA));
 
         Assert.Empty(await comoB.Produtos.ToListAsync(Ct));
-        Assert.Contains(await comoA.Produtos.ToListAsync(Ct), p => p.Nome == "Placa do filtro");
+        Assert.Contains(await comoA.Produtos.ToListAsync(Ct), p => p.PrecoCents == 5_000);
     }
 
     private sealed record RevendedorFixo(Guid? RevendedorId, bool Operadora = false) : AvaliaSales.Application.IRevendedorAtual;
@@ -191,4 +188,7 @@ public sealed class IsolamentoEntreRevendedoresTest(ApiDeTeste api)
 
         Assert.Empty(semRls);
     }
+
+    private static long PrecoDe(System.Text.Json.JsonElement catalogo, Guid id) =>
+        catalogo.EnumerateArray().Single(i => i.GetProperty("id").GetGuid() == id).GetProperty("precoCents").GetInt64();
 }

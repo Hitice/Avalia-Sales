@@ -10,7 +10,8 @@ public enum SituacaoDaVenda
 }
 
 /// <summary>
-/// A venda de uma placa no balcão. Valor, tabela, custo e comissão ficam
+/// A venda no balcão: de uma placa, ou de um serviço que a Avalia executa,
+/// sem placa. Valor, tabela, custo e comissão ficam
 /// gravados: a tabela muda, o que foi cobrado não. Se está paga quem diz é a
 /// cobrança mais recente com origem nesta venda, e não uma coluna daqui: a
 /// cobrança gravada antes de o Pagar.me cair já aponta para a venda. A
@@ -23,7 +24,8 @@ public sealed class Venda : IDoRevendedor
 
     public Guid Id { get; private set; } = Guid.CreateVersion7();
     public Guid RevendedorId { get; private set; }
-    public Guid PlacaId { get; private set; }
+    /// <summary>Nula na venda de serviço, que não leva placa.</summary>
+    public Guid? PlacaId { get; private set; }
     public Guid ClienteId { get; private set; }
     public Guid ProdutoId { get; private set; }
 
@@ -48,7 +50,7 @@ public sealed class Venda : IDoRevendedor
     {
     }
 
-    public Venda(Guid placaId, Guid clienteId, Guid produtoId, long tabelaCents, Guid vendedorId, long? valorCents,
+    public Venda(Guid? placaId, Guid clienteId, Guid produtoId, long tabelaCents, Guid vendedorId, long? valorCents,
         long custoCents, int comissaoBps, MeioDePagamento meio, DateTimeOffset agora)
     {
         var valor = valorCents ?? tabelaCents;

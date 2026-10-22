@@ -113,6 +113,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/servicos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OrdemDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/marca": {
         parameters: {
             query?: never;
@@ -805,7 +840,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/produtos": {
+    "/catalogo": {
         parameters: {
             query?: never;
             header?: never;
@@ -827,41 +862,20 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["ProdutoDto"][];
+                        "application/json": components["schemas"]["ItemDoCatalogo"][];
                     };
                 };
             };
         };
         put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["CadastrarProduto"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/produtos/{id}": {
+    "/catalogo/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -880,7 +894,7 @@ export interface paths {
             };
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["CadastrarProduto"];
+                    "application/json": components["schemas"]["AjustarProduto"];
                 };
             };
             responses: {
@@ -890,38 +904,19 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["ProdutoDto"];
+                        "application/json": components["schemas"]["ItemDoCatalogo"];
                     };
                 };
             };
         };
         post?: never;
-        delete: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/produtos/{id}/ativo": {
+    "/catalogo/{id}/ativo": {
         parameters: {
             query?: never;
             header?: never;
@@ -954,6 +949,525 @@ export interface paths {
             };
         };
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/catalogo/{id}/foto": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/operadora/catalogo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProdutoDaPlataformaDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["GravarProdutoDaPlataforma"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/operadora/catalogo/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["GravarProdutoDaPlataforma"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProdutoDaPlataformaDto"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/operadora/catalogo/{id}/situacao": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["DefinirSituacaoDoProduto"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProdutoDaPlataformaDto"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/operadora/catalogo/{id}/foto": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "image/webp": string;
+                    "image/png": string;
+                    "image/jpeg": string;
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProdutoDaPlataformaDto"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProdutoDaPlataformaDto"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/operadora/servicos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OrdemDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/operadora/servicos/{id}/iniciar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/operadora/servicos/{id}/entregar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/operadora/servicos/{id}/cancelar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/operadora/servicos/{id}/observacao": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AnotarOrdem"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/notificacoes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CaixaDeNotificacoes"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/notificacoes/lidas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/notificacoes/{id}/lida": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -1552,6 +2066,41 @@ export interface paths {
         trace?: never;
     };
     "/operadora/pedidos/{id}/pagamento": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/operadora/pedidos/{id}/producao": {
         parameters: {
             query?: never;
             header?: never;
@@ -3986,6 +4535,12 @@ export interface components {
     schemas: {
         /** @enum {unknown} */
         AcaoAuditada: "DestinoDefinido" | "DestinoTrocado" | "PlacaSuspensa" | "PlacaNoAr" | "PlacaTrocada" | "VendaCancelada" | "VendaEmCortesia" | "RecebidoPorFora" | "RecebimentoDesfeito" | "VendedorCadastrado" | "VendedorAlterado" | "VendedorDesativado" | "VendedorReativado" | "VendedorExcluido" | "ComissaoPadraoAlterada" | "ProdutoAlterado" | "RepasseRegistrado" | "ClienteAnonimizado" | "MarcaAlterada" | "LinkAlterado" | "LinkExcluido" | "SegundoFatorLigado" | "SegundoFatorDesligado" | "EmpresaAlterada";
+        AjustarProduto: {
+            /** Format: int64 */
+            precoCents: number;
+            /** Format: int32 */
+            comissaoBps: null | number;
+        };
         AlterarAtivo: {
             ativo: boolean;
         };
@@ -4011,6 +4566,9 @@ export interface components {
             chave: null | string;
             idDoMapa: null | string;
         };
+        AnotarOrdem: {
+            observacao: null | string;
+        };
         AtivacaoDto: {
             lote: string;
             /** Format: int32 */
@@ -4021,13 +4579,10 @@ export interface components {
         AtivarLote: {
             numero: string;
         };
-        /** @description Sem comissão, o produto segue a do vendedor ou a padrão. */
-        CadastrarProduto: {
-            nome: string;
-            /** Format: int64 */
-            precoCents: number;
+        CaixaDeNotificacoes: {
+            notificacoes: components["schemas"]["NotificacaoDto"][];
             /** Format: int32 */
-            comissaoBps?: null | number;
+            naoLidas: number;
         };
         ChamadoComMensagens: {
             chamado: components["schemas"]["ChamadoDto"];
@@ -4154,6 +4709,9 @@ export interface components {
             /** Format: int32 */
             renovacaoBps: number;
         };
+        DefinirSituacaoDoProduto: {
+            situacao: components["schemas"]["SituacaoDoProduto"];
+        };
         /** @description O desafio da entrada e para onde foi o código, quando foi por e-mail (mascarado). */
         DesafioDaEntrada: {
             desafio: string;
@@ -4245,6 +4803,40 @@ export interface components {
             quantidade: number;
             /** Format: int64 */
             precoCents: number;
+        };
+        GravarProdutoDaPlataforma: {
+            chave: string;
+            nome: string;
+            descricao: null | string;
+            tipo: components["schemas"]["TipoDeProduto"];
+            /** Format: int64 */
+            precoSugeridoCents: number;
+            /** Format: int32 */
+            ordem: number;
+        };
+        /**
+         * @description Um produto como a revenda vê: o do catálogo da Avalia com o preço dela.
+         *     Id é o do produto da Avalia. O produto antigo, de antes
+         *     do catálogo, não aparece: só as vendas feitas com ele continuam apontando para ele.
+         */
+        ItemDoCatalogo: {
+            /** Format: uuid */
+            id: string;
+            chave: string;
+            nome: string;
+            descricao: string;
+            tipo: components["schemas"]["TipoDeProduto"];
+            situacao: components["schemas"]["SituacaoDoProduto"];
+            fotoUrl: null | string;
+            /** Format: int64 */
+            precoSugeridoCents: number;
+            /** Format: int64 */
+            precoCents: number;
+            /** Format: int32 */
+            comissaoBps: null | number;
+            /** Format: int64 */
+            pisoCents: number;
+            ativo: boolean;
         };
         LancamentoDto: {
             /** Format: uuid */
@@ -4344,6 +4936,17 @@ export interface components {
             revendedor: components["schemas"]["RevendedorDto"];
             contrato: null | components["schemas"]["SituacaoDoContrato"];
         };
+        NotificacaoDto: {
+            /** Format: uuid */
+            id: string;
+            titulo: string;
+            texto: string;
+            link: null | string;
+            /** Format: date-time */
+            criadaEm: string;
+            lida: boolean;
+            revendedor: null | string;
+        };
         NovaMensagem: {
             texto: string;
         };
@@ -4360,7 +4963,7 @@ export interface components {
             telefone: string;
             documento: null | string;
             email: null | string;
-            destino: components["schemas"]["DestinoInformado"];
+            destino: null | components["schemas"]["DestinoInformado"];
             /** Format: int64 */
             valorCents: null | number;
             meio?: components["schemas"]["MeioDePagamento"];
@@ -4404,6 +5007,23 @@ export interface components {
             chavePix: null | string;
             /** Format: int32 */
             comissaoBps: null | number;
+        };
+        OrdemDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: int64 */
+            numero: number;
+            revendedor: string;
+            produto: string;
+            cliente: string;
+            situacao: components["schemas"]["SituacaoDaOrdem"];
+            observacao: null | string;
+            /** Format: date-time */
+            criadaEm: string;
+            /** Format: date-time */
+            iniciadaEm: null | string;
+            /** Format: date-time */
+            entregueEm: null | string;
         };
         PacoteDto: {
             /** Format: uuid */
@@ -4468,6 +5088,8 @@ export interface components {
             despachadoEm: null | string;
             /** Format: date-time */
             ativadoEm: null | string;
+            /** Format: date-time */
+            producaoEm: null | string;
             /** Format: int64 */
             precoDoPacoteCents: number;
             cupom: null | string;
@@ -4505,15 +5127,20 @@ export interface components {
             /** Format: date-time */
             ultimaLeituraEm: null | string;
         };
-        ProdutoDto: {
+        ProdutoDaPlataformaDto: {
             /** Format: uuid */
             id: string;
+            chave: string;
             nome: string;
+            descricao: string;
+            tipo: components["schemas"]["TipoDeProduto"];
             /** Format: int64 */
-            precoCents: number;
-            ativo: boolean;
+            precoSugeridoCents: number;
+            situacao: components["schemas"]["SituacaoDoProduto"];
             /** Format: int32 */
-            comissaoBps: null | number;
+            ordem: number;
+            fotoUrl: null | string;
+            temFotoEnviada: boolean;
         };
         ReceberPorFora: {
             meio: components["schemas"]["MeioDePagamento"];
@@ -4604,6 +5231,8 @@ export interface components {
         /** @enum {unknown} */
         SituacaoDaCobranca: "Pendente" | "Paga" | "Cancelada" | "Falhou" | "Estornada" | null;
         /** @enum {unknown} */
+        SituacaoDaOrdem: "AFazer" | "EmAndamento" | "Entregue" | "Cancelada";
+        /** @enum {unknown} */
         SituacaoDaVenda: "Registrada" | "Cancelada";
         /** @enum {unknown} */
         SituacaoDoChamado: "AguardandoAvalia" | "AguardandoRevenda" | "Resolvido";
@@ -4612,7 +5241,9 @@ export interface components {
         /** @enum {unknown} */
         SituacaoDoEnvio: "Pendente" | "Enviado" | "Parado";
         /** @enum {unknown} */
-        SituacaoDoPedido: "AguardandoPagamento" | "Pago" | "Despachado" | "Ativado" | "Cancelado";
+        SituacaoDoPedido: "AguardandoPagamento" | "Pago" | "Despachado" | "Ativado" | "Cancelado" | "EmProducao";
+        /** @enum {unknown} */
+        SituacaoDoProduto: "Disponivel" | "Esgotado" | "ForaDeLinha";
         SituacaoDoSegundoFator: {
             ligado: boolean;
             meio: null | components["schemas"]["MeioDoSegundoFator"];
@@ -4625,6 +5256,8 @@ export interface components {
          * @enum {unknown}
          */
         TipoDeLancamento: "Receita" | "TaxaAvalia" | "ComissaoDevida" | "ComissaoPaga";
+        /** @enum {unknown} */
+        TipoDeProduto: "Placa" | "PlacaComServico" | "Servico";
         TokenEmitido: {
             token: string;
             /** Format: date-time */

@@ -11,7 +11,7 @@ namespace AvaliaSales.Application.Pedidos;
 
 public sealed record PedidoDto(
     Guid Id, Guid RevendedorId, string Revendedor, int Quantidade, long ValorCents, SituacaoDoPedido Situacao,
-    DateTimeOffset CriadoEm, DateTimeOffset? PagoEm, string? Lote, DateTimeOffset? DespachadoEm, DateTimeOffset? AtivadoEm,
+    DateTimeOffset CriadoEm, DateTimeOffset? PagoEm, string? Lote, DateTimeOffset? DespachadoEm, DateTimeOffset? AtivadoEm, DateTimeOffset? ProducaoEm,
     long PrecoDoPacoteCents, string? Cupom, long DescontoCents, string? UrlDePagamento);
 
 public sealed record AtivacaoDto(string Lote, int Placas, string PrimeiroCodigo, string UltimoCodigo);
@@ -29,6 +29,7 @@ public sealed class PedidosDePlacas(
     FilaDeEmails avisos,
     Pagamentos.Cobrancas cobrancas,
     Erp.FilaDoErp erp,
+    Notificacoes.Notificacoes notificacoes,
     IOptions<OpcoesDaPlataforma> plataforma,
     TimeProvider relogio)
 {
@@ -52,7 +53,7 @@ public sealed class PedidosDePlacas(
         return pedidos.Select(p => new PedidoDto(
             p.Id, p.RevendedorId, revendedores.GetValueOrDefault(p.RevendedorId, ""), p.Quantidade, p.ValorCents, p.Situacao,
             p.CriadoEm, p.PagoEm, p.LoteId is { } l && lotes.TryGetValue(l, out var n) ? Lote.Rotular(n) : null,
-            p.DespachadoEm, p.AtivadoEm, p.PrecoDoPacoteCents, p.Cupom, p.DescontoCents, linkDe.GetValueOrDefault(p.Id))).ToList();
+            p.DespachadoEm, p.AtivadoEm, p.ProducaoEm, p.PrecoDoPacoteCents, p.Cupom, p.DescontoCents, linkDe.GetValueOrDefault(p.Id))).ToList();
     }
 
     /// <summary>Sem contrato de revenda assinado, não há pedido. O cupom é conferido e gasto aqui.</summary>
@@ -84,6 +85,7 @@ public sealed class PedidosDePlacas(
         }
 
         banco.AvisarAoVivo("pedido", revendedor.Id, operadora: true);
+        notificacoes.ParaOperadora(revendedor.Id, "Pedido novo", $"{revendedor.Nome} pediu {pedido.Quantidade} placas.", "/operadora/pedidos");
 
         var site = plataforma.Value;
         avisos.Enfileirar($"pedido:{pedido.Id:N}:operadora", site.EmailDaOperadora,
@@ -154,6 +156,16 @@ public sealed class PedidosDePlacas(
         await banco.SaveChangesAsync(ct);
     }
 
+    /// <summary>Operadora: as placas do pedido pago entraram em produção.</summary>
+    public async Task IniciarProducao(Guid id, CancellationToken ct)
+    {
+        var pedido = await Achar(id, ct);
+        pedido.IniciarProducao(relogio.GetUtcNow());
+        banco.AvisarAoVivo("pedido", pedido.RevendedorId, operadora: true);
+        notificacoes.ParaDono(pedido.RevendedorId, "Pedido em produção", $"As suas {pedido.Quantidade} placas estão sendo produzidas.", "/painel/pedidos");
+        await banco.SaveChangesAsync(ct);
+    }
+
     /// <summary>Operadora: liga um lote livre da mesma quantidade ao pedido e avisa o dono.</summary>
     public async Task Despachar(Guid id, int numeroDoLote, CancellationToken ct)
     {
@@ -166,6 +178,7 @@ public sealed class PedidosDePlacas(
         lote.Despachar(pedido.Id, pedido.RevendedorId, pedido.Quantidade, agora);
         pedido.Despachar(lote.Id, agora);
         banco.AvisarAoVivo("pedido", pedido.RevendedorId, operadora: true);
+        notificacoes.ParaDono(pedido.RevendedorId, "Placas enviadas", $"O lote {lote.Rotulo} com {pedido.Quantidade} placas saiu. Ative pelo número da caixa.", "/painel/estoque");
         foreach (var dono in await contas.EmailsDosDonos(pedido.RevendedorId, ct))
         {
             avisos.Enfileirar($"pedido:{pedido.Id:N}:despachado:{dono}", dono, $"Suas {pedido.Quantidade} placas saíram - lote {lote.Rotulo}",
@@ -199,6 +212,7 @@ public sealed class PedidosDePlacas(
         var pedido = await banco.Pedidos.SingleAsync(p => p.Id == lote.PedidoId, ct);
         pedido.Ativar(agora);
         banco.AvisarAoVivo("estoque", revendedorId, operadora: true);
+        notificacoes.ParaOperadora(revendedorId, "Pedido entregue", $"O lote {lote.Rotulo} foi ativado pela revenda.", "/operadora/pedidos");
 
         var emitidas = await banco.PlacasEmitidas.Where(p => p.LoteId == lote.Id).OrderBy(p => p.Sequencia).ToListAsync(ct);
         foreach (var emitida in emitidas)

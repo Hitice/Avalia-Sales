@@ -204,6 +204,12 @@ aponta para a venda.
 | `vendas` (coluna nova) | Repasse que pagou a comissão | - |
 | `revendedores` (coluna nova) | Preço da renovação (6000 = 60%) | - |
 | `mensagens` | Mensagem de chamado: chamado, autor, se é da operadora, texto (até 2.000), enviada em, lida em | RLS com a operadora |
+| `produtos_da_plataforma` | Catálogo da Avalia - chave (única), nome, descrição, tipo (Placa, PlacaComServico, Servico), preço sugerido, situação (Disponivel, Esgotado, ForaDeLinha), ordem, foto padrão do front (`/produtos/*.jpg`), foto enviada (bytea até 512 KB, tipo e versão) | Sem RLS: da plataforma |
+| `produtos` (coluna nova) | `produto_da_plataforma_id` - o preço da revenda para um produto do catálogo (único por revenda); o produto sem ele é o de antes do catálogo, só para as vendas antigas | - |
+| `vendas` (mudança) | `placa_id` opcional - a venda de serviço não leva placa | - |
+| `pedidos_placas` (coluna nova) | `producao_em` e a situação EmProducao | - |
+| `ordens_de_servico` | Número (identidade), revendedor, venda (única), produto do catálogo, produto e cliente gravados, situação (AFazer, EmAndamento, Entregue, Cancelada), observação, criada, iniciada e entregue em | RLS com a operadora |
+| `notificacoes` | Revendedor, para a operadora ou para o dono, título, texto, link, criada e lida em | RLS com a operadora |
 | `chamados` | Número (identidade do banco), revendedor, aberto por, assunto, situação (AguardandoAvalia, AguardandoRevenda, Resolvido), aberto em, prazo em, primeira resposta em, resolvido em, última mensagem em | RLS com a operadora |
 | `logos` | Logo do revendedor (PNG ou WebP, até 512 KB) | RLS; tabela própria para o revendedor, lido em toda cobrança, não carregar a imagem |
 | `revendedores` (colunas novas) | Nome exibido, cor primária, cor de destaque, marca alterada em | - |
@@ -633,6 +639,7 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
 
 | Data | Mudança |
 | --- | --- |
+| 22/10/2026 | Versão 1.5.0. Migration CatalogoServicosENotificacoes - `produtos_da_plataforma` com os 8 produtos e as fotos em `web/public/produtos`, pacotes 20, 50 e 100 a R$ 23,90, 16,90 e 13,90 a placa, `produtos.produto_da_plataforma_id`, `vendas.placa_id` opcional, `pedidos_placas.producao_em`, `ordens_de_servico` e `notificacoes` com RLS. Rotas `/catalogo` (sai `/produtos`; a foto em `/catalogo/{id}/foto` é pública), `/operadora/catalogo`, `/servicos`, `/operadora/servicos`, `/operadora/pedidos/{id}/producao` e `/notificacoes`. A venda aceita o id do catálogo e cria a linha da revenda na primeira vez; serviço sem placa nem destino; a venda paga de serviço vira ordem (EfeitosDaCobranca). |
 | 22/10/2026 | Versão 1.4.0. `MeusDados` com `GET/PUT /conta/dados`, `PUT /conta/dados/empresa` (dono, auditado como EmpresaAlterada) e `PUT /conta/dados/recebimento` (vendedor); sai `PUT /revenda/celular`. Auditoria com filtro por ação, 20 por página e `GET /auditoria/exportar`. Menu da conta (`dropdown-menu` do shadcn) no cabeçalho. |
 | 22/10/2026 | Versão 1.3.0. Tabela `chamados` e `mensagens.chamado_id` (migration Chamados), rotas `/chamados` e `/operadora/chamados` no lugar de `/chat`, prazo de 24 horas úteis em `HorarioDeAtendimento`, e-mail de chamado novo para a operadora e de resposta para o dono. |
 | 22/10/2026 | Versão 1.2.0. Front - menu lateral em grupos com ícones, fundo do item ativo do tom 95 da primária (`variaveisDaMarca` em `marca.ts`, a mesma conta na prévia da Marca), seleção de texto e foco sólido na cor da marca, foco inicial do modal no próprio modal, barra de carregando no topo e blocos de carregando (`Carregando`, `CarregandoTela`), recorte do logo com `react-easy-crop` 6.2.4, Links em abas. Contrato embutido na versão 1 aprovada. |

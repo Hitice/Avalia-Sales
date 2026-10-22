@@ -1,4 +1,4 @@
-import type { AcaoAuditada, EstadoDaPlaca, SituacaoDaCobranca, SituacaoDoContrato, SituacaoDoPedido } from './tipos'
+import type { AcaoAuditada, EstadoDaPlaca, SituacaoDaCobranca, SituacaoDaOrdem, SituacaoDoContrato, SituacaoDoPedido, SituacaoDoProduto, TipoDeProduto } from './tipos'
 
 /** Os nomes que a tela mostra para cada situação da API. */
 export const ROTULO_DO_ESTADO: Record<EstadoDaPlaca, string> = {
@@ -13,9 +13,29 @@ export const ROTULO_DO_ESTADO: Record<EstadoDaPlaca, string> = {
 export const ROTULO_DO_PEDIDO: Record<SituacaoDoPedido, string> = {
   AguardandoPagamento: 'Aguardando pagamento',
   Pago: 'Pago',
-  Despachado: 'Despachado',
-  Ativado: 'Ativado',
+  EmProducao: 'Em produção',
+  Despachado: 'Enviado',
+  Ativado: 'Entregue',
   Cancelado: 'Cancelado',
+}
+
+export const ROTULO_DA_ORDEM: Record<SituacaoDaOrdem, string> = {
+  AFazer: 'A fazer',
+  EmAndamento: 'Em andamento',
+  Entregue: 'Entregue',
+  Cancelada: 'Cancelada',
+}
+
+export const ROTULO_DO_PRODUTO: Record<SituacaoDoProduto, string> = {
+  Disponivel: 'Disponível',
+  Esgotado: 'Esgotado',
+  ForaDeLinha: 'Fora de linha',
+}
+
+export const ROTULO_DO_TIPO: Record<TipoDeProduto, string> = {
+  Placa: 'Placa',
+  PlacaComServico: 'Placa com serviço',
+  Servico: 'Serviço',
 }
 
 export const ROTULO_DO_PAGAMENTO: Record<SituacaoDaCobranca, string> = {

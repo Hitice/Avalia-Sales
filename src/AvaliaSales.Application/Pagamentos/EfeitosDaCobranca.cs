@@ -13,7 +13,8 @@ namespace AvaliaSales.Application.Pagamentos;
 /// antes do SaveChanges de quem aplicou a cobrança: efeito e situação gravam
 /// juntos, e um evento repetido não acha nada a fazer.
 /// </summary>
-public sealed class EfeitosDaCobranca(IBancoDeDados banco, FilaDeEmails avisos, Erp.FilaDoErp erp, IOptions<OpcoesDaPlataforma> plataforma)
+public sealed class EfeitosDaCobranca(IBancoDeDados banco, FilaDeEmails avisos, Erp.FilaDoErp erp, Notificacoes.Notificacoes notificacoes,
+    Equipe.IContas contas, IOptions<OpcoesDaPlataforma> plataforma)
 {
     public async Task Aplicar(Cobranca cobranca, DateTimeOffset agora, CancellationToken ct)
     {
@@ -64,6 +65,8 @@ public sealed class EfeitosDaCobranca(IBancoDeDados banco, FilaDeEmails avisos, 
 
             Abrir pedidos: {site.UrlDoPainel.TrimEnd('/')}/operadora/pedidos
             """);
+        notificacoes.ParaOperadora(pedido.RevendedorId, "Pedido pago", $"{revendedor} pagou {pedido.Quantidade} placas.", "/operadora/pedidos");
+        notificacoes.ParaDono(pedido.RevendedorId, "Pedido pago", $"Recebemos o pagamento das {pedido.Quantidade} placas.", "/painel/pedidos");
     }
 
     /// <summary>Receita bruta, taxa da Avalia retida no split e a comissão que passa a ser devida.</summary>
@@ -75,19 +78,39 @@ public sealed class EfeitosDaCobranca(IBancoDeDados banco, FilaDeEmails avisos, 
             return;
         }
 
-        var placa = await banco.Placas.Where(p => p.Id == venda.PlacaId).Select(p => p.Codigo).SingleAsync(ct);
+        // O que foi vendido, nas linhas do razão: a placa pelo código, o serviço pelo nome.
+        var codigo = venda.PlacaId is { } placaId ? await banco.Placas.Where(p => p.Id == placaId).Select(p => p.Codigo).SingleAsync(ct) : null;
+        var produto = await banco.Produtos.AsNoTracking().SingleAsync(p => p.Id == venda.ProdutoId, ct);
+        var item = codigo is null ? produto.Nome : $"placa {codigo}";
         var quando = cobranca.PagaEm!.Value;
         banco.AvisarAoVivo("pagamento", venda.RevendedorId);
-        banco.Lancamentos.Add(new Lancamento(TipoDeLancamento.Receita, cobranca.Id, cobranca.ValorCents, $"Venda da placa {placa}", quando, venda.Id, venda.VendedorId));
+        banco.Lancamentos.Add(new Lancamento(TipoDeLancamento.Receita, cobranca.Id, cobranca.ValorCents, $"Venda da {item}", quando, venda.Id, venda.VendedorId));
         if (cobranca.TaxaAvaliaCents > 0)
         {
-            var taxa = cobranca.PorFora ? $"Taxa da plataforma a acertar, placa {placa} recebida por fora" : $"Taxa da plataforma, placa {placa}";
+            var taxa = cobranca.PorFora ? $"Taxa da plataforma a acertar, {item} recebida por fora" : $"Taxa da plataforma, {item}";
             banco.Lancamentos.Add(new Lancamento(TipoDeLancamento.TaxaAvalia, cobranca.Id, -cobranca.TaxaAvaliaCents, taxa, quando, venda.Id));
         }
 
         if (venda.ComissaoCents > 0)
         {
-            banco.Lancamentos.Add(new Lancamento(TipoDeLancamento.ComissaoDevida, cobranca.Id, -venda.ComissaoCents, $"Comissão da placa {placa}", quando, venda.Id, venda.VendedorId));
+            banco.Lancamentos.Add(new Lancamento(TipoDeLancamento.ComissaoDevida, cobranca.Id, -venda.ComissaoCents, $"Comissão da {item}", quando, venda.Id, venda.VendedorId));
+        }
+
+        var cliente = await banco.Clientes.AsNoTracking().Where(c => c.Id == venda.ClienteId).Select(c => c.Nome).SingleAsync(ct);
+        var vendedor = (await contas.Nomes([venda.VendedorId], ct)).GetValueOrDefault(venda.VendedorId, "A equipe");
+        var valor = $"R$ {venda.ValorCents / 100},{venda.ValorCents % 100:00}";
+        notificacoes.ParaDono(venda.RevendedorId, "Venda paga", $"{vendedor} vendeu {produto.Nome} para {cliente}, {valor}.", "/painel/vendas");
+
+        // Serviço que a Avalia executa: a venda paga vira ordem para a operadora, uma por venda.
+        var doCatalogo = produto.ProdutoDaPlataformaId is { } catalogoId
+            ? await banco.ProdutosDaPlataforma.AsNoTracking().SingleOrDefaultAsync(p => p.Id == catalogoId, ct)
+            : null;
+        if (doCatalogo is { GeraServico: true } && !await banco.OrdensDeServico.AnyAsync(o => o.VendaId == venda.Id, ct))
+        {
+            banco.OrdensDeServico.Add(new Domain.Servicos.OrdemDeServico(venda.RevendedorId, venda.Id, doCatalogo.Id, doCatalogo.Nome, cliente, quando));
+            var revendedor = await banco.Revendedores.Where(r => r.Id == venda.RevendedorId).Select(r => r.Nome).SingleAsync(ct);
+            notificacoes.ParaOperadora(venda.RevendedorId, "Serviço a fazer", $"{doCatalogo.Nome} para {cliente}, vendido por {revendedor}.", "/operadora/servicos");
+            notificacoes.ParaDono(venda.RevendedorId, "Serviço na fila da Avalia", $"{doCatalogo.Nome} para {cliente} entrou na fila de execução.", "/painel/servicos");
         }
     }
 

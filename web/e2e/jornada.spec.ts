@@ -44,7 +44,7 @@ test('jornada entre operadora, revenda e vendedora, e cada um vê só o que é d
   await cliente.goto('/painel/pedidos')
   await cliente.getByLabel('Número na caixa').fill(lote)
   await cliente.getByRole('button', { name: 'Ativar lote' }).click()
-  await expect(cliente.getByRole('row').filter({ hasText: lote }).filter({ hasText: 'Ativado' })).toBeVisible()
+  await expect(cliente.getByRole('row').filter({ hasText: lote }).filter({ hasText: 'Entregue' })).toBeVisible()
   await cliente.goto('/painel/estoque')
   await cliente.getByLabel('Vendedor').click()
   await cliente.getByRole('option', { name: 'Bruna Lima' }).click()
@@ -101,5 +101,5 @@ test('jornada entre operadora, revenda e vendedora, e cada um vê só o que é d
 
   // 8. A operadora vê o pedido da revenda A ativado.
   await operador.goto('/operadora/pedidos')
-  await expect(doPedido().filter({ hasText: lote }).filter({ hasText: 'Ativado' })).toBeVisible()
+  await expect(doPedido().filter({ hasText: lote }).filter({ hasText: 'Entregue' })).toBeVisible()
 })

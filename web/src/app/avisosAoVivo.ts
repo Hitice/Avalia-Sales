@@ -12,6 +12,8 @@ const REFAZER: Record<string, string[][]> = {
   comissao: [['comissoes'], ['repasses'], ['razao']],
   erp: [['operadora', 'erp']],
   chat: [['chat']],
+  notificacao: [['notificacoes']],
+  servico: [['servicos']],
 }
 
 const TEXTO: Record<string, string> = {
@@ -23,6 +25,7 @@ const TEXTO: Record<string, string> = {
   erp: 'Pedido de venda criado no ERP.',
   chat: 'Nova mensagem no atendimento.',
 }
+// notificacao e servico não têm texto: o sino e a fila já mostram.
 
 /**
  * Liga o app ao hub de avisos enquanto há sessão. O token vai pela fábrica,

@@ -320,6 +320,10 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("preco_cents");
 
+                    b.Property<Guid?>("ProdutoDaPlataformaId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("produto_da_plataforma_id");
+
                     b.Property<Guid>("RevendedorId")
                         .HasColumnType("uuid")
                         .HasColumnName("revendedor_id");
@@ -327,10 +331,94 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                     b.HasKey("Id")
                         .HasName("pk_produtos");
 
+                    b.HasIndex("ProdutoDaPlataformaId")
+                        .HasDatabaseName("ix_produtos_produto_da_plataforma_id");
+
                     b.HasIndex("RevendedorId", "Nome")
                         .HasDatabaseName("ix_produtos_revendedor_id_nome");
 
+                    b.HasIndex("RevendedorId", "ProdutoDaPlataformaId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_produtos_revendedor_id_produto_da_plataforma_id")
+                        .HasFilter("produto_da_plataforma_id is not null");
+
                     b.ToTable("produtos", (string)null);
+                });
+
+            modelBuilder.Entity("AvaliaSales.Domain.Catalogo.ProdutoDaPlataforma", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Chave")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("chave");
+
+                    b.Property<DateTimeOffset>("CriadoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("criado_em");
+
+                    b.Property<string>("Descricao")
+                        .IsRequired()
+                        .HasMaxLength(600)
+                        .HasColumnType("character varying(600)")
+                        .HasColumnName("descricao");
+
+                    b.Property<byte[]>("Foto")
+                        .HasColumnType("bytea")
+                        .HasColumnName("foto");
+
+                    b.Property<string>("FotoPadrao")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("foto_padrao");
+
+                    b.Property<string>("FotoTipo")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("foto_tipo");
+
+                    b.Property<int>("FotoVersao")
+                        .HasColumnType("integer")
+                        .HasColumnName("foto_versao");
+
+                    b.Property<string>("Nome")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("nome");
+
+                    b.Property<int>("Ordem")
+                        .HasColumnType("integer")
+                        .HasColumnName("ordem");
+
+                    b.Property<long>("PrecoSugeridoCents")
+                        .HasColumnType("bigint")
+                        .HasColumnName("preco_sugerido_cents");
+
+                    b.Property<string>("Situacao")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("situacao");
+
+                    b.Property<string>("Tipo")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("tipo");
+
+                    b.HasKey("Id")
+                        .HasName("pk_produtos_da_plataforma");
+
+                    b.HasIndex("Chave")
+                        .IsUnique()
+                        .HasDatabaseName("ix_produtos_da_plataforma_chave");
+
+                    b.ToTable("produtos_da_plataforma", (string)null);
                 });
 
             modelBuilder.Entity("AvaliaSales.Domain.Contratos.Contrato", b =>
@@ -797,6 +885,57 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                     b.ToTable("links", (string)null);
                 });
 
+            modelBuilder.Entity("AvaliaSales.Domain.Notificacoes.Notificacao", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CriadaEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("criada_em");
+
+                    b.Property<DateTimeOffset?>("LidaEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("lida_em");
+
+                    b.Property<string>("Link")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("link");
+
+                    b.Property<bool>("ParaOperadora")
+                        .HasColumnType("boolean")
+                        .HasColumnName("para_operadora");
+
+                    b.Property<Guid>("RevendedorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("revendedor_id");
+
+                    b.Property<string>("Texto")
+                        .IsRequired()
+                        .HasMaxLength(400)
+                        .HasColumnType("character varying(400)")
+                        .HasColumnName("texto");
+
+                    b.Property<string>("Titulo")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("titulo");
+
+                    b.HasKey("Id")
+                        .HasName("pk_notificacoes");
+
+                    b.HasIndex("RevendedorId")
+                        .HasDatabaseName("ix_notificacoes_revendedor_id");
+
+                    b.HasIndex("ParaOperadora", "RevendedorId", "CriadaEm")
+                        .HasDatabaseName("ix_notificacoes_para_operadora_revendedor_id_criada_em");
+
+                    b.ToTable("notificacoes", (string)null);
+                });
+
             modelBuilder.Entity("AvaliaSales.Domain.Pagamentos.Cobranca", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1009,6 +1148,10 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                     b.Property<long>("PrecoDoPacoteCents")
                         .HasColumnType("bigint")
                         .HasColumnName("preco_do_pacote_cents");
+
+                    b.Property<DateTimeOffset?>("ProducaoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("producao_em");
 
                     b.Property<int>("Quantidade")
                         .HasColumnType("integer")
@@ -1421,6 +1564,89 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                     b.ToTable("revendedores", (string)null);
                 });
 
+            modelBuilder.Entity("AvaliaSales.Domain.Servicos.OrdemDeServico", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Cliente")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)")
+                        .HasColumnName("cliente");
+
+                    b.Property<DateTimeOffset>("CriadaEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("criada_em");
+
+                    b.Property<DateTimeOffset?>("EntregueEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("entregue_em");
+
+                    b.Property<DateTimeOffset?>("IniciadaEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("iniciada_em");
+
+                    b.Property<long>("Numero")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("numero");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityAlwaysColumn(b.Property<long>("Numero"));
+
+                    b.Property<string>("Observacao")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("observacao");
+
+                    b.Property<string>("Produto")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("produto");
+
+                    b.Property<Guid>("ProdutoDaPlataformaId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("produto_da_plataforma_id");
+
+                    b.Property<Guid>("RevendedorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("revendedor_id");
+
+                    b.Property<string>("Situacao")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("situacao");
+
+                    b.Property<Guid>("VendaId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("venda_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_ordens_de_servico");
+
+                    b.HasIndex("Numero")
+                        .IsUnique()
+                        .HasDatabaseName("ix_ordens_de_servico_numero");
+
+                    b.HasIndex("ProdutoDaPlataformaId")
+                        .HasDatabaseName("ix_ordens_de_servico_produto_da_plataforma_id");
+
+                    b.HasIndex("RevendedorId")
+                        .HasDatabaseName("ix_ordens_de_servico_revendedor_id");
+
+                    b.HasIndex("VendaId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_ordens_de_servico_venda_id");
+
+                    b.HasIndex("Situacao", "CriadaEm")
+                        .HasDatabaseName("ix_ordens_de_servico_situacao_criada_em");
+
+                    b.ToTable("ordens_de_servico", (string)null);
+                });
+
             modelBuilder.Entity("AvaliaSales.Domain.Vendas.Cliente", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1515,7 +1741,7 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .HasColumnType("character varying(10)")
                         .HasColumnName("meio");
 
-                    b.Property<Guid>("PlacaId")
+                    b.Property<Guid?>("PlacaId")
                         .HasColumnType("uuid")
                         .HasColumnName("placa_id");
 
@@ -2124,6 +2350,12 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
 
             modelBuilder.Entity("AvaliaSales.Domain.Catalogo.Produto", b =>
                 {
+                    b.HasOne("AvaliaSales.Domain.Catalogo.ProdutoDaPlataforma", null)
+                        .WithMany()
+                        .HasForeignKey("ProdutoDaPlataformaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_produtos_produtos_da_plataforma_produto_da_plataforma_id");
+
                     b.HasOne("AvaliaSales.Domain.Revendedores.Revendedor", null)
                         .WithMany()
                         .HasForeignKey("RevendedorId")
@@ -2245,6 +2477,16 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .HasConstraintName("fk_links_revendedores_revendedor_id");
                 });
 
+            modelBuilder.Entity("AvaliaSales.Domain.Notificacoes.Notificacao", b =>
+                {
+                    b.HasOne("AvaliaSales.Domain.Revendedores.Revendedor", null)
+                        .WithMany()
+                        .HasForeignKey("RevendedorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_notificacoes_revendedores_revendedor_id");
+                });
+
             modelBuilder.Entity("AvaliaSales.Domain.Pagamentos.Cobranca", b =>
                 {
                     b.HasOne("AvaliaSales.Domain.Revendedores.Revendedor", null)
@@ -2358,6 +2600,30 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .HasConstraintName("fk_logos_revendedores_revendedor_id");
                 });
 
+            modelBuilder.Entity("AvaliaSales.Domain.Servicos.OrdemDeServico", b =>
+                {
+                    b.HasOne("AvaliaSales.Domain.Catalogo.ProdutoDaPlataforma", null)
+                        .WithMany()
+                        .HasForeignKey("ProdutoDaPlataformaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_ordens_de_servico_produtos_da_plataforma_produto_da_platafo");
+
+                    b.HasOne("AvaliaSales.Domain.Revendedores.Revendedor", null)
+                        .WithMany()
+                        .HasForeignKey("RevendedorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_ordens_de_servico_revendedores_revendedor_id");
+
+                    b.HasOne("AvaliaSales.Domain.Vendas.Venda", null)
+                        .WithMany()
+                        .HasForeignKey("VendaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_ordens_de_servico_vendas_venda_id");
+                });
+
             modelBuilder.Entity("AvaliaSales.Domain.Vendas.Cliente", b =>
                 {
                     b.HasOne("AvaliaSales.Domain.Revendedores.Revendedor", null)
@@ -2381,7 +2647,6 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .WithMany()
                         .HasForeignKey("PlacaId")
                         .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
                         .HasConstraintName("fk_vendas_placas_placa_id");
 
                     b.HasOne("AvaliaSales.Domain.Catalogo.Produto", null)
