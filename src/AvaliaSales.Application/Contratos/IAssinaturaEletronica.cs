@@ -15,4 +15,10 @@ public interface IAssinaturaEletronica
 
     /// <summary>Assinado ou cancelado; nulo enquanto o documento está em andamento.</summary>
     Task<SituacaoDoContrato?> LerSituacao(string documento, CancellationToken ct);
+
+    /// <summary>Manda de novo o e-mail de assinatura ao signatário do documento.</summary>
+    Task ReenviarAssinatura(string documento, string email, CancellationToken ct);
+
+    /// <summary>O PDF do documento como está na assinatura eletrônica (o assinado, depois de assinado).</summary>
+    Task<byte[]> Baixar(string documento, CancellationToken ct);
 }

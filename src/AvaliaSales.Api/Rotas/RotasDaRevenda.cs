@@ -76,6 +76,19 @@ public static class RotasDaRevenda
             await revendedores.DefinirRenovacao(pedido.RenovacaoBps, ct);
             return Results.NoContent();
         });
+        // O contrato de revenda: situação, reenvio do e-mail de assinatura e cópia em PDF.
+        dono.MapGet("/revenda/contrato", async (Application.Contratos.ContratoDaRevenda contrato, CancellationToken ct) =>
+            await contrato.Ler(ct) is { } meu ? Results.Ok(meu) : Results.NoContent()).Produces<Application.Contratos.MeuContrato>();
+        dono.MapPost("/revenda/contrato/reenvio", async (Application.Contratos.ContratoDaRevenda contrato, CancellationToken ct) =>
+        {
+            await contrato.Reenviar(ct);
+            return Results.NoContent();
+        });
+        dono.MapGet("/revenda/contrato/pdf", async (Application.Contratos.ContratoDaRevenda contrato, CancellationToken ct) =>
+        {
+            var (pdf, nome) = await contrato.Copia(ct);
+            return Results.File(pdf, "application/pdf", nome);
+        });
         dono.MapGet("/repasses", (Comissoes comissoes, CancellationToken ct) => comissoes.Repasses(ct));
         dono.MapPost("/repasses", async (NovoRepasse pedido, Comissoes comissoes, CancellationToken ct) =>
             Results.Created("/repasses", await comissoes.Repassar(pedido, ct)));

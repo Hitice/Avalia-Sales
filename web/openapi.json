@@ -2107,6 +2107,49 @@
         }
       }
     },
+    "/revenda/contrato": {
+      "get": {
+        "tags": [
+          "Revenda"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeuContrato"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/revenda/contrato/reenvio": {
+      "post": {
+        "tags": [
+          "Revenda"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/revenda/contrato/pdf": {
+      "get": {
+        "tags": [
+          "Revenda"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/repasses": {
       "get": {
         "tags": [
@@ -4859,6 +4902,38 @@
               "string"
             ],
             "format": "date-time"
+          }
+        }
+      },
+      "MeuContrato": {
+        "required": [
+          "situacao",
+          "signatarioEmail",
+          "criadoEm",
+          "assinadoEm",
+          "podeReenviar"
+        ],
+        "type": "object",
+        "properties": {
+          "situacao": {
+            "$ref": "#/components/schemas/SituacaoDoContrato"
+          },
+          "signatarioEmail": {
+            "type": "string"
+          },
+          "criadoEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "assinadoEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "podeReenviar": {
+            "type": "boolean"
           }
         }
       },

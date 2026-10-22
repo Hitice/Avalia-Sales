@@ -51,6 +51,9 @@ public sealed class Contrato : IDoRevendedor
     public int TentativasDeEnvio { get; private set; }
     public string? UltimoErro { get; private set; }
     public DateTimeOffset? AssinadoEm { get; private set; }
+
+    /// <summary>Último reenvio do e-mail de assinatura pedido pelo dono.</summary>
+    public DateTimeOffset? ReenviadoEm { get; private set; }
     public DateTimeOffset CriadoEm { get; private set; } = DateTimeOffset.UtcNow;
 
     private Contrato()
@@ -152,5 +155,24 @@ public sealed class Contrato : IDoRevendedor
         return pdf.AsSpan(0, 5).SequenceEqual("%PDF-"u8)
             ? pdf
             : throw new RegraDeNegocioException("O contrato precisa ser um arquivo PDF.");
+    }
+
+    /// <summary>
+    /// O dono pede o e-mail de assinatura de novo. Só com o contrato esperando assinatura e
+    /// com 1 minuto desde o último pedido: a D4Sign recusa reenvio mais rápido que isso.
+    /// </summary>
+    public void Reenviar(DateTimeOffset agora)
+    {
+        if (Situacao != SituacaoDoContrato.AguardandoAssinatura || DocumentoNaAssinatura is null)
+        {
+            throw new RegraDeNegocioException("O contrato não está esperando assinatura.");
+        }
+
+        if (ReenviadoEm is { } ultimo && agora - ultimo < TimeSpan.FromMinutes(1))
+        {
+            throw new RegraDeNegocioException("Aguarde 1 minuto para reenviar o e-mail de assinatura.");
+        }
+
+        ReenviadoEm = agora;
     }
 }

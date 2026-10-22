@@ -639,6 +639,7 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
 
 | Data | Mudança |
 | --- | --- |
+| 22/10/2026 | Versão 1.6.1. D4Sign - `sendtosigner` idempotente (o 400 "already in the signature phase" conta como enviado; o contrato da revenda ficava preso em Rascunho depois de 5 tentativas); `resend` com a `key_signer` de `documents/{uuid}/list` e `download` (URL temporária, só de *.d4sign.com.br) conferidos em docapi.d4sign.com.br. Rotas do dono `/revenda/contrato`, `/revenda/contrato/reenvio` e `/revenda/contrato/pdf`. Migration ContratoJaEmAssinatura - `contratos.reenviado_em` e volta à retomada do contrato preso. Sino no celular com margem de colisão. |
 | 22/10/2026 | Versão 1.6.0. Gráficos com Recharts 3.10.1 (componente `chart` do shadcn), série em `--chart-1` (roxo do traço na plataforma; tom 45 do destaque na revenda, pela faixa de luminosidade do validador da skill dataviz). Convite do vendedor 24 horas. Catálogo não mostra o custo ao vendedor (`pisoCents` zero). Migration FotoDoQrDinamico (só dados). Rota de tela `/painel/configuracoes`; `/painel/servicos` leva a `/links?aba=acompanhar`. |
 | 22/10/2026 | Versão 1.5.2. Link curto `/l/` repassado à API pelo Nginx e pelo Vite, como o `/q/` (caía no app e pedia login). Busca de lugares com o caminho `./places:searchText`: sem o `./`, o .NET lia `places:` como esquema e a chamada não saía; teste prende a URL. |
 | 22/10/2026 | Versão 1.5.1. A demonstração só cria o pacote de 10 placas: 20, 50 e 100 vêm da migration, e criar de novo quebrava o índice único no banco novo do e2e. |

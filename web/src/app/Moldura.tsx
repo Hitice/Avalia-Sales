@@ -119,7 +119,7 @@ export function Moldura() {
   const principais = perfil ? PRINCIPAIS[perfil.papel] : []
   const outros = itens.filter((i) => !principais.some((p) => p.para === i.para))
   const [mais, setMais] = useState(false)
-  // A Nova venda tem os botões dela no pé da tela.
+  // A Nova venda tem o botão dela no pé, logo acima da barra de baixo.
   const caminho = useLocation().pathname
   const naVenda = caminho === '/vender'
   // Dono sem e-mail confirmado só passa daqui depois de confirmar; a API recusa o resto com 403.
@@ -188,11 +188,11 @@ export function Moldura() {
             </div>
           ))}
         </nav>
-        <main className={cn('min-w-0 p-4 lg:px-0', !naVenda && 'pb-24 md:pb-4')}>
+        <main className={cn('min-w-0 p-4 lg:px-0', naVenda ? 'pb-40 md:pb-24' : 'pb-24 md:pb-4')}>
             {travado ? <ConfirmeOEmail email={perfil.email} /> : <Outlet />}
         </main>
       </div>
-      {!naVenda && !travado && (
+      {!travado && (
         <nav aria-label="Menu principal" className="fixed inset-x-0 bottom-0 z-10 border-t bg-card pb-[env(safe-area-inset-bottom)] md:hidden">
           <div className="flex">
             {principais.map(({ para, rotulo, icone: Icone }) => (

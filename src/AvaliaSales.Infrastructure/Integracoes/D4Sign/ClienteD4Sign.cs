@@ -35,8 +35,24 @@ public sealed class ClienteD4Sign(HttpClient http, IOptions<OpcoesD4Sign> opcoes
             },
         }, ct);
 
-    public Task EnviarParaAssinatura(string documento, string mensagem, CancellationToken ct) =>
-        Post($"documents/{documento}/sendtosigner", new { message = mensagem, skip_email = "0", workflow = "0" }, ct);
+    /// <summary>
+    /// Idempotente: se um envio anterior chegou à D4Sign e a resposta se perdeu (tempo
+    /// esgotado), a nova tentativa ouve "already in the signature phase". O documento já
+    /// está com os signatários, então o passo conta como feito.
+    /// </summary>
+    public async Task EnviarParaAssinatura(string documento, string mensagem, CancellationToken ct)
+    {
+        try
+        {
+            await Post($"documents/{documento}/sendtosigner", new { message = mensagem, skip_email = "0", workflow = "0" }, ct);
+        }
+        catch (Application.IntegracaoException erro) when (JaEmAssinatura(erro))
+        {
+        }
+    }
+
+    public static bool JaEmAssinatura(Application.IntegracaoException erro) =>
+        erro.Status == 400 && erro.Message.Contains("already in the signature phase", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>Fases da D4Sign: 4 Finalizado, 6 Cancelado; as demais são andamento.</summary>
     public async Task<SituacaoDoContrato?> LerSituacao(string documento, CancellationToken ct)
@@ -49,6 +65,53 @@ public sealed class ClienteD4Sign(HttpClient http, IOptions<OpcoesD4Sign> opcoes
             "6" => SituacaoDoContrato.Cancelado,
             _ => null,
         };
+    }
+
+    /// <summary>
+    /// Reenvio do link (POST documents/{uuid}/resend, com e-mail e key_signer), conferido em
+    /// docapi.d4sign.com.br em 22/10/2026. A chave do signatário sai da lista do documento.
+    /// A D4Sign limita os reenvios (1, 5 e 30 minutos, depois 1 hora) e recusa os de antes.
+    /// </summary>
+    public async Task ReenviarAssinatura(string documento, string email, CancellationToken ct)
+    {
+        var lista = await ChamadaExterna.Json(Sistema, () => http.GetAsync(Rota($"documents/{documento}/list"), ct), ct);
+        var signatarios = Signatarios(lista);
+        var chave = signatarios.FirstOrDefault(s => string.Equals(s.Texto("email"), email, StringComparison.OrdinalIgnoreCase)).Texto("key_signer")
+            ?? signatarios.Select(s => s.Texto("key_signer")).FirstOrDefault(k => k is not null)
+            ?? throw new Application.IntegracaoException(Sistema, null, "documento sem signatário");
+        await Post($"documents/{documento}/resend", new { email, key_signer = chave }, ct);
+    }
+
+    /// <summary>
+    /// POST documents/{uuid}/download (type PDF) devolve uma URL temporária; o arquivo vem
+    /// dela, e só de endereço da própria D4Sign.
+    /// </summary>
+    public async Task<byte[]> Baixar(string documento, CancellationToken ct)
+    {
+        var resposta = await Post($"documents/{documento}/download", new { type = "PDF", language = "pt" }, ct);
+        var endereco = resposta.Texto("url") ?? throw new Application.IntegracaoException(Sistema, null, "download sem url");
+        if (!Uri.TryCreate(endereco, UriKind.Absolute, out var uri) || uri.Scheme != Uri.UriSchemeHttps
+            || !(uri.Host == "d4sign.com.br" || uri.Host.EndsWith(".d4sign.com.br", StringComparison.OrdinalIgnoreCase)))
+        {
+            throw new Application.IntegracaoException(Sistema, null, "download fora da D4Sign");
+        }
+
+        using var arquivo = await http.GetAsync(uri, ct);
+        return arquivo.IsSuccessStatusCode
+            ? await arquivo.Content.ReadAsByteArrayAsync(ct)
+            : throw new Application.IntegracaoException(Sistema, (int)arquivo.StatusCode, "download do arquivo recusado");
+    }
+
+    /// <summary>A lista vem como um objeto em "list" num documento com um signatário; com vários, pode vir em array.</summary>
+    private static List<JsonElement> Signatarios(JsonElement resposta)
+    {
+        var raiz = resposta.ValueKind == JsonValueKind.Array && resposta.GetArrayLength() > 0 ? resposta[0] : resposta;
+        if (!raiz.TryGetProperty("list", out var lista))
+        {
+            return [];
+        }
+
+        return lista.ValueKind == JsonValueKind.Array ? lista.EnumerateArray().ToList() : [lista];
     }
 
     private Task<JsonElement> Post<T>(string caminho, T corpo, CancellationToken ct) =>

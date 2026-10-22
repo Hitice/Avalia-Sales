@@ -57,7 +57,8 @@ export function Sino() {
           )}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-80 max-w-[calc(100vw-2rem)]">
+      {/* No celular o sino fica perto da borda: a margem de colisão mantém o menu dentro da tela. */}
+      <DropdownMenuContent align="end" collisionPadding={12} className="w-80 max-w-[calc(100vw-1.5rem)]">
         <DropdownMenuLabel className="flex items-center justify-between">
           Notificações
           {(caixa.data?.naoLidas ?? 0) > 0 && (

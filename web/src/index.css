@@ -94,6 +94,17 @@
 }
 
 /* O traço em linha: cabeçalho, sublinhado do título e item ativo do menu. */
+/*
+ * O botão fixo da Nova venda: no celular, logo acima da barra de baixo (13 de
+ * altura mais a área segura do aparelho); a partir de md não há barra.
+ */
+@utility acima-da-barra {
+  bottom: calc(--spacing(13) + env(safe-area-inset-bottom));
+  @media (width >= 48rem) {
+    bottom: 0;
+  }
+}
+
 /* Xadrez atrás de imagem com transparência (logo), para ver o que fica vazio. */
 @utility xadrez {
   background-color: var(--card);

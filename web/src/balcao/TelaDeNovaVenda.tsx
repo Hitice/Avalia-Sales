@@ -231,7 +231,7 @@ export function TelaDeNovaVenda() {
           meio={meio} aoMudarMeio={setMeio} cartao={configDoCartao.data ?? null} formularioDoCartao={formularioDoCartao} />
       )}
 
-      <div className="fixed inset-x-0 bottom-0 border-t bg-card p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+      <div className="acima-da-barra fixed inset-x-0 z-10 border-t bg-card p-3 md:p-4">
         <div className="mx-auto flex max-w-md gap-2">
           {passo === 'destino' && (
             <Button size="lg" className="flex-1" disabled={!destinoPronto(destino)} onClick={() => irPara('placa')}>Configurar</Button>

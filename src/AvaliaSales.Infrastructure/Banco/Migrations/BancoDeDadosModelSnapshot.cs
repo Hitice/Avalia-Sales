@@ -457,6 +457,10 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .HasColumnType("bytea")
                         .HasColumnName("pdf");
 
+                    b.Property<DateTimeOffset?>("ReenviadoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("reenviado_em");
+
                     b.Property<Guid>("RevendedorId")
                         .HasColumnType("uuid")
                         .HasColumnName("revendedor_id");

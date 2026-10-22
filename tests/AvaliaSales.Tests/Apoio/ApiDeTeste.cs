@@ -68,6 +68,9 @@ public sealed class ApiDeTeste : IAsyncLifetime
     /// <summary>O Pagar.me da API de teste: nenhuma chamada sai para a rede.</summary>
     public GatewayFalso Gateway { get; } = new();
 
+    /// <summary>A D4Sign da API: o envio roda no Worker, mas o dono reenvia e baixa a cópia pela API.</summary>
+    public AssinaturaFalsa Assinatura { get; } = new();
+
     public async ValueTask InitializeAsync()
     {
         _administrador = Environment.GetEnvironmentVariable("AVALIA_SALES_PG_ADMIN")
@@ -114,7 +117,11 @@ public sealed class ApiDeTeste : IAsyncLifetime
                 web.UseSetting(chave, valor);
             }
 
-            web.ConfigureTestServices(servicos => servicos.AddSingleton<IGatewayDePagamento>(Gateway));
+            web.ConfigureTestServices(servicos =>
+            {
+                servicos.AddSingleton<IGatewayDePagamento>(Gateway);
+                servicos.AddSingleton<IAssinaturaEletronica>(Assinatura);
+            });
         });
     }
 

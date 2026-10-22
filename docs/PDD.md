@@ -281,6 +281,9 @@ Todas no mesmo app, liberadas pelo papel do usuário.
 ### Contrato
 
 - O contrato do revendedor e o termo do cliente são assinados na D4Sign.
+- Em Configurações, o dono vê a situação do contrato, reenvia o e-mail de
+  assinatura quando não chegou (um pedido por minuto, como a D4Sign aceita) e
+  baixa uma cópia em PDF - a original antes de assinar, a assinada depois.
 - O texto do contrato fica em `docs/contrato/contrato-de-revenda.html` e vira o PDF
   embutido na API com `node docs/contrato/gerar.mjs`. É um contrato de adesão: os dados
   do revendedor vêm do cadastro e do registro da D4Sign. A versão 1 foi aprovada pela
@@ -454,6 +457,7 @@ O que está pronto no código e só fecha com a conta de verdade:
 
 | Data | Mudança |
 | --- | --- |
+| 22/10/2026 | Contrato em Configurações com reenviar o e-mail de assinatura e baixar a cópia. Na Nova venda, a barra de baixo aparece, com o botão da venda acima dela. |
 | 22/10/2026 | Configurações com a comissão padrão e a renovação; gráficos no Início; pendências da revenda no sino; Links vira Serviços com a aba Acompanhar; convite do vendedor vale 24 horas; Meus dados com um Salvar só; chamado se fecha (Fechar); auditoria abre o antes e o depois num modal; Catálogo na barra de baixo do celular; foto do QR Code Dinâmico Pro. |
 | 22/10/2026 | Catálogo da Avalia com os 8 produtos do site, foto e situação; a revenda só define o preço dela, nunca abaixo do custo. Pacotes de 20, 50 e 100 placas com o preço por placa. Pedido com em produção e entregue. Venda de serviço sem placa, que paga vira ordem de serviço para a Avalia. Sino de notificações para o dono e a operadora. |
 | 22/10/2026 | Menu da conta no cabeçalho com Meus dados, Segurança e Sair; o celular da revenda passa da tela inicial para Meus dados. Auditoria em tabela, com filtro pela ação, paginação e exportação em JSON. |

@@ -1,6 +1,10 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Download, Send } from 'lucide-react'
 import { useState } from 'react'
-import { mensagemDoErro } from '@/api/cliente'
-import { formatarBps, paraBps } from '@/api/rotulos'
+import { chamarApi, chamarResposta, enviarJson, mensagemDoErro } from '@/api/cliente'
+import type { components } from '@/api/esquema'
+import { formatarBps, formatarData, paraBps, ROTULO_DO_CONTRATO } from '@/api/rotulos'
+import { Badge } from '@/components/ui/badge'
 import { Cabecalho, CarregandoTela, Erro } from '@/componentes/Tela'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -58,6 +62,59 @@ function Formulario({ comissaoBps, renovacaoBps, taxaBps }: { comissaoBps: numbe
           </form>
         </CardContent>
       </Card>
+      <ContratoDeRevenda />
     </div>
+  )
+}
+
+type MeuContrato = components['schemas']['MeuContrato']
+
+/** O contrato com a Avalia: em que pé está, reenviar o e-mail de assinatura e baixar a cópia. */
+function ContratoDeRevenda() {
+  const consultas = useQueryClient()
+  const contrato = useQuery({ queryKey: ['revenda', 'contrato'], queryFn: () => chamarApi<MeuContrato | undefined>('/revenda/contrato') })
+  const reenviar = useMutation({
+    mutationFn: () => chamarApi('/revenda/contrato/reenvio', enviarJson('POST', {})),
+    onSuccess: () => consultas.invalidateQueries({ queryKey: ['revenda', 'contrato'] }),
+  })
+  const [erroDaCopia, setErroDaCopia] = useState<unknown>(null)
+  const c = contrato.data
+
+  async function baixar() {
+    setErroDaCopia(null)
+    try {
+      const resposta = await chamarResposta('/revenda/contrato/pdf')
+      const nome = /filename="?([^";]+)"?/.exec(resposta.headers.get('Content-Disposition') ?? '')?.[1] ?? 'contrato-de-revenda.pdf'
+      const endereco = URL.createObjectURL(await resposta.blob())
+      const link = document.createElement('a')
+      link.href = endereco
+      link.download = nome
+      link.click()
+      URL.revokeObjectURL(endereco)
+    } catch (e) {
+      setErroDaCopia(e)
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader><CardTitle className="flex items-center gap-2">Contrato de revenda {c?.situacao && <Badge variant={c.situacao === 'Assinado' ? 'default' : 'secondary'}>{ROTULO_DO_CONTRATO[c.situacao]}</Badge>}</CardTitle></CardHeader>
+      <CardContent className="grid gap-4">
+        <Erro erro={reenviar.error ?? erroDaCopia ? mensagemDoErro(reenviar.error ?? erroDaCopia) : null} />
+        {reenviar.isSuccess && <Alert><AlertDescription>E-mail de assinatura reenviado para {c?.signatarioEmail}.</AlertDescription></Alert>}
+        {!contrato.isPending && !c && <p className="text-sm text-muted-foreground">O contrato sai depois que o e-mail da conta é confirmado.</p>}
+        {c && (
+          <p className="text-sm text-muted-foreground">
+            {c.assinadoEm ? `Assinado em ${formatarData(c.assinadoEm)}.` : `Enviado para ${c.signatarioEmail} em ${formatarData(c.criadoEm)}.`}
+          </p>
+        )}
+        {c && (
+          <div className="flex flex-wrap gap-2">
+            {c.podeReenviar && <Button variant="outline" disabled={reenviar.isPending} onClick={() => reenviar.mutate()}><Send aria-hidden />Reenviar e-mail de assinatura</Button>}
+            <Button variant="outline" onClick={() => void baixar()}><Download aria-hidden />Baixar cópia</Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   )
 }
