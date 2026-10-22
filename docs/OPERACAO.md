@@ -71,7 +71,10 @@ aprovação no ambiente `producao`. Ele compila as imagens marcadas com o commit
 ## Voltar
 
 Rode o workflow Deploy à mão (`workflow_dispatch`) com o commit anterior em
-`versao`. As imagens desse commit ainda estão no VPS por 7 dias; depois disso,
+`versao`, pelo SHA completo de 40 caracteres (`git rev-parse <commit>`): o
+abreviado falha no checkout. Pela linha de comando:
+`gh workflow run deploy.yml --ref main -f versao=$(git rev-parse <commit>)`.
+As imagens desse commit ainda estão no VPS por 7 dias; depois disso,
 o workflow compila de novo.
 
 ## Backup e restauração

@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       versao:
-        description: Commit a publicar (vazio publica o último do main). Voltar é publicar o commit anterior.
+        description: SHA completo do commit, com 40 caracteres (git rev-parse <commit>); o abreviado falha no checkout. Vazio publica o último do main. Voltar é publicar o commit anterior.
         required: false
 
 concurrency:
