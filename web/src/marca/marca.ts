@@ -15,7 +15,7 @@ export type Marca = {
   versao: number
 }
 
-const VARIAVEIS = ['--primary', '--primary-foreground', '--ring', '--destaque', '--destaque-foreground', '--accent', '--accent-foreground', '--chart-1', '--chart-2']
+const VARIAVEIS = ['--primary', '--primary-foreground', '--ring', '--destaque', '--destaque-foreground', '--accent', '--accent-foreground', '--chart-1', '--chart-2', '--traco']
 
 /**
  * Aplica a marca do revendedor só nas variáveis do tema (skill design-system):
@@ -36,6 +36,7 @@ export function aplicarMarca(marca: Marca | null) {
   raiz.setProperty('--accent-foreground', ESCURO)
   raiz.setProperty('--chart-1', marca.corPrimaria)
   raiz.setProperty('--chart-2', marca.corDestaque)
+  raiz.setProperty('--traco', `linear-gradient(90deg, ${marca.corDestaque}, ${marca.corPrimaria})`)
 }
 
 /** A marca do revendedor logado. A operadora fica com a da plataforma. */

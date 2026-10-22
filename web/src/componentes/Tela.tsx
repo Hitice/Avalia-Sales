@@ -9,7 +9,10 @@ import type { EstadoDaPlaca } from '@/api/tipos'
 export function Cabecalho({ titulo, children }: { titulo: string; children?: ReactNode }) {
   return (
     <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-      <h1 className="text-xl font-semibold">{titulo}</h1>
+      <h1 className="font-heading text-2xl font-semibold">
+        {titulo}
+        <span aria-hidden className="traco mt-1.5 block h-0.5 w-8 rounded-full" />
+      </h1>
       {children && <div className="flex flex-wrap gap-2">{children}</div>}
     </div>
   )

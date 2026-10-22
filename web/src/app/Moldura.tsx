@@ -94,11 +94,11 @@ export function Moldura() {
 
   return (
     <div className="min-h-svh">
-      <header className="sticky top-0 z-10 border-b bg-card">
-        <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-4">
+      <header className="sticky top-0 z-10 bg-card">
+        <div className="mx-auto flex h-14 max-w-7xl items-center gap-3 px-4">
           {logo
             ? <img src={logo} alt={marca?.nomeExibido ?? perfil?.revendedor ?? 'Logo'} className="h-8 w-auto max-w-32 object-contain" />
-            : <span className="font-semibold whitespace-nowrap">{marca?.nomeExibido ?? 'Avalia Sales'}</span>}
+            : <span className="font-heading text-lg font-semibold whitespace-nowrap">{marca?.nomeExibido ?? 'Avalia Sales'}</span>}
           {perfil?.revendedor && !marca?.nomeExibido && <span className="hidden truncate text-sm text-muted-foreground sm:inline">{perfil.revendedor}</span>}
           {perfil?.papel === 'Operadora' && <span className="hidden text-sm text-muted-foreground sm:inline">Operação</span>}
           <div className="ml-auto flex items-center gap-3 text-sm">
@@ -106,25 +106,21 @@ export function Moldura() {
             <Button variant="outline" onClick={sair}>Sair</Button>
           </div>
         </div>
-        <nav aria-label="Menu" className="mx-auto hidden max-w-6xl gap-1 overflow-x-auto px-4 pb-2 md:flex">
-          {itens.map((item) => (
-            <NavLink
-              key={item.para}
-              to={item.para}
-              className={({ isActive }) => cn(
-                'flex min-h-11 shrink-0 items-center rounded-md px-3 text-sm md:min-h-9',
-                isActive ? 'bg-accent font-medium text-accent-foreground' : 'text-muted-foreground hover:bg-muted',
-              )}
-            >
-              {item.rotulo}
-            </NavLink>
-          ))}
+        {/* Tablet: menu de cima, quebrando linha. Celular: barra de baixo. Computador: lateral. */}
+        <nav aria-label="Menu" className="mx-auto hidden max-w-6xl flex-wrap gap-1 px-4 pb-2 md:flex lg:hidden">
+          {itens.map((item) => <ItemDoMenu key={item.para} item={item} />)}
         </nav>
+        <div aria-hidden className="traco h-0.5" />
       </header>
-      <main className={cn('mx-auto max-w-6xl p-4', !naVenda && 'pb-24 md:pb-4')}>
-        {perfil?.papel === 'Dono' && !perfil.emailConfirmado && <ConfirmeOEmail email={perfil.email} />}
-        <Outlet />
-      </main>
+      <div className="mx-auto max-w-7xl lg:grid lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-6 lg:px-4">
+        <nav aria-label="Menu lateral" className="sticky top-16 hidden self-start py-4 lg:grid lg:gap-0.5">
+          {itens.map((item) => <ItemDoMenu key={item.para} item={item} />)}
+        </nav>
+        <main className={cn('min-w-0 p-4 lg:px-0', !naVenda && 'pb-24 md:pb-4')}>
+          {perfil?.papel === 'Dono' && !perfil.emailConfirmado && <ConfirmeOEmail email={perfil.email} />}
+          <Outlet />
+        </main>
+      </div>
       {!naVenda && (
         <nav aria-label="Menu principal" className="fixed inset-x-0 bottom-0 z-10 border-t bg-card pb-[env(safe-area-inset-bottom)] md:hidden">
           <div className="flex">
@@ -132,8 +128,9 @@ export function Moldura() {
               <NavLink
                 key={para}
                 to={para}
-                className={({ isActive }) => cn('flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-xs', isActive ? 'font-medium text-foreground' : 'text-muted-foreground')}
+                className={({ isActive }) => cn('group relative flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-xs', isActive ? 'font-medium text-foreground' : 'text-muted-foreground')}
               >
+                <span aria-hidden className="traco absolute inset-x-5 top-0 h-0.5 rounded-full opacity-0 group-aria-[current=page]:opacity-100" />
                 <Icone aria-hidden className="size-5" />
                 {rotulo}
               </NavLink>
@@ -188,5 +185,19 @@ function ConfirmeOEmail({ email }: { email: string }) {
         </Button>
       )}
     </div>
+  )
+}
+
+function ItemDoMenu({ item }: { item: Item }) {
+  return (
+    <NavLink
+      to={item.para}
+      className={({ isActive }) => cn(
+        'flex min-h-9 shrink-0 items-center rounded-md px-3 text-sm',
+        isActive ? 'bg-accent font-medium text-accent-foreground' : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+      )}
+    >
+      {item.rotulo}
+    </NavLink>
   )
 }

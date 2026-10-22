@@ -385,6 +385,7 @@ Estimativa em semanas de cerca de 20 horas.
 
 | Data | Mudança |
 | --- | --- |
+| 22/10/2026 | Celular e computador revistos - tabelas viram cartões no celular, menu lateral no computador, traço e títulos da marca Avalia, entrada na cor noite. |
 | 22/10/2026 | Confirmação do e-mail do dono antes do contrato e dos avisos. E-mail da revenda com o nome dela no remetente, resposta ao dono e a cor da marca. No iPhone, NFC pelo NFC Tools. |
 | 22/10/2026 | Painel do vendedor (primeira tela dele) - vendas e valor do mês, comissão a receber, esperando o cliente pagar, recebida, placas com ele e últimas vendas. |
 | 22/10/2026 | Celular - menu na barra de baixo (telas de todo dia e "Mais"); Nova venda com "‹ Voltar" no topo (um passo para trás; no primeiro, sai) e só o botão de avançar no pé, campo do cliente verde quando o dado confere e link do Google conferido no passo do negócio. |

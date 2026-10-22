@@ -37,4 +37,12 @@
   --chart-4: oklch(0.5 0.03 285);
   --chart-5: oklch(0.8 0.1 342);
   --radius: 0.625rem;
+  /*
+   * O traço da Avalia: linha fina rosa > roxo > azul, o mesmo do site. Só em
+   * linha (cabeçalho, título, item ativo), nunca como fundo. A marca da
+   * revenda troca pelo degradê das cores dela (marca.ts).
+   */
+  --traco: linear-gradient(90deg, #ee46bc 0%, #a646e0 38%, #7a3cf0 58%, #465fff 100%);
+  /* Noite da marca, fundo das telas de entrada. */
+  --noite: #120c2b;
 }

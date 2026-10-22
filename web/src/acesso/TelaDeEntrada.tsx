@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { type TokenEmitido, inicioDoPapel, sessaoValida, useSessao } from './sessao'
+import { MarcaAvalia } from '@/componentes/MarcaAvalia'
 
 const esquema = z.object({
   email: z.email('Digite um e-mail válido.'),
@@ -41,9 +42,10 @@ export function TelaDeEntrada() {
   }
 
   return (
-    <main className="flex min-h-svh flex-col items-center justify-center gap-6 p-4">
-      <p className="text-lg font-semibold">Avalia Sales</p>
-      <Card className="w-full max-w-sm">
+    <main className="flex min-h-svh flex-col items-center justify-center gap-6 bg-noite p-4">
+      <MarcaAvalia />
+      <Card className="relative w-full max-w-sm border-0">
+        <span aria-hidden className="traco absolute inset-x-0 top-0 h-1" />
         <CardHeader>
           <CardTitle className="text-xl">Entrar</CardTitle>
         </CardHeader>
@@ -73,8 +75,8 @@ export function TelaDeEntrada() {
           </form>
         </CardContent>
       </Card>
-      <p className="text-sm text-muted-foreground">
-        Quer revender? <Link to="/cadastro" className="font-medium text-foreground underline underline-offset-4">Cadastrar revenda</Link>
+      <p className="text-sm text-white/75">
+        Quer revender? <Link to="/cadastro" className="font-medium text-white underline underline-offset-4">Cadastrar revenda</Link>
       </p>
     </main>
   )

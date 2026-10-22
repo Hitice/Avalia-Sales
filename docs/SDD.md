@@ -588,6 +588,7 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
 
 | Data | Mudança |
 | --- | --- |
+| 22/10/2026 | Front - `Table` rotula as células pelo cabeçalho e vira cartão abaixo de `md`; menu lateral a partir de `lg`, de cima com quebra em `md`, barra de baixo no celular; `--traco`, `--noite` e Inter Display (`public/fonts/inter-display.woff2`) nos títulos. |
 | 22/10/2026 | Renovação da sessão fora do limite da entrada (`LimiteDeRenovacao`, `Limites:RenovacoesPorMinuto`); a renovação no front só limpa a sessão no 401. Vários usuários no mesmo IP eram derrubados ao abrir páginas em sequência. |
 | 22/10/2026 | Confirmação de e-mail do dono, remetente e resposta por revenda, HTML com a marca (`ModeloDeEmail`), migration EmailConfirmadoERemetente (contas antigas marcadas como confirmadas). NFC no iPhone pelo NFC Tools. |
 | 22/10/2026 | Front - barra de baixo no celular (`PRINCIPAIS` na `Moldura`, o resto no "Mais"), menu de cima só a partir de `md`; token `--sucesso`; CPF, e-mail e telefone conferidos no navegador (`documentos.ts`); `destino.ts` confere o link do Google como a API; trocar de passo limpa a recusa da tentativa anterior. 42 testes no front. |

@@ -10,6 +10,7 @@ import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field
 import { Input } from '@/components/ui/input'
 import { cnpjValido } from './documentos'
 import { type TokenEmitido, useSessao } from './sessao'
+import { MarcaAvalia } from '@/componentes/MarcaAvalia'
 
 const esquema = z.object({
   empresa: z.string().trim().min(1, 'Digite o nome da empresa.').max(120, 'Use até 120 caracteres.'),
@@ -46,9 +47,10 @@ export function TelaDeCadastro() {
   )
 
   return (
-    <main className="flex min-h-svh flex-col items-center justify-center gap-6 p-4">
-      <p className="text-lg font-semibold">Avalia Sales</p>
-      <Card className="w-full max-w-md">
+    <main className="flex min-h-svh flex-col items-center justify-center gap-6 bg-noite p-4">
+      <MarcaAvalia />
+      <Card className="relative w-full max-w-md border-0">
+        <span aria-hidden className="traco absolute inset-x-0 top-0 h-1" />
         <CardHeader>
           <CardTitle className="text-xl">Cadastrar revenda</CardTitle>
         </CardHeader>
@@ -66,8 +68,8 @@ export function TelaDeCadastro() {
           </form>
         </CardContent>
       </Card>
-      <p className="text-sm text-muted-foreground">
-        Já tem cadastro? <Link to="/entrar" className="font-medium text-foreground underline underline-offset-4">Entrar</Link>
+      <p className="text-sm text-white/75">
+        Já tem cadastro? <Link to="/entrar" className="font-medium text-white underline underline-offset-4">Entrar</Link>
       </p>
     </main>
   )

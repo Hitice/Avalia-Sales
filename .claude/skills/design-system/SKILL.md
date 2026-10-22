@@ -72,6 +72,31 @@ Até lá, um arquivo CSS basta.
 - Formulário com React Hook Form + Zod e os componentes `Form` do shadcn, com o
   erro embaixo do campo e `aria-invalid`.
 
+## A cara da Avalia sob o white label
+
+- O traço do site da Avalia (`--traco`, linha fina rosa > roxo > azul) é o
+  único ornamento: embaixo do cabeçalho, sob o título da tela (32 px) e no
+  item ativo da barra de baixo. Sempre linha, nunca fundo. A marca da revenda
+  troca o traço pelo degradê destaque > primária (`marca.ts`).
+- Títulos em Inter Display (opsz 32, `font-heading`), a dos títulos do site;
+  corpo na Geist.
+- Telas de entrada (entrar, cadastro, senha, confirmação) na noite da marca
+  (`bg-noite`, #120c2b) com o cartão branco e o traço no topo: antes do login
+  não há marca de revenda.
+
+## Navegação por tamanho
+
+| Largura | Menu |
+| --- | --- |
+| Celular (abaixo de 768 px) | Barra de baixo com 4 telas do papel e "Mais" em gaveta; some na Nova venda |
+| Tablet (768 a 1023 px) | Menu de cima, quebrando linha |
+| Computador (1024 px ou mais) | Menu lateral |
+
+Tabela abaixo de 768 px vira cartão (`components/ui/table.tsx`): a primeira
+coluna é o título, as outras levam o rótulo da coluna em cima do valor e a
+coluna de ações (título só para leitor de tela) ocupa a linha toda. Tela nova
+com tabela não precisa de nada a mais.
+
 ## Celular primeiro na área do vendedor
 
 - Alvo de toque de 44 px ou mais; botão primário ao alcance do polegar, no pé
@@ -121,7 +146,7 @@ Conferidas na API do GitHub e no npm em 21/10/2026, pelo critério da skill
 | [Playwright](https://github.com/microsoft/playwright) | Teste de ponta a ponta | 98 mil | |
 | [Style Dictionary](https://github.com/style-dictionary/style-dictionary) | Tokens em JSON, só se surgir outro consumidor | 4,9 mil | 5.7.0 |
 
-Estado em 21/10/2026: o front tem as telas das Fases 1 a 3 e a marca do revendedor aplicada nas variáveis (`web/src/marca`). Tokens
+Estado em 22/10/2026: traço, Inter Display, navegação por tamanho e tabela em cartão no celular. Em 21/10/2026 o front tinha as telas das Fases 1 a 3 e a marca do revendedor aplicada nas variáveis (`web/src/marca`). Tokens
 em `web/src/estilos/tokens.css`; toque de 44 px aplicado nos tamanhos de
 `components/ui/button.tsx` e `input.tsx`; anel de foco em cor cheia. Storybook e
 axe ainda não instalados (pendência no SDD).
