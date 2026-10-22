@@ -36,6 +36,7 @@ public static class InjecaoDeDependencias
         servicos.AddScoped<Atendimento.Chat>();
         servicos.AddScoped<Importacao.Importacao>();
         servicos.AddScoped<Importacao.Reservas>();
+        servicos.AddScoped<Clientes.Clientes>();
         return servicos;
     }
 }

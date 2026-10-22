@@ -252,6 +252,23 @@ porta o negócio e troca a tecnologia onde a stack pede.
 | Cortesia, cancelamento e troca de placa com estorno no razão | Igual, com o razão da Fase 2 | Fase 2 |
 | Pix e confirmação pelo WhatsApp | E-mail pelo Resend; WhatsApp fora do escopo | No código (e-mail) |
 
+## 6b. Dados pessoais (LGPD)
+
+- Papéis - o revendedor é o controlador dos dados dos clientes e da equipe
+  dele; a Avalia, como plataforma, é a operadora. A Avalia é controladora só
+  dos dados dos revendedores (cadastro, contrato, pedidos).
+- Dado mínimo - do cliente, empresa, responsável e telefone; CNPJ ou CPF e
+  e-mail só quando há cobrança, porque o Pagar.me pede. Do lugar no Google,
+  só o id.
+- Direitos do titular - na tela Clientes, o dono exporta tudo o que a
+  plataforma guarda sobre o cliente (dados, vendas, placas, cobranças) em JSON,
+  e anonimiza. A anonimização apaga nome, responsável, telefone, documento,
+  e-mail e lugar, não volta atrás, e é recusada com cobrança em aberto. Vendas
+  e razão ficam, com os valores, pela obrigação fiscal.
+- Logs e Sentry sem dado pessoal: nem corpo, nem cookie, nem IP.
+- A definir com o jurídico - prazo de guarda depois do fim do contrato do
+  revendedor e o texto da política de privacidade.
+
 ## 7. Marca do revendedor
 
 O dono configura, na tela Marca, o nome exibido (até 40 caracteres), a cor
@@ -325,6 +342,7 @@ Estimativa em semanas de cerca de 20 horas.
 
 | Data | Mudança |
 | --- | --- |
+| 21/10/2026 | LGPD - papéis de controlador e operadora, dado mínimo, exportação e anonimização do cliente na tela Clientes. |
 | 21/10/2026 | Fase 4, ferramentas - reserva de códigos de outro sistema e importação de placas tudo ou nada, com ensaio e totais. |
 | 21/10/2026 | Preparada a publicação em servidor próprio (manual em OPERACAO.md); a regra de que `/q/` responde para sempre vale para o deploy, que troca a API em segundos. |
 | 21/10/2026 | Fase 3 fechada - mapa dos lugares vendidos (lista sem a chave do Google) e chat entre revendedor e Avalia. |

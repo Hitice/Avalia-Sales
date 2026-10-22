@@ -167,7 +167,7 @@ Dinheiro em centavos (`bigint`, colunas `_cents`), taxa em pontos base
 | `placas` | Placa no estoque do revendedor: custo congelado, situação, consignação, destino, venda, vencimento, leituras | RLS; código único |
 | `leituras` | Leituras por placa e dia | RLS; chave (placa, dia), soma por `on conflict` |
 | `vendedores` | Equipe, com o mesmo id do login; comissão própria | RLS |
-| `clientes` | Negócio que comprou: documento, telefone, e-mail, lugar no Google (só o id) | RLS; documento único por revendedor |
+| `clientes` | Negócio que comprou: documento, telefone, e-mail, lugar no Google (só o id), anonimizado em | RLS; documento único por revendedor |
 | `vendas` | Placa, cliente, produto, vendedor, valor, tabela, custo e comissão gravados | RLS; uma venda registrada por placa |
 | `emails` | Fila de e-mails com chave única, tentativas e id no Resend | Sem RLS |
 | `revendedores` (colunas novas) | CNPJ (único), comissão padrão (2000 = 20%), contrato assinado em | - |
@@ -434,7 +434,7 @@ tentativas.
 | Login desativado não entra e perde as sessões abertas | No código |
 | Leitura do QR com limite de 300 por minuto por IP, sem cookie, robôs não contam | No código |
 | 2FA do dono, auditoria | Plano |
-| LGPD - revendedor controlador, plataforma operadora; dado mínimo; retenção; anonimização | Plano, detalhe no PDD |
+| LGPD - exportação dos dados do cliente (`GET /clientes/{id}/dados`) e anonimização (`POST /clientes/{id}/anonimizacao`, recusada com cobrança em aberto), só pelo dono e dentro do revendedor; valores ficam no razão | No código; prazo de guarda a definir (PDD 6b) |
 
 Revisão pela skill `seguranca` (OWASP ASVS 5.0).
 
@@ -558,6 +558,7 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
 
 | Data | Mudança |
 | --- | --- |
+| 21/10/2026 | LGPD - exportação e anonimização do cliente, tela Clientes. 172 testes. |
 | 21/10/2026 | Comandos `--reservar-codigos` e `--importar-placas` (CSV pelo leitor do .NET, colunas pelo nome, tudo ou nada com `--ensaio`), fábricas de importação no Domain (placa, venda, cliente, lote sem o limite de tiragem). 170 testes. |
 | 21/10/2026 | Produção - compose com Nginx e certbot, backup diário, healthcheck pela API, cabeçalhos encaminhados, workflow de deploy no runner próprio com aprovação, SonarCloud opcional no CI, Sentry opcional na API, Worker e front, manual de operação. Moldura do front carregada depois do login. |
 | 21/10/2026 | Mapa dos lugares vendidos (Google Maps JavaScript com lista quando falta a chave) e chat entre revendedor e operadora, com a regra de gravação da operadora nas tabelas atendidas. |

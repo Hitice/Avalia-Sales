@@ -72,6 +72,16 @@ public static class RotasDaRevenda
         dono.MapGet("/razao", (string? competencia, Razao razao, CancellationToken ct) => razao.DoMes(competencia, ct));
         dono.MapGet("/razao/meses", (Razao razao, CancellationToken ct) => razao.Meses(ct));
         dono.MapGet("/mapa", (Mapa mapa, CancellationToken ct) => mapa.Lugares(ct));
+
+        // LGPD: o dono atende o titular. A exportação baixa como arquivo; a anonimização não volta atrás.
+        dono.MapGet("/clientes", (string? busca, Application.Clientes.Clientes clientes, CancellationToken ct) => clientes.Listar(busca, ct));
+        dono.MapGet("/clientes/{id:guid}/dados", async (Guid id, Application.Clientes.Clientes clientes, CancellationToken ct) =>
+            Results.Json(await clientes.Exportar(id, ct), contentType: "application/json", statusCode: 200));
+        dono.MapPost("/clientes/{id:guid}/anonimizacao", async (Guid id, Application.Clientes.Clientes clientes, CancellationToken ct) =>
+        {
+            await clientes.Anonimizar(id, ct);
+            return Results.NoContent();
+        });
         dono.MapGet("/mapa/configuracao", (Microsoft.Extensions.Options.IOptions<Infrastructure.Integracoes.Google.OpcoesGoogle> google) =>
             new { Chave = string.IsNullOrWhiteSpace(google.Value.ChaveDoMapa) ? null : google.Value.ChaveDoMapa, google.Value.IdDoMapa });
 

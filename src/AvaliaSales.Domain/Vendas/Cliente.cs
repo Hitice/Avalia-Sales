@@ -52,9 +52,37 @@ public sealed class Cliente : IDoRevendedor
         CriadoEm = agora,
     };
 
+    public DateTimeOffset? AnonimizadoEm { get; private set; }
+
+    /// <summary>
+    /// Eliminação a pedido do titular (LGPD, art. 18, VI): some todo dado que
+    /// identifica a pessoa ou o negócio. Vendas e razão ficam, com os valores,
+    /// porque a obrigação fiscal pede (art. 16, I); só não apontam mais para quem.
+    /// </summary>
+    public void Anonimizar(DateTimeOffset agora)
+    {
+        if (AnonimizadoEm is not null)
+        {
+            return;
+        }
+
+        Nome = "Cliente anonimizado";
+        Responsavel = "Anonimizado";
+        Telefone = string.Empty;
+        Documento = null;
+        Email = null;
+        LugarNoGoogle = null;
+        AnonimizadoEm = agora;
+    }
+
     /// <summary>O balcão não sobrescreve o que já estava preenchido.</summary>
     public void Completar(string? documento, string? email, string? lugarNoGoogle)
     {
+        if (AnonimizadoEm is not null)
+        {
+            return;
+        }
+
         Documento ??= Documentos.Normalizar(documento, obrigatorio: false);
         Email ??= Emails.Normalizar(email);
         LugarNoGoogle ??= string.IsNullOrWhiteSpace(lugarNoGoogle) ? null : lugarNoGoogle.Trim();

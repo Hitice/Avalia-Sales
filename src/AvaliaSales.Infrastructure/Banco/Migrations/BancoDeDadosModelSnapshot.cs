@@ -1178,6 +1178,10 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<DateTimeOffset?>("AnonimizadoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("anonimizado_em");
+
                     b.Property<DateTimeOffset>("CriadoEm")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("criado_em");
