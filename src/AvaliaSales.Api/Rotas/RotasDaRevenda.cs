@@ -51,6 +51,7 @@ public static class RotasDaRevenda
         dono.MapGet("/equipe", (Equipe equipe, CancellationToken ct) => equipe.Listar(ct));
         dono.MapPost("/equipe", async (NovoVendedor pedido, Equipe equipe, CancellationToken ct) =>
             Results.Created("/equipe", await equipe.Criar(pedido, ct)));
+        dono.MapPost("/equipe/{id:guid}/convite", (Guid id, Equipe equipe, CancellationToken ct) => equipe.Convidar(id, ct));
         dono.MapPut("/equipe/{id:guid}", (Guid id, AlterarVendedor pedido, Equipe equipe, CancellationToken ct) => equipe.Alterar(id, pedido, ct));
         dono.MapPut("/equipe/{id:guid}/ativo", async (Guid id, AlterarAtivo pedido, Equipe equipe, CancellationToken ct) =>
         {

@@ -22,7 +22,7 @@ própria equipe, recebe pelo Pagar.me e acompanha as vendas num painel.
 | Papel | Quem é | O que faz |
 | --- | --- | --- |
 | Operadora | A Avalia | Vende placas aos revendedores, recebe a taxa de cada venda, despacha lotes, atende o chat |
-| Revendedor (dono) | Empresa que revende | Compra placas, cadastra vendedores, define preço e comissão, acompanha painel e mapa |
+| Revendedor (dono) | Empresa que revende | Compra placas, convida vendedores, define preço e comissão, acompanha painel e mapa |
 | Vendedor | Equipe do revendedor | Vende no balcão pelo celular: lê o QR e grava o NFC |
 | Cliente final | Quem compra a placa | Paga por Pix ou cartão e usa a placa no negócio |
 
@@ -360,6 +360,7 @@ Estimativa em semanas de cerca de 20 horas.
 
 | Data | Mudança |
 | --- | --- |
+| 22/10/2026 | Vendedor convidado por e-mail cria a própria senha; o dono também pode mandar o link pelo WhatsApp. Esqueci a senha na entrada. |
 | 22/10/2026 | Texto das telas revisto - sem frase de explicação; rótulo, ação e recusa curta. |
 | 22/10/2026 | Renovação recebida por fora. Logo aceita foto grande e é reduzido no navegador. |
 | 22/10/2026 | Depois da venda - cancelamento, cortesia, troca de placa e recebido em dinheiro ou outro Pix, na tela Vendas. |

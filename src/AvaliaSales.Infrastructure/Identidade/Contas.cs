@@ -8,9 +8,9 @@ using Microsoft.EntityFrameworkCore;
 namespace AvaliaSales.Infrastructure.Identidade;
 
 /// <summary>Os logins pelo UserManager, no mesmo contexto do banco: entram na transação de quem chama.</summary>
-public sealed class Contas(UserManager<Usuario> usuarios, BancoDeDados banco, TimeProvider relogio) : IContas
+public sealed class Contas(UserManager<Usuario> usuarios, BancoDeDados banco, GestorDeSenhas senhas, TimeProvider relogio) : IContas
 {
-    public async Task<Guid> Criar(string nome, string email, string senha, Papel papel, Guid? revendedorId, CancellationToken ct)
+    public async Task<Guid> Criar(string nome, string email, string? senha, Papel papel, Guid? revendedorId, CancellationToken ct)
     {
         var normalizado = Emails.Normalizar(email) ?? throw new RegraDeNegocioException("Informe o e-mail.");
         nome = (nome ?? string.Empty).Trim();
@@ -25,10 +25,18 @@ public sealed class Contas(UserManager<Usuario> usuarios, BancoDeDados banco, Ti
         }
 
         var usuario = new Usuario { RevendedorId = revendedorId, Papel = papel, Nome = nome, UserName = normalizado, Email = normalizado };
-        var criado = await usuarios.CreateAsync(usuario, senha ?? string.Empty);
+        var criado = senha is null ? await usuarios.CreateAsync(usuario) : await usuarios.CreateAsync(usuario, senha);
         return criado.Succeeded
             ? usuario.Id
             : throw new RegraDeNegocioException(string.Join(" ", criado.Errors.Select(Traduzir)));
+    }
+
+    public Task<string> Convidar(Guid usuarioId, string revenda, CancellationToken ct) => senhas.Convidar(usuarioId, revenda, ct);
+
+    public async Task<IReadOnlySet<Guid>> SemSenha(IEnumerable<Guid> ids, CancellationToken ct)
+    {
+        var lista = ids.Distinct().ToList();
+        return (await banco.Users.AsNoTracking().Where(u => lista.Contains(u.Id) && u.PasswordHash == null).Select(u => u.Id).ToListAsync(ct)).ToHashSet();
     }
 
     public async Task DefinirAtivo(Guid usuarioId, bool ativo, CancellationToken ct)
@@ -68,7 +76,7 @@ public sealed class Contas(UserManager<Usuario> usuarios, BancoDeDados banco, Ti
         (await usuarios.FindByEmailAsync(email.Trim()))?.Id;
 
     /// <summary>As recusas do Identity que a regra de senha e de e-mail produzem, em português.</summary>
-    private static string Traduzir(IdentityError erro) => erro.Code switch
+    internal static string Traduzir(IdentityError erro) => erro.Code switch
     {
         nameof(IdentityErrorDescriber.PasswordTooShort) => "A senha precisa ter 10 caracteres ou mais.",
         nameof(IdentityErrorDescriber.DuplicateEmail) or nameof(IdentityErrorDescriber.DuplicateUserName) => "Este e-mail já tem cadastro na plataforma.",

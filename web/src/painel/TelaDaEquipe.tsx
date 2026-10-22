@@ -9,10 +9,34 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { useAlterarVendedor, useAtivarVendedor, useComissaoPadrao, useCriarVendedor, useEquipe, useExcluirVendedor, useMinhaRevenda } from './consultas'
+import { useAlterarVendedor, useAtivarVendedor, useComissaoPadrao, useConvidarVendedor, useCriarVendedor, useEquipe, useExcluirVendedor, useMinhaRevenda } from './consultas'
 
 type Formulario = { nome: string; email: string; senha: string; telefone: string; chavePix: string; comissao: string }
 const VAZIO: Formulario = { nome: '', email: '', senha: '', telefone: '', chavePix: '', comissao: '' }
+
+/** O link do convite, para o dono mandar também pelo WhatsApp do vendedor. */
+function Convite({ vendedor, aoFechar }: { vendedor: Vendedor; aoFechar: () => void }) {
+  const [copiado, setCopiado] = useState(false)
+  const link = vendedor.linkDoConvite ?? ''
+  const telefone = (vendedor.telefone ?? '').replace(/\D/g, '')
+  const texto = encodeURIComponent(`Crie sua senha de vendedor: ${link}`)
+  return (
+    <Card>
+      <CardHeader><CardTitle>Convite de {vendedor.nome}</CardTitle></CardHeader>
+      <CardContent className="grid gap-3">
+        <p className="text-sm">Enviado para {vendedor.email}. Vale 7 dias.</p>
+        <Input readOnly aria-label="Link do convite" value={link} onFocus={(e) => e.target.select()} />
+        <div className="grid grid-cols-2 gap-2">
+          <Button variant="outline" onClick={() => navigator.clipboard.writeText(link).then(() => setCopiado(true))}>{copiado ? 'Copiado' : 'Copiar link'}</Button>
+          <Button variant="outline" asChild>
+            <a href={`https://wa.me/${telefone ? (telefone.length <= 11 ? '55' + telefone : telefone) : ''}?text=${texto}`} target="_blank" rel="noreferrer">WhatsApp</a>
+          </Button>
+        </div>
+        <Button variant="ghost" onClick={aoFechar}>Fechar</Button>
+      </CardContent>
+    </Card>
+  )
+}
 
 /** A equipe do dono, com a comissão de cada um. Vendedor com venda é desativado, e não excluído. */
 export function TelaDaEquipe() {
@@ -22,12 +46,14 @@ export function TelaDaEquipe() {
   const alterar = useAlterarVendedor()
   const ativar = useAtivarVendedor()
   const excluir = useExcluirVendedor()
+  const convidar = useConvidarVendedor()
+  const [convite, setConvite] = useState<Vendedor | null>(null)
   const padrao = useComissaoPadrao()
   const [editando, setEditando] = useState<Vendedor | null>(null)
   const [dados, setDados] = useState<Formulario>(VAZIO)
   const [comissaoPadrao, setComissaoPadrao] = useState('')
   const [recusa, setRecusa] = useState<string | null>(null)
-  const erro = criar.error ?? alterar.error ?? ativar.error ?? excluir.error ?? padrao.error
+  const erro = criar.error ?? alterar.error ?? ativar.error ?? excluir.error ?? convidar.error ?? padrao.error
 
   function editar(v: Vendedor | null) {
     setEditando(v)
@@ -45,7 +71,11 @@ export function TelaDaEquipe() {
 
     const comum = { nome: dados.nome, telefone: dados.telefone || null, chavePix: dados.chavePix || null, comissaoBps }
     try {
-      await (editando ? alterar.mutateAsync({ id: editando.id, ...comum }) : criar.mutateAsync({ ...comum, email: dados.email, senha: dados.senha }))
+      if (editando) await alterar.mutateAsync({ id: editando.id, ...comum })
+      else {
+        const criado = await criar.mutateAsync({ ...comum, email: dados.email, senha: dados.senha || null })
+        if (criado.linkDoConvite) setConvite(criado)
+      }
       editar(null)
     } catch {
       // O erro aparece pelo estado da gravação.
@@ -60,7 +90,7 @@ export function TelaDaEquipe() {
   )
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[1fr_20rem]">
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
       <div>
         <Cabecalho titulo="Equipe" />
         <Erro erro={recusa ?? (erro ? mensagemDoErro(erro) : null)} />
@@ -88,9 +118,10 @@ export function TelaDaEquipe() {
                         </TableCell>
                         <TableCell className="text-right tabular-nums">{formatarBps(v.comissaoEfetivaBps)}{v.comissaoBps === null && <span className="text-muted-foreground"> (padrão)</span>}</TableCell>
                         <TableCell className="text-right tabular-nums">{v.vendas}</TableCell>
-                        <TableCell><Badge variant={v.ativo ? 'default' : 'outline'}>{v.ativo ? 'Ativo' : 'Desativado'}</Badge></TableCell>
+                        <TableCell><Badge variant={v.ativo && !v.convitePendente ? 'default' : 'outline'}>{!v.ativo ? 'Desativado' : v.convitePendente ? 'Convidado' : 'Ativo'}</Badge></TableCell>
                         <TableCell>
                           <div className="flex justify-end gap-2">
+                            {v.ativo && v.convitePendente && <Button variant="outline" disabled={convidar.isPending} onClick={() => convidar.mutate(v.id, { onSuccess: setConvite })}>Convidar de novo</Button>}
                             <Button variant="outline" onClick={() => editar(v)}>Editar</Button>
                             <Button variant="outline" onClick={() => ativar.mutate({ id: v.id, ativo: !v.ativo })}>{v.ativo ? 'Desativar' : 'Reativar'}</Button>
                             {v.vendas === 0 && <Button variant="ghost" onClick={() => excluir.mutate(v.id)}>Excluir</Button>}
@@ -106,17 +137,18 @@ export function TelaDaEquipe() {
         </Card>
       </div>
       <div className="grid gap-4 self-start">
+        {convite && <Convite vendedor={convite} aoFechar={() => setConvite(null)} />}
         <Card>
           <CardHeader><CardTitle>{editando ? `Editar ${editando.nome}` : 'Novo vendedor'}</CardTitle></CardHeader>
           <CardContent>
             <form className="grid gap-4" onSubmit={salvar}>
               {campo('nome', 'Nome', 'text', { autoComplete: 'off' })}
               {!editando && campo('email', 'E-mail de acesso', 'email', { autoComplete: 'off' })}
-              {!editando && campo('senha', 'Senha inicial', 'password', { autoComplete: 'new-password' })}
+              {!editando && campo('senha', 'Senha inicial', 'password', { autoComplete: 'new-password', placeholder: 'Em branco envia convite' })}
               {campo('telefone', 'Telefone', 'tel')}
               {campo('chavePix', 'Chave Pix da comissão')}
               {campo('comissao', 'Comissão (%)', 'text', { inputMode: 'decimal', placeholder: 'Em branco usa a padrão' })}
-              <Button type="submit" disabled={!dados.nome || (!editando && (!dados.email || dados.senha.length < 10))}>{editando ? 'Salvar vendedor' : 'Cadastrar vendedor'}</Button>
+              <Button type="submit" disabled={!dados.nome || (!editando && (!dados.email || (dados.senha.length > 0 && dados.senha.length < 10)))}>{editando ? 'Salvar vendedor' : 'Cadastrar vendedor'}</Button>
               {editando && <Button type="button" variant="ghost" onClick={() => editar(null)}>Cancelar</Button>}
             </form>
           </CardContent>

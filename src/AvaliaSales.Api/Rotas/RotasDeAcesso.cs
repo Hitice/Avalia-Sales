@@ -9,6 +9,10 @@ namespace AvaliaSales.Api.Rotas;
 
 public sealed record PedidoDeEntrada(string Email, string Senha);
 
+public sealed record PedidoDeLink(string? Email);
+
+public sealed record NovaSenha(string? Token, string? Senha);
+
 /// <summary>
 /// Entrada, renovação e saída. O token de acesso vive 15 minutos e só em
 /// memória no front; o refresh fica em cookie HttpOnly, que script nenhum lê,
@@ -25,6 +29,12 @@ public static class RotasDeAcesso
         auth.MapPost("/entrar", Entrar);
         auth.MapPost("/renovar", Renovar);
         auth.MapPost("/sair", Sair);
+        auth.MapPost("/senha/link", async (PedidoDeLink pedido, GestorDeSenhas senhas, CancellationToken ct) =>
+        {
+            await senhas.PedirRedefinicao(pedido.Email, ct);
+            return Results.NoContent();
+        });
+        auth.MapPost("/senha", DefinirSenha);
         rotas.MapPost("/cadastro", Cadastrar).AllowAnonymous().RequireRateLimiting(LimiteDeEntrada);
     }
 
@@ -47,6 +57,15 @@ public static class RotasDeAcesso
             return Results.Unauthorized();
         }
 
+        GravarCookie(http, await sessoes.Abrir(usuario.Id, ct));
+        return Results.Ok(emissor.Emitir(usuario, await NomeDoRevendedor(banco, usuario, ct)));
+    }
+
+    /// <summary>Senha criada pelo convite ou trocada pelo link: já entra.</summary>
+    private static async Task<IResult> DefinirSenha(NovaSenha pedido, HttpContext http, GestorDeSenhas senhas, GestorDeSessoes sessoes,
+        EmissorDeToken emissor, BancoDeDados banco, CancellationToken ct)
+    {
+        var usuario = await senhas.Definir(pedido.Token, pedido.Senha, ct);
         GravarCookie(http, await sessoes.Abrir(usuario.Id, ct));
         return Results.Ok(emissor.Emitir(usuario, await NomeDoRevendedor(banco, usuario, ct)));
     }

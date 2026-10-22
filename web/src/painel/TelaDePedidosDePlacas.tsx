@@ -24,7 +24,7 @@ export function TelaDePedidosDePlacas() {
   const [cupom, setCupom] = useState('')
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[1fr_20rem]">
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
       <div className="grid gap-4">
         <Cabecalho titulo="Pedidos de placas" />
         <Card>

@@ -61,6 +61,7 @@ public static class InjecaoDeDependencias
             .AddEntityFrameworkStores<BancoDeDados>();
         servicos.AddScoped<IContas, Contas>();
         servicos.AddScoped<GestorDeSessoes>();
+        servicos.AddScoped<GestorDeSenhas>();
         return servicos;
     }
 

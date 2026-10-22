@@ -30,8 +30,9 @@ export const useAtivarLote = () =>
   useGravar((numero: string) => chamarApi<{ lote: string; placas: number; primeiroCodigo: string; ultimoCodigo: string }>('/lotes/ativacao', enviarJson('POST', { numero })), ['pedidos', 'placas'])
 
 export type GravarVendedor = { nome: string; telefone: string | null; chavePix: string | null; comissaoBps: number | null }
-export const useCriarVendedor = () => useGravar((v: GravarVendedor & { email: string; senha: string }) => chamarApi<Vendedor>('/equipe', enviarJson('POST', v)), ['equipe'])
+export const useCriarVendedor = () => useGravar((v: GravarVendedor & { email: string; senha: string | null }) => chamarApi<Vendedor>('/equipe', enviarJson('POST', v)), ['equipe'])
 export const useAlterarVendedor = () => useGravar(({ id, ...v }: GravarVendedor & { id: string }) => chamarApi<Vendedor>(`/equipe/${id}`, enviarJson('PUT', v)), ['equipe'])
+export const useConvidarVendedor = () => useGravar((id: string) => chamarApi<Vendedor>(`/equipe/${id}/convite`, enviarJson('POST')), ['equipe'])
 export const useAtivarVendedor = () => useGravar(({ id, ativo }: { id: string; ativo: boolean }) => chamarApi(`/equipe/${id}/ativo`, enviarJson('PUT', { ativo })), ['equipe'])
 export const useExcluirVendedor = () => useGravar((id: string) => chamarApi(`/equipe/${id}`, { method: 'DELETE' }), ['equipe', 'placas'])
 export const useComissaoPadrao = () => useGravar((comissaoBps: number) => chamarApi('/revenda/comissao', enviarJson('PUT', { comissaoBps })), ['revenda', 'equipe'])

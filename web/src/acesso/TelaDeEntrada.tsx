@@ -68,6 +68,7 @@ export function TelaDeEntrada() {
               <Button type="submit" size="lg" disabled={isSubmitting}>
                 {isSubmitting ? 'Entrando...' : 'Entrar'}
               </Button>
+              <Link to="/esqueci" className="text-center text-sm text-muted-foreground underline underline-offset-4">Esqueci a senha</Link>
             </FieldGroup>
           </form>
         </CardContent>

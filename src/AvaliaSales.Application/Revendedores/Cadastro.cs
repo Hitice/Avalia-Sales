@@ -26,7 +26,7 @@ public sealed class Cadastro(IBancoDeDados banco, IContas contas)
         await using var transacao = await banco.Database.BeginTransactionAsync(ct);
         banco.Revendedores.Add(revendedor);
         await banco.SaveChangesAsync(ct);
-        var dono = await contas.Criar(comando.Nome, comando.Email, comando.Senha, Papel.Dono, revendedor.Id, ct);
+        var dono = await contas.Criar(comando.Nome, comando.Email, comando.Senha ?? string.Empty, Papel.Dono, revendedor.Id, ct);
         await transacao.CommitAsync(ct);
         return dono;
     }

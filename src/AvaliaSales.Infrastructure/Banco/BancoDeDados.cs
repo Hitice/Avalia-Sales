@@ -43,6 +43,7 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
     public DbSet<Venda> Vendas => Set<Venda>();
     public DbSet<EmailNaFila> Emails => Set<EmailNaFila>();
     public DbSet<Sessao> Sessoes => Set<Sessao>();
+    public DbSet<LinkDeSenha> LinksDeSenha => Set<LinkDeSenha>();
     public DbSet<Cupom> Cupons => Set<Cupom>();
     public DbSet<Lancamento> Lancamentos => Set<Lancamento>();
     public DbSet<Repasse> Repasses => Set<Repasse>();
@@ -289,6 +290,16 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
             s.HasIndex(x => x.HashDoToken).IsUnique();
             s.HasIndex(x => x.Familia);
             s.HasOne<Usuario>().WithMany().HasForeignKey(x => x.UsuarioId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelo.Entity<LinkDeSenha>(l =>
+        {
+            l.ToTable("links_de_senha");
+            l.Property(x => x.HashDoToken).HasMaxLength(64).IsFixedLength();
+            l.Property(x => x.Finalidade).HasConversion<string>().HasMaxLength(20);
+            l.HasIndex(x => x.HashDoToken).IsUnique();
+            l.HasIndex(x => x.UsuarioId);
+            l.HasOne<Usuario>().WithMany().HasForeignKey(x => x.UsuarioId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelo.Entity<EmailNaFila>(e =>

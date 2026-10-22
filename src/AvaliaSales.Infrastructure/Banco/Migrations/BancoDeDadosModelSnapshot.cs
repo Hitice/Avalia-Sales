@@ -1329,6 +1329,55 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                     b.ToTable("vendas", (string)null);
                 });
 
+            modelBuilder.Entity("AvaliaSales.Infrastructure.Identidade.LinkDeSenha", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CriadoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("criado_em");
+
+                    b.Property<DateTimeOffset?>("EncerradoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("encerrado_em");
+
+                    b.Property<string>("Finalidade")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("finalidade");
+
+                    b.Property<string>("HashDoToken")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character(64)")
+                        .HasColumnName("hash_do_token")
+                        .IsFixedLength();
+
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("usuario_id");
+
+                    b.Property<DateTimeOffset>("VenceEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("vence_em");
+
+                    b.HasKey("Id")
+                        .HasName("pk_links_de_senha");
+
+                    b.HasIndex("HashDoToken")
+                        .IsUnique()
+                        .HasDatabaseName("ix_links_de_senha_hash_do_token");
+
+                    b.HasIndex("UsuarioId")
+                        .HasDatabaseName("ix_links_de_senha_usuario_id");
+
+                    b.ToTable("links_de_senha", (string)null);
+                });
+
             modelBuilder.Entity("AvaliaSales.Infrastructure.Identidade.Sessao", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1988,6 +2037,16 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_vendas_usuarios_vendedor_id");
+                });
+
+            modelBuilder.Entity("AvaliaSales.Infrastructure.Identidade.LinkDeSenha", b =>
+                {
+                    b.HasOne("AvaliaSales.Infrastructure.Identidade.Usuario", null)
+                        .WithMany()
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_links_de_senha_usuarios_usuario_id");
                 });
 
             modelBuilder.Entity("AvaliaSales.Infrastructure.Identidade.Sessao", b =>

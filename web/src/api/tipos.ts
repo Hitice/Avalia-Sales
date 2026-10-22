@@ -75,6 +75,8 @@ export type Vendedor = {
   comissaoEfetivaBps: number
   ativo: boolean
   vendas: number
+  convitePendente: boolean
+  linkDoConvite?: string | null
 }
 
 export type VendaDaLista = {
