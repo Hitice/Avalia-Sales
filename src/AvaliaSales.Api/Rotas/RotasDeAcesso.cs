@@ -24,14 +24,23 @@ public sealed record PedidoDeConfirmacao(string? Token);
 public static class RotasDeAcesso
 {
     public const string LimiteDeEntrada = "entrada";
+
+    /// <summary>
+    /// Renovar e sair têm limite próprio, folgado: a renovação roda a cada página
+    /// aberta, e os vendedores de uma loja saem pelo mesmo IP. O refresh tem 256
+    /// bits; o limite apertado da entrada não protegeria nada aqui.
+    /// </summary>
+    public const string LimiteDeRenovacao = "renovacao";
     public const string Cookie = "avalia_sessao";
 
     public static void MapearAcesso(this IEndpointRouteBuilder rotas)
     {
+        var sessao = rotas.MapGroup("/auth").AllowAnonymous().RequireRateLimiting(LimiteDeRenovacao);
+        sessao.MapPost("/renovar", Renovar);
+        sessao.MapPost("/sair", Sair);
+
         var auth = rotas.MapGroup("/auth").AllowAnonymous().RequireRateLimiting(LimiteDeEntrada);
         auth.MapPost("/entrar", Entrar);
-        auth.MapPost("/renovar", Renovar);
-        auth.MapPost("/sair", Sair);
         auth.MapPost("/senha/link", async (PedidoDeLink pedido, GestorDeSenhas senhas, CancellationToken ct) =>
         {
             await senhas.PedirRedefinicao(pedido.Email, ct);

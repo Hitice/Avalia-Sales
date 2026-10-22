@@ -120,12 +120,16 @@ builder.Services.AddAuthorization(Politicas.Registrar);
 
 // Entradas por minuto por IP; o teste sobe o limite, porque entra muitas vezes do mesmo endereço.
 var entradasPorMinuto = builder.Configuration.GetValue("Limites:EntradasPorMinuto", 20);
+var renovacoesPorMinuto = builder.Configuration.GetValue("Limites:RenovacoesPorMinuto", 300);
 builder.Services.AddRateLimiter(limites =>
 {
     limites.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
     limites.AddPolicy(RotasDeAcesso.LimiteDeEntrada, http => RateLimitPartition.GetFixedWindowLimiter(
         http.Connection.RemoteIpAddress?.ToString() ?? "sem-ip",
         _ => new FixedWindowRateLimiterOptions { PermitLimit = entradasPorMinuto, Window = TimeSpan.FromMinutes(1) }));
+    limites.AddPolicy(RotasDeAcesso.LimiteDeRenovacao, http => RateLimitPartition.GetFixedWindowLimiter(
+        http.Connection.RemoteIpAddress?.ToString() ?? "sem-ip",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = renovacoesPorMinuto, Window = TimeSpan.FromMinutes(1) }));
     limites.AddPolicy(RotasDeWebhook.LimiteDeWebhook, http => RateLimitPartition.GetFixedWindowLimiter(
         http.Connection.RemoteIpAddress?.ToString() ?? "sem-ip",
         _ => new FixedWindowRateLimiterOptions { PermitLimit = 120, Window = TimeSpan.FromMinutes(1) }));

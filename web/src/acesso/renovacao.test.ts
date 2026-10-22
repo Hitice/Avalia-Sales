@@ -28,4 +28,33 @@ describe('renovarSessao', () => {
     expect(await renovarSessao()).toBe(false)
     expect(useSessao.getState().token).toBeNull()
   })
+
+  it('limite de pedidos não derruba a sessão: espera e tenta de novo', async () => {
+    vi.useFakeTimers()
+    useSessao.getState().entrar({ token: 'velho', expiraEm: new Date(Date.now() + 900_000).toISOString(), perfil })
+    const fetch = vi.fn()
+      .mockResolvedValueOnce(new Response(null, { status: 429 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ token: 'novo', expiraEm: new Date(Date.now() + 900_000).toISOString(), perfil }), { status: 200 }))
+    vi.stubGlobal('fetch', fetch)
+
+    const renovada = renovarSessao()
+    await vi.advanceTimersByTimeAsync(2_000)
+
+    expect(await renovada).toBe(true)
+    expect(useSessao.getState().token).toBe('novo')
+    vi.useRealTimers()
+  })
+
+  it('servidor fora do ar mantém o token que havia', async () => {
+    vi.useFakeTimers()
+    useSessao.getState().entrar({ token: 'velho', expiraEm: new Date(Date.now() + 900_000).toISOString(), perfil })
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, { status: 503 })))
+
+    const renovada = renovarSessao()
+    await vi.advanceTimersByTimeAsync(2_000)
+
+    expect(await renovada).toBe(false)
+    expect(useSessao.getState().token).toBe('velho')
+    vi.useRealTimers()
+  })
 })

@@ -53,6 +53,7 @@ public sealed class ApiDeTeste : IAsyncLifetime
         ["Resend:ChaveApi"] = "",
         ["Google:ChaveDoServidor"] = "",
         ["Limites:EntradasPorMinuto"] = "100000",
+        ["Limites:RenovacoesPorMinuto"] = "100000",
     };
 
     public const string UrlPublica = "https://placas.exemplo.com.br";
