@@ -1,5 +1,4 @@
 using AvaliaSales.Api.Autenticacao;
-using AvaliaSales.Application.Equipe;
 using AvaliaSales.Application.Financeiro;
 using AvaliaSales.Application.Pagamentos;
 using AvaliaSales.Application.Pedidos;
@@ -26,8 +25,12 @@ namespace AvaliaSales.Api;
 /// </summary>
 internal static class Demonstracao
 {
-    public const string Senha = "demonstracao-123";
-    public const string Operadora = "operadora@avalia.dev";
+    /// <summary>
+    /// Curta de propósito, para digitar na demonstração: a regra de 10 caracteres
+    /// vale para conta de verdade, e a demonstração grava o hash sem passar por ela.
+    /// </summary>
+    public const string Senha = "demo-123";
+    public const string Operadora = "operador@avalia.dev";
 
     public static async Task<int> Semear(IServiceProvider servicos, IHostEnvironment ambiente)
     {
@@ -41,7 +44,6 @@ internal static class Demonstracao
         using (var escopo = servicos.CreateScope())
         {
             var banco = escopo.ServiceProvider.GetRequiredService<BancoDeDados>();
-            var contas = escopo.ServiceProvider.GetRequiredService<IContas>();
             if (await banco.Users.AnyAsync(u => u.Email == Operadora, ct))
             {
                 await Complementar(servicos, ct);
@@ -49,7 +51,7 @@ internal static class Demonstracao
                 return 0;
             }
 
-            await contas.Criar("Operação Avalia", Operadora, Senha, Papel.Operadora, null, ct, emailConfirmado: true);
+            await Login(escopo.ServiceProvider, "Operação Avalia", Operadora, Papel.Operadora, null);
             banco.Pacotes.AddRange(new Pacote(10, 15_000), new Pacote(20, 28_000), new Pacote(50, 65_000), new Pacote(100, 120_000));
             banco.Cupons.Add(new Cupom("BEMVINDO10", 1_000, null, DateTimeOffset.UtcNow.AddMonths(3), 50));
             await banco.SaveChangesAsync(ct);
@@ -60,16 +62,16 @@ internal static class Demonstracao
             await lotes.Gerar(20, ct);
         }
 
-        var a = await Revenda(servicos, "Revenda Demonstração A", "52601815000120", "dono@revenda-a.dev", "rp_simuladoRevendaA", ct);
-        var b = await Revenda(servicos, "Revenda Demonstração B", "90830166000128", "dono@revenda-b.dev", "rp_simuladoRevendaB", ct);
+        var a = await Revenda(servicos, "Revenda Demonstração A", "52601815000120", "cliente@a.dev", "rp_simuladoRevendaA", ct);
+        var b = await Revenda(servicos, "Revenda Demonstração B", "90830166000128", "cliente@b.dev", "rp_simuladoRevendaB", ct);
         await PopularRevendaA(servicos, a, ct);
-        await PedidoAguardando(servicos, b, quantidade: 20, ct);
+        await PopularRevendaB(servicos, b, ct);
 
         Console.WriteLine($"""
             Demonstração semeada. Senha de todos: {Senha}
               operadora   {Operadora}
-              revenda A   dono@revenda-a.dev, bruna@revenda-a.dev, carlos@revenda-a.dev
-              revenda B   dono@revenda-b.dev
+              revenda A   cliente@a.dev (dono), vendedor@a.dev
+              revenda B   cliente@b.dev (dono), vendedor@b.dev
             Lote LT-0002 despachado para a revenda A e esperando ativação.
             Preços de pacote, contratos, recebedores e pagamentos são simulados.
             """);
@@ -125,7 +127,7 @@ internal static class Demonstracao
         revendedor.RegistrarContratoAssinado(DateTimeOffset.UtcNow.AddDays(-60));
         banco.Revendedores.Add(revendedor);
         await banco.SaveChangesAsync(ct);
-        await escopo.ServiceProvider.GetRequiredService<IContas>().Criar($"Dono {nome}", email, Senha, Papel.Dono, revendedor.Id, ct, emailConfirmado: true);
+        await Login(escopo.ServiceProvider, $"Dono {nome}", email, Papel.Dono, revendedor.Id);
         return revendedor.Id;
     }
 
@@ -134,14 +136,12 @@ internal static class Demonstracao
         using var escopo = servicos.CreateScope();
         escopo.ServiceProvider.GetRequiredService<AcessoDaRequisicao>().Assumir(revendedorId);
         var banco = escopo.ServiceProvider.GetRequiredService<BancoDeDados>();
-        var contas = escopo.ServiceProvider.GetRequiredService<IContas>();
         var agora = DateTimeOffset.UtcNow;
 
         var produtos = new[] { new Produto("Placa de avaliação Google", 14_990), new Produto("Placa NFC e QR", 19_990), new Produto("Placa cardápio", 12_990) };
         banco.Produtos.AddRange(produtos);
 
-        var bruna = await Vendedor(banco, contas, revendedorId, "Bruna Lima", "bruna@revenda-a.dev", 2_500, agora, ct);
-        var carlos = await Vendedor(banco, contas, revendedorId, "Carlos Souza", "carlos@revenda-a.dev", null, agora, ct);
+        var bruna = await Vendedor(escopo.ServiceProvider, banco, revendedorId, "Bruna Lima", "vendedor@a.dev", 2_500, agora);
         var dono = (await banco.Users.SingleAsync(u => u.RevendedorId == revendedorId && u.Papel == Papel.Dono, ct)).Id;
         await banco.SaveChangesAsync(ct);
 
@@ -174,8 +174,8 @@ internal static class Demonstracao
         {
             (0, clientes[0], produtos[0], bruna, 2_500, null, 40, true, LinkDeAvaliacao.De("ChIJsimuladoLugar0001xx")),
             (1, clientes[1], produtos[1], bruna, 2_500, 21_990, 30, true, LinkDeAvaliacao.De("ChIJsimuladoLugar0002xx")),
-            (2, clientes[2], produtos[2], carlos, 2_000, null, 21, true, "https://cardapio.exemplo.com.br/forno-a-lenha"),
-            (3, clientes[3], produtos[0], carlos, 2_000, null, 9, true, LinkDeAvaliacao.De("ChIJsimuladoLugar0004xx")),
+            (2, clientes[2], produtos[2], bruna, 2_500, null, 21, true, "https://cardapio.exemplo.com.br/forno-a-lenha"),
+            (3, clientes[3], produtos[0], bruna, 2_500, null, 9, true, LinkDeAvaliacao.De("ChIJsimuladoLugar0004xx")),
             (4, clientes[4], produtos[0], dono, 0, 16_990, 3, false, LinkDeAvaliacao.De("ChIJsimuladoLugar0005xx")),
             (5, clientes[5], produtos[1], bruna, 2_500, null, 1, false, LinkDeAvaliacao.De("ChIJsimuladoLugar0006xx")),
         };
@@ -207,7 +207,7 @@ internal static class Demonstracao
             banco.Cobrancas.Add(cobranca);
         }
 
-        // Cinco placas com a Bruna, para mostrar a consignação.
+        // Cinco placas com a vendedora, para mostrar a consignação.
         foreach (var placa in placas.Skip(6).Take(5))
         {
             placa.Consignar(bruna);
@@ -246,9 +246,9 @@ internal static class Demonstracao
         await banco.SaveChangesAsync(ct);
     }
 
-    private static async Task<Guid> Vendedor(BancoDeDados banco, IContas contas, Guid revendedorId, string nome, string email, int? comissao, DateTimeOffset agora, CancellationToken ct)
+    private static async Task<Guid> Vendedor(IServiceProvider servicos, BancoDeDados banco, Guid revendedorId, string nome, string email, int? comissao, DateTimeOffset agora)
     {
-        var id = await contas.Criar(nome, email, Senha, Papel.Vendedor, revendedorId, ct, emailConfirmado: true);
+        var id = await Login(servicos, nome, email, Papel.Vendedor, revendedorId);
         var vendedor = new Vendedor(id, nome, email, agora);
         vendedor.Alterar(nome, "11998760000", email, comissao);
         banco.Vendedores.Add(vendedor);
@@ -267,12 +267,62 @@ internal static class Demonstracao
         return lote.Rotulo;
     }
 
-    private static async Task PedidoAguardando(IServiceProvider servicos, Guid revendedorId, int quantidade, CancellationToken ct)
+    /// <summary>A revenda B com lote ativado, catálogo, o vendedor dela com placas consignadas e duas vendas, uma paga.</summary>
+    private static async Task PopularRevendaB(IServiceProvider servicos, Guid revendedorId, CancellationToken ct)
     {
         using var escopo = servicos.CreateScope();
         escopo.ServiceProvider.GetRequiredService<AcessoDaRequisicao>().Assumir(revendedorId);
         var banco = escopo.ServiceProvider.GetRequiredService<BancoDeDados>();
-        banco.Pedidos.Add(new PedidoDePlacas(await banco.Pacotes.SingleAsync(p => p.Quantidade == quantidade, ct), DateTimeOffset.UtcNow.AddDays(-1)));
+        var agora = DateTimeOffset.UtcNow;
+        var produto = new Produto("Placa de avaliação Google", 15_990);
+        banco.Produtos.Add(produto);
+        var vendedor = await Vendedor(escopo.ServiceProvider, banco, revendedorId, "Carlos Souza", "vendedor@b.dev", null, agora);
+        var lote = await Despachado(banco, await banco.Pacotes.SingleAsync(p => p.Quantidade == 20, ct), numeroDoLote: 3, revendedorId, agora.AddDays(-20), ct);
         await banco.SaveChangesAsync(ct);
+        await escopo.ServiceProvider.GetRequiredService<PedidosDePlacas>().Ativar(lote, ct);
+
+        var placas = await banco.Placas.OrderBy(p => p.Sequencia).ToListAsync(ct);
+        var cliente = new Cliente("Sorveteria Gelato", "Clara Mendes", "11987650007", "61186680000174", agora.AddDays(-5));
+        cliente.Completar(null, "contato7@cliente-simulado.dev", "ChIJsimuladoLugar0007xx");
+        banco.Clientes.Add(cliente);
+        foreach (var (placa, dias, paga) in new[] { (placas[0], 5, true), (placas[1], 1, false) })
+        {
+            var quando = agora.AddDays(-dias);
+            var venda = new Venda(placa.Id, cliente.Id, produto.Id, produto.PrecoCents, vendedor, null, placa.CustoCents, 2_000, MeioDePagamento.Pix, quando);
+            placa.Vender(venda.Id, LinkDeAvaliacao.De("ChIJsimuladoLugar0007xx"), quando);
+            banco.Vendas.Add(venda);
+            var cobranca = new Cobranca(OrigemDaCobranca.Venda, venda.Id, MeioDePagamento.Pix, venda.ValorCents, 199);
+            cobranca.RegistrarPedido("or_simulado_" + cobranca.Codigo, "00020101021226800014br.gov.bcb.pix-simulado", null, quando.AddMinutes(30));
+            if (paga)
+            {
+                cobranca.Atualizar(SituacaoDaCobranca.Paga, quando.AddMinutes(4));
+            }
+
+            banco.Cobrancas.Add(cobranca);
+        }
+
+        foreach (var placa in placas.Skip(2).Take(5))
+        {
+            placa.Consignar(vendedor);
+        }
+
+        await banco.SaveChangesAsync(ct);
+        var efeitos = escopo.ServiceProvider.GetRequiredService<EfeitosDaCobranca>();
+        foreach (var cobranca in await banco.Cobrancas.Where(c => c.Situacao == SituacaoDaCobranca.Paga).ToListAsync(ct))
+        {
+            await efeitos.Aplicar(cobranca, agora, ct);
+        }
+
+        await banco.SaveChangesAsync(ct);
+    }
+
+    /// <summary>Login da demonstração com o e-mail já confirmado e a senha curta, sem o validador de tamanho.</summary>
+    private static async Task<Guid> Login(IServiceProvider servicos, string nome, string email, Papel papel, Guid? revendedorId)
+    {
+        var usuarios = servicos.GetRequiredService<Microsoft.AspNetCore.Identity.UserManager<Infrastructure.Identidade.Usuario>>();
+        var usuario = new Infrastructure.Identidade.Usuario { RevendedorId = revendedorId, Papel = papel, Nome = nome, UserName = email, Email = email, EmailConfirmed = true };
+        usuario.PasswordHash = usuarios.PasswordHasher.HashPassword(usuario, Senha);
+        var criado = await usuarios.CreateAsync(usuario);
+        return criado.Succeeded ? usuario.Id : throw new InvalidOperationException(string.Join(" ", criado.Errors.Select(e => e.Description)));
     }
 }

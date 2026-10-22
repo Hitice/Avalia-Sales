@@ -22,6 +22,7 @@ public sealed class EmissorDeToken(IOptions<OpcoesJwt> opcoes, TimeProvider relo
             [Reivindicacoes.Usuario] = usuario.Id.ToString(),
             [Reivindicacoes.Email] = usuario.Email ?? string.Empty,
             [Reivindicacoes.Papel] = usuario.Papel.ToString(),
+            [Reivindicacoes.EmailConfirmado] = usuario.EmailConfirmed ? "true" : "false",
         };
         if (usuario.RevendedorId is { } revendedorId)
         {

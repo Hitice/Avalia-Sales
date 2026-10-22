@@ -47,9 +47,9 @@ export function TelaDeCadastro() {
   )
 
   return (
-    <main className="flex min-h-svh flex-col items-center justify-center gap-6 bg-noite p-4">
+    <main className="flex min-h-svh flex-col items-center justify-center gap-6 p-4">
       <MarcaAvalia />
-      <Card className="relative w-full max-w-md border-0">
+      <Card className="relative w-full max-w-md">
         <span aria-hidden className="traco absolute inset-x-0 top-0 h-1" />
         <CardHeader>
           <CardTitle className="text-xl"><h1>Cadastrar revenda</h1></CardTitle>
@@ -68,8 +68,8 @@ export function TelaDeCadastro() {
           </form>
         </CardContent>
       </Card>
-      <p className="text-sm text-white/75">
-        Já tem cadastro? <Link to="/entrar" className="font-medium text-white underline underline-offset-4">Entrar</Link>
+      <p className="text-sm text-muted-foreground">
+        Já tem cadastro? <Link to="/entrar" className="font-medium text-foreground underline underline-offset-4">Entrar</Link>
       </p>
     </main>
   )

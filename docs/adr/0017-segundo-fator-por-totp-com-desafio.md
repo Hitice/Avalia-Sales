@@ -31,5 +31,8 @@ auditoria.
 - A chave do app e os códigos de recuperação ficam em `usuarios_tokens`,
   protegidos pelo acesso ao banco; criptografar com Data Protection pede chaves
   persistidas fora do contêiner, e fica para quando houver.
-- E-mail por código ficou de fora: depende do Resend, e quem tem a senha
-  costuma ter o e-mail. WebAuthn fica como próximo passo.
+- Em 22/10/2026 entrou o código por e-mail como alternativa ao app, a pedido,
+  para quem não quer instalar app: provedor de e-mail do Identity (TOTP sobre a
+  marca de segurança), só com e-mail confirmado, código enviado junto com o
+  desafio e reenvio na mesma tela. Protege menos que o app, e a tela diz isso.
+  WebAuthn fica como próximo passo.

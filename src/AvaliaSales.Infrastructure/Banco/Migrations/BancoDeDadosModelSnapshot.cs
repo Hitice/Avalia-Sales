@@ -1494,6 +1494,48 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                     b.ToTable("vendas", (string)null);
                 });
 
+            modelBuilder.Entity("AvaliaSales.Infrastructure.Identidade.AparelhoConhecido", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Descricao")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("descricao");
+
+                    b.Property<string>("HashDoAparelho")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character(64)")
+                        .HasColumnName("hash_do_aparelho")
+                        .IsFixedLength();
+
+                    b.Property<DateTimeOffset>("PrimeiroAcessoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("primeiro_acesso_em");
+
+                    b.Property<DateTimeOffset>("UltimoAcessoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("ultimo_acesso_em");
+
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("usuario_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_aparelhos_conhecidos");
+
+                    b.HasIndex("UsuarioId", "HashDoAparelho")
+                        .IsUnique()
+                        .HasDatabaseName("ix_aparelhos_conhecidos_usuario_id_hash_do_aparelho");
+
+                    b.ToTable("aparelhos_conhecidos", (string)null);
+                });
+
             modelBuilder.Entity("AvaliaSales.Infrastructure.Identidade.LinkDeSenha", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1671,6 +1713,10 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("text")
                         .HasColumnName("security_stamp");
+
+                    b.Property<bool>("SegundoFatorPorEmail")
+                        .HasColumnType("boolean")
+                        .HasColumnName("segundo_fator_por_email");
 
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("boolean")
@@ -2245,6 +2291,16 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_vendas_usuarios_vendedor_id");
+                });
+
+            modelBuilder.Entity("AvaliaSales.Infrastructure.Identidade.AparelhoConhecido", b =>
+                {
+                    b.HasOne("AvaliaSales.Infrastructure.Identidade.Usuario", null)
+                        .WithMany()
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_aparelhos_conhecidos_usuarios_usuario_id");
                 });
 
             modelBuilder.Entity("AvaliaSales.Infrastructure.Identidade.LinkDeSenha", b =>

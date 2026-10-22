@@ -223,7 +223,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SegundoFatorExigido"
+                  "$ref": "#/components/schemas/DesafioDaEntrada"
                 }
               }
             }
@@ -256,6 +256,28 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/auth/entrar/codigo/reenvio": {
+      "post": {
+        "tags": [
+          "AvaliaSales.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PedidoDeReenvio"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
           }
         }
       }
@@ -313,7 +335,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SegundoFatorExigido"
+                  "$ref": "#/components/schemas/DesafioDaEntrada"
                 }
               }
             }
@@ -404,6 +426,50 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ChaveDoAutenticador"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/conta/segundo-fator/email/codigo": {
+      "post": {
+        "tags": [
+          "AvaliaSales.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/conta/segundo-fator/email": {
+      "post": {
+        "tags": [
+          "AvaliaSales.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CodigoDoAutenticador"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
                 }
               }
             }
@@ -3093,6 +3159,29 @@
           }
         }
       },
+      "DesafioDaEntrada": {
+        "required": [
+          "desafio",
+          "meio",
+          "destino"
+        ],
+        "type": "object",
+        "properties": {
+          "desafio": {
+            "type": "string"
+          },
+          "meio": {
+            "$ref": "#/components/schemas/MeioDoSegundoFator"
+          },
+          "destino": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "O desafio da entrada e para onde foi o c\u00F3digo, quando foi por e-mail (mascarado)."
+      },
       "DespacharPedido": {
         "required": [
           "lote"
@@ -3695,6 +3784,12 @@
           "OutroPix"
         ]
       },
+      "MeioDoSegundoFator": {
+        "enum": [
+          "App",
+          "Email"
+        ]
+      },
       "MensagemDto": {
         "required": [
           "id",
@@ -4093,6 +4188,20 @@
         "type": "object",
         "properties": {
           "email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "PedidoDeReenvio": {
+        "required": [
+          "desafio"
+        ],
+        "type": "object",
+        "properties": {
+          "desafio": {
             "type": [
               "null",
               "string"
@@ -4638,18 +4747,6 @@
           }
         }
       },
-      "SegundoFatorExigido": {
-        "required": [
-          "desafio"
-        ],
-        "type": "object",
-        "properties": {
-          "desafio": {
-            "type": "string"
-          }
-        },
-        "description": "Senha certa de quem tem segundo fator: falta o c\u00F3digo, com este desafio (5 minutos)."
-      },
       "SituacaoDaCobranca": {
         "enum": [
           "Pendente",
@@ -4693,11 +4790,26 @@
       },
       "SituacaoDoSegundoFator": {
         "required": [
-          "ligado"
+          "ligado",
+          "meio",
+          "emailConfirmado"
         ],
         "type": "object",
         "properties": {
           "ligado": {
+            "type": "boolean"
+          },
+          "meio": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/MeioDoSegundoFator"
+              }
+            ]
+          },
+          "emailConfirmado": {
             "type": "boolean"
           }
         }

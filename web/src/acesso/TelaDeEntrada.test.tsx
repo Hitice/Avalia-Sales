@@ -42,7 +42,7 @@ describe('TelaDeEntrada', () => {
     vi.stubGlobal('fetch', respostaDaApi(401, {}))
     const usuario = abrir()
 
-    await usuario.type(screen.getByLabelText('E-mail'), 'dono@revenda-a.dev')
+    await usuario.type(screen.getByLabelText('E-mail'), 'cliente@a.dev')
     await usuario.type(screen.getByLabelText('Senha'), 'senha-errada-123')
     await usuario.click(screen.getByRole('button', { name: 'Entrar' }))
 
@@ -54,14 +54,14 @@ describe('TelaDeEntrada', () => {
     vi.stubGlobal('fetch', fetch)
     const usuario = abrir()
 
-    await usuario.type(screen.getByLabelText('E-mail'), 'dono@revenda-a.dev')
-    await usuario.type(screen.getByLabelText('Senha'), 'demonstracao-123')
+    await usuario.type(screen.getByLabelText('E-mail'), 'cliente@a.dev')
+    await usuario.type(screen.getByLabelText('Senha'), 'demo-1234567')
     await usuario.click(screen.getByRole('button', { name: 'Entrar' }))
 
     expect(await screen.findByText('Painel aberto')).toBeInTheDocument()
     expect(useSessao.getState().token).toBe('token-de-teste')
     const [caminho, opcoes] = fetch.mock.calls[0] as [string, RequestInit]
     expect(caminho).toBe('/api/auth/entrar')
-    expect(JSON.parse(opcoes.body as string)).toEqual({ email: 'dono@revenda-a.dev', senha: 'demonstracao-123' })
+    expect(JSON.parse(opcoes.body as string)).toEqual({ email: 'cliente@a.dev', senha: 'demo-1234567' })
   })
 })

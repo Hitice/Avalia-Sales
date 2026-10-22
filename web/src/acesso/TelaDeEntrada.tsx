@@ -13,6 +13,7 @@ import { PassoDoCodigo } from './PassoDoCodigo'
 import { type SegundoFatorExigido, exigeCodigo } from './segundoFator'
 import { type TokenEmitido, inicioDoPapel, sessaoValida, useSessao } from './sessao'
 import { MarcaAvalia } from '@/componentes/MarcaAvalia'
+import { Rodape } from '@/componentes/Rodape'
 
 const esquema = z.object({
   email: z.email('Digite um e-mail válido.'),
@@ -26,7 +27,7 @@ export function TelaDeEntrada() {
   const navegar = useNavigate()
   const formulario = useForm<Entrada>({ resolver: zodResolver(esquema), defaultValues: { email: '', senha: '' } })
   const { errors, isSubmitting } = formulario.formState
-  const [desafio, setDesafio] = useState<string | null>(null)
+  const [desafio, setDesafio] = useState<SegundoFatorExigido | null>(null)
 
   if (sessaoValida(sessao)) {
     return <Navigate to={inicioDoPapel(sessao.perfil?.papel)} replace />
@@ -40,7 +41,7 @@ export function TelaDeEntrada() {
   async function entrar(dados: Entrada) {
     try {
       const resposta = await chamarApi<TokenEmitido | SegundoFatorExigido>('/auth/entrar', { method: 'POST', body: JSON.stringify(dados) })
-      if (exigeCodigo(resposta)) setDesafio(resposta.desafio)
+      if (exigeCodigo(resposta)) setDesafio(resposta)
       else concluir(resposta)
     } catch (erro) {
       const mensagem = erro instanceof ErroDaApi && erro.status === 401
@@ -51,9 +52,9 @@ export function TelaDeEntrada() {
   }
 
   return (
-    <main className="flex min-h-svh flex-col items-center justify-center gap-6 bg-noite p-4">
+    <main className="flex min-h-svh flex-col items-center justify-center gap-6 p-4">
       <MarcaAvalia />
-      <Card className="relative w-full max-w-sm border-0">
+      <Card className="relative w-full max-w-sm">
         <span aria-hidden className="traco absolute inset-x-0 top-0 h-1" />
         <CardHeader>
           <CardTitle className="text-xl"><h1>Entrar</h1></CardTitle>
@@ -86,9 +87,10 @@ export function TelaDeEntrada() {
           )}
         </CardContent>
       </Card>
-      <p className="text-sm text-white/75">
-        Quer revender? <Link to="/cadastro" className="font-medium text-white underline underline-offset-4">Cadastrar revenda</Link>
+      <p className="text-sm text-muted-foreground">
+        Novo por aqui? <Link to="/cadastro" className="font-medium text-foreground underline underline-offset-4">Seja um revendedor</Link>
       </p>
+      <Rodape />
     </main>
   )
 }

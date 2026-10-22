@@ -357,7 +357,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["SegundoFatorExigido"];
+                        "application/json": components["schemas"]["DesafioDaEntrada"];
                     };
                 };
             };
@@ -398,6 +398,43 @@ export interface paths {
                     content: {
                         "application/json": components["schemas"]["TokenEmitido"];
                     };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/entrar/codigo/reenvio": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PedidoDeReenvio"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
                 };
             };
         };
@@ -481,7 +518,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["SegundoFatorExigido"];
+                        "application/json": components["schemas"]["DesafioDaEntrada"];
                     };
                 };
             };
@@ -612,6 +649,78 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["ChaveDoAutenticador"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/conta/segundo-fator/email/codigo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/conta/segundo-fator/email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CodigoDoAutenticador"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": string[];
                     };
                 };
             };
@@ -3626,6 +3735,12 @@ export interface components {
             /** Format: int32 */
             renovacaoBps: number;
         };
+        /** @description O desafio da entrada e para onde foi o código, quando foi por e-mail (mascarado). */
+        DesafioDaEntrada: {
+            desafio: string;
+            meio: components["schemas"]["MeioDoSegundoFator"];
+            destino: null | string;
+        };
         DespacharPedido: {
             /** Format: int32 */
             lote: number;
@@ -3793,6 +3908,8 @@ export interface components {
         };
         /** @enum {unknown} */
         MeioDePagamento: "Pix" | "Cartao" | "Link" | "Dinheiro" | "OutroPix";
+        /** @enum {unknown} */
+        MeioDoSegundoFator: "App" | "Email";
         MensagemDto: {
             /** Format: uuid */
             id: string;
@@ -3903,6 +4020,9 @@ export interface components {
         };
         PedidoDeLink: {
             email: null | string;
+        };
+        PedidoDeReenvio: {
+            desafio: null | string;
         };
         PedidoDto: {
             /** Format: uuid */
@@ -4056,10 +4176,6 @@ export interface components {
             /** Format: date-time */
             ultimoRepasse: null | string;
         };
-        /** @description Senha certa de quem tem segundo fator: falta o código, com este desafio (5 minutos). */
-        SegundoFatorExigido: {
-            desafio: string;
-        };
         /** @enum {unknown} */
         SituacaoDaCobranca: "Pendente" | "Paga" | "Cancelada" | "Falhou" | "Estornada" | null;
         /** @enum {unknown} */
@@ -4072,6 +4188,8 @@ export interface components {
         SituacaoDoPedido: "AguardandoPagamento" | "Pago" | "Despachado" | "Ativado" | "Cancelado";
         SituacaoDoSegundoFator: {
             ligado: boolean;
+            meio: null | components["schemas"]["MeioDoSegundoFator"];
+            emailConfirmado: boolean;
         };
         /** @enum {unknown} */
         TipoDeDestino: "Google" | "Link";

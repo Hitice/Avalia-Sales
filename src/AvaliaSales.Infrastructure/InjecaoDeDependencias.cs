@@ -61,9 +61,12 @@ public static class InjecaoDeDependencias
             })
             .AddEntityFrameworkStores<BancoDeDados>()
             // O do app autenticador (TOTP) não usa Data Protection: a chave fica em usuarios_tokens.
-            .AddTokenProvider<AuthenticatorTokenProvider<Usuario>>(TokenOptions.DefaultAuthenticatorProvider);
+            .AddTokenProvider<AuthenticatorTokenProvider<Usuario>>(TokenOptions.DefaultAuthenticatorProvider)
+            // O do código por e-mail também não: TOTP sobre a marca de segurança, que a troca de senha renova.
+            .AddTokenProvider<EmailTokenProvider<Usuario>>(TokenOptions.DefaultEmailProvider);
         servicos.AddScoped<IContas, Contas>();
         servicos.AddScoped<GestorDeSegundoFator>();
+        servicos.AddScoped<GestorDeAparelhos>();
         servicos.AddScoped<GestorDeSessoes>();
         servicos.AddScoped<GestorDeSenhas>();
         return servicos;

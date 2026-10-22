@@ -7,4 +7,7 @@ public static class Reivindicacoes
     public const string Revendedor = "revendedor_id";
     public const string Email = "email";
     public const string Papel = "papel";
+
+    /// <summary>"true" ou "false": o dono sem e-mail confirmado só abre as rotas de /conta.</summary>
+    public const string EmailConfirmado = "email_confirmado";
 }

@@ -37,6 +37,27 @@ public sealed partial class ConfirmacaoDeEmailTest(ApiDeTeste api)
     }
 
     [Fact]
+    public async Task Dono_sem_email_confirmado_so_abre_a_conta_ate_confirmar()
+    {
+        var email = $"dono-{Guid.NewGuid():N}@teste.com.br";
+        var cliente = api.Fabrica.CreateClient();
+        var entrou = await cliente.Postar("/cadastro", new { empresa = "Revenda Trancada", cnpj = Cnpj(), nome = "Bia", email, senha = ApiDeTeste.Senha });
+        cliente.DefaultRequestHeaders.Authorization = new("Bearer", entrou.GetProperty("token").GetString());
+
+        Assert.Equal(HttpStatusCode.Forbidden, (await cliente.GetAsync("/revenda", Ct)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await cliente.GetAsync("/vendas", Ct)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await cliente.GetAsync("/conta/segundo-fator", Ct)).StatusCode);
+
+        await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
+        var token = Token(await banco.Texto($"select texto from emails where para = '{email}' order by criado_em desc limit 1"));
+        await cliente.Postar("/auth/email", new { token }, HttpStatusCode.NoContent);
+        var renovado = await cliente.Postar("/auth/renovar", new { });
+        cliente.DefaultRequestHeaders.Authorization = new("Bearer", renovado.GetProperty("token").GetString());
+
+        Assert.Equal(HttpStatusCode.OK, (await cliente.GetAsync("/revenda", Ct)).StatusCode);
+    }
+
+    [Fact]
     public async Task Reenvio_derruba_o_link_anterior_e_e_recusado_depois_de_confirmado()
     {
         var email = $"dono-{Guid.NewGuid():N}@teste.com.br";

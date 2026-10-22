@@ -19,14 +19,14 @@ import { MarcaAvalia } from '@/componentes/MarcaAvalia'
 
 function Moldura({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return (
-    <main className="flex min-h-svh flex-col items-center justify-center gap-6 bg-noite p-4">
+    <main className="flex min-h-svh flex-col items-center justify-center gap-6 p-4">
       <MarcaAvalia />
-      <Card className="relative w-full max-w-sm border-0">
+      <Card className="relative w-full max-w-sm">
         <span aria-hidden className="traco absolute inset-x-0 top-0 h-1" />
         <CardHeader><CardTitle className="text-xl"><h1>{titulo}</h1></CardTitle></CardHeader>
         <CardContent>{children}</CardContent>
       </Card>
-      <Link to="/entrar" className="text-sm text-white/75 underline underline-offset-4">Voltar à entrada</Link>
+      <Link to="/entrar" className="text-sm text-muted-foreground underline underline-offset-4">Voltar à entrada</Link>
     </main>
   )
 }
@@ -45,7 +45,7 @@ export function TelaDeSenha() {
   const token = hash.replace(/^#/, '')
   const formulario = useForm<NovaSenha>({ resolver: zodResolver(esquemaDaSenha), mode: 'onChange', defaultValues: { senha: '', repetida: '' } })
   const { errors, isSubmitting } = formulario.formState
-  const [desafio, setDesafio] = useState<string | null>(null)
+  const [desafio, setDesafio] = useState<SegundoFatorExigido | null>(null)
 
   function concluir(resposta: TokenEmitido) {
     sessao.entrar(resposta)
@@ -56,7 +56,7 @@ export function TelaDeSenha() {
     try {
       const resposta = await chamarApi<TokenEmitido | SegundoFatorExigido>('/auth/senha', enviarJson('POST', { token, senha }))
       // Com segundo fator, a senha nova grava, mas a entrada ainda pede o código.
-      if (exigeCodigo(resposta)) setDesafio(resposta.desafio)
+      if (exigeCodigo(resposta)) setDesafio(resposta)
       else concluir(resposta)
     } catch (e) {
       formulario.setError('root', { message: mensagem(e) })

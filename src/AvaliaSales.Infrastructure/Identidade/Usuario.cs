@@ -18,4 +18,7 @@ public sealed class Usuario : IdentityUser<Guid>
 
     /// <summary>Desativado não entra; o histórico de vendas continua com o nome dele.</summary>
     public bool Ativo { get; set; } = true;
+
+    /// <summary>Segundo fator pelo código no e-mail, e não pelo app autenticador.</summary>
+    public bool SegundoFatorPorEmail { get; set; }
 }
