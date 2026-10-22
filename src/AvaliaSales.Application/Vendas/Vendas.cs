@@ -209,13 +209,26 @@ public sealed class Vendas(
         auditoria.Registrar(acao, $"Venda da placa {codigo}", codigo, null, depois);
     }
 
-    /// <summary>A renovação em aberto aponta para a placa: paga depois, estenderia uma placa fora da venda.</summary>
+    /// <summary>
+    /// A renovação em aberto aponta para a placa: paga depois, estenderia uma
+    /// placa fora da venda. Só trava com Pix vivo; sem ele, ninguém mais paga, e
+    /// a renovação esquecida é cancelada aqui, em vez de travar a venda para sempre.
+    /// </summary>
     private async Task ExigirSemRenovacaoAberta(Guid placaId, CancellationToken ct)
     {
-        if (await banco.Renovacoes.AnyAsync(r => r.PlacaId == placaId && r.Situacao == SituacaoDaRenovacao.Aberta, ct))
+        var renovacao = await banco.Renovacoes.SingleOrDefaultAsync(r => r.PlacaId == placaId && r.Situacao == SituacaoDaRenovacao.Aberta, ct);
+        if (renovacao is null)
+        {
+            return;
+        }
+
+        if (await banco.Cobrancas.AnyAsync(c => c.Origem == OrigemDaCobranca.Renovacao && c.OrigemId == renovacao.Id
+                && (c.Situacao == SituacaoDaCobranca.Pendente || c.Situacao == SituacaoDaCobranca.Paga), ct))
         {
             throw new RegraDeNegocioException("Placa com renovação em aberto.");
         }
+
+        renovacao.Cancelar();
     }
 
     private async Task ExigirSemCobrancaViva(Venda venda, string recusa, CancellationToken ct)
