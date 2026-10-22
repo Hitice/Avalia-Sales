@@ -203,7 +203,8 @@ aponta para a venda.
 | `cobrancas` (colunas novas) | Link no Pagar.me e URL do checkout | - |
 | `vendas` (coluna nova) | Repasse que pagou a comissão | - |
 | `revendedores` (coluna nova) | Preço da renovação (6000 = 60%) | - |
-| `mensagens` | Chat: autor, se é da operadora, texto (até 2.000), enviada em, lida em | RLS com a operadora |
+| `mensagens` | Mensagem de chamado: chamado, autor, se é da operadora, texto (até 2.000), enviada em, lida em | RLS com a operadora |
+| `chamados` | Número (identidade do banco), revendedor, aberto por, assunto, situação (AguardandoAvalia, AguardandoRevenda, Resolvido), aberto em, prazo em, primeira resposta em, resolvido em, última mensagem em | RLS com a operadora |
 | `logos` | Logo do revendedor (PNG ou WebP, até 512 KB) | RLS; tabela própria para o revendedor, lido em toda cobrança, não carregar a imagem |
 | `revendedores` (colunas novas) | Nome exibido, cor primária, cor de destaque, marca alterada em | - |
 | `revendedores` (coluna nova) | Celular de contato (`celular`, só dígitos com DDD), obrigatório no cadastro pela tela e trocado pelo dono em `PUT /revenda/celular` | - |
@@ -434,11 +435,20 @@ Conferido na referência oficial em 21/10/2026.
 - A conferir com a chave real - o desenho dos marcadores; sem ela, só a lista
   foi vista rodando.
 
-### Chat (no código)
+### Chamados (no código)
 
-- `mensagens`, com RLS e atendida pela operadora (`IAtendidoPelaOperadora`).
-  O dono lê e escreve em `/chat` (o revendedor vem do token); a operadora em
-  `/operadora/chat/{revendedor}`.
+- `chamados` e `mensagens`, com RLS e atendidas pela operadora
+  (`IAtendidoPelaOperadora`). O dono usa `/chamados` (lista e abre) e a
+  operadora `/operadora/chamados` (a fila); os dois leem em `{id}`, respondem em
+  `{id}/mensagens` e resolvem em `{id}/resolver`.
+- O prazo sai de `HorarioDeAtendimento.PrazoDaResposta` no Domain: 24 horas só
+  em dia útil (segunda a sexta, sem feriado nacional fixo nem Sexta-feira
+  Santa, pela Páscoa de Meeus), começando na abertura das 8h quando chega fora
+  do expediente, no fuso America/Sao_Paulo. O chamado guarda o prazo em
+  `prazo_em`; atrasado é `agora > prazo_em`, calculado na leitura.
+- A migration Chamados dá às mensagens que já existiam um chamado resolvido
+  por revendedor; para o dono do banco passar pelo RLS forçado, liga a
+  variável da operadora só dentro da transação.
 - A operadora grava em nome do revendedor da conversa, e só nas tabelas que
   atende: o carimbo do EF aceita o revendedor informado só quando quem grava é
   a operadora e a tabela é atendida por ela; para todos os outros, o revendedor
@@ -623,6 +633,7 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
 
 | Data | Mudança |
 | --- | --- |
+| 22/10/2026 | Versão 1.3.0. Tabela `chamados` e `mensagens.chamado_id` (migration Chamados), rotas `/chamados` e `/operadora/chamados` no lugar de `/chat`, prazo de 24 horas úteis em `HorarioDeAtendimento`, e-mail de chamado novo para a operadora e de resposta para o dono. |
 | 22/10/2026 | Versão 1.2.0. Front - menu lateral em grupos com ícones, fundo do item ativo do tom 95 da primária (`variaveisDaMarca` em `marca.ts`, a mesma conta na prévia da Marca), seleção de texto e foco sólido na cor da marca, foco inicial do modal no próprio modal, barra de carregando no topo e blocos de carregando (`Carregando`, `CarregandoTela`), recorte do logo com `react-easy-crop` 6.2.4, Links em abas. Contrato embutido na versão 1 aprovada. |
 | 22/10/2026 | E-mail com logo da plataforma em PNG, faixa no traço da marca, botão com o rótulo da linha `Rótulo: endereço` e código em destaque; textos de convite, senha, confirmação, aparelho novo e pedidos no formato novo. |
 | 22/10/2026 | Versão 1.1.0. A versão do app mora em `web/package.json` (semver: correção sobe o último número, funcionalidade o do meio) e aparece no rodapé. |

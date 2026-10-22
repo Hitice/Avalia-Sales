@@ -238,10 +238,19 @@ Todas no mesmo app, liberadas pelo papel do usuário.
 
 ### Atendimento
 
-- O dono fala com a Avalia pelo chat da plataforma (menu Suporte, tela "Contate o suporte"); a
-  operadora atende todas as conversas, com as não lidas primeiro. Mensagem não
-  é editada nem apagada. Abrir a conversa marca como lidas as mensagens do
-  outro lado, e a mensagem nova chega ao vivo.
+- O dono fala com a Avalia em chamados (menu Suporte, tela "Contate o suporte"):
+  abre com assunto e mensagem, acompanha a resposta e marca como resolvido.
+  Mensagem nova num chamado resolvido reabre o chamado. Mensagem não é editada
+  nem apagada. Abrir o chamado marca como lidas as mensagens do outro lado, e a
+  mensagem nova chega ao vivo.
+- Atendimento de segunda a sexta, das 8h às 18h de Brasília, sem feriado
+  nacional (os fixos e a Sexta-feira Santa). Prazo de resposta - 24 horas
+  contadas só em dia útil, a partir de cada mensagem da revenda que espera a
+  Avalia; fora do expediente, conta da abertura seguinte. Exemplo - sexta às
+  19h vence terça às 8h. A resposta da Avalia fecha o prazo.
+- A operadora atende todos numa fila: o que espera a Avalia primeiro, pelo
+  prazo, com o atrasado em vermelho. Chamado novo avisa a operadora por e-mail;
+  resposta da Avalia avisa o dono por e-mail.
 
 ### Avisos ao vivo
 
@@ -424,6 +433,7 @@ O que está pronto no código e só fecha com a conta de verdade:
 
 | Data | Mudança |
 | --- | --- |
+| 22/10/2026 | Suporte em chamados com prazo de 24 horas úteis (segunda a sexta, 8h às 18h, sem feriado nacional), fila da operadora pelo prazo e aviso por e-mail. As conversas do chat anterior viram um chamado resolvido por revenda. |
 | 22/10/2026 | Contrato de revenda aprovado (versão 1), sem o aviso de minuta. Menu lateral em grupos com ícones; "Pedidos de placas" vira Pedidos e "Falar com a Avalia" vira Suporte. Links em abas Encurtador e NFC, com qualquer endereço colado. Logo com recorte. Avisos do contrato na tela inicial reescritos. |
 | 22/10/2026 | Celular da revenda obrigatório no cadastro; o dono troca na tela inicial e a operadora vê na lista de revendedores. |
 | 22/10/2026 | Confirmação do e-mail por código digitado na tela, além do link, com reenvio depois de 1 minuto. E-mail recusado pelo provedor tenta de novo por uns 3 dias. Campos com máscara (só números em CNPJ, CPF, telefone e código), contorno no traço da marca e verde quando o dado confere. Logo Avalia Sales completo nas telas de entrada e só o gauge dentro do app. |

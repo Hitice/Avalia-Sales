@@ -1,48 +1,31 @@
-import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
-import { chamarApi } from '@/api/cliente'
-import { formatarDataHora } from '@/api/rotulos'
 import { Cabecalho, EstadoDaConsulta } from '@/componentes/Tela'
-import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
-import { cn } from '@/lib/utils'
-import { Conversa } from './Conversa'
+import { ConversaDoChamado, HORARIO_DE_ATENDIMENTO, ListaDeChamados, useChamados } from './Chamados'
 
-type ConversaResumo = { revendedorId: string; revendedor: string; ultimaMensagem: string; ultimaEm: string; naoLidas: number }
-
-/** A operadora atende os revendedores: as conversas com mensagem não lida vêm primeiro. */
+/** A fila da operadora: o que espera a Avalia vem primeiro, pelo prazo, com o atrasado em vermelho. */
 export function TelaDeAtendimento() {
-  const conversas = useQuery({ queryKey: ['chat', 'conversas'], queryFn: () => chamarApi<ConversaResumo[]>('/operadora/chat') })
-  const [aberta, setAberta] = useState<ConversaResumo | null>(null)
+  const chamados = useChamados('/operadora/chamados')
+  const [aberto, setAberto] = useState<string | null>(null)
+  const esperando = chamados.data?.filter((c) => c.situacao === 'AguardandoAvalia').length ?? 0
+  const atrasados = chamados.data?.filter((c) => c.atrasado).length ?? 0
 
   return (
     <>
       <Cabecalho titulo="Atendimento" />
-      <div className="grid gap-4 lg:grid-cols-[20rem_1fr]">
+      <p className="-mt-2 mb-4 text-sm text-muted-foreground">
+        {esperando} esperando resposta{atrasados > 0 && <span className="font-medium text-destructive">, {atrasados} atrasado{atrasados > 1 ? 's' : ''}</span>}. {HORARIO_DE_ATENDIMENTO}
+      </p>
+      <div className="grid gap-4 lg:grid-cols-[22rem_minmax(0,1fr)]">
         <Card className="self-start">
           <CardContent className="grid gap-1 p-2">
-            <EstadoDaConsulta carregando={conversas.isPending} erro={conversas.error} vazio={conversas.data?.length === 0} textoVazio="Nenhuma conversa ainda." />
-            {conversas.data?.map((c) => (
-              <button
-                key={c.revendedorId}
-                type="button"
-                aria-pressed={aberta?.revendedorId === c.revendedorId}
-                onClick={() => setAberta(c)}
-                className={cn('grid min-h-11 gap-0.5 rounded-md p-2 text-left text-sm', aberta?.revendedorId === c.revendedorId ? 'bg-accent' : 'hover:bg-muted')}
-              >
-                <span className="flex items-center justify-between gap-2 font-medium">
-                  {c.revendedor}
-                  {c.naoLidas > 0 && <Badge>{c.naoLidas}</Badge>}
-                </span>
-                <span className="truncate text-muted-foreground">{c.ultimaMensagem}</span>
-                <span className="text-xs text-muted-foreground">{formatarDataHora(c.ultimaEm)}</span>
-              </button>
-            ))}
+            <EstadoDaConsulta carregando={chamados.isPending} erro={chamados.error} vazio={chamados.data?.length === 0} textoVazio="Nenhum chamado." />
+            {chamados.data && <ListaDeChamados chamados={chamados.data} aberto={aberto} aoAbrir={setAberto} operadora />}
           </CardContent>
         </Card>
-        {aberta
-          ? <Conversa key={aberta.revendedorId} caminho={`/operadora/chat/${aberta.revendedorId}`} souOperadora />
-          : <p className="text-sm text-muted-foreground">Escolha uma conversa.</p>}
+        {aberto
+          ? <ConversaDoChamado key={aberto} base="/operadora/chamados" id={aberto} operadora />
+          : <p className="text-sm text-muted-foreground">Escolha um chamado.</p>}
       </div>
     </>
   )

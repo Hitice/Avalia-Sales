@@ -43,6 +43,7 @@ public interface IBancoDeDados
     DbSet<EnvioAoErp> EnviosAoErp { get; }
     DbSet<LogoDoRevendedor> Logos { get; }
     DbSet<Mensagem> Mensagens { get; }
+    DbSet<Chamado> Chamados { get; }
     DbSet<LinkCurto> Links { get; }
     DbSet<CodigoDeLink> CodigosDeLink { get; }
     DbSet<RegistroDeAuditoria> Auditoria { get; }

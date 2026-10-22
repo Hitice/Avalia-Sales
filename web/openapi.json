@@ -2551,10 +2551,10 @@
         }
       }
     },
-    "/chat": {
+    "/chamados": {
       "get": {
         "tags": [
-          "Chat"
+          "Chamados"
         ],
         "responses": {
           "200": {
@@ -2564,7 +2564,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/MensagemDto"
+                    "$ref": "#/components/schemas/ChamadoDto"
                   }
                 }
               }
@@ -2574,7 +2574,70 @@
       },
       "post": {
         "tags": [
-          "Chat"
+          "Chamados"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NovoChamado"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/chamados/{id}": {
+      "get": {
+        "tags": [
+          "Chamados"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChamadoComMensagens"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chamados/{id}/mensagens": {
+      "post": {
+        "tags": [
+          "Chamados"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
         ],
         "requestBody": {
           "content": {
@@ -2593,10 +2656,33 @@
         }
       }
     },
-    "/operadora/chat": {
+    "/chamados/{id}/resolver": {
+      "post": {
+        "tags": [
+          "Chamados"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/operadora/chamados": {
       "get": {
         "tags": [
-          "Chat"
+          "Chamados"
         ],
         "responses": {
           "200": {
@@ -2606,7 +2692,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/ConversaDto"
+                    "$ref": "#/components/schemas/ChamadoDto"
                   }
                 }
               }
@@ -2615,14 +2701,14 @@
         }
       }
     },
-    "/operadora/chat/{revendedorId}": {
+    "/operadora/chamados/{id}": {
       "get": {
         "tags": [
-          "Chat"
+          "Chamados"
         ],
         "parameters": [
           {
-            "name": "revendedorId",
+            "name": "id",
             "in": "path",
             "required": true,
             "schema": {
@@ -2637,23 +2723,22 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/MensagemDto"
-                  }
+                  "$ref": "#/components/schemas/ChamadoComMensagens"
                 }
               }
             }
           }
         }
-      },
+      }
+    },
+    "/operadora/chamados/{id}/mensagens": {
       "post": {
         "tags": [
-          "Chat"
+          "Chamados"
         ],
         "parameters": [
           {
-            "name": "revendedorId",
+            "name": "id",
             "in": "path",
             "required": true,
             "schema": {
@@ -2672,6 +2757,29 @@
           },
           "required": true
         },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/operadora/chamados/{id}/resolver": {
+      "post": {
+        "tags": [
+          "Chamados"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK"
@@ -2866,6 +2974,88 @@
           }
         },
         "description": "Sem comiss\u00E3o, o produto segue a do vendedor ou a padr\u00E3o."
+      },
+      "ChamadoComMensagens": {
+        "required": [
+          "chamado",
+          "mensagens"
+        ],
+        "type": "object",
+        "properties": {
+          "chamado": {
+            "$ref": "#/components/schemas/ChamadoDto"
+          },
+          "mensagens": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MensagemDto"
+            }
+          }
+        }
+      },
+      "ChamadoDto": {
+        "required": [
+          "id",
+          "numero",
+          "revendedor",
+          "assunto",
+          "situacao",
+          "abertoEm",
+          "prazoEm",
+          "atrasado",
+          "ultimaMensagemEm",
+          "resolvidoEm",
+          "naoLidas"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "numero": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "revendedor": {
+            "type": "string"
+          },
+          "assunto": {
+            "type": "string"
+          },
+          "situacao": {
+            "$ref": "#/components/schemas/SituacaoDoChamado"
+          },
+          "abertoEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "prazoEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "atrasado": {
+            "type": "boolean"
+          },
+          "ultimaMensagemEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "resolvidoEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "naoLidas": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
       },
       "ChaveDoAutenticador": {
         "required": [
@@ -3091,36 +3281,6 @@
               "null",
               "integer"
             ],
-            "format": "int32"
-          }
-        }
-      },
-      "ConversaDto": {
-        "required": [
-          "revendedorId",
-          "revendedor",
-          "ultimaMensagem",
-          "ultimaEm",
-          "naoLidas"
-        ],
-        "type": "object",
-        "properties": {
-          "revendedorId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "revendedor": {
-            "type": "string"
-          },
-          "ultimaMensagem": {
-            "type": "string"
-          },
-          "ultimaEm": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "naoLidas": {
-            "type": "integer",
             "format": "int32"
           }
         }
@@ -4052,6 +4212,21 @@
           }
         }
       },
+      "NovoChamado": {
+        "required": [
+          "assunto",
+          "texto"
+        ],
+        "type": "object",
+        "properties": {
+          "assunto": {
+            "type": "string"
+          },
+          "texto": {
+            "type": "string"
+          }
+        }
+      },
       "NovoPedido": {
         "required": [
           "pacoteId",
@@ -4846,6 +5021,13 @@
           "Cancelada"
         ]
       },
+      "SituacaoDoChamado": {
+        "enum": [
+          "AguardandoAvalia",
+          "AguardandoRevenda",
+          "Resolvido"
+        ]
+      },
       "SituacaoDoContrato": {
         "enum": [
           "Rascunho",
@@ -5260,7 +5442,7 @@
       "name": "Balc\u00E3o"
     },
     {
-      "name": "Chat"
+      "name": "Chamados"
     },
     {
       "name": "RotasDeWebhook"

@@ -22,6 +22,78 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("AvaliaSales.Domain.Atendimento.Chamado", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("AbertoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("aberto_em");
+
+                    b.Property<Guid>("AbertoPor")
+                        .HasColumnType("uuid")
+                        .HasColumnName("aberto_por");
+
+                    b.Property<string>("Assunto")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("assunto");
+
+                    b.Property<long>("Numero")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("numero");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityAlwaysColumn(b.Property<long>("Numero"));
+
+                    b.Property<DateTimeOffset?>("PrazoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("prazo_em");
+
+                    b.Property<DateTimeOffset?>("PrimeiraRespostaEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("primeira_resposta_em");
+
+                    b.Property<DateTimeOffset?>("ResolvidoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("resolvido_em");
+
+                    b.Property<Guid>("RevendedorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("revendedor_id");
+
+                    b.Property<string>("Situacao")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)")
+                        .HasColumnName("situacao");
+
+                    b.Property<DateTimeOffset>("UltimaMensagemEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("ultima_mensagem_em");
+
+                    b.HasKey("Id")
+                        .HasName("pk_chamados");
+
+                    b.HasIndex("AbertoPor")
+                        .HasDatabaseName("ix_chamados_aberto_por");
+
+                    b.HasIndex("Numero")
+                        .IsUnique()
+                        .HasDatabaseName("ix_chamados_numero");
+
+                    b.HasIndex("RevendedorId", "UltimaMensagemEm")
+                        .HasDatabaseName("ix_chamados_revendedor_id_ultima_mensagem_em");
+
+                    b.HasIndex("Situacao", "PrazoEm")
+                        .HasDatabaseName("ix_chamados_situacao_prazo_em");
+
+                    b.ToTable("chamados", (string)null);
+                });
+
             modelBuilder.Entity("AvaliaSales.Domain.Atendimento.Mensagem", b =>
                 {
                     b.Property<Guid>("Id")
@@ -32,6 +104,10 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                     b.Property<Guid>("AutorId")
                         .HasColumnType("uuid")
                         .HasColumnName("autor_id");
+
+                    b.Property<Guid>("ChamadoId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("chamado_id");
 
                     b.Property<bool>("DaOperadora")
                         .HasColumnType("boolean")
@@ -61,12 +137,12 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                     b.HasIndex("AutorId")
                         .HasDatabaseName("ix_mensagens_autor_id");
 
+                    b.HasIndex("ChamadoId", "EnviadaEm")
+                        .HasDatabaseName("ix_mensagens_chamado_id_enviada_em");
+
                     b.HasIndex("RevendedorId", "DaOperadora")
                         .HasDatabaseName("ix_mensagens_revendedor_id_da_operadora")
                         .HasFilter("lida_em is null");
-
-                    b.HasIndex("RevendedorId", "EnviadaEm")
-                        .HasDatabaseName("ix_mensagens_revendedor_id_enviada_em");
 
                     b.ToTable("mensagens", (string)null);
                 });
@@ -1995,6 +2071,23 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                     b.ToTable("usuarios_tokens", (string)null);
                 });
 
+            modelBuilder.Entity("AvaliaSales.Domain.Atendimento.Chamado", b =>
+                {
+                    b.HasOne("AvaliaSales.Infrastructure.Identidade.Usuario", null)
+                        .WithMany()
+                        .HasForeignKey("AbertoPor")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_chamados_usuarios_aberto_por");
+
+                    b.HasOne("AvaliaSales.Domain.Revendedores.Revendedor", null)
+                        .WithMany()
+                        .HasForeignKey("RevendedorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_chamados_revendedores_revendedor_id");
+                });
+
             modelBuilder.Entity("AvaliaSales.Domain.Atendimento.Mensagem", b =>
                 {
                     b.HasOne("AvaliaSales.Infrastructure.Identidade.Usuario", null)
@@ -2003,6 +2096,13 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_mensagens_usuarios_autor_id");
+
+                    b.HasOne("AvaliaSales.Domain.Atendimento.Chamado", null)
+                        .WithMany()
+                        .HasForeignKey("ChamadoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_mensagens_chamados_chamado_id");
 
                     b.HasOne("AvaliaSales.Domain.Revendedores.Revendedor", null)
                         .WithMany()

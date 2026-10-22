@@ -54,6 +54,7 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
     public DbSet<EnvioAoErp> EnviosAoErp => Set<EnvioAoErp>();
     public DbSet<LogoDoRevendedor> Logos => Set<LogoDoRevendedor>();
     public DbSet<Mensagem> Mensagens => Set<Mensagem>();
+    public DbSet<Chamado> Chamados => Set<Chamado>();
     public DbSet<LinkCurto> Links => Set<LinkCurto>();
     public DbSet<CodigoDeLink> CodigosDeLink => Set<CodigoDeLink>();
     public DbSet<RegistroDeAuditoria> Auditoria => Set<RegistroDeAuditoria>();
@@ -104,8 +105,23 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
             m.Property(x => x.Texto).HasMaxLength(Mensagem.TextoMaximo).IsRequired();
             m.HasOne<Revendedor>().WithMany().HasForeignKey(x => x.RevendedorId).OnDelete(DeleteBehavior.Restrict);
             m.HasOne<Usuario>().WithMany().HasForeignKey(x => x.AutorId).OnDelete(DeleteBehavior.Restrict);
-            m.HasIndex(x => new { x.RevendedorId, x.EnviadaEm });
+            m.HasOne<Chamado>().WithMany().HasForeignKey(x => x.ChamadoId).OnDelete(DeleteBehavior.Restrict);
+            m.HasIndex(x => new { x.ChamadoId, x.EnviadaEm });
             m.HasIndex(x => new { x.RevendedorId, x.DaOperadora }).HasFilter("lida_em is null");
+        });
+
+        modelo.Entity<Chamado>(c =>
+        {
+            c.ToTable("chamados");
+            c.Property(x => x.Id).ValueGeneratedNever();
+            c.Property(x => x.Numero).UseIdentityAlwaysColumn();
+            c.HasIndex(x => x.Numero).IsUnique();
+            c.Property(x => x.Assunto).HasMaxLength(Chamado.AssuntoMaximo).IsRequired();
+            c.Property(x => x.Situacao).HasConversion<string>().HasMaxLength(24);
+            c.HasOne<Revendedor>().WithMany().HasForeignKey(x => x.RevendedorId).OnDelete(DeleteBehavior.Restrict);
+            c.HasOne<Usuario>().WithMany().HasForeignKey(x => x.AbertoPor).OnDelete(DeleteBehavior.Restrict);
+            c.HasIndex(x => new { x.Situacao, x.PrazoEm });
+            c.HasIndex(x => new { x.RevendedorId, x.UltimaMensagemEm });
         });
 
         modelo.Entity<LinkCurto>(l =>

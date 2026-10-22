@@ -3461,7 +3461,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/chat": {
+    "/chamados": {
         parameters: {
             query?: never;
             header?: never;
@@ -3483,7 +3483,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["MensagemDto"][];
+                        "application/json": components["schemas"]["ChamadoDto"][];
                     };
                 };
             };
@@ -3494,6 +3494,82 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["NovoChamado"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/chamados/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ChamadoComMensagens"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/chamados/{id}/mensagens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
                 cookie?: never;
             };
             requestBody: {
@@ -3517,7 +3593,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/operadora/chat": {
+    "/chamados/{id}/resolver": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/operadora/chamados": {
         parameters: {
             query?: never;
             header?: never;
@@ -3539,7 +3650,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["ConversaDto"][];
+                        "application/json": components["schemas"]["ChamadoDto"][];
                     };
                 };
             };
@@ -3552,7 +3663,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/operadora/chat/{revendedorId}": {
+    "/operadora/chamados/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -3564,7 +3675,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    revendedorId: string;
+                    id: string;
                 };
                 cookie?: never;
             };
@@ -3576,18 +3687,34 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["MensagemDto"][];
+                        "application/json": components["schemas"]["ChamadoComMensagens"];
                     };
                 };
             };
         };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/operadora/chamados/{id}/mensagens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
         put?: never;
         post: {
             parameters: {
                 query?: never;
                 header?: never;
                 path: {
-                    revendedorId: string;
+                    id: string;
                 };
                 cookie?: never;
             };
@@ -3596,6 +3723,41 @@ export interface paths {
                     "application/json": components["schemas"]["NovaMensagem"];
                 };
             };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/operadora/chamados/{id}/resolver": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
             responses: {
                 /** @description OK */
                 200: {
@@ -3718,6 +3880,30 @@ export interface components {
             /** Format: int32 */
             comissaoBps?: null | number;
         };
+        ChamadoComMensagens: {
+            chamado: components["schemas"]["ChamadoDto"];
+            mensagens: components["schemas"]["MensagemDto"][];
+        };
+        ChamadoDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: int64 */
+            numero: number;
+            revendedor: string;
+            assunto: string;
+            situacao: components["schemas"]["SituacaoDoChamado"];
+            /** Format: date-time */
+            abertoEm: string;
+            /** Format: date-time */
+            prazoEm: null | string;
+            atrasado: boolean;
+            /** Format: date-time */
+            ultimaMensagemEm: string;
+            /** Format: date-time */
+            resolvidoEm: null | string;
+            /** Format: int32 */
+            naoLidas: number;
+        };
         ChaveDoAutenticador: {
             chave: string;
             uri: string;
@@ -3774,16 +3960,6 @@ export interface components {
             codigos: null | string[];
             /** Format: int32 */
             quantidade: null | number;
-        };
-        ConversaDto: {
-            /** Format: uuid */
-            revendedorId: string;
-            revendedor: string;
-            ultimaMensagem: string;
-            /** Format: date-time */
-            ultimaEm: string;
-            /** Format: int32 */
-            naoLidas: number;
         };
         CupomDto: {
             /** Format: uuid */
@@ -4040,6 +4216,10 @@ export interface components {
             email: string;
             senha: string;
         };
+        NovoChamado: {
+            assunto: string;
+            texto: string;
+        };
         NovoPedido: {
             /** Format: uuid */
             pacoteId: string;
@@ -4262,6 +4442,8 @@ export interface components {
         SituacaoDaCobranca: "Pendente" | "Paga" | "Cancelada" | "Falhou" | "Estornada" | null;
         /** @enum {unknown} */
         SituacaoDaVenda: "Registrada" | "Cancelada";
+        /** @enum {unknown} */
+        SituacaoDoChamado: "AguardandoAvalia" | "AguardandoRevenda" | "Resolvido";
         /** @enum {unknown} */
         SituacaoDoContrato: "Rascunho" | "AguardandoAssinatura" | "Assinado" | "Cancelado" | null;
         /** @enum {unknown} */

@@ -128,17 +128,28 @@ public sealed class IsolamentoEntreRevendedoresTest(ApiDeTeste api)
         BancoDeDados Contexto(RevendedorFixo quem) => new(new DbContextOptionsBuilder<BancoDeDados>()
             .UseNpgsql(api.ConexaoDaAplicacao).UseSnakeCaseNamingConvention().AddInterceptors(new RevendedorNaConexao(quem)).Options, quem);
 
+        AvaliaSales.Domain.Atendimento.Chamado Chamado() => new(autorId, "Chamado do teste", DateTimeOffset.UtcNow);
+
         // Revendedor A tenta gravar uma mensagem na conversa de B: o carimbo devolve para A.
         await using (var comoA = Contexto(new RevendedorFixo(a)))
         {
-            comoA.Mensagens.Add(new AvaliaSales.Domain.Atendimento.Mensagem(autorId, daOperadora: false, "tentativa", DateTimeOffset.UtcNow, revendedorDaConversa: b));
+            var doA = Chamado();
+            comoA.Chamados.Add(doA);
+            comoA.Mensagens.Add(new AvaliaSales.Domain.Atendimento.Mensagem(doA, autorId, false, "tentativa", DateTimeOffset.UtcNow, revendedorDaConversa: b));
             await comoA.SaveChangesAsync(Ct);
         }
 
-        // A operadora grava na conversa de B, e só porque a tabela é atendida por ela.
+        var deB = Chamado();
+        await using (var comoB = Contexto(new RevendedorFixo(b)))
+        {
+            comoB.Chamados.Add(deB);
+            await comoB.SaveChangesAsync(Ct);
+        }
+
+        // A operadora grava no chamado de B, e só porque a tabela é atendida por ela.
         await using (var comoOperadora = Contexto(new RevendedorFixo(null, Operadora: true)))
         {
-            comoOperadora.Mensagens.Add(new AvaliaSales.Domain.Atendimento.Mensagem(autorId, daOperadora: true, "resposta", DateTimeOffset.UtcNow, revendedorDaConversa: b));
+            comoOperadora.Mensagens.Add(new AvaliaSales.Domain.Atendimento.Mensagem(deB, autorId, true, "resposta", DateTimeOffset.UtcNow, revendedorDaConversa: b));
             await comoOperadora.SaveChangesAsync(Ct);
             comoOperadora.Produtos.Add(new Produto("Produto da operadora", 100));
             await Assert.ThrowsAsync<InvalidOperationException>(() => comoOperadora.SaveChangesAsync(Ct));

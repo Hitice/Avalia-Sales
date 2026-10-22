@@ -128,7 +128,7 @@ function FormularioDaMarca({ marca, salvo, setSalvo }: { marca: Marca; salvo: bo
               </div>
             </Field>
             <RecorteDoLogo arquivo={paraRecortar} enviando={enviando} aoCancelar={() => setParaRecortar(null)} aoConfirmar={enviarLogo} />
-            <Button variant="ghost" onClick={restaurar}>Voltar à marca da plataforma</Button>
+            <Button variant="ghost" onClick={restaurar}>Restaurar</Button>
           </CardContent>
         </Card>
       </div>
