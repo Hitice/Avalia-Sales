@@ -69,8 +69,12 @@ Até lá, um arquivo CSS basta.
   com valor solto, como `bg-[#123456]` ou `p-[13px]`, não entra.
 - Tabela do painel com o `DataTable` do shadcn (TanStack Table), paginação e
   ordenação no servidor.
-- Formulário com React Hook Form + Zod e os componentes `Form` do shadcn, com o
-  erro embaixo do campo e `aria-invalid`.
+- Formulário de cadastro com React Hook Form + Zod (`mode: 'onChange'`) e o
+  componente `componentes/Campo.tsx`: erro embaixo do campo ao sair dele ou ao
+  enviar, `aria-invalid`, e borda verde com o ícone de conferido quando o dado
+  passa. As regras de campo (e-mail, telefone, CPF ou CNPJ, dinheiro,
+  percentual, senha) moram em `lib/esquemas.ts`, iguais às da API. Filtro,
+  busca e campo único dentro da linha ficam em estado simples.
 
 ## A cara da Avalia sob o white label
 

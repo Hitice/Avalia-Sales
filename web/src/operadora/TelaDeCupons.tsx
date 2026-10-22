@@ -1,19 +1,33 @@
-import { type FormEvent, useState } from 'react'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { z } from 'zod'
 import { mensagemDoErro } from '@/api/cliente'
 import { formatarBps, formatarData, paraBps } from '@/api/rotulos'
 import type { Cupom } from '@/api/tipos'
+import { Campo } from '@/componentes/Campo'
 import { Cabecalho, Erro, EstadoDaConsulta, Rolagem } from '@/componentes/Tela'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Field, FieldLabel } from '@/components/ui/field'
-import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { formatarCentavos, paraCentavos } from '@/dinheiro/dinheiro'
 import { useAlterarCupom, useAtivarCupom, useCriarCupom, useCupons, useExcluirCupom } from './consultas'
 
-type Formulario = { codigo: string; tipo: 'percentual' | 'reais'; desconto: string; validoAte: string; usos: string }
+const esquema = z.object({
+  codigo: z.string().trim().min(3, 'Use 3 caracteres ou mais.').max(30, 'Use até 30 caracteres.'),
+  tipo: z.enum(['percentual', 'reais']),
+  desconto: z.string(),
+  validoAte: z.string(),
+  usos: z.string().trim().regex(/^\d*$/, 'Só números.'),
+}).superRefine((d, ctx) => {
+  const valor = d.tipo === 'percentual' ? paraBps(d.desconto) : paraCentavos(d.desconto)
+  if (valor === null || valor === 0) {
+    ctx.addIssue({ code: 'custom', path: ['desconto'], message: d.tipo === 'percentual' ? 'Digite em %, como 10.' : 'Digite o valor, como 20,00.' })
+  }
+})
+type Formulario = z.infer<typeof esquema>
 const VAZIO: Formulario = { codigo: '', tipo: 'percentual', desconto: '', validoAte: '', usos: '' }
 
 /** Cupons de desconto no pedido de placas. Cupom usado é desativado, e não excluído. */
@@ -24,13 +38,13 @@ export function TelaDeCupons() {
   const ativar = useAtivarCupom()
   const excluir = useExcluirCupom()
   const [editando, setEditando] = useState<Cupom | null>(null)
-  const [dados, setDados] = useState<Formulario>(VAZIO)
+  const formulario = useForm<Formulario>({ resolver: zodResolver(esquema), mode: 'onChange', defaultValues: VAZIO })
+  const tipo = formulario.watch('tipo')
   const erro = criar.error ?? alterar.error ?? ativar.error ?? excluir.error
-  const desconto = dados.tipo === 'percentual' ? paraBps(dados.desconto) : paraCentavos(dados.desconto)
 
   function editar(c: Cupom | null) {
     setEditando(c)
-    setDados(c
+    formulario.reset(c
       ? {
           codigo: c.codigo,
           tipo: c.descontoBps !== null ? 'percentual' : 'reais',
@@ -41,9 +55,8 @@ export function TelaDeCupons() {
       : VAZIO)
   }
 
-  async function salvar(evento: FormEvent) {
-    evento.preventDefault()
-    if (desconto === null) return
+  async function salvar(dados: Formulario) {
+    const desconto = dados.tipo === 'percentual' ? paraBps(dados.desconto) : paraCentavos(dados.desconto)
     const cupom = {
       codigo: dados.codigo,
       descontoBps: dados.tipo === 'percentual' ? desconto : null,
@@ -108,30 +121,21 @@ export function TelaDeCupons() {
       <Card className="self-start">
         <CardHeader><CardTitle>{editando ? `Editar ${editando.codigo}` : 'Novo cupom'}</CardTitle></CardHeader>
         <CardContent>
-          <form className="grid gap-4" onSubmit={salvar}>
-            <Field>
-              <FieldLabel htmlFor="codigo">Código</FieldLabel>
-              <Input id="codigo" className="uppercase" disabled={!!editando} value={dados.codigo} onChange={(e) => setDados({ ...dados, codigo: e.target.value })} />
-            </Field>
-            <Tabs value={dados.tipo} onValueChange={(t) => setDados({ ...dados, tipo: t as Formulario['tipo'], desconto: '' })}>
+          <form className="grid gap-4" onSubmit={formulario.handleSubmit(salvar)} noValidate>
+            <Campo formulario={formulario} nome="codigo" rotulo="Código" className="uppercase" disabled={!!editando} />
+            <Tabs value={tipo} onValueChange={(t) => {
+              formulario.setValue('tipo', t as Formulario['tipo'])
+              formulario.setValue('desconto', '', { shouldValidate: formulario.formState.isSubmitted })
+            }}>
               <TabsList className="w-full">
                 <TabsTrigger value="percentual">Percentual</TabsTrigger>
                 <TabsTrigger value="reais">Em reais</TabsTrigger>
               </TabsList>
             </Tabs>
-            <Field>
-              <FieldLabel htmlFor="desconto">{dados.tipo === 'percentual' ? 'Desconto (%)' : 'Desconto (R$)'}</FieldLabel>
-              <Input id="desconto" inputMode="decimal" value={dados.desconto} onChange={(e) => setDados({ ...dados, desconto: e.target.value })} />
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="validoAte">Vale até</FieldLabel>
-              <Input id="validoAte" type="date" value={dados.validoAte} onChange={(e) => setDados({ ...dados, validoAte: e.target.value })} />
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="usos">Limite de usos</FieldLabel>
-              <Input id="usos" inputMode="numeric" placeholder="Sem limite" value={dados.usos} onChange={(e) => setDados({ ...dados, usos: e.target.value.replace(/\D/g, '') })} />
-            </Field>
-            <Button type="submit" disabled={dados.codigo.trim().length < 3 || desconto === null}>{editando ? 'Salvar cupom' : 'Criar cupom'}</Button>
+            <Campo formulario={formulario} nome="desconto" rotulo={tipo === 'percentual' ? 'Desconto (%)' : 'Desconto (R$)'} inputMode="decimal" />
+            <Campo formulario={formulario} nome="validoAte" rotulo="Vale até" type="date" conferir={false} />
+            <Campo formulario={formulario} nome="usos" rotulo="Limite de usos" inputMode="numeric" placeholder="Sem limite" conferir={false} />
+            <Button type="submit" disabled={criar.isPending || alterar.isPending}>{editando ? 'Salvar cupom' : 'Criar cupom'}</Button>
             {editando && <Button type="button" variant="ghost" onClick={() => editar(null)}>Cancelar</Button>}
           </form>
         </CardContent>

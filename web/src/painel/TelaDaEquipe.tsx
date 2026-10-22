@@ -1,18 +1,36 @@
-import { type ComponentProps, type FormEvent, useState } from 'react'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { z } from 'zod'
+import { emailValido } from '@/acesso/documentos'
 import { mensagemDoErro } from '@/api/cliente'
 import { formatarBps, paraBps } from '@/api/rotulos'
 import type { Vendedor } from '@/api/tipos'
+import { Campo } from '@/componentes/Campo'
 import { Cabecalho, Erro, EstadoDaConsulta, Rolagem } from '@/componentes/Tela'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { percentualOpcional, senhaOpcional, telefoneOpcional, texto } from '@/lib/esquemas'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useAlterarVendedor, useAtivarVendedor, useComissaoPadrao, useConvidarVendedor, useCriarVendedor, useEquipe, useExcluirVendedor, useMinhaRevenda } from './consultas'
 
-type Formulario = { nome: string; email: string; senha: string; telefone: string; chavePix: string; comissao: string }
-const VAZIO: Formulario = { nome: '', email: '', senha: '', telefone: '', chavePix: '', comissao: '' }
+/** E-mail e senha só no cadastro: o login não muda de e-mail pela equipe. */
+const esquema = z.object({
+  novo: z.boolean(),
+  nome: texto('o nome'),
+  email: z.string().trim(),
+  senha: senhaOpcional,
+  telefone: telefoneOpcional,
+  chavePix: z.string().trim().max(140, 'Use até 140 caracteres.'),
+  comissao: percentualOpcional,
+}).superRefine((d, ctx) => {
+  if (d.novo && !emailValido(d.email)) ctx.addIssue({ code: 'custom', path: ['email'], message: 'E-mail incompleto.' })
+})
+type Formulario = z.infer<typeof esquema>
+const VAZIO: Formulario = { novo: true, nome: '', email: '', senha: '', telefone: '', chavePix: '', comissao: '' }
 
 /** O link do convite, para o dono mandar também pelo WhatsApp do vendedor. */
 function Convite({ vendedor, aoFechar }: { vendedor: Vendedor; aoFechar: () => void }) {
@@ -50,25 +68,19 @@ export function TelaDaEquipe() {
   const [convite, setConvite] = useState<Vendedor | null>(null)
   const padrao = useComissaoPadrao()
   const [editando, setEditando] = useState<Vendedor | null>(null)
-  const [dados, setDados] = useState<Formulario>(VAZIO)
+  const formulario = useForm<Formulario>({ resolver: zodResolver(esquema), mode: 'onChange', defaultValues: VAZIO })
   const [comissaoPadrao, setComissaoPadrao] = useState('')
-  const [recusa, setRecusa] = useState<string | null>(null)
   const erro = criar.error ?? alterar.error ?? ativar.error ?? excluir.error ?? convidar.error ?? padrao.error
 
   function editar(v: Vendedor | null) {
     setEditando(v)
-    setRecusa(null)
-    setDados(v ? { ...VAZIO, nome: v.nome, email: v.email, telefone: v.telefone ?? '', chavePix: v.chavePix ?? '', comissao: v.comissaoBps === null ? '' : String(v.comissaoBps / 100).replace('.', ',') } : VAZIO)
+    formulario.reset(v
+      ? { ...VAZIO, novo: false, nome: v.nome, email: v.email, telefone: v.telefone ?? '', chavePix: v.chavePix ?? '', comissao: v.comissaoBps === null ? '' : String(v.comissaoBps / 100).replace('.', ',') }
+      : VAZIO)
   }
 
-  async function salvar(evento: FormEvent) {
-    evento.preventDefault()
+  async function salvar(dados: Formulario) {
     const comissaoBps = dados.comissao.trim() ? paraBps(dados.comissao) : null
-    if (dados.comissao.trim() && comissaoBps === null) {
-      setRecusa('Digite a comissão em %, como 20 ou 22,5.')
-      return
-    }
-
     const comum = { nome: dados.nome, telefone: dados.telefone || null, chavePix: dados.chavePix || null, comissaoBps }
     try {
       if (editando) await alterar.mutateAsync({ id: editando.id, ...comum })
@@ -82,18 +94,11 @@ export function TelaDaEquipe() {
     }
   }
 
-  const campo = (nome: keyof Formulario, rotulo: string, tipo = 'text', extra: Partial<ComponentProps<typeof Input>> = {}) => (
-    <Field>
-      <FieldLabel htmlFor={nome}>{rotulo}</FieldLabel>
-      <Input id={nome} type={tipo} value={dados[nome]} onChange={(e) => setDados({ ...dados, [nome]: e.target.value })} {...extra} />
-    </Field>
-  )
-
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
       <div>
         <Cabecalho titulo="Equipe" />
-        <Erro erro={recusa ?? (erro ? mensagemDoErro(erro) : null)} />
+        <Erro erro={erro ? mensagemDoErro(erro) : null} />
         <Card className="mt-3">
           <CardContent>
             <EstadoDaConsulta carregando={equipe.isPending} erro={equipe.error} vazio={equipe.data?.length === 0} textoVazio="Nenhum vendedor." />
@@ -141,14 +146,14 @@ export function TelaDaEquipe() {
         <Card>
           <CardHeader><CardTitle>{editando ? `Editar ${editando.nome}` : 'Novo vendedor'}</CardTitle></CardHeader>
           <CardContent>
-            <form className="grid gap-4" onSubmit={salvar}>
-              {campo('nome', 'Nome', 'text', { autoComplete: 'off' })}
-              {!editando && campo('email', 'E-mail de acesso', 'email', { autoComplete: 'off' })}
-              {!editando && campo('senha', 'Senha inicial', 'password', { autoComplete: 'new-password', placeholder: 'Em branco envia convite' })}
-              {campo('telefone', 'Telefone', 'tel')}
-              {campo('chavePix', 'Chave Pix da comissão')}
-              {campo('comissao', 'Comissão (%)', 'text', { inputMode: 'decimal', placeholder: 'Em branco usa a padrão' })}
-              <Button type="submit" disabled={!dados.nome || (!editando && (!dados.email || (dados.senha.length > 0 && dados.senha.length < 10)))}>{editando ? 'Salvar vendedor' : 'Cadastrar vendedor'}</Button>
+            <form className="grid gap-4" onSubmit={formulario.handleSubmit(salvar)} noValidate>
+              <Campo formulario={formulario} nome="nome" rotulo="Nome" autoComplete="off" />
+              {!editando && <Campo formulario={formulario} nome="email" rotulo="E-mail de acesso" type="email" autoComplete="off" />}
+              {!editando && <Campo formulario={formulario} nome="senha" rotulo="Senha inicial" type="password" autoComplete="new-password" placeholder="Em branco envia convite" />}
+              <Campo formulario={formulario} nome="telefone" rotulo="Telefone" type="tel" inputMode="numeric" />
+              <Campo formulario={formulario} nome="chavePix" rotulo="Chave Pix da comissão" conferir={false} />
+              <Campo formulario={formulario} nome="comissao" rotulo="Comissão (%)" inputMode="decimal" placeholder="Em branco usa a padrão" />
+              <Button type="submit" disabled={criar.isPending || alterar.isPending}>{editando ? 'Salvar vendedor' : 'Cadastrar vendedor'}</Button>
               {editando && <Button type="button" variant="ghost" onClick={() => editar(null)}>Cancelar</Button>}
             </form>
           </CardContent>

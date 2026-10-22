@@ -1,16 +1,23 @@
-import { type FormEvent, useState } from 'react'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { z } from 'zod'
 import { mensagemDoErro } from '@/api/cliente'
 import type { DestinoInformado, LinkCurto } from '@/api/tipos'
 import { useSessao } from '@/acesso/sessao'
 import { CopiarLink, GravarNfc } from '@/balcao/BotoesDeNfc'
+import { destinoPronto } from '@/balcao/destino'
 import { EscolhaDeDestino } from '@/balcao/EscolhaDeDestino'
+import { Campo } from '@/componentes/Campo'
+import { texto } from '@/lib/esquemas'
 import { Cabecalho, Erro, EstadoDaConsulta } from '@/componentes/Tela'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Field, FieldLabel } from '@/components/ui/field'
-import { Input } from '@/components/ui/input'
 import { useAlterarLink, useAtivarLink, useCriarLink, useExcluirLink, useLinks } from './consultas'
+
+const esquema = z.object({ titulo: texto('o título') })
+type Formulario = z.infer<typeof esquema>
 
 const DESTINO_VAZIO: DestinoInformado = { tipo: 'Google', lugarNoGoogle: null, link: null }
 
@@ -23,20 +30,20 @@ export function TelaDeLinks() {
   const ativar = useAtivarLink()
   const excluir = useExcluirLink()
   const [editando, setEditando] = useState<LinkCurto | null>(null)
-  const [titulo, setTitulo] = useState('')
+  const formulario = useForm<Formulario>({ resolver: zodResolver(esquema), mode: 'onChange', defaultValues: { titulo: '' } })
   const [destino, setDestino] = useState<DestinoInformado>(DESTINO_VAZIO)
-  const [formulario, setFormulario] = useState(0)
+  const [versao, setVersao] = useState(0)
   const erro = criar.error ?? alterar.error ?? ativar.error ?? excluir.error
 
   function editar(link: LinkCurto | null) {
     setEditando(link)
-    setTitulo(link?.titulo ?? '')
+    formulario.reset({ titulo: link?.titulo ?? '' })
     setDestino(link ? { tipo: 'Link', lugarNoGoogle: null, link: link.destino } : DESTINO_VAZIO)
-    setFormulario((n) => n + 1)
+    setVersao((n) => n + 1)
   }
 
-  async function salvar(evento: FormEvent) {
-    evento.preventDefault()
+  async function salvar({ titulo }: Formulario) {
+    if (!destinoPronto(destino)) return
     try {
       await (editando ? alterar.mutateAsync({ id: editando.id, titulo, destino }) : criar.mutateAsync({ titulo, destino }))
       editar(null)
@@ -79,19 +86,18 @@ export function TelaDeLinks() {
       <Card className="self-start">
         <CardHeader><CardTitle>{editando ? 'Editar link' : 'Novo link'}</CardTitle></CardHeader>
         <CardContent>
-          <form className="grid gap-4" onSubmit={salvar}>
-            <Field>
-              <FieldLabel htmlFor="titulo">Título</FieldLabel>
-              <Input id="titulo" maxLength={120} value={titulo} onChange={(e) => setTitulo(e.target.value)} />
-            </Field>
+          <form className="grid gap-4" onSubmit={formulario.handleSubmit(salvar)} noValidate>
+            <Campo formulario={formulario} nome="titulo" rotulo="Título" maxLength={120} conferir={false} />
             <EscolhaDeDestino
-              key={formulario}
+              key={versao}
               valor={destino}
               aoMudar={setDestino}
               nomeSugerido=""
-              aoEscolherLugar={(lugar) => lugar && setTitulo((t) => t || `Avaliação no Google - ${lugar.nome}`)}
+              aoEscolherLugar={(lugar) => {
+                if (lugar && !formulario.getValues('titulo')) formulario.setValue('titulo', `Avaliação no Google - ${lugar.nome}`, { shouldDirty: true, shouldValidate: true })
+              }}
             />
-            <Button type="submit" disabled={!titulo.trim() || (!destino.link && !destino.lugarNoGoogle) || criar.isPending || alterar.isPending}>
+            <Button type="submit" disabled={!destinoPronto(destino) || criar.isPending || alterar.isPending}>
               {editando ? 'Salvar link' : 'Criar link'}
             </Button>
             {editando && <Button type="button" variant="ghost" onClick={() => editar(null)}>Cancelar</Button>}

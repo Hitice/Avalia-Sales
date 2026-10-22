@@ -1,16 +1,19 @@
-import { type FormEvent, useEffect, useRef, useState } from 'react'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useEffect, useRef, useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { z } from 'zod'
+import { Campo } from '@/componentes/Campo'
+import { SENHA_MINIMA, email, senhaNova } from '@/lib/esquemas'
 import { Link, useLocation, useNavigate } from 'react-router'
 import { ErroDaApi, chamarApi, enviarJson } from '@/api/cliente'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
-import { Input } from '@/components/ui/input'
+import { FieldGroup } from '@/components/ui/field'
 import { renovarSessao } from './renovacao'
 import { type TokenEmitido, inicioDoPapel, useSessao } from './sessao'
 import { MarcaAvalia } from '@/componentes/MarcaAvalia'
 
-const SENHA_MINIMA = 10
 
 function Moldura({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return (
@@ -28,33 +31,26 @@ function Moldura({ titulo, children }: { titulo: string; children: React.ReactNo
 
 const mensagem = (erro: unknown) => erro instanceof ErroDaApi ? erro.message : 'Sem conexão com o servidor.'
 
+const esquemaDaSenha = z.object({ senha: senhaNova, repetida: z.string() })
+  .refine((d) => d.senha === d.repetida, { path: ['repetida'], message: 'As senhas não conferem.' })
+type NovaSenha = z.infer<typeof esquemaDaSenha>
+
 /** /convite e /senha: o token vem depois do #, que não vai ao servidor. Senha gravada, já entra. */
 export function TelaDeSenha() {
   const { hash, pathname } = useLocation()
   const navegar = useNavigate()
   const sessao = useSessao()
   const token = hash.replace(/^#/, '')
-  const [senha, setSenha] = useState('')
-  const [repetida, setRepetida] = useState('')
-  const [erro, setErro] = useState<string | null>(null)
-  const [gravando, setGravando] = useState(false)
+  const formulario = useForm<NovaSenha>({ resolver: zodResolver(esquemaDaSenha), mode: 'onChange', defaultValues: { senha: '', repetida: '' } })
+  const { errors, isSubmitting } = formulario.formState
 
-  async function gravar(evento: FormEvent) {
-    evento.preventDefault()
-    if (senha !== repetida) {
-      setErro('As senhas não conferem.')
-      return
-    }
-
-    setErro(null)
-    setGravando(true)
+  async function gravar({ senha }: NovaSenha) {
     try {
       const resposta = await chamarApi<TokenEmitido>('/auth/senha', enviarJson('POST', { token, senha }))
       sessao.entrar(resposta)
       navegar(inicioDoPapel(resposta.perfil?.papel), { replace: true })
     } catch (e) {
-      setErro(mensagem(e))
-      setGravando(false)
+      formulario.setError('root', { message: mensagem(e) })
     }
   }
 
@@ -63,19 +59,13 @@ export function TelaDeSenha() {
       {!token
         ? <p className="text-sm">Link incompleto. <Link to="/esqueci" className="underline">Peça outro</Link>.</p>
         : (
-            <form onSubmit={gravar} noValidate>
+            <form onSubmit={formulario.handleSubmit(gravar)} noValidate>
               <FieldGroup>
-                {erro && <Alert variant="destructive"><AlertDescription>{erro}</AlertDescription></Alert>}
-                <Field>
-                  <FieldLabel htmlFor="senha">Senha</FieldLabel>
-                  <Input id="senha" type="password" autoComplete="new-password" value={senha} onChange={(e) => setSenha(e.target.value)} />
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="repetida">Repita a senha</FieldLabel>
-                  <Input id="repetida" type="password" autoComplete="new-password" value={repetida} onChange={(e) => setRepetida(e.target.value)} />
-                </Field>
+                {errors.root && <Alert variant="destructive"><AlertDescription>{errors.root.message}</AlertDescription></Alert>}
+                <Campo formulario={formulario} nome="senha" rotulo="Senha" type="password" autoComplete="new-password" />
+                <Campo formulario={formulario} nome="repetida" rotulo="Repita a senha" type="password" autoComplete="new-password" />
                 <p className="text-xs text-muted-foreground">{SENHA_MINIMA} caracteres ou mais.</p>
-                <Button type="submit" size="lg" disabled={gravando || senha.length < SENHA_MINIMA || !repetida}>{gravando ? 'Gravando...' : 'Gravar senha'}</Button>
+                <Button type="submit" size="lg" disabled={isSubmitting}>{isSubmitting ? 'Gravando...' : 'Gravar senha'}</Button>
               </FieldGroup>
             </form>
           )}
@@ -83,20 +73,21 @@ export function TelaDeSenha() {
   )
 }
 
+const esquemaDoPedido = z.object({ email })
+type PedidoDeLink = z.infer<typeof esquemaDoPedido>
+
 /** A resposta é a mesma com e sem conta: a tela não diz quais e-mails têm cadastro. */
 export function TelaEsqueci() {
-  const [email, setEmail] = useState('')
   const [enviado, setEnviado] = useState(false)
-  const [erro, setErro] = useState<string | null>(null)
+  const formulario = useForm<PedidoDeLink>({ resolver: zodResolver(esquemaDoPedido), mode: 'onChange', defaultValues: { email: '' } })
+  const { errors, isSubmitting } = formulario.formState
 
-  async function pedir(evento: FormEvent) {
-    evento.preventDefault()
-    setErro(null)
+  async function pedir(dados: PedidoDeLink) {
     try {
-      await chamarApi('/auth/senha/link', enviarJson('POST', { email }))
+      await chamarApi('/auth/senha/link', enviarJson('POST', dados))
       setEnviado(true)
     } catch (e) {
-      setErro(mensagem(e))
+      formulario.setError('root', { message: mensagem(e) })
     }
   }
 
@@ -105,14 +96,11 @@ export function TelaEsqueci() {
       {enviado
         ? <p role="status" className="text-sm">Se o e-mail tiver cadastro, o link chega em alguns minutos. Vale 1 hora.</p>
         : (
-            <form onSubmit={pedir} noValidate>
+            <form onSubmit={formulario.handleSubmit(pedir)} noValidate>
               <FieldGroup>
-                {erro && <Alert variant="destructive"><AlertDescription>{erro}</AlertDescription></Alert>}
-                <Field>
-                  <FieldLabel htmlFor="email">E-mail</FieldLabel>
-                  <Input id="email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-                </Field>
-                <Button type="submit" size="lg" disabled={!email.includes('@')}>Mandar o link</Button>
+                {errors.root && <Alert variant="destructive"><AlertDescription>{errors.root.message}</AlertDescription></Alert>}
+                <Campo formulario={formulario} nome="email" rotulo="E-mail" type="email" autoComplete="email" />
+                <Button type="submit" size="lg" disabled={isSubmitting}>Mandar o link</Button>
               </FieldGroup>
             </form>
           )}

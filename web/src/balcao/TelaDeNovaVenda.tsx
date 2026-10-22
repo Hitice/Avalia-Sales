@@ -1,7 +1,8 @@
-import { Check, ChevronLeft } from 'lucide-react'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { ChevronLeft } from 'lucide-react'
 import { useCallback, useState } from 'react'
+import { useForm } from 'react-hook-form'
 import { Link, useNavigate, useSearchParams } from 'react-router'
-import { documentoValido, emailValido, telefoneValido } from '@/acesso/documentos'
 import { useSessao } from '@/acesso/sessao'
 import { mensagemDoErro } from '@/api/cliente'
 import { ROTULO_DO_ESTADO, ROTULO_DO_PAGAMENTO, formatarData } from '@/api/rotulos'
@@ -11,11 +12,13 @@ import { PixNaTela } from '@/componentes/PixNaTela'
 import { Aviso, Erro } from '@/componentes/Tela'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Field, FieldError, FieldLabel } from '@/components/ui/field'
+import { Field, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { formatarCentavos, paraCentavos } from '@/dinheiro/dinheiro'
-import { cn } from '@/lib/utils'
+import { documentoOpcional, emailOpcional, telefone, texto } from '@/lib/esquemas'
+import { z } from 'zod'
+import { Campo } from '@/componentes/Campo'
 import { extrairCodigo } from './codigo'
 import { useFicha, useVender } from './consultas'
 import { destinoPronto } from './destino'
@@ -31,34 +34,25 @@ const PASSOS: { id: Passo; rotulo: string }[] = [
   { id: 'cobranca', rotulo: 'Cobrança' },
 ]
 
-type Cliente = { empresa: string; responsavel: string; telefone: string; documento: string; email: string }
+const esquemaDoCliente = z.object({
+  empresa: texto('o nome da empresa', 160),
+  responsavel: texto('o nome do responsável'),
+  telefone,
+  documento: documentoOpcional,
+  email: emailOpcional,
+})
+type Cliente = z.infer<typeof esquemaDoCliente>
 const CLIENTE_VAZIO: Cliente = { empresa: '', responsavel: '', telefone: '', documento: '', email: '' }
-
-const CAMPOS_DO_CLIENTE = [
-  ['empresa', 'Empresa', 'text', 'organization'],
-  ['responsavel', 'Responsável', 'text', 'name'],
-  ['telefone', 'Telefone com DDD', 'tel', 'tel'],
-  ['documento', 'CNPJ ou CPF', 'text', 'off'],
-  ['email', 'E-mail', 'email', 'email'],
-] as const
-
-/** A mesma conferência da API, para o campo ficar verde ao terminar de digitar. */
-const CONFERE: Record<keyof Cliente, (texto: string) => boolean> = {
-  empresa: (t) => t.trim().length > 0,
-  responsavel: (t) => t.trim().length > 0,
-  telefone: telefoneValido,
-  documento: documentoValido,
-  email: emailValido,
-}
-
-const RECUSA: Record<keyof Cliente, string> = {
-  empresa: 'Digite o nome da empresa.',
-  responsavel: 'Digite o nome do responsável.',
-  telefone: 'DDD e número, como 34 99999-0000.',
-  documento: 'CPF ou CNPJ com dígito errado.',
-  email: 'E-mail incompleto.',
-}
 const DESTINO_VAZIO: DestinoInformado = { tipo: 'Google', lugarNoGoogle: null, link: null }
+
+/** Vazio vai como nulo: a API diferencia "não informado" de texto em branco. */
+const clienteParaEnvio = (c: Cliente) => ({
+  empresa: c.empresa.trim(),
+  responsavel: c.responsavel.trim(),
+  telefone: c.telefone,
+  documento: c.documento.trim() || null,
+  email: c.email.trim() || null,
+})
 
 /**
  * A venda no balcão, um passo por tela, com o botão ao alcance do polegar:
@@ -72,8 +66,7 @@ export function TelaDeNovaVenda() {
   const [passo, setPasso] = useState<Passo>('destino')
   const [codigo, setCodigo] = useState(() => extrairCodigo(parametros.get('codigo') ?? ''))
   const [digitado, setDigitado] = useState(parametros.get('codigo') ?? '')
-  const [cliente, setCliente] = useState<Cliente>(CLIENTE_VAZIO)
-  const [tocados, setTocados] = useState<Partial<Record<keyof Cliente, boolean>>>({})
+  const formularioDoCliente = useForm<Cliente>({ resolver: zodResolver(esquemaDoCliente), mode: 'onChange', defaultValues: CLIENTE_VAZIO })
   const [destino, setDestino] = useState<DestinoInformado>(DESTINO_VAZIO)
   const [lugar, setLugar] = useState<Lugar | null>(null)
   const [produtoId, setProdutoId] = useState('')
@@ -99,8 +92,7 @@ export function TelaDeNovaVenda() {
     irPara('destino')
     setCodigo('')
     setDigitado('')
-    setCliente(CLIENTE_VAZIO)
-    setTocados({})
+    formularioDoCliente.reset(CLIENTE_VAZIO)
     setDestino(DESTINO_VAZIO)
     setLugar(null)
     setValor('')
@@ -111,8 +103,7 @@ export function TelaDeNovaVenda() {
 
   if (venda) return <Resultado venda={venda} aoRecomecar={recomecar} />
 
-  const clientePronto = !!cliente.empresa.trim() && !!cliente.responsavel.trim() && CONFERE.telefone(cliente.telefone)
-    && (!cliente.documento || CONFERE.documento(cliente.documento)) && (!cliente.email || CONFERE.email(cliente.email))
+  const clientePronto = formularioDoCliente.formState.isValid
 
   return (
     <div className="mx-auto grid max-w-md gap-4 pb-24">
@@ -142,7 +133,7 @@ export function TelaDeNovaVenda() {
               lugar={lugar}
               aoEscolherLugar={(achado) => {
                 setLugar(achado)
-                if (achado) setCliente((c) => ({ ...c, empresa: achado.nome }))
+                if (achado) formularioDoCliente.setValue('empresa', achado.nome, { shouldDirty: true, shouldValidate: true })
               }}
             />
           </CardContent>
@@ -157,32 +148,11 @@ export function TelaDeNovaVenda() {
         <Card>
           <CardHeader><CardTitle>Cliente</CardTitle></CardHeader>
           <CardContent className="grid gap-4">
-            {CAMPOS_DO_CLIENTE.map(([campo, rotulo, tipo, auto]) => {
-              const texto = cliente[campo]
-              const conferir = CONFERE[campo]
-              const valido = !!texto.trim() && conferir(texto)
-              const invalido = !!tocados[campo] && !!texto.trim() && !conferir(texto)
-              return (
-                <Field key={campo} data-invalid={invalido}>
-                  <FieldLabel htmlFor={campo}>{rotulo}</FieldLabel>
-                  <div className="relative">
-                    <Input
-                      id={campo}
-                      type={tipo}
-                      autoComplete={auto}
-                      inputMode={campo === 'documento' || campo === 'telefone' ? 'numeric' : undefined}
-                      aria-invalid={invalido}
-                      className={cn('pr-9', valido && 'border-sucesso')}
-                      value={texto}
-                      onBlur={() => setTocados((t) => ({ ...t, [campo]: true }))}
-                      onChange={(e) => setCliente({ ...cliente, [campo]: e.target.value })}
-                    />
-                    {valido && <Check aria-hidden className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-sucesso" />}
-                  </div>
-                  {invalido && <FieldError>{RECUSA[campo]}</FieldError>}
-                </Field>
-              )
-            })}
+            <Campo formulario={formularioDoCliente} nome="empresa" rotulo="Empresa" autoComplete="organization" />
+            <Campo formulario={formularioDoCliente} nome="responsavel" rotulo="Responsável" autoComplete="name" />
+            <Campo formulario={formularioDoCliente} nome="telefone" rotulo="Telefone com DDD" type="tel" inputMode="numeric" autoComplete="tel" />
+            <Campo formulario={formularioDoCliente} nome="documento" rotulo="CNPJ ou CPF" inputMode="numeric" autoComplete="off" />
+            <Campo formulario={formularioDoCliente} nome="email" rotulo="E-mail" type="email" autoComplete="email" />
           </CardContent>
         </Card>
       )}
@@ -208,13 +178,9 @@ export function TelaDeNovaVenda() {
               className="flex-1"
               disabled={!produtoId || vender.isPending || (valor.trim() !== '' && paraCentavos(valor) === null)}
               onClick={() => vender.mutate({
+                ...clienteParaEnvio(formularioDoCliente.getValues()),
                 codigo,
                 produtoId,
-                empresa: cliente.empresa,
-                responsavel: cliente.responsavel,
-                telefone: cliente.telefone,
-                documento: cliente.documento || null,
-                email: cliente.email || null,
                 destino,
                 valorCents: valor.trim() ? paraCentavos(valor) : null,
                 meio: 'Pix',

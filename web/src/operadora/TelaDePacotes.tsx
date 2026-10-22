@@ -1,15 +1,25 @@
-import { type FormEvent, useState } from 'react'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { z } from 'zod'
 import { mensagemDoErro } from '@/api/cliente'
 import type { Pacote } from '@/api/tipos'
+import { Campo } from '@/componentes/Campo'
 import { Cabecalho, Erro, EstadoDaConsulta, Rolagem } from '@/componentes/Tela'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Field, FieldLabel } from '@/components/ui/field'
-import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { formatarCentavos, paraCentavos } from '@/dinheiro/dinheiro'
+import { reais } from '@/lib/esquemas'
 import { useAlterarPacote, useAtivarPacote, useCriarPacote, useExcluirPacote, usePacotesDaOperadora } from './consultas'
+
+const esquema = z.object({
+  quantidade: z.string().trim().regex(/^[1-9]\d{0,4}$/, 'Digite a quantidade de placas.'),
+  preco: reais,
+})
+type Formulario = z.infer<typeof esquema>
+const VAZIO: Formulario = { quantidade: '', preco: '' }
 
 /** Os pacotes que os revendedores podem pedir. O pedido copia quantidade e preço. */
 export function TelaDePacotes() {
@@ -19,23 +29,22 @@ export function TelaDePacotes() {
   const ativar = useAtivarPacote()
   const excluir = useExcluirPacote()
   const [editando, setEditando] = useState<Pacote | null>(null)
-  const [quantidade, setQuantidade] = useState('')
-  const [preco, setPreco] = useState('')
+  const formulario = useForm<Formulario>({ resolver: zodResolver(esquema), mode: 'onChange', defaultValues: VAZIO })
   const erro = criar.error ?? alterar.error ?? ativar.error ?? excluir.error
 
   function editar(pacote: Pacote | null) {
     setEditando(pacote)
-    setQuantidade(pacote ? String(pacote.quantidade) : '')
-    setPreco(pacote ? (pacote.precoCents / 100).toFixed(2).replace('.', ',') : '')
+    formulario.reset(pacote ? { quantidade: String(pacote.quantidade), preco: (pacote.precoCents / 100).toFixed(2).replace('.', ',') } : VAZIO)
   }
 
-  async function salvar(evento: FormEvent) {
-    evento.preventDefault()
-    const precoCents = paraCentavos(preco)
-    if (precoCents === null || !quantidade) return
-    const dados = { quantidade: Number(quantidade), precoCents }
-    await (editando ? alterar.mutateAsync({ id: editando.id, ...dados }) : criar.mutateAsync(dados)).catch(() => undefined)
-    editar(null)
+  async function salvar({ quantidade, preco }: Formulario) {
+    const dados = { quantidade: Number(quantidade), precoCents: paraCentavos(preco)! }
+    try {
+      await (editando ? alterar.mutateAsync({ id: editando.id, ...dados }) : criar.mutateAsync(dados))
+      editar(null)
+    } catch {
+      // O erro aparece pelo estado da gravação, e o formulário fica como estava.
+    }
   }
 
   return (
@@ -84,16 +93,10 @@ export function TelaDePacotes() {
       <Card className="self-start">
         <CardHeader><CardTitle>{editando ? `Editar pacote de ${editando.quantidade}` : 'Novo pacote'}</CardTitle></CardHeader>
         <CardContent>
-          <form className="grid gap-4" onSubmit={salvar}>
-            <Field>
-              <FieldLabel htmlFor="quantidade">Placas</FieldLabel>
-              <Input id="quantidade" inputMode="numeric" value={quantidade} onChange={(e) => setQuantidade(e.target.value.replace(/\D/g, ''))} />
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="preco">Preço do pacote</FieldLabel>
-              <Input id="preco" inputMode="decimal" placeholder="0,00" value={preco} onChange={(e) => setPreco(e.target.value)} />
-            </Field>
-            <Button type="submit" disabled={!quantidade || paraCentavos(preco) === null}>{editando ? 'Salvar pacote' : 'Criar pacote'}</Button>
+          <form className="grid gap-4" onSubmit={formulario.handleSubmit(salvar)} noValidate>
+            <Campo formulario={formulario} nome="quantidade" rotulo="Placas" inputMode="numeric" />
+            <Campo formulario={formulario} nome="preco" rotulo="Preço do pacote" inputMode="decimal" placeholder="0,00" />
+            <Button type="submit" disabled={criar.isPending || alterar.isPending}>{editando ? 'Salvar pacote' : 'Criar pacote'}</Button>
             {editando && <Button type="button" variant="ghost" onClick={() => editar(null)}>Cancelar</Button>}
           </form>
         </CardContent>
