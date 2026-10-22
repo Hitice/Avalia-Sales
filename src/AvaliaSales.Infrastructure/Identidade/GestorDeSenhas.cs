@@ -16,6 +16,9 @@ namespace AvaliaSales.Infrastructure.Identidade;
 public sealed class GestorDeSenhas(BancoDeDados banco, UserManager<Usuario> usuarios, FilaDeEmails emails,
     IOptions<OpcoesDaPlataforma> plataforma, TimeProvider relogio)
 {
+    /// <summary>Intervalo mínimo entre dois e-mails de confirmação; a tela mostra a contagem.</summary>
+    public static readonly TimeSpan EsperaParaReenviar = TimeSpan.FromSeconds(60);
+
     /// <summary>Só para quem ainda não criou a senha; depois disso, o vendedor usa o "esqueci a senha".</summary>
     public async Task<string> Convidar(Guid usuarioId, RemetenteDoEmail revenda, CancellationToken ct)
     {
@@ -62,7 +65,11 @@ public sealed class GestorDeSenhas(BancoDeDados banco, UserManager<Usuario> usua
         await banco.SaveChangesAsync(ct);
     }
 
-    /// <summary>Na mesma transação do cadastro: o e-mail sai só se o cadastro gravar.</summary>
+    /// <summary>
+    /// Na mesma transação do cadastro: o e-mail sai só se o cadastro gravar. Leva
+    /// o código, para digitar na tela, e o link, para quem abre o e-mail em outro
+    /// aparelho. Um pedido por minuto.
+    /// </summary>
     public async Task PedirConfirmacao(Guid usuarioId, CancellationToken ct)
     {
         var usuario = await usuarios.FindByIdAsync(usuarioId.ToString()) ?? throw new RegraDeNegocioException("Login não encontrado.");
@@ -71,17 +78,59 @@ public sealed class GestorDeSenhas(BancoDeDados banco, UserManager<Usuario> usua
             throw new RegraDeNegocioException("Este e-mail já está confirmado.");
         }
 
+        var limite = relogio.GetUtcNow() - EsperaParaReenviar;
+        if (await banco.LinksDeSenha.AnyAsync(l => l.UsuarioId == usuario.Id && l.Finalidade == FinalidadeDoLink.ConfirmacaoDeEmail && l.CriadoEm > limite, ct))
+        {
+            throw new RegraDeNegocioException("Aguarde 1 minuto para pedir outro e-mail.");
+        }
+
         var (link, endereco) = await Emitir(usuario.Id, FinalidadeDoLink.ConfirmacaoDeEmail, ct);
-        emails.Enfileirar($"senha:{link.Id:N}", usuario.Email!, "Confirme seu e-mail",
+        var codigo = link.GerarCodigo();
+        emails.Enfileirar($"senha:{link.Id:N}", usuario.Email!, $"Código de confirmação: {codigo}",
             $"""
             Olá, {usuario.Nome}.
 
-            Confirme que este e-mail é seu para receber o contrato de revenda e os avisos dos pedidos:
+            Seu código para confirmar o e-mail na Avalia Sales: {codigo}
+
+            Ou confirme pelo link:
             {endereco}
 
-            O link vale 2 dias.
+            Vale 2 dias. Se não foi você, ignore este e-mail.
             """);
         await banco.SaveChangesAsync(ct);
+    }
+
+    /// <summary>O código do último e-mail de confirmação, digitado por quem está logado.</summary>
+    public async Task ConfirmarComCodigo(Guid usuarioId, string? codigo, CancellationToken ct)
+    {
+        var agora = relogio.GetUtcNow();
+        await using var transacao = await banco.Database.BeginTransactionAsync(ct);
+        var link = await banco.LinksDeSenha
+            .FromSql($"select * from links_de_senha where usuario_id = {usuarioId} and finalidade = 'ConfirmacaoDeEmail' and encerrado_em is null order by criado_em desc limit 1 for update")
+            .SingleOrDefaultAsync(ct);
+        var usuario = await usuarios.FindByIdAsync(usuarioId.ToString()) ?? throw new RegraDeNegocioException("Login não encontrado.");
+        if (usuario.EmailConfirmed)
+        {
+            return;
+        }
+
+        if (link is null || !link.Valido(agora))
+        {
+            throw new RegraDeNegocioException("Código vencido. Peça outro e-mail.");
+        }
+
+        if (!link.ConfereCodigo(codigo, agora))
+        {
+            await banco.SaveChangesAsync(ct);
+            await transacao.CommitAsync(ct);
+            throw new RegraDeNegocioException(link.Valido(agora) ? "Código não confere." : "Código errado 5 vezes. Peça outro e-mail.");
+        }
+
+        usuario.EmailConfirmed = true;
+        await usuarios.UpdateAsync(usuario);
+        link.Encerrar(agora);
+        await banco.SaveChangesAsync(ct);
+        await transacao.CommitAsync(ct);
     }
 
     public async Task Confirmar(string? token, CancellationToken ct)

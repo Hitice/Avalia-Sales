@@ -67,6 +67,8 @@ public sealed partial class ConfirmacaoDeEmailTest(ApiDeTeste api)
         await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
         var primeiro = Token(await banco.Texto($"select texto from emails where para = '{email}' order by criado_em desc limit 1"));
 
+        await cliente.Postar("/conta/email/confirmacao", new { }, HttpStatusCode.UnprocessableEntity);
+        await PassarUmMinuto(banco, email);
         await cliente.Postar("/conta/email/confirmacao", new { }, HttpStatusCode.NoContent);
         var segundo = Token(await banco.Texto($"select texto from emails where para = '{email}' order by criado_em desc limit 1"));
 
@@ -74,6 +76,47 @@ public sealed partial class ConfirmacaoDeEmailTest(ApiDeTeste api)
         await cliente.Postar("/auth/email", new { token = segundo }, HttpStatusCode.NoContent);
         await cliente.Postar("/conta/email/confirmacao", new { }, HttpStatusCode.UnprocessableEntity);
     }
+
+    [Fact]
+    public async Task Codigo_do_email_confirma_na_tela_e_cinco_erros_encerram()
+    {
+        var email = $"dono-{Guid.NewGuid():N}@teste.com.br";
+        var cliente = api.Fabrica.CreateClient();
+        var entrou = await cliente.Postar("/cadastro", new { empresa = "Revenda Codigo", cnpj = Cnpj(), nome = "Lia", email, senha = ApiDeTeste.Senha });
+        cliente.DefaultRequestHeaders.Authorization = new("Bearer", entrou.GetProperty("token").GetString());
+        await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
+        var codigo = Codigo(await banco.Texto($"select assunto from emails where para = '{email}' order by criado_em desc limit 1"));
+        var errado = codigo == "000000" ? "111111" : "000000";
+
+        for (var i = 0; i < 4; i++)
+        {
+            await cliente.Postar("/conta/email/confirmacao/codigo", new { codigo = errado }, HttpStatusCode.UnprocessableEntity);
+        }
+
+        await cliente.Postar("/conta/email/confirmacao/codigo", new { codigo }, HttpStatusCode.NoContent);
+        var renovado = await cliente.Postar("/auth/renovar", new { });
+        Assert.True(renovado.GetProperty("perfil").GetProperty("emailConfirmado").GetBoolean());
+
+        var outro = $"dono-{Guid.NewGuid():N}@teste.com.br";
+        var segundo = await cliente.Postar("/cadastro", new { empresa = "Revenda Codigo Errado", cnpj = Cnpj(), nome = "Leo", email = outro, senha = ApiDeTeste.Senha });
+        cliente.DefaultRequestHeaders.Authorization = new("Bearer", segundo.GetProperty("token").GetString());
+        var certo = Codigo(await banco.Texto($"select assunto from emails where para = '{outro}' order by criado_em desc limit 1"));
+        var invalido = certo == "000000" ? "111111" : "000000";
+        for (var i = 0; i < 5; i++)
+        {
+            await cliente.Postar("/conta/email/confirmacao/codigo", new { codigo = invalido }, HttpStatusCode.UnprocessableEntity);
+        }
+
+        await cliente.Postar("/conta/email/confirmacao/codigo", new { codigo = certo }, HttpStatusCode.UnprocessableEntity);
+    }
+
+    private static async Task PassarUmMinuto(BancoDeDadosDoDono banco, string email) =>
+        await banco.Texto($"update links_de_senha set criado_em = criado_em - interval '2 minutes' where usuario_id = (select id from usuarios where email = '{email}') returning 1");
+
+    private static string Codigo(string assunto) => CodigoNoAssunto().Match(assunto) is { Success: true } m ? m.Groups[1].Value : throw new Xunit.Sdk.XunitException(assunto);
+
+    [GeneratedRegex(@"(\d{6})$")]
+    private static partial Regex CodigoNoAssunto();
 
     private async Task<IReadOnlyList<string>> Donos(Guid revendedorId)
     {

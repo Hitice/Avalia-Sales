@@ -15,6 +15,7 @@ public sealed record PedidoDeLink(string? Email);
 public sealed record NovaSenha(string? Token, string? Senha);
 
 public sealed record PedidoDeConfirmacao(string? Token);
+public sealed record CodigoDeConfirmacao(string? Codigo);
 
 public sealed record CodigoDaEntrada(string? Desafio, string? Codigo);
 
@@ -93,6 +94,11 @@ public static class RotasDeAcesso
         rotas.MapPost("/conta/email/confirmacao", async (IUsuarioAtual atual, GestorDeSenhas senhas, CancellationToken ct) =>
         {
             await senhas.PedirConfirmacao(atual.UsuarioId ?? throw new InvalidOperationException("Sem usuário."), ct);
+            return Results.NoContent();
+        }).RequireAuthorization().RequireRateLimiting(LimiteDeEntrada);
+        rotas.MapPost("/conta/email/confirmacao/codigo", async (CodigoDeConfirmacao pedido, IUsuarioAtual atual, GestorDeSenhas senhas, CancellationToken ct) =>
+        {
+            await senhas.ConfirmarComCodigo(atual.UsuarioId ?? throw new InvalidOperationException("Sem usuário."), pedido.Codigo, ct);
             return Results.NoContent();
         }).RequireAuthorization().RequireRateLimiting(LimiteDeEntrada);
         rotas.MapPost("/cadastro", Cadastrar).AllowAnonymous().RequireRateLimiting(LimiteDeEntrada).Produces<TokenEmitido>();

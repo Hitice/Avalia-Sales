@@ -178,6 +178,10 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .HasColumnType("character varying(254)")
                         .HasColumnName("para");
 
+                    b.Property<DateTimeOffset?>("ProximaTentativaEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("proxima_tentativa_em");
+
                     b.Property<string>("ResponderPara")
                         .HasMaxLength(254)
                         .HasColumnType("character varying(254)")
@@ -1551,11 +1555,21 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("encerrado_em");
 
+                    b.Property<int>("ErrosDoCodigo")
+                        .HasColumnType("integer")
+                        .HasColumnName("erros_do_codigo");
+
                     b.Property<string>("Finalidade")
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)")
                         .HasColumnName("finalidade");
+
+                    b.Property<string>("HashDoCodigo")
+                        .HasMaxLength(64)
+                        .HasColumnType("character(64)")
+                        .HasColumnName("hash_do_codigo")
+                        .IsFixedLength();
 
                     b.Property<string>("HashDoToken")
                         .IsRequired()

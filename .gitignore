@@ -483,6 +483,10 @@ $RECYCLE.BIN/
 # Vim temporary swap files
 *.swp
 
+# Configuração pessoal e worktrees do Claude Code (o resto de .claude é do projeto)
+.claude/settings.local.json
+.claude/worktrees/
+
 # Segredos locais do Docker Compose
 .env
 *.pem

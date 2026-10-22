@@ -83,7 +83,7 @@ export function EscolhaDeDestino({ valor, aoMudar, nomeSugerido, lugar, aoEscolh
             inputMode="url"
             placeholder="g.page/r/..."
             aria-invalid={linkRecusado}
-            className={cn(valor.link && !linkRecusado && 'border-sucesso')}
+            data-valido={(!!valor.link && !linkRecusado) || undefined}
             value={valor.link ?? ''}
             onChange={(e) => {
               aoEscolherLugar?.(null)

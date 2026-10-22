@@ -345,6 +345,7 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
         {
             l.ToTable("links_de_senha");
             l.Property(x => x.HashDoToken).HasMaxLength(64).IsFixedLength();
+            l.Property(x => x.HashDoCodigo).HasMaxLength(64).IsFixedLength();
             l.Property(x => x.Finalidade).HasConversion<string>().HasMaxLength(20);
             l.HasIndex(x => x.HashDoToken).IsUnique();
             l.HasIndex(x => x.UsuarioId);

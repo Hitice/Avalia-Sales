@@ -7,7 +7,14 @@ namespace AvaliaSales.Domain.Avisos;
 /// </summary>
 public sealed class EmailNaFila
 {
-    public const int TentativasMaximas = 8;
+    /// <summary>
+    /// Com a espera dobrando a cada falha (1 minuto, 2, 4... até 6 horas), 20
+    /// tentativas cobrem uns 3 dias: dá tempo de verificar o domínio ou trocar a
+    /// chave do Resend sem perder o e-mail.
+    /// </summary>
+    public const int TentativasMaximas = 20;
+
+    public static readonly TimeSpan EsperaMaxima = TimeSpan.FromHours(6);
 
     public Guid Id { get; private set; } = Guid.CreateVersion7();
     public string Chave { get; private set; }
@@ -18,6 +25,9 @@ public sealed class EmailNaFila
     public DateTimeOffset? EnviadoEm { get; private set; }
     public string? IdNoResend { get; private set; }
     public int Tentativas { get; private set; }
+
+    /// <summary>Antes disso o Worker não tenta de novo; nulo, tenta na próxima volta.</summary>
+    public DateTimeOffset? ProximaTentativaEm { get; private set; }
 
     /// <summary>Nome da revenda no remetente; nulo, sai como a plataforma.</summary>
     public string? NomeDoRemetente { get; private set; }
@@ -59,9 +69,16 @@ public sealed class EmailNaFila
         CorDaMarca = cor is { Length: 7 } && cor[0] == '#' && cor[1..].All(Uri.IsHexDigit) ? cor.ToLowerInvariant() : null;
     }
 
-    public void RegistrarFalha(string erro)
+    public void RegistrarFalha(string erro, DateTimeOffset agora)
     {
         Tentativas++;
         UltimoErro = erro.Length > 500 ? erro[..500] : erro;
+        ProximaTentativaEm = agora + Espera(Tentativas);
+    }
+
+    public static TimeSpan Espera(int tentativas)
+    {
+        var minutos = Math.Pow(2, Math.Min(tentativas - 1, 16));
+        return TimeSpan.FromMinutes(Math.Min(minutos, EsperaMaxima.TotalMinutes));
     }
 }

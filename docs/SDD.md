@@ -183,7 +183,7 @@ Dinheiro em centavos (`bigint`, colunas `_cents`), taxa em pontos base
 | `vendedores` | Equipe, com o mesmo id do login; comissão própria | RLS |
 | `clientes` | Negócio que comprou: documento, telefone, e-mail, lugar no Google (só o id), anonimizado em | RLS; documento único por revendedor |
 | `vendas` | Placa, cliente, produto, vendedor, valor, tabela, custo e comissão gravados | RLS; uma venda registrada por placa |
-| `emails` | Fila de e-mails com chave única, tentativas e id no Resend | Sem RLS |
+| `emails` | Fila de e-mails com chave única, tentativas, próxima tentativa e id no Resend. A espera dobra a cada falha (1 minuto até 6 horas) e o envio desiste depois de 20, uns 3 dias | Sem RLS |
 | `revendedores` (colunas novas) | CNPJ (único), comissão padrão (2000 = 20%), contrato assinado em | - |
 | `cobrancas` (coluna nova) | `conferida_em`, para a reconsulta de pendente | Índice por origem |
 
@@ -343,7 +343,11 @@ Conferido na referência oficial em 21/10/2026.
   o dono, pagamento a devolver quando chega para pedido já pago ou cancelado,
   confirmação do e-mail do dono, convite do vendedor e troca de senha.
 - Confirmação - `links_de_senha` com finalidade `ConfirmacaoDeEmail` (2 dias),
-  `POST /auth/email` e `POST /conta/email/confirmacao` para reenviar.
+  `POST /auth/email` e `POST /conta/email/confirmacao` para reenviar, recusado
+  antes de 1 minuto do envio anterior. O e-mail leva também um código de 6
+  dígitos (no assunto), digitado na tela por `POST /conta/email/confirmacao/codigo`;
+  o banco guarda só o hash (`hash_do_codigo`, com o id do link) e o quinto erro
+  encerra o link (`erros_do_codigo`).
   `EmailsDosDonos` só devolve e-mail confirmado, então contrato e aviso
   esperam a confirmação. O perfil do token traz `emailConfirmado`.
 
@@ -604,8 +608,6 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
   baixa no aparelho sem `BarcodeDetector`.
 - Mapa dos lugares vendidos (Google Maps JavaScript) e busca de lugar ainda sem
   chave na demonstração; a busca responde pedindo o link colado.
-- Storybook e axe, pedidos pela skill `design-system`, ainda não instalados;
-  entram com o primeiro componente próprio.
 - Rodar o compose de produção pela primeira vez num VPS (não há Docker nesta
   máquina) e o ensaio de restauração do backup.
 - Histórico de destino da placa (o Sales guarda a linha do tempo) e auditoria
@@ -615,6 +617,7 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
 
 | Data | Mudança |
 | --- | --- |
+| 22/10/2026 | Confirmação do e-mail também por código de 6 dígitos (`hash_do_codigo`, `erros_do_codigo` em `links_de_senha`) e reenvio só depois de 1 minuto. Fila de e-mail com `proxima_tentativa_em`, espera dobrando até 6 horas e 20 tentativas. Front - máscaras de CNPJ, CPF, telefone e código (`lib/mascaras.ts`), contorno do campo com o traço da marca no foco e verde quando confere, logo Avalia Sales em SVG (`public/marca`) e favicon do gauge. `.gitignore` com `.claude/settings.local.json` e `.claude/worktrees/`. |
 | 22/10/2026 | Produção no ar em sales.avaliaone.com.br (VPS com Ubuntu 24.04). Backup às 02:00 de Brasília, com cópia por e-mail pelo Resend (`BACKUP_PARA`); o `backup.sh` não estava no Git por causa de uma regra do `.gitignore`. |
 | 22/10/2026 | Dono sem e-mail confirmado só abre `/conta` (claim `email_confirmado` nas políticas Dono e Equipe; o painel mostra só a confirmação). Segundo fator também por código no e-mail (`EmailTokenProvider`, `usuarios.segundo_fator_por_email`, `/auth/entrar/codigo/reenvio`). Aviso de aparelho novo por e-mail (`aparelhos_conhecidos`, cookie `avalia_aparelho` de 2 anos, só o hash). Entrada clara com o logo da AvaliaOne e rodapé com direitos e versão; `Indicador` e `Dados` no design system; tabela no celular em linhas de rótulo e valor. Demonstração com cinco logins e senha `demo-123`; teste de ponta a ponta da jornada entre operadora, revenda e vendedora, com isolamento. |
 | 22/10/2026 | Storybook 10 (`web/.storybook`, histórias ao lado dos componentes, addon a11y, marca da plataforma e de revenda na barra), compilado no CI. |

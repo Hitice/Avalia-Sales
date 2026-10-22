@@ -260,7 +260,9 @@ Todas no mesmo app, liberadas pelo papel do usuário.
 - Contrato só anda para a frente - aguardando assinatura vira assinado ou
   cancelado.
 - O dono só usa o painel depois de confirmar o e-mail: o cadastro manda o link
-  (vale 2 dias) e, até lá, o painel mostra só a confirmação, com reenviar.
+  e um código de 6 dígitos (valem 2 dias) e, até lá, o painel mostra só a
+  confirmação, com campo do código e reenviar depois de 1 minuto. Cinco
+  códigos errados encerram o envio; reenviar manda outro.
   Contrato e avisos também só vão para e-mail confirmado. Conta criada pela
   operadora já nasce confirmada. O vendedor não passa por essa trava.
 - Entrada de aparelho novo na conta gera um e-mail ao dono da conta, com
@@ -422,6 +424,7 @@ O que está pronto no código e só fecha com a conta de verdade:
 
 | Data | Mudança |
 | --- | --- |
+| 22/10/2026 | Confirmação do e-mail por código digitado na tela, além do link, com reenvio depois de 1 minuto. E-mail recusado pelo provedor tenta de novo por uns 3 dias. Campos com máscara (só números em CNPJ, CPF, telefone e código), contorno no traço da marca e verde quando o dado confere. Logo Avalia Sales completo nas telas de entrada e só o gauge dentro do app. |
 | 22/10/2026 | Contrato de revenda formatado, com o logo e os dados da Avalia, em minuta para revisão jurídica. |
 | 22/10/2026 | Webhook da D4Sign aceita JSON além de formulário. Chave pública do Pagar.me e endereço de resposta do e-mail passam pelo compose. |
 | 22/10/2026 | O dono só usa o painel depois de confirmar o e-mail. Segundo fator também por código no e-mail. Aviso por e-mail de acesso de aparelho novo. Entrada clara com o logo da Avalia. |

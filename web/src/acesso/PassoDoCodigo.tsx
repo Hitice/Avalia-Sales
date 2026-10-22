@@ -7,6 +7,7 @@ import { Campo } from '@/componentes/Campo'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { FieldGroup } from '@/components/ui/field'
+import { useEspera } from '@/lib/espera'
 import type { SegundoFatorExigido } from './segundoFator'
 import type { TokenEmitido } from './sessao'
 
@@ -18,12 +19,14 @@ export function PassoDoCodigo({ desafio, aoEntrar }: { desafio: SegundoFatorExig
   const formulario = useForm<Codigo>({ resolver: zodResolver(esquema), defaultValues: { codigo: '' } })
   const { errors, isSubmitting } = formulario.formState
   const [reenviado, setReenviado] = useState(false)
+  const espera = useEspera(60, desafio.meio === 'Email')
   const porEmail = desafio.meio === 'Email'
 
   async function reenviar() {
     try {
       await chamarApi('/auth/entrar/codigo/reenvio', enviarJson('POST', { desafio: desafio.desafio }))
       setReenviado(true)
+      espera.iniciar()
     } catch (e) {
       formulario.setError('root', { message: e instanceof ErroDaApi ? e.message : 'Sem conexão com o servidor.' })
     }
@@ -44,7 +47,11 @@ export function PassoDoCodigo({ desafio, aoEntrar }: { desafio: SegundoFatorExig
         <Campo formulario={formulario} nome="codigo" rotulo={porEmail ? `Código enviado para ${desafio.destino ?? 'seu e-mail'}` : 'Código do app autenticador'}
           inputMode="numeric" autoComplete="one-time-code" autoFocus conferir={false} />
         <Button type="submit" size="lg" disabled={isSubmitting}>{isSubmitting ? 'Conferindo...' : 'Entrar'}</Button>
-        {porEmail && <Button type="button" variant="ghost" onClick={reenviar}>{reenviado ? 'Código reenviado' : 'Reenviar código'}</Button>}
+        {porEmail && (
+          <Button type="button" variant="ghost" onClick={reenviar} disabled={espera.esperando}>
+            {espera.esperando ? `Reenviar em ${espera.restante} s` : reenviado ? 'Reenviar de novo' : 'Reenviar código'}
+          </Button>
+        )}
       </FieldGroup>
     </form>
   )

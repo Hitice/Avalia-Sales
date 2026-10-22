@@ -19,6 +19,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { formatarCentavos, paraCentavos } from '@/dinheiro/dinheiro'
 import { type ConfiguracaoDoCartao, cartaoValido, tokenizarCartao, validadeValida } from '@/lib/cartao'
 import { documentoOpcional, emailOpcional, telefone, texto } from '@/lib/esquemas'
+import { digitos, mascaraDocumento, mascaraTelefone } from '@/lib/mascaras'
 import { z } from 'zod'
 import { Campo } from '@/componentes/Campo'
 import { extrairCodigo } from './codigo'
@@ -61,8 +62,8 @@ const DESTINO_VAZIO: DestinoInformado = { tipo: 'Google', lugarNoGoogle: null, l
 const clienteParaEnvio = (c: Cliente) => ({
   empresa: c.empresa.trim(),
   responsavel: c.responsavel.trim(),
-  telefone: c.telefone,
-  documento: c.documento.trim() || null,
+  telefone: digitos(c.telefone),
+  documento: digitos(c.documento) || null,
   email: c.email.trim() || null,
 })
 
@@ -205,8 +206,8 @@ export function TelaDeNovaVenda() {
           <CardContent className="grid gap-4">
             <Campo formulario={formularioDoCliente} nome="empresa" rotulo="Empresa" autoComplete="organization" />
             <Campo formulario={formularioDoCliente} nome="responsavel" rotulo="Responsável" autoComplete="name" />
-            <Campo formulario={formularioDoCliente} nome="telefone" rotulo="Telefone com DDD" type="tel" inputMode="numeric" autoComplete="tel" />
-            <Campo formulario={formularioDoCliente} nome="documento" rotulo="CNPJ ou CPF" inputMode="numeric" autoComplete="off" />
+            <Campo formulario={formularioDoCliente} nome="telefone" rotulo="Telefone com DDD" type="tel" inputMode="numeric" autoComplete="tel" mascara={mascaraTelefone} />
+            <Campo formulario={formularioDoCliente} nome="documento" rotulo="CNPJ ou CPF" inputMode="numeric" autoComplete="off" mascara={mascaraDocumento} />
             <Campo formulario={formularioDoCliente} nome="email" rotulo="E-mail" type="email" autoComplete="email" />
           </CardContent>
         </Card>

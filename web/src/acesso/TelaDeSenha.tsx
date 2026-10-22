@@ -103,7 +103,7 @@ export function TelaEsqueci() {
   return (
     <Moldura titulo="Esqueci a senha">
       {enviado
-        ? <p role="status" className="text-sm">Se o e-mail tiver cadastro, o link chega em alguns minutos. Vale 1 hora.</p>
+        ? <p role="status" className="text-sm">Se o e-mail for válido, o link chegará em breve.</p>
         : (
             <form onSubmit={formulario.handleSubmit(pedir)} noValidate>
               <FieldGroup>

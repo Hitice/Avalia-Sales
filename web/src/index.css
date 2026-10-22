@@ -85,3 +85,28 @@
 @utility traco {
   background-image: var(--traco);
 }
+
+/*
+ * Contorno do campo: no foco, o traço da marca (o da revenda, no white label);
+ * conferido, verde, mesmo em foco; com erro, vermelho.
+ */
+@utility contorno-de-campo {
+  &[data-valido] {
+    border-color: var(--sucesso);
+  }
+  &:focus-visible {
+    border-color: transparent;
+    background: linear-gradient(var(--card), var(--card)) padding-box, var(--traco) border-box;
+    box-shadow: 0 0 0 3px color-mix(in oklch, var(--primary) 14%, transparent);
+  }
+  &[data-valido]:focus-visible {
+    border-color: var(--sucesso);
+    background: var(--card);
+    box-shadow: 0 0 0 3px color-mix(in oklch, var(--sucesso) 22%, transparent);
+  }
+  &[aria-invalid="true"]:focus-visible {
+    border-color: var(--destructive);
+    background: var(--card);
+    box-shadow: 0 0 0 3px color-mix(in oklch, var(--destructive) 22%, transparent);
+  }
+}

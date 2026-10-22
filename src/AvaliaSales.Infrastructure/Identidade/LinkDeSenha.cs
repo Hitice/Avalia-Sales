@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+
 namespace AvaliaSales.Infrastructure.Identidade;
 
 public enum FinalidadeDoLink
@@ -36,6 +38,17 @@ public sealed class LinkDeSenha
     public DateTimeOffset VenceEm { get; private set; }
     public DateTimeOffset? EncerradoEm { get; private set; }
 
+    /// <summary>
+    /// Código de 6 dígitos que vai no e-mail de confirmação junto com o link:
+    /// digitado na mesma tela, não depende de o link abrir no navegador logado.
+    /// Hash com o id do link; 5 erros encerram o link.
+    /// </summary>
+    public string? HashDoCodigo { get; private set; }
+
+    public int ErrosDoCodigo { get; private set; }
+
+    public const int ErrosMaximosDoCodigo = 5;
+
     private LinkDeSenha() => HashDoToken = string.Empty;
 
     private LinkDeSenha(Guid usuarioId, FinalidadeDoLink finalidade, string hash, DateTimeOffset agora)
@@ -54,6 +67,33 @@ public sealed class LinkDeSenha
     }
 
     public bool Valido(DateTimeOffset agora) => EncerradoEm is null && agora < VenceEm;
+
+    public string GerarCodigo()
+    {
+        var codigo = RandomNumberGenerator.GetInt32(0, 1_000_000).ToString("D6", System.Globalization.CultureInfo.InvariantCulture);
+        HashDoCodigo = HashCom(codigo);
+        return codigo;
+    }
+
+    /// <summary>Confere o código; o erro conta, e o quinto encerra o link.</summary>
+    public bool ConfereCodigo(string? codigo, DateTimeOffset agora)
+    {
+        var limpo = new string((codigo ?? string.Empty).Where(char.IsAsciiDigit).ToArray());
+        if (HashDoCodigo is not null && limpo.Length == 6
+            && CryptographicOperations.FixedTimeEquals(Convert.FromHexString(HashCom(limpo)), Convert.FromHexString(HashDoCodigo)))
+        {
+            return true;
+        }
+
+        if (++ErrosDoCodigo >= ErrosMaximosDoCodigo)
+        {
+            Encerrar(agora);
+        }
+
+        return false;
+    }
+
+    private string HashCom(string codigo) => Sessao.Hash($"{Id:N}:{codigo}");
 
     public void Encerrar(DateTimeOffset agora) => EncerradoEm ??= agora;
 }

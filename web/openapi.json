@@ -17,6 +17,28 @@
         }
       }
     },
+    "/conta/email/confirmacao/codigo": {
+      "post": {
+        "tags": [
+          "AvaliaSales.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CodigoDeConfirmacao"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/cadastro": {
       "post": {
         "tags": [
@@ -2957,6 +2979,20 @@
               "string"
             ]
           },
+          "codigo": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "CodigoDeConfirmacao": {
+        "required": [
+          "codigo"
+        ],
+        "type": "object",
+        "properties": {
           "codigo": {
             "type": [
               "null",

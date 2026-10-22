@@ -6,18 +6,20 @@ import { chamarApi, mensagemDoErro } from '@/api/cliente'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
-import { Input } from '@/components/ui/input'
+import { FieldGroup } from '@/components/ui/field'
+import { Campo } from '@/componentes/Campo'
+import { email, senhaNova, texto } from '@/lib/esquemas'
+import { digitos, mascaraCnpj } from '@/lib/mascaras'
 import { cnpjValido } from './documentos'
 import { type TokenEmitido, useSessao } from './sessao'
 import { MarcaAvalia } from '@/componentes/MarcaAvalia'
 
 const esquema = z.object({
-  empresa: z.string().trim().min(1, 'Digite o nome da empresa.').max(120, 'Use até 120 caracteres.'),
-  cnpj: z.string().refine(cnpjValido, 'Confira o CNPJ: são 14 números.'),
-  nome: z.string().trim().min(1, 'Digite seu nome.').max(120, 'Use até 120 caracteres.'),
-  email: z.email('Digite um e-mail válido.'),
-  senha: z.string().min(10, 'A senha precisa ter 10 caracteres ou mais.'),
+  empresa: texto('o nome da empresa'),
+  cnpj: z.string().refine(cnpjValido, 'CNPJ com dígito errado.'),
+  nome: texto('seu nome'),
+  email,
+  senha: senhaNova,
 })
 
 type Cadastro = z.infer<typeof esquema>
@@ -26,25 +28,17 @@ type Cadastro = z.infer<typeof esquema>
 export function TelaDeCadastro() {
   const entrar = useSessao((s) => s.entrar)
   const navegar = useNavigate()
-  const formulario = useForm<Cadastro>({ resolver: zodResolver(esquema), defaultValues: { empresa: '', cnpj: '', nome: '', email: '', senha: '' } })
+  const formulario = useForm<Cadastro>({ resolver: zodResolver(esquema), mode: 'onChange', defaultValues: { empresa: '', cnpj: '', nome: '', email: '', senha: '' } })
   const { errors, isSubmitting } = formulario.formState
 
   async function cadastrar(dados: Cadastro) {
     try {
-      entrar(await chamarApi<TokenEmitido>('/cadastro', { method: 'POST', body: JSON.stringify(dados) }))
+      entrar(await chamarApi<TokenEmitido>('/cadastro', { method: 'POST', body: JSON.stringify({ ...dados, cnpj: digitos(dados.cnpj), email: dados.email.trim() }) }))
       navegar('/painel/inicio', { replace: true })
     } catch (erro) {
       formulario.setError('root', { message: mensagemDoErro(erro) })
     }
   }
-
-  const campo = (nome: keyof Cadastro, rotulo: string, tipo = 'text', autoComplete?: string) => (
-    <Field data-invalid={!!errors[nome]}>
-      <FieldLabel htmlFor={nome}>{rotulo}</FieldLabel>
-      <Input id={nome} type={tipo} autoComplete={autoComplete} aria-invalid={!!errors[nome]} {...formulario.register(nome)} />
-      <FieldError errors={[errors[nome]]} />
-    </Field>
-  )
 
   return (
     <main className="flex min-h-svh flex-col items-center justify-center gap-6 p-4">
@@ -58,11 +52,11 @@ export function TelaDeCadastro() {
           <form onSubmit={formulario.handleSubmit(cadastrar)} noValidate>
             <FieldGroup>
               {errors.root && <Alert variant="destructive"><AlertDescription>{errors.root.message}</AlertDescription></Alert>}
-              {campo('empresa', 'Empresa', 'text', 'organization')}
-              {campo('cnpj', 'CNPJ')}
-              {campo('nome', 'Seu nome', 'text', 'name')}
-              {campo('email', 'E-mail', 'email', 'email')}
-              {campo('senha', 'Senha', 'password', 'new-password')}
+              <Campo formulario={formulario} nome="empresa" rotulo="Empresa" autoComplete="organization" />
+              <Campo formulario={formulario} nome="cnpj" rotulo="CNPJ" inputMode="numeric" placeholder="00.000.000/0000-00" mascara={mascaraCnpj} />
+              <Campo formulario={formulario} nome="nome" rotulo="Seu nome" autoComplete="name" />
+              <Campo formulario={formulario} nome="email" rotulo="E-mail" type="email" autoComplete="email" />
+              <Campo formulario={formulario} nome="senha" rotulo="Senha" type="password" autoComplete="new-password" />
               <Button type="submit" size="lg" disabled={isSubmitting}>{isSubmitting ? 'Cadastrando...' : 'Cadastrar'}</Button>
             </FieldGroup>
           </form>

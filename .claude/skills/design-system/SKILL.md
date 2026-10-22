@@ -51,6 +51,13 @@ A marca do revendedor sobrescreve só essas variáveis:
 
 Não há cor por usuário. Login e área da Avalia usam a marca da plataforma.
 
+Logo da plataforma em `web/public/marca`, em SVG e com o texto em curvas:
+`avaliasales.svg` (gauge e "AvaliaSales") só nas telas de entrada (entrar,
+cadastro, senha), pelo `MarcaAvalia`; `gauge.svg` no cabeçalho de quem não tem
+logo próprio; `favicon.svg` é o gauge com o ponteiro claro em aba escura. O
+"Avalia" e o gauge vêm do logo da Avalia; o "Sales" é Ubuntu Medium na escala do
+"One" original. Revenda com logo usa o dela no cabeçalho.
+
 As variáveis de base (marca da plataforma, escala de espaço, raio e tipo) ficam
 num arquivo só, `src/estilos/tokens.css`. Se um dia outro consumidor precisar
 delas, como e-mail ou PDF, elas passam para JSON no formato W3C Design Tokens e
@@ -72,7 +79,10 @@ Até lá, um arquivo CSS basta.
 - Formulário de cadastro com React Hook Form + Zod (`mode: 'onChange'`) e o
   componente `componentes/Campo.tsx`: erro embaixo do campo ao sair dele ou ao
   enviar, `aria-invalid`, e borda verde com o ícone de conferido quando o dado
-  passa. As regras de campo (e-mail, telefone, CPF ou CNPJ, dinheiro,
+  passa (`data-valido`; a classe `contorno-de-campo` do `index.css` põe o traço
+  da marca no foco e mantém o verde e o vermelho por cima dele). Documento,
+  telefone e código usam `mascara` (`lib/mascaras.ts`): só dígitos, com a
+  pontuação, e a API recebe só os dígitos. As regras de campo (e-mail, telefone, CPF ou CNPJ, dinheiro,
   percentual, senha) moram em `lib/esquemas.ts`, iguais às da API. Filtro,
   busca e campo único dentro da linha ficam em estado simples.
 
@@ -152,5 +162,4 @@ Conferidas na API do GitHub e no npm em 21/10/2026, pelo critério da skill
 
 Estado em 22/10/2026: traço, Inter Display, navegação por tamanho e tabela em cartão no celular; axe no Playwright (`web/e2e`) em todas as telas do dono e nos fluxos de venda e convite. Storybook 10 (`npm run storybook`, porta 6006) com o addon de acessibilidade em modo erro e a troca de marca na barra (plataforma ou revenda); histórias de botão, campo, tabela (computador e celular), histórico e NFC. O CI compila o catálogo. Em 21/10/2026 o front tinha as telas das Fases 1 a 3 e a marca do revendedor aplicada nas variáveis (`web/src/marca`). Tokens
 em `web/src/estilos/tokens.css`; toque de 44 px aplicado nos tamanhos de
-`components/ui/button.tsx` e `input.tsx`; anel de foco em cor cheia. Storybook e
-axe ainda não instalados (pendência no SDD).
+`components/ui/button.tsx` e `input.tsx`; anel de foco em cor cheia.

@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { percentualOpcional, senhaOpcional, telefoneOpcional, texto } from '@/lib/esquemas'
+import { digitos, mascaraTelefone } from '@/lib/mascaras'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useAlterarVendedor, useAtivarVendedor, useComissaoPadrao, useConvidarVendedor, useCriarVendedor, useEquipe, useExcluirVendedor, useMinhaRevenda } from './consultas'
 
@@ -75,13 +76,13 @@ export function TelaDaEquipe() {
   function editar(v: Vendedor | null) {
     setEditando(v)
     formulario.reset(v
-      ? { ...VAZIO, novo: false, nome: v.nome, email: v.email, telefone: v.telefone ?? '', chavePix: v.chavePix ?? '', comissao: v.comissaoBps === null ? '' : String(v.comissaoBps / 100).replace('.', ',') }
+      ? { ...VAZIO, novo: false, nome: v.nome, email: v.email, telefone: mascaraTelefone(v.telefone ?? ''), chavePix: v.chavePix ?? '', comissao: v.comissaoBps === null ? '' : String(v.comissaoBps / 100).replace('.', ',') }
       : VAZIO)
   }
 
   async function salvar(dados: Formulario) {
     const comissaoBps = dados.comissao.trim() ? paraBps(dados.comissao) : null
-    const comum = { nome: dados.nome, telefone: dados.telefone || null, chavePix: dados.chavePix || null, comissaoBps }
+    const comum = { nome: dados.nome, telefone: digitos(dados.telefone) || null, chavePix: dados.chavePix || null, comissaoBps }
     try {
       if (editando) await alterar.mutateAsync({ id: editando.id, ...comum })
       else {
@@ -150,7 +151,7 @@ export function TelaDaEquipe() {
               <Campo formulario={formulario} nome="nome" rotulo="Nome" autoComplete="off" />
               {!editando && <Campo formulario={formulario} nome="email" rotulo="E-mail de acesso" type="email" autoComplete="off" />}
               {!editando && <Campo formulario={formulario} nome="senha" rotulo="Senha inicial" type="password" autoComplete="new-password" placeholder="Em branco envia convite" />}
-              <Campo formulario={formulario} nome="telefone" rotulo="Telefone" type="tel" inputMode="numeric" />
+              <Campo formulario={formulario} nome="telefone" rotulo="Telefone" type="tel" inputMode="numeric" mascara={mascaraTelefone} />
               <Campo formulario={formulario} nome="chavePix" rotulo="Chave Pix da comissão" conferir={false} />
               <Campo formulario={formulario} nome="comissao" rotulo="Comissão (%)" inputMode="decimal" placeholder="Em branco usa a padrão" />
               <Button type="submit" disabled={criar.isPending || alterar.isPending}>{editando ? 'Salvar vendedor' : 'Cadastrar vendedor'}</Button>

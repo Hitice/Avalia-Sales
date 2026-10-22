@@ -21,8 +21,10 @@ public sealed partial class EnvioDeEmails(BancoDeDados banco, IEnvioDeEmail envi
             return 0;
         }
 
+        var agora = relogio.GetUtcNow();
         var pendentes = await banco.Emails
-            .Where(e => e.EnviadoEm == null && e.Tentativas < Domain.Avisos.EmailNaFila.TentativasMaximas)
+            .Where(e => e.EnviadoEm == null && e.Tentativas < Domain.Avisos.EmailNaFila.TentativasMaximas
+                && (e.ProximaTentativaEm == null || e.ProximaTentativaEm <= agora))
             .OrderBy(e => e.CriadoEm)
             .Take(lote)
             .ToListAsync(ct);
@@ -39,7 +41,7 @@ public sealed partial class EnvioDeEmails(BancoDeDados banco, IEnvioDeEmail envi
             catch (IntegracaoException erro)
             {
                 LogFalha(log, email.Id, erro);
-                email.RegistrarFalha(erro.Message);
+                email.RegistrarFalha(erro.Message, relogio.GetUtcNow());
             }
 
             await banco.SaveChangesAsync(ct);

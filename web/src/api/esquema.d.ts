@@ -37,6 +37,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/conta/email/confirmacao/codigo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CodigoDeConfirmacao"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/cadastro": {
         parameters: {
             query?: never;
@@ -3678,6 +3715,9 @@ export interface components {
         };
         CodigoDaEntrada: {
             desafio: null | string;
+            codigo: null | string;
+        };
+        CodigoDeConfirmacao: {
             codigo: null | string;
         };
         CodigoDoAutenticador: {
