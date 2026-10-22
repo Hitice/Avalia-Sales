@@ -1,0 +1,60 @@
+name: Deploy
+
+# Publica no VPS depois do CI verde no main, pelo runner próprio instalado no
+# servidor. O ambiente "producao" pede aprovação no GitHub antes de rodar.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      versao:
+        description: Commit a publicar (vazio publica o último do main). Voltar é publicar o commit anterior.
+        required: false
+
+concurrency:
+  group: deploy-producao
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: [self-hosted, linux, avalia-sales]
+    environment:
+      name: producao
+      url: https://${{ vars.DOMINIO }}
+    env:
+      VERSAO: ${{ github.event.inputs.versao || github.event.workflow_run.head_sha || github.sha }}
+      ENV_FILE: /srv/avalia-sales/.env
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.VERSAO }}
+
+      - name: Imagens da versão
+        run: docker compose -f docker-compose.producao.yml --env-file "$ENV_FILE" build
+
+      # migrar roda antes de API e Worker (depends_on); migration é só aditiva, então a versão anterior continua lendo o banco.
+      - name: Subir
+        run: docker compose -f docker-compose.producao.yml --env-file "$ENV_FILE" up -d --remove-orphans
+
+      - name: Conferir saúde pelo domínio
+        run: |
+          for tentativa in $(seq 1 30); do
+            if curl -fsS "https://${{ vars.DOMINIO }}/api/health" >/dev/null; then
+              echo "no ar: $VERSAO"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::A API não respondeu /health depois de 150 s. Volte com o commit anterior (docs/OPERACAO.md)."
+          docker compose -f docker-compose.producao.yml --env-file "$ENV_FILE" logs --tail 100 api
+          exit 1
+
+      - name: Limpar imagens velhas
+        if: success()
+        run: docker image prune -f --filter "until=168h"

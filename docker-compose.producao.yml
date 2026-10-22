@@ -1,0 +1,143 @@
+# Produção no VPS: Nginx com Let's Encrypt na frente, API, Worker, Postgres e
+# backup diário. Só o Nginx publica porta. Segredos no .env do servidor (modelo
+# em .env.example); a versão das imagens vem de VERSAO (o commit publicado), e
+# voltar é subir de novo com a VERSAO anterior (docs/OPERACAO.md).
+name: avalia-sales
+
+x-integracoes: &integracoes
+  ASPNETCORE_ENVIRONMENT: Production
+  DOTNET_ENVIRONMENT: Production
+  Proxy__AtrasDoNginx: "true"
+  Sentry__Dsn: ${SENTRY_DSN:-}
+  Pagarme__ChaveSecreta: ${PAGARME_CHAVE_SECRETA:?defina PAGARME_CHAVE_SECRETA}
+  Pagarme__RecebedorAvalia: ${PAGARME_RECEBEDOR_AVALIA:?defina PAGARME_RECEBEDOR_AVALIA}
+  Pagarme__SegredoDoWebhook: ${PAGARME_SEGREDO_DO_WEBHOOK:?defina PAGARME_SEGREDO_DO_WEBHOOK}
+  D4Sign__UrlBase: ${D4SIGN_URL_BASE:-https://sandbox.d4sign.com.br/api/v1/}
+  D4Sign__TokenApi: ${D4SIGN_TOKEN_API:?defina D4SIGN_TOKEN_API}
+  D4Sign__CryptKey: ${D4SIGN_CRYPT_KEY:-}
+  D4Sign__SegredoHmac: ${D4SIGN_SEGREDO_HMAC:?defina D4SIGN_SEGREDO_HMAC}
+  D4Sign__Cofre: ${D4SIGN_COFRE:?defina D4SIGN_COFRE}
+  D4Sign__UrlDoWebhook: https://${DOMINIO}/webhooks/d4sign
+  Plataforma__UrlPublica: https://${DOMINIO}
+  Plataforma__UrlDoPainel: https://${DOMINIO}
+  Plataforma__EmailDaOperadora: ${PLATAFORMA_EMAIL_DA_OPERADORA:?defina PLATAFORMA_EMAIL_DA_OPERADORA}
+  Resend__ChaveApi: ${RESEND_CHAVE_API:-}
+  Resend__Remetente: ${RESEND_REMETENTE:-}
+  Google__ChaveDoServidor: ${GOOGLE_CHAVE_DO_SERVIDOR:-}
+  Google__ChaveDoMapa: ${GOOGLE_CHAVE_DO_MAPA:-}
+  Google__IdDoMapa: ${GOOGLE_ID_DO_MAPA:-DEMO_MAP_ID}
+  Protheus__UrlBase: ${PROTHEUS_URL_BASE:-}
+  Protheus__Usuario: ${PROTHEUS_USUARIO:-}
+  Protheus__Senha: ${PROTHEUS_SENHA:-}
+  ConnectionStrings__Banco: Host=postgres;Database=avalia_sales;Username=avalia_app;Password=${PG_SENHA_APLICACAO}
+
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: avalia_dono
+      POSTGRES_PASSWORD: ${PG_SENHA_DONO:?defina PG_SENHA_DONO}
+      POSTGRES_DB: avalia_sales
+      PG_SENHA_APLICACAO: ${PG_SENHA_APLICACAO:?defina PG_SENHA_APLICACAO}
+    volumes:
+      - dados-postgres:/var/lib/postgresql/data
+      - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U avalia_dono -d avalia_sales"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  migrar:
+    image: avalia-sales-api:${VERSAO:-local}
+    build:
+      context: .
+      target: api
+    command: ["--migrar"]
+    environment:
+      ConnectionStrings__Dono: Host=postgres;Database=avalia_sales;Username=avalia_dono;Password=${PG_SENHA_DONO}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    image: avalia-sales-api:${VERSAO:-local}
+    environment:
+      <<: *integracoes
+      Jwt__Chave: ${JWT_CHAVE:?defina JWT_CHAVE, com 32 caracteres ou mais}
+    depends_on:
+      migrar:
+        condition: service_completed_successfully
+    healthcheck:
+      # A imagem aspnet não tem wget nem curl: a própria API confere o /health e sai.
+      test: ["CMD", "dotnet", "AvaliaSales.Api.dll", "--saude"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+  worker:
+    image: avalia-sales-worker:${VERSAO:-local}
+    build:
+      context: .
+      target: worker
+    environment:
+      <<: *integracoes
+    depends_on:
+      migrar:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  nginx:
+    image: avalia-sales-nginx:${VERSAO:-local}
+    build:
+      context: .
+      dockerfile: infra/nginx/Dockerfile
+      args:
+        VITE_SENTRY_DSN: ${SENTRY_DSN_DO_FRONT:-}
+    environment:
+      DOMINIO: ${DOMINIO:?defina DOMINIO, como sales.avaliaone.com.br}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - certificados:/etc/letsencrypt
+      - desafio-acme:/var/www/certbot
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Renova o certificado duas vezes por dia; o Nginx relê a cada 6 horas.
+  certbot:
+    image: certbot/certbot:v5.8.0
+    volumes:
+      - certificados:/etc/letsencrypt
+      - desafio-acme:/var/www/certbot
+    entrypoint: ["/bin/sh", "-c", "trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 12h & wait $${!}; done"]
+    restart: unless-stopped
+
+  backup:
+    image: postgres:17
+    environment:
+      PGHOST: postgres
+      PGUSER: avalia_dono
+      PGPASSWORD: ${PG_SENHA_DONO}
+      PGDATABASE: avalia_sales
+      BACKUP_DIAS: ${BACKUP_DIAS:-14}
+    entrypoint: ["/bin/sh", "/backup.sh"]
+    volumes:
+      - ./infra/backup/backup.sh:/backup.sh:ro
+      - ${PASTA_DE_BACKUP:-./backups}:/backups
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  dados-postgres:
+  certificados:
+  desafio-acme:

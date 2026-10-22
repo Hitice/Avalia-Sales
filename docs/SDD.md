@@ -23,8 +23,8 @@ Cada seção diz o que já está no código e o que ainda é plano.
 | ERP | Protheus por contrato REST próprio, com simulador | - | No código |
 | Mapa | Google Maps JavaScript pelo `@googlemaps/js-api-loader`, marcador avançado | loader 2.1.3, tipos 3.66.5 | No código; sem chave, lista |
 | Documentação da API | OpenAPI do ASP.NET Core em `/openapi/v1.json` e Swagger UI em `/swagger`, só em Development | OpenApi 10.0.13, Swashbuckle.AspNetCore.SwaggerUI 10.3.0 | No código |
-| Infra | Linux, Docker Compose, Nginx, Let's Encrypt | - | Compose e Dockerfile no repositório |
-| CI | GitHub Actions, self-hosted runner no deploy, SonarCloud, Sentry | - | CI de build e teste no repositório |
+| Infra | Linux, Docker Compose, Nginx, Let's Encrypt (certbot) | nginx 1.28, certbot 5.8.0, postgres 17 | Compose de produção no repositório; não rodado aqui (sem Docker na máquina) |
+| CI e CD | GitHub Actions, runner próprio no deploy, SonarCloud, Sentry | sonarscanner 11.3.0, Sentry 6.12.0 e 11.5.0 | No repositório; deploy e SonarCloud esperam o VPS e o token |
 
 A versão do .NET e a de cada pacote moram só em `Directory.Build.props` e
 `Directory.Packages.props`.
@@ -447,8 +447,14 @@ Revisão pela skill `seguranca` (OWASP ASVS 5.0).
   A configuração das integrações é obrigatória: sem ela, API e Worker não
   sobem. Segredos no `.env`, modelo em `.env.example`. Ainda não rodado nesta
   máquina, que não tem Docker.
-- Produção - VPS Linux com Compose, Nginx e Let's Encrypt, um domínio para
-  todos os revendedores.
+- Produção - `docker-compose.producao.yml`: Nginx (front compilado, TLS do
+  Let's Encrypt, `/api/` com WebSocket, `/q/` e `/webhooks/` para a API, sem
+  versão no cabeçalho, HSTS, nosniff, Permissions-Policy só com câmera e NFC),
+  certbot renovando, API, Worker, `migrar`, Postgres e backup diário com
+  `pg_dump`. Só o Nginx publica porta. A API confia nos cabeçalhos
+  `X-Forwarded-*` de um salto (`Proxy:AtrasDoNginx`), para o limite por IP e o
+  cookie `Secure`. Healthcheck pela própria API (`--saude`), porque a imagem
+  `aspnet` não tem wget nem curl. Manual em [OPERACAO.md](OPERACAO.md).
 - Rodar sem Docker - a API aceita `--migrar` (com `ConnectionStrings__Dono`),
   `--demonstracao` (só em Development: operadora, pacotes, lotes, duas revendas,
   pedidos em cada etapa, equipe, vendas pagas e pendentes e leituras, tudo
@@ -484,8 +490,15 @@ Revisão pela skill `seguranca` (OWASP ASVS 5.0).
   local usa.
 - Teste de trava de segurança é conferido desligando a trava e vendo o teste
   falhar.
-- Plano - SonarCloud no pull request, Sentry na API e no Worker, deploy no VPS
-  pelo runner próprio com aprovação manual.
+- SonarCloud - job `qualidade` no CI com `dotnet-sonarscanner` 11.3.0; só
+  roda com o segredo `SONAR_TOKEN` e as variáveis `SONAR_ORGANIZACAO` e
+  `SONAR_PROJETO`, senão avisa e passa.
+- Deploy - workflow `Deploy` no runner próprio do VPS depois do CI verde no
+  `main`, com aprovação do ambiente `producao`; imagens marcadas pelo commit;
+  confere `/api/health` pelo domínio. Voltar é publicar o commit anterior.
+- Sentry - `Sentry.AspNetCore` e `Sentry.Extensions.Logging` 6.12.0 e
+  `@sentry/react` 11.5.0, ligados só com DSN, sem dado pessoal; no front, o
+  SDK é carregado à parte só quando há DSN.
 
 ## 11. Decisões técnicas
 
@@ -536,7 +549,8 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
   chave na demonstração; a busca responde pedindo o link colado.
 - Storybook e axe, pedidos pela skill `design-system`, ainda não instalados;
   entram com o primeiro componente próprio.
-- Nginx com `/api/`, `/q/` e `/webhooks/` para a API e o resto para o front.
+- Rodar o compose de produção pela primeira vez num VPS (não há Docker nesta
+  máquina) e o ensaio de restauração do backup.
 - Histórico de destino da placa (o Sales guarda a linha do tempo) e auditoria
   das ações do dono e da operadora.
 
@@ -544,6 +558,7 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
 
 | Data | Mudança |
 | --- | --- |
+| 21/10/2026 | Produção - compose com Nginx e certbot, backup diário, healthcheck pela API, cabeçalhos encaminhados, workflow de deploy no runner próprio com aprovação, SonarCloud opcional no CI, Sentry opcional na API, Worker e front, manual de operação. Moldura do front carregada depois do login. |
 | 21/10/2026 | Mapa dos lugares vendidos (Google Maps JavaScript com lista quando falta a chave) e chat entre revendedor e operadora, com a regra de gravação da operadora nas tabelas atendidas. |
 | 21/10/2026 | White label - marca do revendedor (nome, cores e logo em tabela própria com RLS), rotas `/marca` e `/revenda/marca`, tela Marca com prévia, cores aplicadas nas variáveis do tema. |
 | 21/10/2026 | Fase 3, primeira parte - avisos ao vivo (SignalR com LISTEN/NOTIFY), Protheus por contrato REST e simulador com fila no Worker, tela do ERP da operadora. |

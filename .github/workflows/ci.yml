@@ -57,6 +57,32 @@ jobs:
       - run: npm test
       - run: npx vite build
 
+  # SonarCloud só com o segredo SONAR_TOKEN e as variáveis SONAR_ORGANIZACAO e
+  # SONAR_PROJETO; sem eles, o passo avisa e sai sem falhar.
+  qualidade:
+    runs-on: ubuntu-latest
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+      - name: Análise no SonarCloud
+        run: |
+          if [ -z "$SONAR_TOKEN" ]; then
+            echo "::notice::SONAR_TOKEN não configurado; análise do SonarCloud pulada."
+            exit 0
+          fi
+          dotnet tool install --global dotnet-sonarscanner --version 11.3.0
+          dotnet sonarscanner begin /o:"${{ vars.SONAR_ORGANIZACAO }}" /k:"${{ vars.SONAR_PROJETO }}" \
+            /d:sonar.host.url=https://sonarcloud.io /d:sonar.token="$SONAR_TOKEN" \
+            /d:sonar.exclusions="**/Migrations/**,web/**"
+          dotnet build -c Release
+          dotnet sonarscanner end /d:sonar.token="$SONAR_TOKEN"
+
   # Código que muda sem o PDD ou o SDD acompanhar não entra. Refatoração sem
   # efeito visível passa com o rótulo sem-mudanca-de-doc.
   documentacao:

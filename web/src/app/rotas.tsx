@@ -2,7 +2,6 @@ import type { ComponentType } from 'react'
 import { Navigate, createBrowserRouter } from 'react-router'
 import { Protegida } from '@/acesso/Protegida'
 import { TelaDeEntrada } from '@/acesso/TelaDeEntrada'
-import { Moldura } from './Moldura'
 
 /**
  * Cada tela carrega o próprio código só quando abre: o vendedor no celular
@@ -21,7 +20,8 @@ export const rotas = createBrowserRouter([{
     element: <Protegida />,
     children: [
       {
-        element: <Moldura />,
+        // A moldura traz o SignalR e as cores da marca: só carrega depois do login.
+        lazy: tela(() => import('./Moldura'), 'Moldura'),
         children: [
           {
             path: '/operadora',

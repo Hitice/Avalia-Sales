@@ -320,6 +320,7 @@ Estimativa em semanas de cerca de 20 horas.
 
 | Data | Mudança |
 | --- | --- |
+| 21/10/2026 | Preparada a publicação em servidor próprio (manual em OPERACAO.md); a regra de que `/q/` responde para sempre vale para o deploy, que troca a API em segundos. |
 | 21/10/2026 | Fase 3 fechada - mapa dos lugares vendidos (lista sem a chave do Google) e chat entre revendedor e Avalia. |
 | 21/10/2026 | White label - tela Marca com nome exibido, cores e logo, contraste conferido na tela e na API. |
 | 21/10/2026 | Avisos ao vivo nas telas e pedido de venda no Protheus para cada pedido de placas pago. |

@@ -9,6 +9,7 @@ e no RLS do banco, cobrança no Pagar.me e assinatura na D4Sign.
 - [docs/PDD.md](docs/PDD.md) - produto: papéis, jornada, regras de negócio, fases.
 - [docs/SDD.md](docs/SDD.md) - software: arquitetura, isolamento, dados, integrações, infra.
 - [docs/adr](docs/adr/README.md) - registros de decisão, no formato MADR.
+- [docs/OPERACAO.md](docs/OPERACAO.md) - instalação no VPS, publicação, volta, backup e restauração.
 
 ## Rodar os testes
 

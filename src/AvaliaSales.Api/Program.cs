@@ -8,9 +8,27 @@ using AvaliaSales.Infrastructure;
 using AvaliaSales.Infrastructure.Banco;
 using AvaliaSales.Infrastructure.Identidade;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+
+// Healthcheck do contêiner: só chama o /health local e sai, sem montar a aplicação.
+if (args.Contains("--saude"))
+{
+    using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(4) };
+    try
+    {
+        var resposta = await http.GetAsync(new Uri("http://127.0.0.1:8080/health"));
+        Environment.ExitCode = resposta.IsSuccessStatusCode ? 0 : 1;
+    }
+    catch (Exception erro) when (erro is HttpRequestException or TaskCanceledException)
+    {
+        Environment.ExitCode = 1;
+    }
+
+    return;
+}
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,6 +40,32 @@ if (args.Contains("--migrar"))
         ?? throw new InvalidOperationException("Falta ConnectionStrings:Dono para migrar.");
     await Migracao.Executar(dono);
     return;
+}
+
+// Sentry só com DSN: sem ele, nada é enviado. Sem dado pessoal: nem corpo, nem cookie, nem IP.
+if (builder.Configuration["Sentry:Dsn"] is { Length: > 0 } dsn)
+{
+    builder.WebHost.UseSentry(o =>
+    {
+        o.Dsn = dsn;
+        o.SendDefaultPii = false;
+        o.MaxRequestBodySize = Sentry.Extensibility.RequestSize.None;
+        o.TracesSampleRate = builder.Configuration.GetValue("Sentry:AmostraDeRastreio", 0.1);
+        o.Environment = builder.Environment.EnvironmentName;
+    });
+}
+
+// Atrás do Nginx (compose de produção): o IP e o esquema reais vêm nos cabeçalhos de quem
+// encaminhou. A API não é publicada fora da rede do compose, então o único salto é o Nginx.
+if (builder.Configuration.GetValue<bool>("Proxy:AtrasDoNginx"))
+{
+    builder.Services.Configure<ForwardedHeadersOptions>(o =>
+    {
+        o.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+        o.ForwardLimit = 1;
+        o.KnownIPNetworks.Clear();
+        o.KnownProxies.Clear();
+    });
 }
 
 builder.Services.AddSingleton(TimeProvider.System);
@@ -118,6 +162,11 @@ if (args.Contains("--demonstracao"))
 {
     Environment.ExitCode = await Demonstracao.Semear(app.Services, app.Environment);
     return;
+}
+
+if (app.Configuration.GetValue<bool>("Proxy:AtrasDoNginx"))
+{
+    app.UseForwardedHeaders();
 }
 
 app.UseExceptionHandler();
