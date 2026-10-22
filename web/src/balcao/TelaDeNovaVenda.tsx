@@ -1,4 +1,4 @@
-import { Check } from 'lucide-react'
+import { Check, ChevronLeft } from 'lucide-react'
 import { useCallback, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import { documentoValido, emailValido, telefoneValido } from '@/acesso/documentos'
@@ -80,11 +80,19 @@ export function TelaDeNovaVenda() {
   const [valor, setValor] = useState('')
   const [venda, setVenda] = useState<VendaRegistrada | null>(null)
   const vender = useVender()
+  const fichaDaPlaca = useFicha(codigo || undefined)
 
   /** Trocar de passo apaga a recusa da última tentativa: ela fala do dado de antes. */
   function irPara(proximo: Passo) {
     vender.reset()
     setPasso(proximo)
+  }
+
+  /** A seta do topo: um passo para trás; no primeiro, sai para a tela de onde veio. */
+  function voltar() {
+    if (indice > 0) irPara(PASSOS[indice - 1].id)
+    else if ((window.history.state as { idx?: number } | null)?.idx) navegar(-1)
+    else navegar(papel === 'Vendedor' ? '/vendedor/vendas' : '/painel/vendas')
   }
 
   function recomecar() {
@@ -99,17 +107,21 @@ export function TelaDeNovaVenda() {
     setVenda(null)
   }
 
+  const indice = PASSOS.findIndex((p) => p.id === passo)
+
   if (venda) return <Resultado venda={venda} aoRecomecar={recomecar} />
 
-  const indice = PASSOS.findIndex((p) => p.id === passo)
   const clientePronto = !!cliente.empresa.trim() && !!cliente.responsavel.trim() && CONFERE.telefone(cliente.telefone)
     && (!cliente.documento || CONFERE.documento(cliente.documento)) && (!cliente.email || CONFERE.email(cliente.email))
 
   return (
     <div className="mx-auto grid max-w-md gap-4 pb-24">
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex items-center gap-1">
+        <Button variant="ghost" className="-ml-3 min-h-11" onClick={voltar}>
+          <ChevronLeft aria-hidden className="size-5" />
+          Voltar
+        </Button>
         <h1 className="text-xl font-semibold">Nova venda</h1>
-        <Button variant="ghost" onClick={() => navegar(papel === 'Vendedor' ? '/vendedor/vendas' : '/painel/vendas')}>Sair da venda</Button>
       </div>
       <ol className="flex gap-1 text-xs" aria-label="Passos">
         {PASSOS.map((p, i) => (
@@ -138,7 +150,7 @@ export function TelaDeNovaVenda() {
       )}
 
       {passo === 'placa' && (
-        <PassoDaPlaca codigo={codigo} digitado={digitado} aoDigitar={setDigitado} aoLer={setCodigo} aoSeguir={() => irPara('cliente')} />
+        <PassoDaPlaca codigo={codigo} digitado={digitado} aoDigitar={setDigitado} aoLer={setCodigo} />
       )}
 
       {passo === 'cliente' && (
@@ -181,9 +193,11 @@ export function TelaDeNovaVenda() {
 
       <div className="fixed inset-x-0 bottom-0 border-t bg-card p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
         <div className="mx-auto flex max-w-md gap-2">
-          {indice > 0 && <Button variant="outline" size="lg" onClick={() => irPara(PASSOS[indice - 1].id)}>Voltar</Button>}
           {passo === 'destino' && (
             <Button size="lg" className="flex-1" disabled={!destinoPronto(destino)} onClick={() => irPara('placa')}>Ler a placa</Button>
+          )}
+          {passo === 'placa' && (
+            <Button size="lg" className="flex-1" disabled={fichaDaPlaca.data?.estado !== 'EmEstoque'} onClick={() => irPara('cliente')}>Continuar</Button>
           )}
           {passo === 'cliente' && (
             <Button size="lg" className="flex-1" disabled={!clientePronto} onClick={() => irPara('cobranca')}>Ir para a cobrança</Button>
@@ -216,12 +230,11 @@ export function TelaDeNovaVenda() {
 }
 
 /** Ler pelo QR ou digitar; a placa precisa estar no estoque desta revenda. O NFC só é gravado, depois da venda. */
-function PassoDaPlaca({ codigo, digitado, aoDigitar, aoLer, aoSeguir }: {
+function PassoDaPlaca({ codigo, digitado, aoDigitar, aoLer }: {
   codigo: string
   digitado: string
   aoDigitar: (texto: string) => void
   aoLer: (codigo: string) => void
-  aoSeguir: () => void
 }) {
   const [camera, setCamera] = useState(false)
   const ficha = useFicha(codigo || undefined)
@@ -260,10 +273,7 @@ function PassoDaPlaca({ codigo, digitado, aoDigitar, aoLer, aoSeguir }: {
           <Aviso>A placa {ficha.data.codigo} está {ROTULO_DO_ESTADO[ficha.data.estado].toLowerCase()}. <Link className="underline" to={`/placa/${ficha.data.codigo}`}>Abrir a ficha</Link></Aviso>
         )}
         {ficha.data && emEstoque && (
-          <>
-            <p className="text-sm">Placa <span className="font-semibold tabular-nums">{ficha.data.codigo}</span> no estoque{ficha.data.consignadaA ? `, com ${ficha.data.consignadaA}` : ''}.</p>
-            <Button size="lg" onClick={aoSeguir}>Continuar</Button>
-          </>
+          <p className="rounded-lg border border-sucesso p-3 text-sm">Placa <span className="font-semibold tabular-nums">{ficha.data.codigo}</span> no estoque{ficha.data.consignadaA ? `, com ${ficha.data.consignadaA}` : ''}.</p>
         )}
       </CardContent>
     </Card>
