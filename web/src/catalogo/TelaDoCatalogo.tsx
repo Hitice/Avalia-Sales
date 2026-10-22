@@ -43,7 +43,7 @@ export function TelaDoCatalogo() {
               <div className="flex flex-wrap gap-1.5">
                 <Badge variant="secondary">{ROTULO_DO_TIPO[p.tipo]}</Badge>
                 {p.situacao !== 'Disponivel' && <Badge variant="destructive">{ROTULO_DO_PRODUTO[p.situacao]}</Badge>}
-                {!p.ativo && <Badge variant="outline">Desligado na sua tabela</Badge>}
+                {!p.ativo && <Badge variant="outline">Suspenso</Badge>}
               </div>
               <div>
                 <h2 className="font-heading text-lg font-semibold">{p.nome}</h2>
@@ -59,7 +59,7 @@ export function TelaDoCatalogo() {
               <div className="mt-auto flex flex-wrap gap-2">
                 <Button className="flex-1" disabled={p.situacao !== 'Disponivel' || !p.ativo}
                   onClick={() => navegar(usaPlaca(p) ? '/vender' : `/vender?produto=${p.id}`)}>Vender</Button>
-                {dono && <Button variant="outline" className="flex-1" onClick={() => setAjustando(p)}>Ajustar preço</Button>}
+                {dono && <Button variant="outline" className="flex-1" onClick={() => setAjustando(p)}>Configurar</Button>}
               </div>
             </CardContent>
           </Card>
@@ -116,18 +116,18 @@ function AjustarPreco({ produto, aoFechar }: { produto: ItemDoCatalogo; aoFechar
           <Field data-invalid={abaixoDoCusto}>
             <FieldLabel htmlFor="preco">Seu preço</FieldLabel>
             <Input id="preco" inputMode="decimal" value={preco} aria-invalid={abaixoDoCusto} onChange={(e) => setPreco(e.target.value)} />
-            <FieldDescription className={abaixoDoCusto ? 'text-destructive' : undefined}>
-              {produto.pisoCents > 1 ? `Seu custo: ${formatarCentavos(produto.pisoCents)}. O preço não fica abaixo dele.` : 'Livre, acima de zero. A Avalia fica com a taxa da venda.'}
-            </FieldDescription>
+            {produto.pisoCents > 1 && (
+              <FieldDescription className={abaixoDoCusto ? 'text-destructive' : undefined}>Custo: {formatarCentavos(produto.pisoCents)}</FieldDescription>
+            )}
           </Field>
           <Field>
             <FieldLabel htmlFor="comissao">Comissão deste produto (%)</FieldLabel>
-            <Input id="comissao" inputMode="decimal" placeholder="Padrão da revenda" value={comissao} onChange={(e) => setComissao(e.target.value)} />
+            <Input id="comissao" inputMode="decimal" placeholder="Margem padrão" value={comissao} onChange={(e) => setComissao(e.target.value)} />
           </Field>
         </form>
         <DialogFooter className="sm:justify-between">
           <Button variant="ghost" onClick={() => ativar.mutate({ id: produto.id, ativo: !produto.ativo }, { onSuccess: aoFechar })}>
-            {produto.ativo ? 'Desligar da venda' : 'Ligar na venda'}
+            {produto.ativo ? 'Suspender' : 'Ativar'}
           </Button>
           <Button type="submit" form="ajuste" disabled={centavos === null || abaixoDoCusto || ajustar.isPending}>Salvar preço</Button>
         </DialogFooter>

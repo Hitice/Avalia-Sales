@@ -42,8 +42,8 @@ export function TelaDeSeguranca() {
       <Card className="max-w-lg">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            Segundo fator
-            {situacao.data && <Badge variant={ligado ? 'default' : 'outline'}>{!ligado ? 'Desligado' : situacao.data.meio === 'Email' ? 'Por e-mail' : 'App autenticador'}</Badge>}
+            Autenticação de dois fatores
+            {situacao.data && <Badge variant={ligado ? 'default' : 'outline'}>{!ligado ? 'Desativada' : situacao.data.meio === 'Email' ? 'Por e-mail' : 'App autenticador'}</Badge>}
           </CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4">
@@ -57,8 +57,8 @@ export function TelaDeSeguranca() {
           )}
           {!ligado && !ligar.data && !chave && !pedirCodigo.isSuccess && (
             <div className="grid gap-2">
-              <Button onClick={() => preparar.mutate()} disabled={preparar.isPending}>Ligar com app autenticador</Button>
-              <Button variant="outline" onClick={() => pedirCodigo.mutate()} disabled={pedirCodigo.isPending || !situacao.data?.emailConfirmado}>Ligar com código por e-mail</Button>
+              <Button onClick={() => preparar.mutate()} disabled={preparar.isPending}>Ativar com app autenticador</Button>
+              <Button variant="outline" onClick={() => pedirCodigo.mutate()} disabled={pedirCodigo.isPending || !situacao.data?.emailConfirmado}>Ativar com código por e-mail</Button>
               <p className="text-xs text-muted-foreground">O app protege mais: quem tem a senha às vezes tem o e-mail.</p>
             </div>
           )}
@@ -68,30 +68,30 @@ export function TelaDeSeguranca() {
                 <FieldLabel htmlFor="codigo-email">Código enviado para o seu e-mail</FieldLabel>
                 <Input id="codigo-email" inputMode="numeric" autoComplete="one-time-code" value={codigo} onChange={(e) => setCodigo(e.target.value)} />
               </Field>
-              <Button type="submit" disabled={codigo.replace(/\D/g, '').length !== 6 || ligar.isPending}>Confirmar e ligar</Button>
+              <Button type="submit" disabled={codigo.replace(/\D/g, '').length !== 6 || ligar.isPending}>Confirmar e ativar</Button>
               <Button type="button" variant="ghost" onClick={() => pedirCodigo.mutate()}>Reenviar código</Button>
             </form>
           )}
           {!ligado && chave && !ligar.data && (
             <form className="grid gap-4" onSubmit={(e) => { e.preventDefault(); ligar.mutate(codigo, { onSuccess: () => setCodigo('') }) }}>
               <p className="text-sm">Leia o QR no app autenticador (Google Authenticator, Microsoft Authenticator, 1Password) ou digite a chave.</p>
-              {qr && <img src={qr} alt="QR da chave do segundo fator" className="size-56 self-center rounded-lg border bg-white p-2" />}
+              {qr && <img src={qr} alt="QR da chave da autenticação de dois fatores" className="size-56 self-center rounded-lg border bg-white p-2" />}
               <code className="rounded bg-muted p-2 text-center text-sm break-all">{chave.chave}</code>
               <Field>
                 <FieldLabel htmlFor="codigo">Código que o app mostra</FieldLabel>
                 <Input id="codigo" inputMode="numeric" autoComplete="one-time-code" value={codigo} onChange={(e) => setCodigo(e.target.value)} />
               </Field>
-              <Button type="submit" disabled={codigo.replace(/\D/g, '').length !== 6 || ligar.isPending}>Confirmar e ligar</Button>
+              <Button type="submit" disabled={codigo.replace(/\D/g, '').length !== 6 || ligar.isPending}>Confirmar e ativar</Button>
             </form>
           )}
           {ligado && (
             <form className="grid gap-4" onSubmit={(e) => { e.preventDefault(); desligar.mutate(codigo, { onSuccess: () => setCodigo('') }) }}>
-              {situacao.data?.meio === 'Email' && <Button type="button" variant="ghost" onClick={() => pedirCodigo.mutate()}>Mandar código por e-mail</Button>}
+              {situacao.data?.meio === 'Email' && <Button type="button" variant="ghost" onClick={() => pedirCodigo.mutate()}>Enviar por e-mail</Button>}
               <Field>
                 <FieldLabel htmlFor="codigo-desligar">{situacao.data?.meio === 'Email' ? 'Código do e-mail ou de recuperação' : 'Código do app ou de recuperação'}</FieldLabel>
                 <Input id="codigo-desligar" autoComplete="one-time-code" value={codigo} onChange={(e) => setCodigo(e.target.value)} />
               </Field>
-              <Button type="submit" variant="outline" disabled={codigo.trim().length < 6 || desligar.isPending}>Desligar</Button>
+              <Button type="submit" variant="outline" disabled={codigo.trim().length < 6 || desligar.isPending}>Desativar</Button>
             </form>
           )}
         </CardContent>

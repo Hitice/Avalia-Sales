@@ -509,7 +509,7 @@ tentativas.
 | Papéis operadora, dono e vendedor no token, com política por área da API; operadora sem revendedor | No código |
 | Refresh token rotativo em cookie HttpOnly e SameSite Strict, 14 dias, só o hash no banco; token já trocado apresentado de novo encerra o login inteiro (RFC 9700) | No código |
 | Login desativado não entra e perde as sessões abertas | No código |
-| Convite do vendedor e "esqueci a senha" por link de uso único (`links_de_senha`, só o hash; convite 7 dias, redefinição 1 hora; link novo derruba o anterior). O token vai depois do `#`, fora de log e de Referer. Pedido de link responde igual com e sem conta. Senha trocada destrava o login e encerra as sessões abertas | No código |
+| Convite do vendedor e "esqueci a senha" por link de uso único (`links_de_senha`, só o hash; convite 24 horas, redefinição 1 hora; link novo derruba o anterior). O token vai depois do `#`, fora de log e de Referer. Pedido de link responde igual com e sem conta. Senha trocada destrava o login e encerra as sessões abertas | No código |
 | Leitura do QR com limite de 300 por minuto por IP, sem cookie, robôs não contam | No código |
 | CSP no HTML do front (Nginx): só o próprio domínio, Pagar.me (token do cartão), Google Maps e Places, Sentry e `wasm-unsafe-eval` para o leitor de QR; `frame-ancestors 'none'` | No código; conferir com `curl -sI` no primeiro deploy |
 | Segredos - gitleaks no CI (job `segredos`) e sem achado no histórico; falso positivo conferido no `.gitleaksignore` | No código |
@@ -639,6 +639,7 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
 
 | Data | Mudança |
 | --- | --- |
+| 22/10/2026 | Versão 1.6.0. Gráficos com Recharts 3.10.1 (componente `chart` do shadcn), série em `--chart-1` (roxo do traço na plataforma; tom 45 do destaque na revenda, pela faixa de luminosidade do validador da skill dataviz). Convite do vendedor 24 horas. Catálogo não mostra o custo ao vendedor (`pisoCents` zero). Migration FotoDoQrDinamico (só dados). Rota de tela `/painel/configuracoes`; `/painel/servicos` leva a `/links?aba=acompanhar`. |
 | 22/10/2026 | Versão 1.5.2. Link curto `/l/` repassado à API pelo Nginx e pelo Vite, como o `/q/` (caía no app e pedia login). Busca de lugares com o caminho `./places:searchText`: sem o `./`, o .NET lia `places:` como esquema e a chamada não saía; teste prende a URL. |
 | 22/10/2026 | Versão 1.5.1. A demonstração só cria o pacote de 10 placas: 20, 50 e 100 vêm da migration, e criar de novo quebrava o índice único no banco novo do e2e. |
 | 22/10/2026 | Versão 1.5.0. Migration CatalogoServicosENotificacoes - `produtos_da_plataforma` com os 8 produtos e as fotos em `web/public/produtos`, pacotes 20, 50 e 100 a R$ 23,90, 16,90 e 13,90 a placa, `produtos.produto_da_plataforma_id`, `vendas.placa_id` opcional, `pedidos_placas.producao_em`, `ordens_de_servico` e `notificacoes` com RLS. Rotas `/catalogo` (sai `/produtos`; a foto em `/catalogo/{id}/foto` é pública), `/operadora/catalogo`, `/servicos`, `/operadora/servicos`, `/operadora/pedidos/{id}/producao` e `/notificacoes`. A venda aceita o id do catálogo e cria a linha da revenda na primeira vez; serviço sem placa nem destino; a venda paga de serviço vira ordem (EfeitosDaCobranca). |

@@ -169,17 +169,24 @@ export function TelaDeNovaVenda() {
 
   return (
     <div className="mx-auto grid max-w-md gap-4 pb-24">
-      <div className="flex items-center gap-1">
-        <Button variant="ghost" className="-ml-3 min-h-11" onClick={voltar}>
-          <ChevronLeft aria-hidden className="size-5" />
-          Voltar
-        </Button>
+      <div className="flex items-center justify-between gap-2">
         <h1 className="text-xl font-semibold">{servicoId ? 'Vender serviço' : 'Nova venda'}</h1>
+        <Button variant="ghost" size="icon" className="-mr-2 size-11" aria-label="Voltar" onClick={voltar}>
+          <ChevronLeft aria-hidden className="size-6" />
+        </Button>
       </div>
+      {/* Cada passo abre direto, mesmo com o anterior incompleto: o botão do pé é que confere o que falta. */}
       <ol className="flex gap-1 text-xs" aria-label="Passos">
         {passos.map((p, i) => (
-          <li key={p.id} aria-current={p.id === passo ? 'step' : undefined} className={`flex-1 border-t-4 pt-1 ${i <= indice ? 'border-primary font-medium' : 'border-muted text-muted-foreground'}`}>
-            {p.rotulo}
+          <li key={p.id} className="flex-1">
+            <button
+              type="button"
+              aria-current={p.id === passo ? 'step' : undefined}
+              onClick={() => irPara(p.id)}
+              className={`min-h-11 w-full border-t-4 pt-1 text-left ${i <= indice ? 'border-primary font-medium' : 'border-muted text-muted-foreground hover:text-foreground'}`}
+            >
+              {p.rotulo}
+            </button>
           </li>
         ))}
       </ol>
@@ -227,7 +234,7 @@ export function TelaDeNovaVenda() {
       <div className="fixed inset-x-0 bottom-0 border-t bg-card p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
         <div className="mx-auto flex max-w-md gap-2">
           {passo === 'destino' && (
-            <Button size="lg" className="flex-1" disabled={!destinoPronto(destino)} onClick={() => irPara('placa')}>Ler a placa</Button>
+            <Button size="lg" className="flex-1" disabled={!destinoPronto(destino)} onClick={() => irPara('placa')}>Configurar</Button>
           )}
           {passo === 'placa' && (
             <Button size="lg" className="flex-1" disabled={fichaDaPlaca.data?.estado !== 'EmEstoque'} onClick={() => irPara('cliente')}>Continuar</Button>

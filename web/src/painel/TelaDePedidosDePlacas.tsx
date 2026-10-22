@@ -103,7 +103,7 @@ export function TelaDePedidosDePlacas() {
               <Alert><AlertDescription>Lote {ativar.data.lote} ativado: {ativar.data.placas} placas no estoque, de {ativar.data.primeiroCodigo} a {ativar.data.ultimoCodigo}.</AlertDescription></Alert>
             )}
             <Field>
-              <FieldLabel htmlFor="lote">Número na caixa</FieldLabel>
+              <FieldLabel htmlFor="lote">Lote</FieldLabel>
               <Input id="lote" placeholder="LT-0001" value={numero} onChange={(e) => setNumero(e.target.value)} />
             </Field>
             <Button type="submit" disabled={!numero.trim() || ativar.isPending}>{ativar.isPending ? 'Ativando...' : 'Ativar lote'}</Button>

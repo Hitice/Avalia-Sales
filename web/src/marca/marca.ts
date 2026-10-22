@@ -33,7 +33,8 @@ export function variaveisDaMarca(primaria: string, destaque: string, textoSobreP
     '--destaque-foreground': textoSobreDestaque ?? ESCURO,
     '--accent': hexFromArgb(tons.tone(95)),
     '--accent-foreground': hexFromArgb(tons.tone(10)),
-    '--chart-1': primaria,
+    // Série do gráfico: tom 45 do destaque, que fica na faixa de luminosidade mesmo com primária escura.
+    '--chart-1': hexFromArgb(TonalPalette.fromInt(argbFromHex(destaque)).tone(45)),
     '--chart-2': destaque,
     '--traco': `linear-gradient(90deg, ${destaque}, ${primaria})`,
   }

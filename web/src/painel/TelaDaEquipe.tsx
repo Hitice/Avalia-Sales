@@ -11,12 +11,12 @@ import { Cabecalho, Erro, EstadoDaConsulta, Rolagem } from '@/componentes/Tela'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Field, FieldLabel } from '@/components/ui/field'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { percentualOpcional, senhaOpcional, telefoneOpcional, texto } from '@/lib/esquemas'
 import { digitos, mascaraTelefone } from '@/lib/mascaras'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { useAlterarVendedor, useAtivarVendedor, useComissaoPadrao, useConvidarVendedor, useCriarVendedor, useEquipe, useExcluirVendedor, useMinhaRevenda } from './consultas'
+import { useAlterarVendedor, useAtivarVendedor, useConvidarVendedor, useCriarVendedor, useEquipe, useExcluirVendedor } from './consultas'
 
 /** E-mail e senha só no cadastro: o login não muda de e-mail pela equipe. */
 const esquema = z.object({
@@ -40,10 +40,12 @@ function Convite({ vendedor, aoFechar }: { vendedor: Vendedor; aoFechar: () => v
   const telefone = (vendedor.telefone ?? '').replace(/\D/g, '')
   const texto = encodeURIComponent(`Crie sua senha de vendedor: ${link}`)
   return (
-    <Card>
-      <CardHeader><CardTitle>Convite de {vendedor.nome}</CardTitle></CardHeader>
-      <CardContent className="grid gap-3">
-        <p className="text-sm">Enviado para {vendedor.email}. Vale 7 dias.</p>
+    <Dialog open onOpenChange={(aberto) => !aberto && aoFechar()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Convite de {vendedor.nome}</DialogTitle>
+          <DialogDescription>Enviado para {vendedor.email}. Expira em 24h.</DialogDescription>
+        </DialogHeader>
         <Input readOnly aria-label="Link do convite" value={link} onFocus={(e) => e.target.select()} />
         <div className="grid grid-cols-2 gap-2">
           <Button variant="outline" onClick={() => navigator.clipboard.writeText(link).then(() => setCopiado(true))}>{copiado ? 'Copiado' : 'Copiar link'}</Button>
@@ -51,27 +53,24 @@ function Convite({ vendedor, aoFechar }: { vendedor: Vendedor; aoFechar: () => v
             <a href={`https://wa.me/${telefone ? (telefone.length <= 11 ? '55' + telefone : telefone) : ''}?text=${texto}`} target="_blank" rel="noreferrer">WhatsApp</a>
           </Button>
         </div>
-        <Button variant="ghost" onClick={aoFechar}>Fechar</Button>
-      </CardContent>
-    </Card>
+        <DialogFooter><Button onClick={aoFechar}>Fechar</Button></DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
 
 /** A equipe do dono, com a comissão de cada um. Vendedor com venda é desativado, e não excluído. */
 export function TelaDaEquipe() {
   const equipe = useEquipe()
-  const revenda = useMinhaRevenda()
   const criar = useCriarVendedor()
   const alterar = useAlterarVendedor()
   const ativar = useAtivarVendedor()
   const excluir = useExcluirVendedor()
   const convidar = useConvidarVendedor()
   const [convite, setConvite] = useState<Vendedor | null>(null)
-  const padrao = useComissaoPadrao()
   const [editando, setEditando] = useState<Vendedor | null>(null)
   const formulario = useForm<Formulario>({ resolver: zodResolver(esquema), mode: 'onChange', defaultValues: VAZIO })
-  const [comissaoPadrao, setComissaoPadrao] = useState('')
-  const erro = criar.error ?? alterar.error ?? ativar.error ?? excluir.error ?? convidar.error ?? padrao.error
+  const erro = criar.error ?? alterar.error ?? ativar.error ?? excluir.error ?? convidar.error
 
   function editar(v: Vendedor | null) {
     setEditando(v)
@@ -156,26 +155,6 @@ export function TelaDaEquipe() {
               <Campo formulario={formulario} nome="comissao" rotulo="Comissão (%)" inputMode="decimal" placeholder="Em branco usa a padrão" />
               <Button type="submit" disabled={criar.isPending || alterar.isPending}>{editando ? 'Salvar vendedor' : 'Cadastrar vendedor'}</Button>
               {editando && <Button type="button" variant="ghost" onClick={() => editar(null)}>Cancelar</Button>}
-            </form>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader><CardTitle>Comissão padrão</CardTitle></CardHeader>
-          <CardContent>
-            <form
-              className="grid gap-4"
-              onSubmit={(e) => {
-                e.preventDefault()
-                const bps = paraBps(comissaoPadrao)
-                if (bps !== null) padrao.mutate(bps, { onSuccess: () => setComissaoPadrao('') })
-              }}
-            >
-              <p className="text-sm text-muted-foreground">Atual: {revenda.data ? formatarBps(revenda.data.revendedor.comissaoPadraoBps) : '-'}.</p>
-              <Field>
-                <FieldLabel htmlFor="padrao">Nova comissão (%)</FieldLabel>
-                <Input id="padrao" inputMode="decimal" value={comissaoPadrao} onChange={(e) => setComissaoPadrao(e.target.value)} />
-              </Field>
-              <Button type="submit" variant="outline" disabled={paraBps(comissaoPadrao) === null}>Salvar comissão</Button>
             </form>
           </CardContent>
         </Card>

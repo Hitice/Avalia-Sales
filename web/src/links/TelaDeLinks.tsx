@@ -1,6 +1,8 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Nfc, Scissors } from 'lucide-react'
+import { ListChecks, Nfc, Scissors } from 'lucide-react'
 import { useState } from 'react'
+import { useSearchParams } from 'react-router'
+import { OrdensDaRevenda } from '@/servicos/TelaDeServicos'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { mensagemDoErro } from '@/api/cliente'
@@ -41,9 +43,10 @@ function tituloSugerido(endereco: string): string {
 }
 
 /**
- * Links curtos /L/ do negócio sem placa. Encurtador: cola qualquer endereço
+ * Serviços da revenda. Encurtador: links curtos /L/ do negócio sem placa; cola qualquer endereço
  * (avaliação do Google, cardápio, Instagram) ou busca o negócio no Google.
- * NFC: grava o link curto numa tag, que cabe em qualquer uma.
+ * NFC: grava o link curto numa tag, que cabe em qualquer uma. Acompanhar (dono):
+ * as ordens dos serviços vendidos que a Avalia executa.
  */
 export function TelaDeLinks() {
   const dono = useSessao((s) => s.perfil?.papel === 'Dono')
@@ -52,15 +55,17 @@ export function TelaDeLinks() {
   const excluir = useExcluirLink()
   const [editando, setEditando] = useState<LinkCurto | null>(null)
   const erro = ativar.error ?? excluir.error
+  const [parametros] = useSearchParams()
 
   return (
     <>
-      <Cabecalho titulo="Links" />
+      <Cabecalho titulo="Serviços" />
       <Erro erro={erro ? mensagemDoErro(erro) : null} />
-      <Tabs defaultValue="encurtador" className="gap-4">
+      <Tabs defaultValue={parametros.get('aba') ?? 'encurtador'} className="gap-4">
         <TabsList className="w-full sm:w-auto">
           <TabsTrigger value="encurtador"><Scissors aria-hidden />Encurtador</TabsTrigger>
           <TabsTrigger value="nfc"><Nfc aria-hidden />NFC</TabsTrigger>
+          {dono && <TabsTrigger value="acompanhar"><ListChecks aria-hidden />Acompanhar</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="encurtador" className="grid grid-cols-1 gap-4 lg:grid-cols-[22rem_minmax(0,1fr)]">
@@ -105,6 +110,8 @@ export function TelaDeLinks() {
             </Card>
           ))}
         </TabsContent>
+
+        {dono && <TabsContent value="acompanhar"><OrdensDaRevenda /></TabsContent>}
       </Tabs>
     </>
   )

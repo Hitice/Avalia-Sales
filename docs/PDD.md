@@ -98,14 +98,15 @@ Todas no mesmo app, liberadas pelo papel do usuário.
 | Serviços | Revendedor | Computador e celular | As ordens de serviço que a Avalia executa para os clientes da revenda, com a situação |
 | Notificações | Dono e operadora | Celular e computador | O sino do cabeçalho - venda paga da equipe, pedido, serviço e chamado, ao vivo; marcar como lida |
 | Marca | Revendedor | Computador | Logo com recorte (horizontal ou quadrado, arrastar e zoom), cores e nome exibido, com prévia do app nas cores escolhidas |
-| Painel | Revendedor | Computador | Vendas e pagamentos ao vivo, saldo de comissão, registro de repasse |
+| Painel | Revendedor | Computador | Início com os números do mês e gráficos - vendas por dia nos últimos 30 dias, recebido por mês nos últimos 6 e vendas do mês por vendedor; pendências (contrato, conta de recebimento, celular) no sino |
+| Configurações | Dono | Computador e celular | Comissão padrão e preço da renovação, que valem para venda nova |
 | Auditoria | Revendedor | Computador | Quem mudou o quê, em tabela com antes e depois, busca pelo código, filtro pela ação, 20 por página e exportação em JSON |
 | Meus dados | Todos | Celular e computador | No menu da conta (junto do Sair) - nome de todos; nome da empresa e celular do dono (o CNPJ não muda); telefone e chave Pix do vendedor. O e-mail muda pelo Suporte |
 | Segurança | Dono e operadora | Celular e computador | Ligar e desligar o segundo fator (app autenticador), com códigos de recuperação |
 | Mapa | Revendedor | Computador | Lugares vendidos, no Google Maps |
 | Painel do vendedor | Vendedor | Celular | Vendas do mês, comissão a receber, esperando pagamento e recebida, placas com ele |
 | Nova venda | Vendedor | Celular | Negócio no Google, QR da placa, cliente, cobrança, gravação do NFC |
-| Links | Dono e vendedor | Celular | Link curto do negócio sem placa, em duas abas - Encurtador (cola qualquer endereço, como avaliação do Google, cardápio ou Instagram, ou busca o negócio no Google) e NFC (grava o link curto na tag); o dono edita, desliga e exclui |
+| Serviços | Dono e vendedor | Celular | Abas Encurtador (link curto /L/ de qualquer endereço colado, ou do negócio buscado no Google), NFC (grava o link curto na tag) e Acompanhar (só o dono; as ordens dos serviços vendidos que a Avalia executa); o dono edita, desliga e exclui o link |
 | Ficha da placa | Vendedor e revendedor | Celular | Destino, vencimento, leituras, troca, renovação |
 | Pedidos | Operadora | Computador | Pedidos pagos, em produção, lote despachado, envio |
 | Catálogo da Avalia | Operadora | Computador | Cadastrar e editar produto, foto com recorte, preço sugerido, ordem e situação |
@@ -453,6 +454,7 @@ O que está pronto no código e só fecha com a conta de verdade:
 
 | Data | Mudança |
 | --- | --- |
+| 22/10/2026 | Configurações com a comissão padrão e a renovação; gráficos no Início; pendências da revenda no sino; Links vira Serviços com a aba Acompanhar; convite do vendedor vale 24 horas; Meus dados com um Salvar só; chamado se fecha (Fechar); auditoria abre o antes e o depois num modal; Catálogo na barra de baixo do celular; foto do QR Code Dinâmico Pro. |
 | 22/10/2026 | Catálogo da Avalia com os 8 produtos do site, foto e situação; a revenda só define o preço dela, nunca abaixo do custo. Pacotes de 20, 50 e 100 placas com o preço por placa. Pedido com em produção e entregue. Venda de serviço sem placa, que paga vira ordem de serviço para a Avalia. Sino de notificações para o dono e a operadora. |
 | 22/10/2026 | Menu da conta no cabeçalho com Meus dados, Segurança e Sair; o celular da revenda passa da tela inicial para Meus dados. Auditoria em tabela, com filtro pela ação, paginação e exportação em JSON. |
 | 22/10/2026 | Suporte em chamados com prazo de 24 horas úteis (segunda a sexta, 8h às 18h, sem feriado nacional), fila da operadora pelo prazo e aviso por e-mail. As conversas do chat anterior viram um chamado resolvido por revenda. |

@@ -110,7 +110,7 @@ public sealed class EfeitosDaCobranca(IBancoDeDados banco, FilaDeEmails avisos, 
             banco.OrdensDeServico.Add(new Domain.Servicos.OrdemDeServico(venda.RevendedorId, venda.Id, doCatalogo.Id, doCatalogo.Nome, cliente, quando));
             var revendedor = await banco.Revendedores.Where(r => r.Id == venda.RevendedorId).Select(r => r.Nome).SingleAsync(ct);
             notificacoes.ParaOperadora(venda.RevendedorId, "Serviço a fazer", $"{doCatalogo.Nome} para {cliente}, vendido por {revendedor}.", "/operadora/servicos");
-            notificacoes.ParaDono(venda.RevendedorId, "Serviço na fila da Avalia", $"{doCatalogo.Nome} para {cliente} entrou na fila de execução.", "/painel/servicos");
+            notificacoes.ParaDono(venda.RevendedorId, "Serviço na fila da Avalia", $"{doCatalogo.Nome} para {cliente} entrou na fila de execução.", "/links?aba=acompanhar");
         }
     }
 

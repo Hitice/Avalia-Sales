@@ -9,9 +9,9 @@ test('venda no balcão: negócio, placa, cliente e cobrança, com o link curto n
   await semViolacaoGrave(page)
   await page.getByLabel('Ou o link de avaliação do perfil').fill('instagram.com/padaria')
   await expect(page.getByText('Não é um link do Google')).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Ler a placa' })).toBeDisabled()
+  await expect(page.getByRole('button', { name: 'Configurar' })).toBeDisabled()
   await page.getByLabel('Ou o link de avaliação do perfil').fill('https://search.google.com/local/writereview?placeid=ChIJE2eTesteDePonta')
-  await page.getByRole('button', { name: 'Ler a placa' }).click()
+  await page.getByRole('button', { name: 'Configurar' }).click()
 
   await page.getByLabel('Código da placa').fill(codigo)
   await page.getByRole('button', { name: 'Conferir' }).click()

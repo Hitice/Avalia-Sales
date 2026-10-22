@@ -36,7 +36,8 @@
   --border: oklch(0.91 0.012 285);
   --input: oklch(0.64 0.02 285);
   --ring: oklch(0.671 0.234 342.3);
-  --chart-1: oklch(0.184 0.06 287.9);
+  /* Série única dos gráficos: o roxo do traço. A noite é escura demais para marca de dado (validador da skill dataviz). */
+  --chart-1: #7a3cf0;
   --chart-2: oklch(0.671 0.234 342.3);
   --chart-3: oklch(0.568 0.237 270);
   --chart-4: oklch(0.5 0.03 285);

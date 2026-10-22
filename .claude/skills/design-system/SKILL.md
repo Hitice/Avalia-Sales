@@ -64,6 +64,11 @@ Cabeçalho: logo (ou nome) à esquerda e, à direita, o sino de notificações
 num círculo, nome a partir de `md`) com Meus dados, Segurança e Sair. O nome
 lido do botão é "Conta de Fulano", com o nome visível dentro (WCAG 2.5.3).
 
+Gráfico: série única em `--chart-1`, nunca a primária crua (escura demais para marca
+de dado), barras finas com ponta arredondada, grade só horizontal, tooltip ao passar
+e a mesma informação numa tabela `sr-only`. Antes de mudar a cor, rodar o validador
+da skill dataviz.
+
 Carregando: barra no topo (`barra-de-carregando`, o traço correndo, aparece
 depois de 300 ms) enquanto a tela baixa ou uma consulta roda; dentro da tela,
 `Carregando` (blocos pulsando) no lugar da lista e `CarregandoTela` quando nada
@@ -122,7 +127,7 @@ Até lá, um arquivo CSS basta.
 
 | Largura | Menu |
 | --- | --- |
-| Celular (abaixo de 768 px) | Barra de baixo com 4 telas do papel e "Mais" em gaveta; some na Nova venda |
+| Celular (abaixo de 768 px) | Barra de baixo com 5 telas do papel (com o Catálogo) e "Mais" em gaveta, ícone `size-4.5` e altura `min-h-13`; some na Nova venda |
 | Tablet (768 a 1023 px) | Menu de cima, quebrando linha |
 | Computador (1024 px ou mais) | Menu lateral em grupos com título, ícone em cada item (lucide) e, no ativo, fundo `accent` com uma barra na primária à esquerda |
 
@@ -178,6 +183,7 @@ Conferidas na API do GitHub e no npm em 21/10/2026, pelo critério da skill
 | [Storybook](https://github.com/storybookjs/storybook) | Catálogo vivo | 91 mil | 10.6.3 |
 | [axe-core](https://github.com/dequelabs/axe-core) | Acessibilidade | 7,7 mil | `@axe-core/playwright` 4.14.0 |
 | [Playwright](https://github.com/microsoft/playwright) | Teste de ponta a ponta | 98 mil | |
+| [Recharts](https://github.com/recharts/recharts) | Gráficos, pelo `components/ui/chart.tsx` do shadcn | 27,6 mil | 3.10.1 |
 | [react-easy-crop](https://github.com/ValentinH/react-easy-crop) | Recorte do logo | 2,8 mil | 6.2.4 |
 | [Style Dictionary](https://github.com/style-dictionary/style-dictionary) | Tokens em JSON, só se surgir outro consumidor | 4,9 mil | 5.7.0 |
 

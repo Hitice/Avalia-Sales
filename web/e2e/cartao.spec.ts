@@ -9,7 +9,7 @@ for (const [numero, esperado] of [['4000 0000 0000 0010', 'Pagamento confirmado'
 
     await page.goto('/vender')
     await page.getByLabel('Ou o link de avaliação do perfil').fill('g.page/r/CartaoDeTeste/review')
-    await page.getByRole('button', { name: 'Ler a placa' }).click()
+    await page.getByRole('button', { name: 'Configurar' }).click()
     await page.getByLabel('Código da placa').fill(codigo)
     await page.getByRole('button', { name: 'Conferir' }).click()
     await page.getByRole('button', { name: 'Continuar' }).click()

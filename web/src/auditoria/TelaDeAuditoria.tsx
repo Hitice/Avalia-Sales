@@ -3,11 +3,12 @@ import { Download } from 'lucide-react'
 import { useState } from 'react'
 import { chamarApi, chamarResposta, mensagemDoErro } from '@/api/cliente'
 import { ROTULO_DA_ACAO, formatarDataHora } from '@/api/rotulos'
-import type { AcaoAuditada, PaginaDeAuditoria } from '@/api/tipos'
+import type { AcaoAuditada, PaginaDeAuditoria, RegistroDeAuditoria } from '@/api/tipos'
 import { Cabecalho, Erro, EstadoDaConsulta } from '@/componentes/Tela'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -21,6 +22,7 @@ export function TelaDeAuditoria() {
   const [acao, setAcao] = useState<AcaoAuditada | typeof TODAS>(TODAS)
   const [pagina, setPagina] = useState(1)
   const [erroDaExportacao, setErroDaExportacao] = useState<unknown>(null)
+  const [aberto, setAberto] = useState<RegistroDeAuditoria | null>(null)
   const filtro = new URLSearchParams({
     ...(referencia.trim() ? { referencia: referencia.trim().toUpperCase() } : {}),
     ...(acao !== TODAS ? { acao } : {}),
@@ -86,12 +88,10 @@ export function TelaDeAuditoria() {
                     <TableCell>{r.quem}</TableCell>
                     <TableCell><Badge variant="secondary">{ROTULO_DA_ACAO[r.acao]}</Badge></TableCell>
                     <TableCell className="whitespace-normal">{r.alvo}</TableCell>
-                    <TableCell className="max-w-md whitespace-normal">
-                      <dl className="grid gap-0.5 text-sm">
-                        {r.antes && <div className="flex gap-1.5"><dt className="text-muted-foreground">Antes:</dt><dd className="break-all">{r.antes}</dd></div>}
-                        {r.depois && <div className="flex gap-1.5"><dt className="text-muted-foreground">Depois:</dt><dd className="break-all font-medium">{r.depois}</dd></div>}
-                        {!r.antes && !r.depois && <span className="text-muted-foreground">-</span>}
-                      </dl>
+                    <TableCell>
+                      {r.antes || r.depois
+                        ? <Button variant="outline" size="sm" onClick={() => setAberto(r)}>Visualizar histórico</Button>
+                        : <span className="text-muted-foreground">-</span>}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -108,6 +108,26 @@ export function TelaDeAuditoria() {
           </div>
         </CardContent>
       </Card>
+      <Dialog open={!!aberto} onOpenChange={(abrir) => !abrir && setAberto(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{aberto ? ROTULO_DA_ACAO[aberto.acao] : ''}</DialogTitle>
+            <DialogDescription>{aberto && `${aberto.alvo}. ${aberto.quem}, ${formatarDataHora(aberto.ocorridoEm)}.`}</DialogDescription>
+          </DialogHeader>
+          {aberto && (
+            <dl className="grid gap-3 text-sm">
+              <div className="grid gap-1">
+                <dt className="font-medium">Antes</dt>
+                <dd className="rounded-lg bg-muted p-3 break-words whitespace-pre-wrap">{aberto.antes ?? '-'}</dd>
+              </div>
+              <div className="grid gap-1">
+                <dt className="font-medium">Depois</dt>
+                <dd className="rounded-lg bg-muted p-3 break-words whitespace-pre-wrap">{aberto.depois ?? '-'}</dd>
+              </div>
+            </dl>
+          )}
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

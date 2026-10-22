@@ -21,7 +21,7 @@ public sealed record AjustarProduto(long PrecoCents, int? ComissaoBps);
 /// define o preço e a comissão dele, nunca abaixo do custo. A equipe lê para
 /// vender. O filtro por revendedor fica na infraestrutura.
 /// </summary>
-public sealed class Catalogo(IBancoDeDados banco, Auditoria.Auditoria auditoria)
+public sealed class Catalogo(IBancoDeDados banco, IUsuarioAtual usuario, Auditoria.Auditoria auditoria)
 {
     public async Task<IReadOnlyList<ItemDoCatalogo>> Listar(CancellationToken ct)
     {
@@ -30,13 +30,15 @@ public sealed class Catalogo(IBancoDeDados banco, Auditoria.Auditoria auditoria)
             .OrderBy(p => p.Ordem).ThenBy(p => p.Nome)
             .ToListAsync(ct);
         var daRevenda = await banco.Produtos.AsNoTracking().ToListAsync(ct);
-        var pisoDaPlaca = await PisoDaPlaca(ct);
+        // O custo é do dono: o vendedor vê o preço de venda, não o que a revenda pagou.
+        var dono = usuario.Papel == Domain.Acesso.Papel.Dono;
+        var pisoDaPlaca = dono ? await PisoDaPlaca(ct) : 0;
 
         return daAvalia.Select(p =>
         {
             var meu = daRevenda.FirstOrDefault(r => r.ProdutoDaPlataformaId == p.Id);
             return new ItemDoCatalogo(p.Id, p.Chave, p.Nome, p.Descricao, p.Tipo, p.Situacao, FotoUrl(p), p.PrecoSugeridoCents,
-                meu?.PrecoCents ?? p.PrecoSugeridoCents, meu?.ComissaoBps, p.UsaPlaca ? pisoDaPlaca : 1, meu?.Ativo ?? true);
+                meu?.PrecoCents ?? p.PrecoSugeridoCents, meu?.ComissaoBps, !dono ? 0 : p.UsaPlaca ? pisoDaPlaca : 1, meu?.Ativo ?? true);
         }).ToList();
     }
 

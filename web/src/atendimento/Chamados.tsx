@@ -17,7 +17,7 @@ export const HORARIO_DE_ATENDIMENTO = 'Atendimento de segunda a sexta, das 8h à
 const ROTULO_DA_SITUACAO: Record<SituacaoDoChamado, string> = {
   AguardandoAvalia: 'Aguardando a Avalia',
   AguardandoRevenda: 'Aguardando a revenda',
-  Resolvido: 'Resolvido',
+  Resolvido: 'Fechado',
 }
 
 export const useChamados = (base: BaseDosChamados) =>
@@ -107,7 +107,7 @@ export function ConversaDoChamado({ base, id, operadora }: { base: BaseDosChamad
           </p>
         </div>
         {chamado.situacao !== 'Resolvido' && (
-          <Button variant="outline" onClick={() => resolver.mutate()} disabled={resolver.isPending}>Resolver</Button>
+          <Button variant="outline" onClick={() => resolver.mutate()} disabled={resolver.isPending}>Fechar</Button>
         )}
       </div>
       <div className="grid max-h-[28rem] gap-2 overflow-y-auto rounded-lg border bg-card p-3" role="log" aria-label="Mensagens">

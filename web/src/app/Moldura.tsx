@@ -1,7 +1,7 @@
 import { useIsFetching, useIsMutating } from '@tanstack/react-query'
 import {
-  type LucideIcon, BookOpen, Boxes, ClipboardList, HandCoins, Headset, History, Home, Landmark, Link2, MapPin, Menu, Package,
-  ChevronDown, LogOut, Palette, PlusCircle, Receipt, Server, ShieldCheck, Store, TicketPercent, UserRound, Users, UsersRound, Wrench,
+  type LucideIcon, BookOpen, Boxes, ClipboardList, HandCoins, Headset, History, Home, Landmark, MapPin, Menu, Package,
+  ChevronDown, LogOut, Palette, Settings, PlusCircle, Receipt, Server, ShieldCheck, Store, TicketPercent, UserRound, Users, UsersRound, Wrench,
 } from 'lucide-react'
 import { useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate, useNavigation } from 'react-router'
@@ -36,12 +36,14 @@ const PRINCIPAIS: Record<Papel, Item[]> = {
     { para: '/painel/inicio', rotulo: 'Início', icone: Home },
     { para: '/vender', rotulo: 'Vender', icone: PlusCircle },
     { para: '/painel/vendas', rotulo: 'Vendas', icone: Receipt },
+    { para: '/catalogo', rotulo: 'Catálogo', icone: BookOpen },
     { para: '/painel/estoque', rotulo: 'Estoque', icone: Package },
   ],
   Vendedor: [
     { para: '/vendedor/inicio', rotulo: 'Início', icone: Home },
     { para: '/vender', rotulo: 'Vender', icone: PlusCircle },
     { para: '/vendedor/vendas', rotulo: 'Vendas', icone: Receipt },
+    { para: '/catalogo', rotulo: 'Catálogo', icone: BookOpen },
     { para: '/vendedor/placas', rotulo: 'Placas', icone: Package },
   ],
 }
@@ -72,14 +74,13 @@ const MENU: Record<Papel, Grupo[]> = {
     { titulo: 'Vendas', itens: [
       { para: '/painel/vendas', rotulo: 'Vendas', icone: Receipt },
       { para: '/painel/clientes', rotulo: 'Clientes', icone: Users },
-      { para: '/links', rotulo: 'Links', icone: Link2 },
+      { para: '/links', rotulo: 'Serviços', icone: Wrench },
       { para: '/painel/mapa', rotulo: 'Mapa', icone: MapPin },
     ] },
     { titulo: 'Produtos', itens: [
       { para: '/catalogo', rotulo: 'Catálogo', icone: BookOpen },
       { para: '/painel/estoque', rotulo: 'Estoque', icone: Package },
       { para: '/painel/pedidos', rotulo: 'Pedidos', icone: ClipboardList },
-      { para: '/painel/servicos', rotulo: 'Serviços', icone: Wrench },
     ] },
     { titulo: 'Equipe e dinheiro', itens: [
       { para: '/painel/equipe', rotulo: 'Equipe', icone: UsersRound },
@@ -87,6 +88,7 @@ const MENU: Record<Papel, Grupo[]> = {
       { para: '/painel/razao', rotulo: 'Razão', icone: Landmark },
     ] },
     { titulo: 'Conta', itens: [
+      { para: '/painel/configuracoes', rotulo: 'Configurações', icone: Settings },
       { para: '/painel/marca', rotulo: 'Marca', icone: Palette },
       { para: '/painel/auditoria', rotulo: 'Auditoria', icone: History },
       { para: '/conta/seguranca', rotulo: 'Segurança', icone: ShieldCheck },
@@ -100,7 +102,7 @@ const MENU: Record<Papel, Grupo[]> = {
       { para: '/vendedor/placas', rotulo: 'Minhas placas', icone: Package },
       { para: '/vendedor/vendas', rotulo: 'Minhas vendas', icone: Receipt },
       { para: '/catalogo', rotulo: 'Catálogo', icone: BookOpen },
-      { para: '/links', rotulo: 'Links', icone: Link2 },
+      { para: '/links', rotulo: 'Serviços', icone: Wrench },
     ] },
   ],
 }
@@ -197,16 +199,16 @@ export function Moldura() {
               <NavLink
                 key={para}
                 to={para}
-                className={({ isActive }) => cn('group relative flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-xs', isActive ? 'font-medium text-foreground' : 'text-muted-foreground')}
+                className={({ isActive }) => cn('group relative flex min-h-13 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 text-xs', isActive ? 'font-medium text-foreground' : 'text-muted-foreground')}
               >
-                <span aria-hidden className="traco absolute inset-x-5 top-0 h-0.5 rounded-full opacity-0 group-aria-[current=page]:opacity-100" />
-                <Icone aria-hidden className="size-5" />
+                <span aria-hidden className="traco absolute inset-x-3 top-0 h-0.5 rounded-full opacity-0 group-aria-[current=page]:opacity-100" />
+                <Icone aria-hidden className="size-4.5" />
                 {rotulo}
               </NavLink>
             ))}
             {outros.length > 0 && (
-              <button type="button" onClick={() => setMais(true)} className="flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-xs text-muted-foreground">
-                <Menu aria-hidden className="size-5" />
+              <button type="button" onClick={() => setMais(true)} className="flex min-h-13 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 text-xs text-muted-foreground">
+                <Menu aria-hidden className="size-4.5" />
                 Mais
               </button>
             )}

@@ -24,7 +24,7 @@ public sealed class LinkDeSenha
     /// <summary>O convite espera o vendedor abrir o e-mail; a redefinição é pedida na hora de usar.</summary>
     public static TimeSpan Validade(FinalidadeDoLink finalidade) => finalidade switch
     {
-        FinalidadeDoLink.Convite => TimeSpan.FromDays(7),
+        FinalidadeDoLink.Convite => TimeSpan.FromHours(24),
         FinalidadeDoLink.ConfirmacaoDeEmail => TimeSpan.FromDays(2),
         FinalidadeDoLink.SegundoFator => TimeSpan.FromMinutes(5),
         _ => TimeSpan.FromHours(1),

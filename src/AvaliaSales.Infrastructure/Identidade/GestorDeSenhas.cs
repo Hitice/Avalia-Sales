@@ -37,7 +37,7 @@ public sealed class GestorDeSenhas(BancoDeDados banco, UserManager<Usuario> usua
 
             Criar minha senha: {endereco}
 
-            O link vale 7 dias.
+            O link vale 24 horas.
             """, revenda);
         await banco.SaveChangesAsync(ct);
         return endereco;

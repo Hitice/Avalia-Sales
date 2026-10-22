@@ -14,27 +14,24 @@ import { ConversaDoChamado, HORARIO_DE_ATENDIMENTO, ListaDeChamados, useChamados
 /** O dono fala com a Avalia em chamados: abre, acompanha a resposta e marca como resolvido. */
 export function TelaDeSuporte() {
   const chamados = useChamados('/chamados')
+  // Sem chamado escolhido, a tela já oferece abrir um novo.
   const [aberto, setAberto] = useState<string | null>(null)
-  const novo = aberto === null && chamados.data?.length === 0 ? true : aberto === 'novo'
 
   return (
     <>
-      <Cabecalho titulo="Contate o suporte">
-        <Button onClick={() => setAberto('novo')}><Plus aria-hidden />Novo chamado</Button>
-      </Cabecalho>
+      <Cabecalho titulo="Contate o suporte" />
       <p className="-mt-2 mb-4 text-sm text-muted-foreground">{HORARIO_DE_ATENDIMENTO}</p>
       <div className="grid gap-4 lg:grid-cols-[20rem_minmax(0,1fr)]">
         <Card className="self-start">
           <CardContent className="grid gap-1 p-2">
+            {aberto && <Button variant="ghost" className="justify-start" onClick={() => setAberto(null)}><Plus aria-hidden />Novo chamado</Button>}
             <EstadoDaConsulta carregando={chamados.isPending} erro={chamados.error} vazio={chamados.data?.length === 0} textoVazio="Nenhum chamado." />
             {chamados.data && <ListaDeChamados chamados={chamados.data} aberto={aberto} aoAbrir={setAberto} operadora={false} />}
           </CardContent>
         </Card>
-        {novo
-          ? <NovoChamado aoAbrir={(c) => setAberto(c.id)} />
-          : aberto
-            ? <ConversaDoChamado key={aberto} base="/chamados" id={aberto} operadora={false} />
-            : <p className="text-sm text-muted-foreground">Escolha um chamado.</p>}
+        {aberto
+          ? <ConversaDoChamado key={aberto} base="/chamados" id={aberto} operadora={false} />
+          : <NovoChamado aoAbrir={(c) => setAberto(c.id)} />}
       </div>
     </>
   )

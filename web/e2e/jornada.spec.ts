@@ -42,7 +42,7 @@ test('jornada entre operadora, revenda e vendedora, e cada um vê só o que é d
 
   // 4. A revenda ativa o lote e consigna uma placa à vendedora.
   await cliente.goto('/painel/pedidos')
-  await cliente.getByLabel('Número na caixa').fill(lote)
+  await cliente.getByLabel('Lote', { exact: true }).fill(lote)
   await cliente.getByRole('button', { name: 'Ativar lote' }).click()
   await expect(cliente.getByRole('row').filter({ hasText: lote }).filter({ hasText: 'Entregue' })).toBeVisible()
   await cliente.goto('/painel/estoque')
@@ -58,7 +58,7 @@ test('jornada entre operadora, revenda e vendedora, e cada um vê só o que é d
   await vendedora.goto('/vender')
   await vendedora.getByRole('tab', { name: 'Link do cliente' }).click()
   await vendedora.getByLabel('Endereço').fill('cardapio.jornada.com.br')
-  await vendedora.getByRole('button', { name: 'Ler a placa' }).click()
+  await vendedora.getByRole('button', { name: 'Configurar' }).click()
   await vendedora.getByLabel('Código da placa').fill(codigo)
   await vendedora.getByRole('button', { name: 'Conferir' }).click()
   await vendedora.getByRole('button', { name: 'Continuar' }).click()

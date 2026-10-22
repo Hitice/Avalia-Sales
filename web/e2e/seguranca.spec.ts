@@ -33,10 +33,10 @@ test('o dono liga o segundo fator, a entrada pede o código e ele desliga', asyn
 
   await page.goto('/conta/seguranca')
   await semViolacaoGrave(page)
-  await page.getByRole('button', { name: 'Ligar com app autenticador' }).click()
+  await page.getByRole('button', { name: 'Ativar com app autenticador' }).click()
   const chave = (await page.locator('code').innerText()).trim()
   await page.getByLabel('Código que o app mostra').fill(codigoTotp(chave))
-  await page.getByRole('button', { name: 'Confirmar e ligar' }).click()
+  await page.getByRole('button', { name: 'Confirmar e ativar' }).click()
   await expect(page.locator('ol li')).toHaveCount(10)
 
   await page.getByRole('button', { name: /^Conta de / }).click()
@@ -52,6 +52,6 @@ test('o dono liga o segundo fator, a entrada pede o código e ele desliga', asyn
 
   await page.goto('/conta/seguranca')
   await page.getByLabel('Código do app ou de recuperação').fill(codigoTotp(chave))
-  await page.getByRole('button', { name: 'Desligar' }).click()
-  await expect(page.getByText('Desligado')).toBeVisible()
+  await page.getByRole('button', { name: 'Desativar' }).click()
+  await expect(page.getByText('Desativada')).toBeVisible()
 })

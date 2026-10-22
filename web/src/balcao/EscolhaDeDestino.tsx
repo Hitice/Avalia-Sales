@@ -96,7 +96,7 @@ export function EscolhaDeDestino({ valor, aoMudar, nomeSugerido, lugar, aoEscolh
       <TabsContent value="Link" className="grid gap-4 pt-2">
         <Field>
           <FieldLabel htmlFor="link">Endereço</FieldLabel>
-          <Input id="link" inputMode="url" placeholder="cardapio.exemplo.com.br" value={valor.link ?? ''} onChange={(e) => aoMudar({ tipo: 'Link', lugarNoGoogle: null, link: e.target.value || null })} />
+          <Input id="link" inputMode="url" placeholder="www.exemplo.com.br" value={valor.link ?? ''} onChange={(e) => aoMudar({ tipo: 'Link', lugarNoGoogle: null, link: e.target.value || null })} />
         </Field>
       </TabsContent>
     </Tabs>
