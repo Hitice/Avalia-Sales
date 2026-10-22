@@ -19,6 +19,7 @@ export const rotas = createBrowserRouter([{
   { path: '/convite', lazy: tela(() => import('@/acesso/TelaDeSenha'), 'TelaDeSenha') },
   { path: '/senha', lazy: tela(() => import('@/acesso/TelaDeSenha'), 'TelaDeSenha') },
   { path: '/esqueci', lazy: tela(() => import('@/acesso/TelaDeSenha'), 'TelaEsqueci') },
+  { path: '/confirmar-email', lazy: tela(() => import('@/acesso/TelaDeSenha'), 'TelaDeConfirmacao') },
   {
     element: <Protegida />,
     children: [

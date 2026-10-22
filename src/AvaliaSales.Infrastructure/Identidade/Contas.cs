@@ -10,7 +10,7 @@ namespace AvaliaSales.Infrastructure.Identidade;
 /// <summary>Os logins pelo UserManager, no mesmo contexto do banco: entram na transação de quem chama.</summary>
 public sealed class Contas(UserManager<Usuario> usuarios, BancoDeDados banco, GestorDeSenhas senhas, TimeProvider relogio) : IContas
 {
-    public async Task<Guid> Criar(string nome, string email, string? senha, Papel papel, Guid? revendedorId, CancellationToken ct)
+    public async Task<Guid> Criar(string nome, string email, string? senha, Papel papel, Guid? revendedorId, CancellationToken ct, bool emailConfirmado = false)
     {
         var normalizado = Emails.Normalizar(email) ?? throw new RegraDeNegocioException("Informe o e-mail.");
         nome = (nome ?? string.Empty).Trim();
@@ -24,14 +24,16 @@ public sealed class Contas(UserManager<Usuario> usuarios, BancoDeDados banco, Ge
             throw new RegraDeNegocioException("Este e-mail já tem cadastro na plataforma.");
         }
 
-        var usuario = new Usuario { RevendedorId = revendedorId, Papel = papel, Nome = nome, UserName = normalizado, Email = normalizado };
+        var usuario = new Usuario { RevendedorId = revendedorId, Papel = papel, Nome = nome, UserName = normalizado, Email = normalizado, EmailConfirmed = emailConfirmado };
         var criado = senha is null ? await usuarios.CreateAsync(usuario) : await usuarios.CreateAsync(usuario, senha);
         return criado.Succeeded
             ? usuario.Id
             : throw new RegraDeNegocioException(string.Join(" ", criado.Errors.Select(Traduzir)));
     }
 
-    public Task<string> Convidar(Guid usuarioId, string revenda, CancellationToken ct) => senhas.Convidar(usuarioId, revenda, ct);
+    public Task<string> Convidar(Guid usuarioId, Application.Avisos.RemetenteDoEmail revenda, CancellationToken ct) => senhas.Convidar(usuarioId, revenda, ct);
+
+    public Task PedirConfirmacao(Guid usuarioId, CancellationToken ct) => senhas.PedirConfirmacao(usuarioId, ct);
 
     public async Task<IReadOnlySet<Guid>> SemSenha(IEnumerable<Guid> ids, CancellationToken ct)
     {
@@ -61,9 +63,10 @@ public sealed class Contas(UserManager<Usuario> usuarios, BancoDeDados banco, Ge
         }
     }
 
+    /// <summary>Só e-mail confirmado: contrato e aviso não vão para endereço que ninguém provou ser do dono.</summary>
     public async Task<IReadOnlyList<string>> EmailsDosDonos(Guid revendedorId, CancellationToken ct) =>
         await banco.Users.AsNoTracking()
-            .Where(u => u.RevendedorId == revendedorId && u.Papel == Papel.Dono && u.Ativo && u.Email != null)
+            .Where(u => u.RevendedorId == revendedorId && u.Papel == Papel.Dono && u.Ativo && u.EmailConfirmed && u.Email != null)
             .OrderBy(u => u.Email).Select(u => u.Email!).ToListAsync(ct);
 
     public async Task<IReadOnlyDictionary<Guid, string>> Nomes(IEnumerable<Guid> ids, CancellationToken ct)

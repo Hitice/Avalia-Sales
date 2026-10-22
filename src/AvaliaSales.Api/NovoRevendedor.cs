@@ -51,7 +51,7 @@ internal static class NovoRevendedor
         await using var transacao = await banco.Database.BeginTransactionAsync();
         banco.Revendedores.Add(revendedor);
         await banco.SaveChangesAsync();
-        var criado = await usuarios.CreateAsync(new Usuario { RevendedorId = revendedor.Id, Papel = Papel.Dono, Nome = $"Dono {nome}", UserName = email, Email = email }, senha);
+        var criado = await usuarios.CreateAsync(new Usuario { RevendedorId = revendedor.Id, Papel = Papel.Dono, Nome = $"Dono {nome}", UserName = email, Email = email, EmailConfirmed = true }, senha);
         if (!criado.Succeeded)
         {
             await Console.Error.WriteLineAsync(string.Join(" ", criado.Errors.Select(e => e.Description)));
@@ -78,7 +78,7 @@ internal static class NovoRevendedor
         using var escopo = servicos.CreateScope();
         try
         {
-            await escopo.ServiceProvider.GetRequiredService<Application.Equipe.IContas>().Criar(nome, email, senha, Papel.Operadora, null, CancellationToken.None);
+            await escopo.ServiceProvider.GetRequiredService<Application.Equipe.IContas>().Criar(nome, email, senha, Papel.Operadora, null, CancellationToken.None, emailConfirmado: true);
         }
         catch (RegraDeNegocioException erro)
         {

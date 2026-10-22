@@ -90,6 +90,11 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .HasColumnType("character varying(200)")
                         .HasColumnName("chave");
 
+                    b.Property<string>("CorDaMarca")
+                        .HasMaxLength(7)
+                        .HasColumnType("character varying(7)")
+                        .HasColumnName("cor_da_marca");
+
                     b.Property<DateTimeOffset>("CriadoEm")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("criado_em");
@@ -103,11 +108,21 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .HasColumnType("character varying(64)")
                         .HasColumnName("id_no_resend");
 
+                    b.Property<string>("NomeDoRemetente")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("nome_do_remetente");
+
                     b.Property<string>("Para")
                         .IsRequired()
                         .HasMaxLength(254)
                         .HasColumnType("character varying(254)")
                         .HasColumnName("para");
+
+                    b.Property<string>("ResponderPara")
+                        .HasMaxLength(254)
+                        .HasColumnType("character varying(254)")
+                        .HasColumnName("responder_para");
 
                     b.Property<int>("Tentativas")
                         .HasColumnType("integer")

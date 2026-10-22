@@ -10,8 +10,8 @@ public sealed record NovoCadastro(string Empresa, string Cnpj, string Nome, stri
 
 /// <summary>
 /// O cadastro do revendedor pela tela: empresa, CNPJ e o login do dono numa
-/// transação. O contrato de revenda sai depois, pelo Worker, para o cadastro
-/// não esperar a D4Sign nem gastar o limite de requisições dela.
+/// transação, com o pedido de confirmação do e-mail. O contrato de revenda sai
+/// depois, pelo Worker, só para e-mail confirmado, e sem esperar a D4Sign.
 /// </summary>
 public sealed class Cadastro(IBancoDeDados banco, IContas contas)
 {
@@ -27,6 +27,7 @@ public sealed class Cadastro(IBancoDeDados banco, IContas contas)
         banco.Revendedores.Add(revendedor);
         await banco.SaveChangesAsync(ct);
         var dono = await contas.Criar(comando.Nome, comando.Email, comando.Senha ?? string.Empty, Papel.Dono, revendedor.Id, ct);
+        await contas.PedirConfirmacao(dono, ct);
         await transacao.CommitAsync(ct);
         return dono;
     }

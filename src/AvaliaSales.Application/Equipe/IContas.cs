@@ -7,12 +7,16 @@ public interface IContas
 {
     /// <summary>
     /// Recusa e-mail já usado na plataforma e senha fora da regra, com a
-    /// mensagem para a tela. Sem senha, o login espera o convite.
+    /// mensagem para a tela. Sem senha, o login espera o convite. Conta criada
+    /// pela operadora já nasce com o e-mail confirmado: veio de quem conhece o dono.
     /// </summary>
-    Task<Guid> Criar(string nome, string email, string? senha, Papel papel, Guid? revendedorId, CancellationToken ct);
+    Task<Guid> Criar(string nome, string email, string? senha, Papel papel, Guid? revendedorId, CancellationToken ct, bool emailConfirmado = false);
+
+    /// <summary>Põe na fila o link de confirmação do e-mail.</summary>
+    Task PedirConfirmacao(Guid usuarioId, CancellationToken ct);
 
     /// <summary>Põe o e-mail do convite na fila e devolve o link, que o dono também pode mandar pelo WhatsApp.</summary>
-    Task<string> Convidar(Guid usuarioId, string revenda, CancellationToken ct);
+    Task<string> Convidar(Guid usuarioId, Avisos.RemetenteDoEmail revenda, CancellationToken ct);
 
     /// <summary>Quem ainda não criou a senha pelo convite.</summary>
     Task<IReadOnlySet<Guid>> SemSenha(IEnumerable<Guid> usuarios, CancellationToken ct);

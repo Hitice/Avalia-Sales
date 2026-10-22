@@ -334,6 +334,9 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
             e.Property(x => x.Assunto).HasMaxLength(200);
             e.Property(x => x.IdNoResend).HasMaxLength(64);
             e.Property(x => x.UltimoErro).HasMaxLength(500);
+            e.Property(x => x.NomeDoRemetente).HasMaxLength(EmailNaFila.NomeMaximo);
+            e.Property(x => x.ResponderPara).HasMaxLength(254);
+            e.Property(x => x.CorDaMarca).HasMaxLength(7);
             e.HasIndex(x => x.Chave).IsUnique();
             e.HasIndex(x => x.CriadoEm).HasFilter("enviado_em is null");
         });

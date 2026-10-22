@@ -18,6 +18,14 @@ public sealed class EmailNaFila
     public DateTimeOffset? EnviadoEm { get; private set; }
     public string? IdNoResend { get; private set; }
     public int Tentativas { get; private set; }
+
+    /// <summary>Nome da revenda no remetente; nulo, sai como a plataforma.</summary>
+    public string? NomeDoRemetente { get; private set; }
+
+    public string? ResponderPara { get; private set; }
+
+    /// <summary>Cor da marca da revenda em #rrggbb, copiada na hora: a marca pode mudar antes do envio.</summary>
+    public string? CorDaMarca { get; private set; }
     public string? UltimoErro { get; private set; }
 
     private EmailNaFila()
@@ -38,6 +46,17 @@ public sealed class EmailNaFila
     {
         IdNoResend = idNoResend;
         EnviadoEm = agora;
+    }
+
+    public const int NomeMaximo = 80;
+
+    public void AssinarComo(string nome, string? responderPara, string? cor)
+    {
+        // Aspas, sinais de maior e menor e quebra de linha quebrariam o cabeçalho From.
+        var limpo = new string((nome ?? string.Empty).Where(c => !char.IsControl(c) && c is not ('"' or '<' or '>')).ToArray()).Trim();
+        NomeDoRemetente = limpo.Length == 0 ? null : limpo.Length > NomeMaximo ? limpo[..NomeMaximo] : limpo;
+        ResponderPara = Emails.Normalizar(responderPara);
+        CorDaMarca = cor is { Length: 7 } && cor[0] == '#' && cor[1..].All(Uri.IsHexDigit) ? cor.ToLowerInvariant() : null;
     }
 
     public void RegistrarFalha(string erro)

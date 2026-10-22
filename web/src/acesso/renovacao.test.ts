@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { renovarSessao } from './renovacao'
 import { useSessao } from './sessao'
 
-const perfil = { id: '1', nome: 'Dona', email: 'dona@teste.com.br', papel: 'Dono' as const, revendedorId: 'r', revendedor: 'Revenda' }
+const perfil = { id: '1', nome: 'Dona', email: 'dona@teste.com.br', papel: 'Dono' as const, revendedorId: 'r', revendedor: 'Revenda' , emailConfirmado: true }
 
 afterEach(() => {
   vi.unstubAllGlobals()

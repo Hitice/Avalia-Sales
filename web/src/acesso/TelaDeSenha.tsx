@@ -1,4 +1,4 @@
-import { type FormEvent, useState } from 'react'
+import { type FormEvent, useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router'
 import { ErroDaApi, chamarApi, enviarJson } from '@/api/cliente'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { renovarSessao } from './renovacao'
 import { type TokenEmitido, inicioDoPapel, useSessao } from './sessao'
 
 const SENHA_MINIMA = 10
@@ -113,6 +114,40 @@ export function TelaEsqueci() {
               </FieldGroup>
             </form>
           )}
+    </Moldura>
+  )
+}
+
+/** /confirmar-email: confirma ao abrir; com sessão aberta, renova para o painel saber. */
+export function TelaDeConfirmacao() {
+  const { hash } = useLocation()
+  const token = hash.replace(/^#/, '')
+  const logado = useSessao((s) => !!s.token)
+  const papel = useSessao((s) => s.perfil?.papel)
+  const [situacao, setSituacao] = useState<'conferindo' | 'confirmado' | string>(token ? 'conferindo' : 'Link incompleto.')
+  const enviado = useRef(false)
+
+  useEffect(() => {
+    if (!token || enviado.current) return
+    enviado.current = true
+    chamarApi('/auth/email', enviarJson('POST', { token }))
+      .then(async () => {
+        await renovarSessao()
+        setSituacao('confirmado')
+      })
+      .catch((e) => setSituacao(mensagem(e)))
+  }, [token])
+
+  return (
+    <Moldura titulo="Confirmar e-mail">
+      {situacao === 'conferindo' && <p role="status" className="text-sm">Confirmando...</p>}
+      {situacao === 'confirmado' && (
+        <div className="grid gap-4">
+          <p role="status" className="text-sm">E-mail confirmado.</p>
+          <Button asChild size="lg"><Link to={logado ? inicioDoPapel(papel) : '/entrar'}>{logado ? 'Ir para o painel' : 'Entrar'}</Link></Button>
+        </div>
+      )}
+      {situacao !== 'conferindo' && situacao !== 'confirmado' && <Alert variant="destructive"><AlertDescription>{situacao}</AlertDescription></Alert>}
     </Moldura>
   )
 }

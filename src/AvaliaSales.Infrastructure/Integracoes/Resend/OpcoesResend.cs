@@ -12,4 +12,7 @@ public sealed class OpcoesResend
 
     /// <summary>Remetente de domínio verificado no Resend, como "Avalia Sales &lt;avisos@avaliaone.com.br&gt;".</summary>
     public string Remetente { get; init; } = string.Empty;
+
+    /// <summary>Para onde vai a resposta do e-mail da plataforma, como suporte@...; vazio, volta ao remetente.</summary>
+    public string ResponderPara { get; init; } = string.Empty;
 }

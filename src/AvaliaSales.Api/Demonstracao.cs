@@ -49,7 +49,7 @@ internal static class Demonstracao
                 return 0;
             }
 
-            await contas.Criar("Operação Avalia", Operadora, Senha, Papel.Operadora, null, ct);
+            await contas.Criar("Operação Avalia", Operadora, Senha, Papel.Operadora, null, ct, emailConfirmado: true);
             banco.Pacotes.AddRange(new Pacote(10, 15_000), new Pacote(20, 28_000), new Pacote(50, 65_000), new Pacote(100, 120_000));
             banco.Cupons.Add(new Cupom("BEMVINDO10", 1_000, null, DateTimeOffset.UtcNow.AddMonths(3), 50));
             await banco.SaveChangesAsync(ct);
@@ -125,7 +125,7 @@ internal static class Demonstracao
         revendedor.RegistrarContratoAssinado(DateTimeOffset.UtcNow.AddDays(-60));
         banco.Revendedores.Add(revendedor);
         await banco.SaveChangesAsync(ct);
-        await escopo.ServiceProvider.GetRequiredService<IContas>().Criar($"Dono {nome}", email, Senha, Papel.Dono, revendedor.Id, ct);
+        await escopo.ServiceProvider.GetRequiredService<IContas>().Criar($"Dono {nome}", email, Senha, Papel.Dono, revendedor.Id, ct, emailConfirmado: true);
         return revendedor.Id;
     }
 
@@ -248,7 +248,7 @@ internal static class Demonstracao
 
     private static async Task<Guid> Vendedor(BancoDeDados banco, IContas contas, Guid revendedorId, string nome, string email, int? comissao, DateTimeOffset agora, CancellationToken ct)
     {
-        var id = await contas.Criar(nome, email, Senha, Papel.Vendedor, revendedorId, ct);
+        var id = await contas.Criar(nome, email, Senha, Papel.Vendedor, revendedorId, ct, emailConfirmado: true);
         var vendedor = new Vendedor(id, nome, email, agora);
         vendedor.Alterar(nome, "11998760000", email, comissao);
         banco.Vendedores.Add(vendedor);

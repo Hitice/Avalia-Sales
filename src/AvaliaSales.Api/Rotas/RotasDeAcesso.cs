@@ -1,4 +1,5 @@
 using AvaliaSales.Api.Autenticacao;
+using AvaliaSales.Application;
 using AvaliaSales.Application.Revendedores;
 using AvaliaSales.Infrastructure.Banco;
 using AvaliaSales.Infrastructure.Identidade;
@@ -12,6 +13,8 @@ public sealed record PedidoDeEntrada(string Email, string Senha);
 public sealed record PedidoDeLink(string? Email);
 
 public sealed record NovaSenha(string? Token, string? Senha);
+
+public sealed record PedidoDeConfirmacao(string? Token);
 
 /// <summary>
 /// Entrada, renovação e saída. O token de acesso vive 15 minutos e só em
@@ -35,6 +38,18 @@ public static class RotasDeAcesso
             return Results.NoContent();
         });
         auth.MapPost("/senha", DefinirSenha);
+        auth.MapPost("/email", async (PedidoDeConfirmacao pedido, GestorDeSenhas senhas, CancellationToken ct) =>
+        {
+            await senhas.Confirmar(pedido.Token, ct);
+            return Results.NoContent();
+        });
+
+        // Logado, com o mesmo limite da entrada: reenviar não vira disparo de e-mail.
+        rotas.MapPost("/conta/email/confirmacao", async (IUsuarioAtual atual, GestorDeSenhas senhas, CancellationToken ct) =>
+        {
+            await senhas.PedirConfirmacao(atual.UsuarioId ?? throw new InvalidOperationException("Sem usuário."), ct);
+            return Results.NoContent();
+        }).RequireAuthorization().RequireRateLimiting(LimiteDeEntrada);
         rotas.MapPost("/cadastro", Cadastrar).AllowAnonymous().RequireRateLimiting(LimiteDeEntrada);
     }
 

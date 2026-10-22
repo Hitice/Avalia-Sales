@@ -9,6 +9,8 @@ export type Perfil = {
   papel: Papel
   revendedorId: string | null
   revendedor: string | null
+  /** Falso, o painel pede a confirmação: contrato e avisos esperam por ela. */
+  emailConfirmado: boolean
 }
 
 export type TokenEmitido = { token: string; expiraEm: string; perfil?: Perfil }

@@ -10,7 +10,7 @@ function abrir(papel: Papel | null, iniciada = true) {
     useSessao.getState().entrar({
       token: 't',
       expiraEm: new Date(Date.now() + 900_000).toISOString(),
-      perfil: { id: '1', nome: 'X', email: 'x@teste.com.br', papel, revendedorId: null, revendedor: null },
+      perfil: { id: '1', nome: 'X', email: 'x@teste.com.br', papel, revendedorId: null, revendedor: null, emailConfirmado: true },
     })
   }
 

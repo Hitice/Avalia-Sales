@@ -5,7 +5,8 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace AvaliaSales.Api.Autenticacao;
 
-public sealed record Perfil(Guid Id, string Nome, string Email, string Papel, Guid? RevendedorId, string? Revendedor);
+/// <summary>Com o e-mail sem confirmar, o painel pede a confirmação; contrato e avisos esperam por ela.</summary>
+public sealed record Perfil(Guid Id, string Nome, string Email, string Papel, Guid? RevendedorId, string? Revendedor, bool EmailConfirmado);
 
 public sealed record TokenEmitido(string Token, DateTimeOffset ExpiraEm, Perfil Perfil);
 
@@ -35,6 +36,6 @@ public sealed class EmissorDeToken(IOptions<OpcoesJwt> opcoes, TimeProvider relo
             SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(jwt.BytesDaChave), SecurityAlgorithms.HmacSha256),
         });
         return new TokenEmitido(token, expiraEm,
-            new Perfil(usuario.Id, usuario.Nome, usuario.Email ?? string.Empty, usuario.Papel.ToString(), usuario.RevendedorId, revendedor));
+            new Perfil(usuario.Id, usuario.Nome, usuario.Email ?? string.Empty, usuario.Papel.ToString(), usuario.RevendedorId, revendedor, usuario.EmailConfirmed));
     }
 }

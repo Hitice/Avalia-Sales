@@ -4,17 +4,25 @@ public enum FinalidadeDoLink
 {
     Convite,
     Redefinicao,
+
+    /// <summary>Prova que o e-mail do dono é dele, antes de o contrato e os avisos irem para lá.</summary>
+    ConfirmacaoDeEmail,
 }
 
 /// <summary>
-/// Link de criar ou trocar a senha, guardado só pelo hash, como a sessão.
-/// Vale uma vez; o link novo encerra o anterior do mesmo usuário.
+/// Link mandado por e-mail (criar ou trocar a senha, confirmar o e-mail),
+/// guardado só pelo hash, como a sessão. Vale uma vez; o link novo encerra o
+/// anterior da mesma finalidade do mesmo usuário.
 /// </summary>
 public sealed class LinkDeSenha
 {
     /// <summary>O convite espera o vendedor abrir o e-mail; a redefinição é pedida na hora de usar.</summary>
-    public static TimeSpan Validade(FinalidadeDoLink finalidade) =>
-        finalidade == FinalidadeDoLink.Convite ? TimeSpan.FromDays(7) : TimeSpan.FromHours(1);
+    public static TimeSpan Validade(FinalidadeDoLink finalidade) => finalidade switch
+    {
+        FinalidadeDoLink.Convite => TimeSpan.FromDays(7),
+        FinalidadeDoLink.ConfirmacaoDeEmail => TimeSpan.FromDays(2),
+        _ => TimeSpan.FromHours(1),
+    };
 
     public Guid Id { get; private set; } = Guid.CreateVersion7();
     public Guid UsuarioId { get; private set; }

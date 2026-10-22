@@ -2,6 +2,7 @@ import { type LucideIcon, ClipboardList, Headset, Home, Menu, Package, PlusCircl
 import { useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router'
 import { sairDaSessao } from '@/acesso/renovacao'
+import { chamarApi, enviarJson, mensagemDoErro } from '@/api/cliente'
 import { type Papel, useSessao } from '@/acesso/sessao'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
@@ -121,6 +122,7 @@ export function Moldura() {
         </nav>
       </header>
       <main className={cn('mx-auto max-w-6xl p-4', !naVenda && 'pb-24 md:pb-4')}>
+        {perfil?.papel === 'Dono' && !perfil.emailConfirmado && <ConfirmeOEmail email={perfil.email} />}
         <Outlet />
       </main>
       {!naVenda && (
@@ -166,6 +168,25 @@ export function Moldura() {
       <div aria-live="polite" className="pointer-events-none fixed inset-x-0 top-16 z-20 md:top-28 flex justify-center px-4">
         {aviso && <p className="rounded-lg bg-foreground px-4 py-2 text-sm text-background shadow-lg">{aviso}</p>}
       </div>
+    </div>
+  )
+}
+
+/** Até o dono confirmar, o contrato de revenda e os avisos não saem. */
+function ConfirmeOEmail({ email }: { email: string }) {
+  const [enviado, setEnviado] = useState(false)
+  const [erro, setErro] = useState<string | null>(null)
+  return (
+    <div role="status" className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-destaque bg-accent p-3 text-sm">
+      <span>{enviado ? `Link enviado para ${email}.` : `Confirme o e-mail ${email} para receber o contrato.`}{erro && ` ${erro}`}</span>
+      {!enviado && (
+        <Button
+          variant="outline"
+          onClick={() => chamarApi('/conta/email/confirmacao', enviarJson('POST')).then(() => setEnviado(true), (e) => setErro(mensagemDoErro(e)))}
+        >
+          Reenviar link
+        </Button>
+      )}
     </div>
   )
 }

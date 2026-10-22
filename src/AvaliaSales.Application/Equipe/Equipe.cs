@@ -1,3 +1,4 @@
+using AvaliaSales.Application.Avisos;
 using AvaliaSales.Domain;
 using AvaliaSales.Domain.Acesso;
 using AvaliaSales.Domain.Equipe;
@@ -37,7 +38,7 @@ public sealed class Equipe(IBancoDeDados banco, IContas contas, IRevendedorAtual
         vendedor.Alterar(comando.Nome, comando.Telefone, comando.ChavePix, comando.ComissaoBps);
         banco.Vendedores.Add(vendedor);
         await banco.SaveChangesAsync(ct);
-        var link = senha is null ? await contas.Convidar(id, await NomeDaRevenda(ct), ct) : null;
+        var link = senha is null ? await contas.Convidar(id, await Remetente(ct), ct) : null;
         await transacao.CommitAsync(ct);
         return ParaDto(vendedor, await ComissaoPadrao(ct), 0, senha is null) with { LinkDoConvite = link };
     }
@@ -51,7 +52,7 @@ public sealed class Equipe(IBancoDeDados banco, IContas contas, IRevendedorAtual
             throw new RegraDeNegocioException("Reative o vendedor antes de convidar.");
         }
 
-        var link = await contas.Convidar(id, await NomeDaRevenda(ct), ct);
+        var link = await contas.Convidar(id, await Remetente(ct), ct);
         return ParaDto(vendedor, await ComissaoPadrao(ct), await banco.Vendas.CountAsync(v => v.VendedorId == id, ct), true) with { LinkDoConvite = link };
     }
 
@@ -109,8 +110,13 @@ public sealed class Equipe(IBancoDeDados banco, IContas contas, IRevendedorAtual
         await banco.Vendedores.SingleOrDefaultAsync(v => v.Id == id, ct)
         ?? throw new RegraDeNegocioException("Vendedor não encontrado.");
 
-    private async Task<string> NomeDaRevenda(CancellationToken ct) =>
-        await banco.Revendedores.Where(r => r.Id == atual.RevendedorId).Select(r => r.NomeExibido ?? r.Nome).SingleAsync(ct);
+    /// <summary>O convite sai em nome da revenda, na cor dela, e a resposta vai ao dono.</summary>
+    private async Task<RemetenteDoEmail> Remetente(CancellationToken ct)
+    {
+        var revenda = await banco.Revendedores.Where(r => r.Id == atual.RevendedorId).Select(r => new { Nome = r.NomeExibido ?? r.Nome, r.CorPrimaria }).SingleAsync(ct);
+        var donos = await contas.EmailsDosDonos(atual.RevendedorId!.Value, ct);
+        return new RemetenteDoEmail(revenda.Nome, donos.Count > 0 ? donos[0] : null, revenda.CorPrimaria);
+    }
 
     private static VendedorDto ParaDto(Vendedor v, int padrao, int vendas, bool convitePendente) =>
         new(v.Id, v.Nome, v.Email, v.Telefone, v.ChavePix, v.ComissaoBps, v.ComissaoBps ?? padrao, v.Ativo, vendas, convitePendente);

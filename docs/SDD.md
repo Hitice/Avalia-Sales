@@ -299,7 +299,18 @@ vende de novo.
 Conferido na referência oficial em 21/10/2026.
 
 - `POST https://api.resend.com/emails` com `Authorization: Bearer re_...`,
-  `from`, `to`, `subject` e `text`. Resposta `{ "id": "..." }`.
+  `from`, `to`, `subject`, `text`, `html` e `reply_to`. Resposta `{ "id": "..." }`.
+- `from` é sempre o endereço de `Resend:Remetente`, de domínio verificado. O
+  e-mail em nome da revenda leva o nome dela como exibição
+  (`"Padaria via Avalia Sales" <avisos@...>`) e `reply_to` do dono; o da
+  plataforma responde para `Resend:ResponderPara`. Nome, resposta e cor da
+  marca são copiados para a fila na hora (`nome_do_remetente`,
+  `responder_para`, `cor_da_marca`).
+- O HTML (`ModeloDeEmail`) repete o texto escapado, com o primeiro link como
+  botão na cor da marca e a cor da letra escolhida pelo contraste WCAG.
+- Para publicar - domínio verificado no Resend com SPF, DKIM e DMARC no DNS,
+  e as variáveis `Resend__ChaveApi`, `Resend__Remetente` e
+  `Resend__ResponderPara`.
 - O e-mail entra na tabela `emails` na mesma transação do fato que o motiva,
   com chave única (por exemplo `pedido:{id}:operadora`). O Worker envia com a
   chave no cabeçalho `Idempotency-Key` (até 256 caracteres, vale 24 horas):
@@ -307,7 +318,12 @@ Conferido na referência oficial em 21/10/2026.
 - Sem chave configurada, o Worker não envia e o e-mail espera na fila; nada é
   marcado como enviado sem ter saído.
 - E-mails - pedido novo e pedido pago para a operadora, lote despachado para
-  o dono, e pagamento a devolver quando chega para pedido já pago ou cancelado.
+  o dono, pagamento a devolver quando chega para pedido já pago ou cancelado,
+  confirmação do e-mail do dono, convite do vendedor e troca de senha.
+- Confirmação - `links_de_senha` com finalidade `ConfirmacaoDeEmail` (2 dias),
+  `POST /auth/email` e `POST /conta/email/confirmacao` para reenviar.
+  `EmailsDosDonos` só devolve e-mail confirmado, então contrato e aviso
+  esperam a confirmação. O perfil do token traz `emailConfirmado`.
 
 ### Google Places (no código)
 
@@ -572,6 +588,7 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
 
 | Data | Mudança |
 | --- | --- |
+| 22/10/2026 | Confirmação de e-mail do dono, remetente e resposta por revenda, HTML com a marca (`ModeloDeEmail`), migration EmailConfirmadoERemetente (contas antigas marcadas como confirmadas). NFC no iPhone pelo NFC Tools. |
 | 22/10/2026 | Front - barra de baixo no celular (`PRINCIPAIS` na `Moldura`, o resto no "Mais"), menu de cima só a partir de `md`; token `--sucesso`; CPF, e-mail e telefone conferidos no navegador (`documentos.ts`); `destino.ts` confere o link do Google como a API; trocar de passo limpa a recusa da tentativa anterior. 42 testes no front. |
 | 22/10/2026 | Encurtador - `links` (RLS) e `codigos_de_link` (plataforma, sem RLS, como `placas_emitidas`), rotas `/links` e `GET/HEAD /l/{codigo}` com 302 sem cache, `Links.DoNegocio` na transação da venda, `VendaRegistrada.LinkCurto`. Destino recusa `/l/` da plataforma. Nova venda na ordem negócio, placa, cliente, cobrança. 184 testes na API. |
 | 22/10/2026 | Convite do vendedor e esqueci a senha (`POST /equipe/{id}/convite`, `POST /auth/senha/link`, `POST /auth/senha`, `GestorDeSenhas`, migration LinksDeSenha), telas `/convite`, `/senha` e `/esqueci`. Grade de duas colunas sem rolagem lateral no celular. 181 testes na API. |

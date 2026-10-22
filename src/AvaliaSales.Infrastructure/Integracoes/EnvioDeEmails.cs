@@ -32,7 +32,8 @@ public sealed partial class EnvioDeEmails(BancoDeDados banco, IEnvioDeEmail envi
         {
             try
             {
-                email.MarcarEnviado(await envio.Enviar(email.Chave, email.Para, email.Assunto, email.Texto, ct), relogio.GetUtcNow());
+                var remetente = email.NomeDoRemetente is { } nome ? new RemetenteDoEmail(nome, email.ResponderPara, email.CorDaMarca) : null;
+                email.MarcarEnviado(await envio.Enviar(new MensagemDeEmail(email.Chave, email.Para, email.Assunto, email.Texto, remetente), ct), relogio.GetUtcNow());
                 enviados++;
             }
             catch (IntegracaoException erro)

@@ -239,6 +239,18 @@ Todas no mesmo app, liberadas pelo papel do usuário.
   foi assinado.
 - Contrato só anda para a frente - aguardando assinatura vira assinado ou
   cancelado.
+- O contrato de revenda e os avisos ao dono só vão para e-mail confirmado. O
+  cadastro manda o link de confirmação (vale 2 dias); o painel lembra e
+  reenvia. Conta criada pela operadora já nasce confirmada.
+
+### E-mail
+
+- Sai sempre do endereço da plataforma, o único com domínio verificado.
+- O que sai em nome da revenda (convite do vendedor) leva o nome dela no
+  remetente ("Padaria via Avalia Sales"), a resposta vai ao dono e o botão
+  vem na cor da marca.
+- No iPhone, o NFC é gravado pelo app NFC Tools: o botão copia o endereço e
+  abre o app.
 
 ## 6a. Mapa de portabilidade do Sales
 
@@ -373,6 +385,7 @@ Estimativa em semanas de cerca de 20 horas.
 
 | Data | Mudança |
 | --- | --- |
+| 22/10/2026 | Confirmação do e-mail do dono antes do contrato e dos avisos. E-mail da revenda com o nome dela no remetente, resposta ao dono e a cor da marca. No iPhone, NFC pelo NFC Tools. |
 | 22/10/2026 | Painel do vendedor (primeira tela dele) - vendas e valor do mês, comissão a receber, esperando o cliente pagar, recebida, placas com ele e últimas vendas. |
 | 22/10/2026 | Celular - menu na barra de baixo (telas de todo dia e "Mais"); Nova venda com "‹ Voltar" no topo (um passo para trás; no primeiro, sai) e só o botão de avançar no pé, campo do cliente verde quando o dado confere e link do Google conferido no passo do negócio. |
 | 22/10/2026 | Nova venda começa pelo negócio no Google, depois a placa. Link curto `/L/` do negócio, criado na venda com Google e na tela Links. |
