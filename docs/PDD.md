@@ -408,7 +408,7 @@ O que está pronto no código e só fecha com a conta de verdade:
 | --- | --- | --- |
 | Pagar.me | Sandbox: Pix, cartão (formato do `/tokens` com a chave pública), split, webhook; confirmar PSP com split na conta | `Pagarme__ChaveSecreta`, `Pagarme__ChavePublica`, `Pagarme__RecebedorAvalia`, `Pagarme__SegredoDoWebhook` |
 | Recebedor do revendedor | Criar pela API (`POST /recipients` com `register_information` e KYC). A referência de 2026 se contradiz no prefixo do id (`re_` ou `rp_`), nos tipos (texto ou número) e no formato da data; escrever com o sandbox. Hoje a operadora informa o `rp_` à mão, e a configuração só aceita `rp_` | - |
-| D4Sign | Sandbox: envio, assinatura e webhook do contrato | `D4Sign__TokenApi`, `D4Sign__CryptKey`, `D4Sign__SegredoHmac`, `D4Sign__Cofre`, `D4Sign__UrlDoWebhook` |
+| D4Sign | Sandbox: envio, assinatura e webhook do contrato (aceita formulário e JSON, 1.0 e 2.0; HMAC do uuid ligado na conta) | `D4Sign__TokenApi`, `D4Sign__CryptKey`, `D4Sign__SegredoHmac`, `D4Sign__Cofre`, `D4Sign__UrlDoWebhook` |
 | Resend | Domínio verificado (SPF, DKIM, DMARC); remetente e resposta | `Resend__ChaveApi`, `Resend__Remetente`, `Resend__ResponderPara` |
 | Google | Chave do servidor (Places New) e do mapa (Maps JavaScript, restrita ao domínio) e o Map ID | `Google__ChaveDoServidor`, `Google__ChaveDoMapa`, `Google__IdDoMapa` |
 | Sentry e SonarCloud | DSN e token | `Sentry__Dsn`, `SONAR_TOKEN` e as variáveis do projeto |
@@ -418,6 +418,7 @@ O que está pronto no código e só fecha com a conta de verdade:
 
 | Data | Mudança |
 | --- | --- |
+| 22/10/2026 | Webhook da D4Sign aceita JSON além de formulário. Chave pública do Pagar.me e endereço de resposta do e-mail passam pelo compose. |
 | 22/10/2026 | O dono só usa o painel depois de confirmar o e-mail. Segundo fator também por código no e-mail. Aviso por e-mail de acesso de aparelho novo. Entrada clara com o logo da Avalia. |
 | 22/10/2026 | Renovação pedida e não paga (sem Pix vivo) não impede mais cancelar a venda nem trocar a placa: ela é cancelada junto. |
 | 22/10/2026 | Venda no cartão de crédito na Nova venda, em até 12 vezes, quando a revenda tem a chave pública do Pagar.me. |

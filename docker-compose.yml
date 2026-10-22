@@ -5,6 +5,7 @@ x-integracoes: &integracoes
   Pagarme__ChaveSecreta: ${PAGARME_CHAVE_SECRETA:?defina PAGARME_CHAVE_SECRETA no .env (sk_test_ em desenvolvimento)}
   Pagarme__RecebedorAvalia: ${PAGARME_RECEBEDOR_AVALIA:?defina PAGARME_RECEBEDOR_AVALIA no .env}
   Pagarme__SegredoDoWebhook: ${PAGARME_SEGREDO_DO_WEBHOOK:?defina PAGARME_SEGREDO_DO_WEBHOOK no .env}
+  Pagarme__ChavePublica: ${PAGARME_CHAVE_PUBLICA:-}
   D4Sign__TokenApi: ${D4SIGN_TOKEN_API:?defina D4SIGN_TOKEN_API no .env}
   D4Sign__CryptKey: ${D4SIGN_CRYPT_KEY:-}
   D4Sign__SegredoHmac: ${D4SIGN_SEGREDO_HMAC:?defina D4SIGN_SEGREDO_HMAC no .env}
@@ -15,6 +16,7 @@ x-integracoes: &integracoes
   Plataforma__EmailDaOperadora: ${PLATAFORMA_EMAIL_DA_OPERADORA:?defina PLATAFORMA_EMAIL_DA_OPERADORA no .env}
   Resend__ChaveApi: ${RESEND_CHAVE_API:-}
   Resend__Remetente: ${RESEND_REMETENTE:-}
+  Resend__ResponderPara: ${RESEND_RESPONDER_PARA:-}
   Google__ChaveDoServidor: ${GOOGLE_CHAVE_DO_SERVIDOR:-}
   Protheus__UrlBase: ${PROTHEUS_URL_BASE:-}
   Protheus__Usuario: ${PROTHEUS_USUARIO:-}

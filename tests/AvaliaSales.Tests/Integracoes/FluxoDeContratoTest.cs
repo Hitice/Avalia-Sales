@@ -105,6 +105,23 @@ public sealed class FluxoDeContratoTest(ApiDeTeste api)
     }
 
     [Fact]
+    public async Task Webhook_da_d4sign_em_json_versao_2_entra_na_caixa_com_o_hmac_do_uuid()
+    {
+        var uuid = Guid.NewGuid().ToString();
+        var cliente = api.Fabrica.CreateClient();
+        using var corpo = new StringContent(
+            $$$"""{"uuid":"{{{uuid}}}","type_post":"4","message":"Signed","signer":{"uuid":"s1","email":"dono@revenda.com.br"}}""",
+            System.Text.Encoding.UTF8, "application/json");
+        corpo.Headers.Add("Content-Hmac", "sha256=" + AssinaturaDoWebhook.Calcular(uuid, ApiDeTeste.SegredoHmacD4Sign));
+
+        var resposta = await cliente.PostAsync("/webhooks/d4sign", corpo, Ct);
+
+        Assert.Equal(HttpStatusCode.OK, resposta.StatusCode);
+        await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
+        Assert.Equal(1, await banco.Contar($"select count(*) from eventos_externos where id_externo = '{uuid}:4:dono@revenda.com.br' and corpo->'signer'->>'email' = 'dono@revenda.com.br'"));
+    }
+
+    [Fact]
     public async Task Webhook_da_d4sign_sem_hmac_valido_e_recusado()
     {
         using var formulario = new FormUrlEncodedContent(new Dictionary<string, string> { ["uuid"] = "doc-forjado", ["type_post"] = "1" });

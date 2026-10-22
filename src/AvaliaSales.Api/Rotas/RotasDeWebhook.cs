@@ -68,31 +68,63 @@ public static class RotasDeWebhook
     }
 
     /// <summary>
-    /// A D4Sign manda formulário com uuid, type_post e email, e o HMAC do uuid
-    /// no cabeçalho Content-Hmac. Não há id de evento: a chave é
-    /// uuid, tipo e e-mail, que não se repetem para o mesmo fato.
+    /// A D4Sign manda uuid, type_post e email, em formulário ou em JSON, conforme
+    /// a conta (o painel deixa escolher), e o HMAC-SHA256 do uuid no cabeçalho
+    /// Content-Hmac. No webhook 2.0, o e-mail vem em signer.email. Não há id de
+    /// evento: a chave é uuid, tipo e e-mail, que não se repetem para o mesmo fato.
     /// </summary>
     private static async Task<IResult> D4Sign(
         HttpRequest requisicao, IOptions<OpcoesD4Sign> opcoes, CaixaDeEntrada caixa, CancellationToken ct)
     {
-        if (!requisicao.HasFormContentType)
+        string uuid, tipo, email, corpo;
+        if (requisicao.HasFormContentType)
+        {
+            var formulario = await requisicao.ReadFormAsync(ct);
+            uuid = formulario["uuid"].ToString();
+            tipo = formulario["type_post"].ToString();
+            email = formulario["email"].ToString();
+            corpo = JsonSerializer.Serialize(formulario.ToDictionary(campo => campo.Key, campo => campo.Value.ToString()));
+        }
+        else if (requisicao.HasJsonContentType() && await LerCorpo(requisicao, ct) is { } json && LerEventoJson(json) is { } evento)
+        {
+            (uuid, tipo, email) = evento;
+            corpo = json;
+        }
+        else
         {
             return Results.BadRequest();
         }
-
-        var formulario = await requisicao.ReadFormAsync(ct);
-        var uuid = formulario["uuid"].ToString();
-        var tipo = formulario["type_post"].ToString();
-        var email = formulario["email"].ToString();
 
         if (!AssinaturaDoWebhook.Valida(uuid, requisicao.Headers["Content-Hmac"], opcoes.Value.SegredoHmac))
         {
             return Results.Unauthorized();
         }
 
-        var corpo = JsonSerializer.Serialize(formulario.ToDictionary(campo => campo.Key, campo => campo.Value.ToString()));
         await caixa.Registrar(VinculoExterno.D4Sign, $"{uuid}:{tipo}:{email}", $"type_post {tipo}", uuid, corpo, ct);
         return Results.Ok();
+    }
+
+    /// <summary>uuid, type_post e o e-mail (direto no 1.0, em signer no 2.0); nulo se o JSON não for desse formato.</summary>
+    private static (string Uuid, string Tipo, string Email)? LerEventoJson(string json)
+    {
+        try
+        {
+            using var documento = JsonDocument.Parse(json);
+            var raiz = documento.RootElement;
+            string Texto(JsonElement e, string nome) =>
+                e.ValueKind == JsonValueKind.Object && e.TryGetProperty(nome, out var v) ? v.ValueKind == JsonValueKind.String ? v.GetString() ?? string.Empty : v.ToString() : string.Empty;
+            var email = Texto(raiz, "email");
+            if (email.Length == 0 && raiz.ValueKind == JsonValueKind.Object && raiz.TryGetProperty("signer", out var assinante))
+            {
+                email = Texto(assinante, "email");
+            }
+
+            return (Texto(raiz, "uuid"), Texto(raiz, "type_post"), email);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
     }
 
     private static async Task<string?> LerCorpo(HttpRequest requisicao, CancellationToken ct)
