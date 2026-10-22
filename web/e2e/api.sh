@@ -23,7 +23,7 @@ export ASPNETCORE_ENVIRONMENT=Development DOTNET_ENVIRONMENT=Development
 export ConnectionStrings__Banco="Host=localhost;Database=$BANCO;Username=avalia_app;Password=$SENHA_APP"
 export Jwt__Chave="$(openssl rand -base64 48)"
 export Pagarme__ChaveSecreta=sk_test_e2e Pagarme__RecebedorAvalia=rp_e2e Pagarme__SegredoDoWebhook=segredo-do-webhook-com-32-caracteres-ou-mais
-export D4Sign__TokenApi=e2e D4Sign__CryptKey=e2e D4Sign__SegredoHmac=e2e D4Sign__Cofre=e2e D4Sign__UrlDoWebhook=https://e2e.exemplo.com.br/webhooks/d4sign
+export D4Sign__TokenApi=e2e D4Sign__CryptKey=e2e D4Sign__SegredoHmac=segredo-hmac-do-e2e-com-folga D4Sign__Cofre=e2e D4Sign__UrlDoWebhook=https://e2e.exemplo.com.br/webhooks/d4sign
 export Plataforma__UrlPublica=http://localhost:4173 Plataforma__UrlDoPainel=http://localhost:4173
 # Cada teste entra de novo, do mesmo IP.
 export Limites__EntradasPorMinuto=100000
