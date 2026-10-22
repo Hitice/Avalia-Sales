@@ -397,6 +397,20 @@ Estimativa em semanas de cerca de 20 horas.
 | Textos do contrato e do termo | Rascunho ou revisão jurídica | Revisão antes do fim da Fase 1; hoje vai uma minuta marcada como homologação |
 | Repositório | Público ou privado | Público, com dados fictícios |
 
+### Fase das APIs (com as contas e chaves)
+
+O que está pronto no código e só fecha com a conta de verdade:
+
+| Integração | O que falta | Variáveis |
+| --- | --- | --- |
+| Pagar.me | Sandbox: Pix, cartão (formato do `/tokens` com a chave pública), split, webhook; confirmar PSP com split na conta | `Pagarme__ChaveSecreta`, `Pagarme__ChavePublica`, `Pagarme__RecebedorAvalia`, `Pagarme__SegredoDoWebhook` |
+| Recebedor do revendedor | Criar pela API (`POST /recipients` com `register_information` e KYC). A referência de 2026 se contradiz no prefixo do id (`re_` ou `rp_`), nos tipos (texto ou número) e no formato da data; escrever com o sandbox. Hoje a operadora informa o `rp_` à mão, e a configuração só aceita `rp_` | - |
+| D4Sign | Sandbox: envio, assinatura e webhook do contrato | `D4Sign__TokenApi`, `D4Sign__CryptKey`, `D4Sign__SegredoHmac`, `D4Sign__Cofre`, `D4Sign__UrlDoWebhook` |
+| Resend | Domínio verificado (SPF, DKIM, DMARC); remetente e resposta | `Resend__ChaveApi`, `Resend__Remetente`, `Resend__ResponderPara` |
+| Google | Chave do servidor (Places New) e do mapa (Maps JavaScript, restrita ao domínio) e o Map ID | `Google__ChaveDoServidor`, `Google__ChaveDoMapa`, `Google__IdDoMapa` |
+| Sentry e SonarCloud | DSN e token | `Sentry__Dsn`, `SONAR_TOKEN` e as variáveis do projeto |
+| Servidor | VPS, DNS, runner e `DEPLOY_ATIVO`; conferir a CSP com `curl -sI` no primeiro deploy | - |
+
 ## 12. Registro de mudanças
 
 | Data | Mudança |
