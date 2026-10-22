@@ -2525,8 +2525,16 @@
           "precoCents": {
             "type": "integer",
             "format": "int64"
+          },
+          "comissaoBps": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
           }
-        }
+        },
+        "description": "Sem comiss\u00E3o, o produto segue a do vendedor ou a padr\u00E3o."
       },
       "ClienteDaLista": {
         "required": [
@@ -3982,7 +3990,8 @@
           "id",
           "nome",
           "precoCents",
-          "ativo"
+          "ativo",
+          "comissaoBps"
         ],
         "type": "object",
         "properties": {
@@ -3999,6 +4008,13 @@
           },
           "ativo": {
             "type": "boolean"
+          },
+          "comissaoBps": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
           }
         }
       },

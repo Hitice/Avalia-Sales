@@ -600,6 +600,7 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
 
 | Data | Mudança |
 | --- | --- |
+| 22/10/2026 | `produtos.comissao_bps` (migration ComissaoDoProduto); `Vendas.QuemVende` resolve vendedor, produto e padrão. |
 | 22/10/2026 | Testes de ponta a ponta com Playwright e axe, job `e2e` no CI. O axe achou e foram corrigidos: contraste da aba inativa e telas sem `h1` (entrada, cadastro, senha, catálogo). |
 | 22/10/2026 | Formulários de cadastro em React Hook Form + Zod com `Campo` e `lib/esquemas.ts` (Nova venda, Equipe, Links, senha, Pacotes, Cupons); o de Pacotes não limpa mais o que foi digitado quando a gravação falha. |
 | 22/10/2026 | Contrato da API versionado em `web/openapi.json` (ContratoDaApiTest falha se divergir e regrava fora do CI); tipos do front gerados dele com openapi-typescript (`npm run tipos`, `src/api/esquema.d.ts`), conferidos no CI. JSON da API com número estrito; papel do perfil como enumeração. |

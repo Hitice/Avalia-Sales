@@ -3265,10 +3265,13 @@ export interface components {
         AtivarLote: {
             numero: string;
         };
+        /** @description Sem comissão, o produto segue a do vendedor ou a padrão. */
         CadastrarProduto: {
             nome: string;
             /** Format: int64 */
             precoCents: number;
+            /** Format: int32 */
+            comissaoBps?: null | number;
         };
         ClienteDaLista: {
             /** Format: uuid */
@@ -3678,6 +3681,8 @@ export interface components {
             /** Format: int64 */
             precoCents: number;
             ativo: boolean;
+            /** Format: int32 */
+            comissaoBps: null | number;
         };
         ReceberPorFora: {
             meio: components["schemas"]["MeioDePagamento"];

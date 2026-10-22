@@ -1,8 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { chamarApi, enviarJson } from '@/api/cliente'
 
-export type Produto = { id: string; nome: string; precoCents: number; ativo: boolean }
-export type NovoProduto = { nome: string; precoCents: number }
+import type { components } from '@/api/esquema'
+
+export type Produto = components['schemas']['ProdutoDto']
+export type NovoProduto = components['schemas']['CadastrarProduto']
 
 const chave = ['produtos'] as const
 

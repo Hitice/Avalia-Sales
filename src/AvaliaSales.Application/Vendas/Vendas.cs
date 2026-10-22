@@ -55,9 +55,9 @@ public sealed class Vendas(
             throw new RegraDeNegocioException("Escolha Pix ou cartão.");
         }
 
-        var (vendedorId, comissaoBps) = await QuemVende(ct);
         var produto = await banco.Produtos.AsNoTracking().SingleOrDefaultAsync(p => p.Id == pedido.ProdutoId && p.Ativo, ct)
             ?? throw new RegraDeNegocioException("Este produto não está no catálogo.");
+        var (vendedorId, comissaoBps) = await QuemVende(produto.ComissaoBps, ct);
         var codigo = CodigoDaPlaca.Normalizar(pedido.Codigo);
         var destino = pedido.Destino.Resolver(plataforma.Value.HostPublico);
         var agora = relogio.GetUtcNow();
@@ -236,9 +236,9 @@ public sealed class Vendas(
 
     /// <summary>
     /// Dono vende sem comissão: a parte dele é o que sobra. Vendedor vende com a
-    /// comissão dele, ou com a padrão do revendedor.
+    /// mais específica - a dele, a do produto, a padrão do revendedor.
     /// </summary>
-    private async Task<(Guid VendedorId, int ComissaoBps)> QuemVende(CancellationToken ct)
+    private async Task<(Guid VendedorId, int ComissaoBps)> QuemVende(int? doProduto, CancellationToken ct)
     {
         var id = usuario.UsuarioId ?? throw new InvalidOperationException("Venda sem usuário.");
         if (usuario.Papel == Papel.Dono)
@@ -249,7 +249,7 @@ public sealed class Vendas(
         var vendedor = await banco.Vendedores.AsNoTracking().SingleOrDefaultAsync(v => v.Id == id && v.Ativo, ct)
             ?? throw new RegraDeNegocioException("Seu cadastro de vendedor está desativado.");
         var padrao = await banco.Revendedores.Where(r => r.Id == atual.RevendedorId).Select(r => r.ComissaoPadraoBps).SingleAsync(ct);
-        return (id, vendedor.ComissaoBps ?? padrao);
+        return (id, vendedor.ComissaoBps ?? doProduto ?? padrao);
     }
 
     /// <summary>Um cliente por documento ou telefone: o que já existe é achado e só ganha o que faltava.</summary>

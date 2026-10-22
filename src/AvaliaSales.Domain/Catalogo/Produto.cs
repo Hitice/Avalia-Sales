@@ -13,21 +13,26 @@ public sealed class Produto : IDoRevendedor
     public string Nome { get; private set; }
     public long PrecoCents { get; private set; }
     public bool Ativo { get; private set; } = true;
+
+    /// <summary>Exceção do produto à comissão padrão; a do vendedor, se houver, vale mais.</summary>
+    public int? ComissaoBps { get; private set; }
     public DateTimeOffset CriadoEm { get; private set; } = DateTimeOffset.UtcNow;
 
     private Produto() => Nome = string.Empty;
 
-    public Produto(string nome, long precoCents)
+    public Produto(string nome, long precoCents, int? comissaoBps = null)
     {
         Nome = ValidarNome(nome);
         PrecoCents = ValidarPreco(precoCents);
+        ComissaoBps = comissaoBps is { } bps ? Equipe.Comissao.Conferir(bps) : null;
     }
 
     /// <summary>Muda a tabela de agora; a venda feita guardou o preço dela.</summary>
-    public void Alterar(string nome, long precoCents)
+    public void Alterar(string nome, long precoCents, int? comissaoBps)
     {
         Nome = ValidarNome(nome);
         PrecoCents = ValidarPreco(precoCents);
+        ComissaoBps = comissaoBps is { } bps ? Equipe.Comissao.Conferir(bps) : null;
     }
 
     public void DefinirAtivo(bool ativo) => Ativo = ativo;

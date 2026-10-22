@@ -3,7 +3,10 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { mensagemDoErro } from '@/api/cliente'
+import { formatarBps, paraBps } from '@/api/rotulos'
+import { Campo } from '@/componentes/Campo'
 import { Cabecalho, Erro } from '@/componentes/Tela'
+import { percentualOpcional } from '@/lib/esquemas'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -17,6 +20,7 @@ import { type Produto, useAlterarProduto, useAtivarProduto, useCadastrarProduto,
 const esquema = z.object({
   nome: z.string().trim().min(1, 'Digite o nome.').max(120, 'Use até 120 caracteres.'),
   preco: z.string().refine((texto) => paraCentavos(texto) !== null, 'Digite o preço, como 149,90.'),
+  comissao: percentualOpcional,
 })
 
 type Formulario = z.infer<typeof esquema>
@@ -29,18 +33,20 @@ export function TelaDoCatalogo() {
   const ativar = useAtivarProduto()
   const excluir = useExcluirProduto()
   const [editando, setEditando] = useState<Produto | null>(null)
-  const formulario = useForm<Formulario>({ resolver: zodResolver(esquema), defaultValues: { nome: '', preco: '' } })
+  const formulario = useForm<Formulario>({ resolver: zodResolver(esquema), defaultValues: { nome: '', preco: '', comissao: '' } })
   const { errors } = formulario.formState
   const erroDaLista = ativar.error ?? excluir.error
 
   function editar(produto: Produto | null) {
     setEditando(produto)
-    formulario.reset(produto ? { nome: produto.nome, preco: (produto.precoCents / 100).toFixed(2).replace('.', ',') } : { nome: '', preco: '' })
+    formulario.reset(produto
+      ? { nome: produto.nome, preco: (produto.precoCents / 100).toFixed(2).replace('.', ','), comissao: produto.comissaoBps === null ? '' : String(produto.comissaoBps / 100).replace('.', ',') }
+      : { nome: '', preco: '', comissao: '' })
   }
 
   async function salvar(dados: Formulario) {
     try {
-      const produto = { nome: dados.nome, precoCents: paraCentavos(dados.preco)! }
+      const produto = { nome: dados.nome, precoCents: paraCentavos(dados.preco)!, comissaoBps: dados.comissao.trim() ? paraBps(dados.comissao) : null }
       await (editando ? alterar.mutateAsync({ id: editando.id, ...produto }) : cadastrar.mutateAsync(produto))
       editar(null)
     } catch (erro) {
@@ -68,6 +74,7 @@ export function TelaDoCatalogo() {
                 <TableRow>
                   <TableHead>Produto</TableHead>
                   <TableHead className="text-right">Preço</TableHead>
+                  <TableHead className="text-right">Comissão</TableHead>
                   <TableHead><span className="sr-only">Ações</span></TableHead>
                 </TableRow>
               </TableHeader>
@@ -76,6 +83,7 @@ export function TelaDoCatalogo() {
                   <TableRow key={produto.id}>
                     <TableCell>{produto.nome} {!produto.ativo && <Badge variant="outline">Fora de venda</Badge>}</TableCell>
                     <TableCell className="text-right tabular-nums">{formatarCentavos(produto.precoCents)}</TableCell>
+                    <TableCell className="text-right tabular-nums">{produto.comissaoBps === null ? <span className="text-muted-foreground">Padrão</span> : formatarBps(produto.comissaoBps)}</TableCell>
                     <TableCell>
                       <div className="flex justify-end gap-2">
                         <Button variant="outline" onClick={() => editar(produto)}>Editar</Button>
@@ -109,6 +117,7 @@ export function TelaDoCatalogo() {
               <Input id="preco" inputMode="decimal" placeholder="0,00" aria-invalid={!!errors.preco} {...formulario.register('preco')} />
               <FieldError errors={[errors.preco]} />
             </Field>
+            <Campo formulario={formulario} nome="comissao" rotulo="Comissão (%)" inputMode="decimal" placeholder="Em branco usa a padrão" />
             <Button type="submit" disabled={cadastrar.isPending || alterar.isPending}>
               {editando ? 'Salvar produto' : cadastrar.isPending ? 'Cadastrando...' : 'Cadastrar produto'}
             </Button>

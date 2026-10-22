@@ -163,6 +163,10 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("ativo");
 
+                    b.Property<int?>("ComissaoBps")
+                        .HasColumnType("integer")
+                        .HasColumnName("comissao_bps");
+
                     b.Property<DateTimeOffset>("CriadoEm")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("criado_em");

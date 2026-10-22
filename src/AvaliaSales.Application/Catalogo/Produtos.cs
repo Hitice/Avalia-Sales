@@ -4,9 +4,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AvaliaSales.Application.Catalogo;
 
-public sealed record ProdutoDto(Guid Id, string Nome, long PrecoCents, bool Ativo);
+public sealed record ProdutoDto(Guid Id, string Nome, long PrecoCents, bool Ativo, int? ComissaoBps);
 
-public sealed record CadastrarProduto(string Nome, long PrecoCents);
+/// <summary>Sem comissão, o produto segue a do vendedor ou a padrão.</summary>
+public sealed record CadastrarProduto(string Nome, long PrecoCents, int? ComissaoBps = null);
 
 /// <summary>
 /// Catálogo do revendedor logado. O filtro por revendedor fica na
@@ -18,23 +19,23 @@ public sealed class Produtos(IBancoDeDados banco)
         await banco.Produtos
             .AsNoTracking()
             .OrderBy(p => p.Nome)
-            .Select(p => new ProdutoDto(p.Id, p.Nome, p.PrecoCents, p.Ativo))
+            .Select(p => new ProdutoDto(p.Id, p.Nome, p.PrecoCents, p.Ativo, p.ComissaoBps))
             .ToListAsync(ct);
 
     public async Task<ProdutoDto> Cadastrar(CadastrarProduto comando, CancellationToken ct)
     {
-        var produto = new Produto(comando.Nome, comando.PrecoCents);
+        var produto = new Produto(comando.Nome, comando.PrecoCents, comando.ComissaoBps);
         banco.Produtos.Add(produto);
         await banco.SaveChangesAsync(ct);
-        return new ProdutoDto(produto.Id, produto.Nome, produto.PrecoCents, produto.Ativo);
+        return new ProdutoDto(produto.Id, produto.Nome, produto.PrecoCents, produto.Ativo, produto.ComissaoBps);
     }
 
     public async Task<ProdutoDto> Alterar(Guid id, CadastrarProduto comando, CancellationToken ct)
     {
         var produto = await Achar(id, ct);
-        produto.Alterar(comando.Nome, comando.PrecoCents);
+        produto.Alterar(comando.Nome, comando.PrecoCents, comando.ComissaoBps);
         await banco.SaveChangesAsync(ct);
-        return new ProdutoDto(produto.Id, produto.Nome, produto.PrecoCents, produto.Ativo);
+        return new ProdutoDto(produto.Id, produto.Nome, produto.PrecoCents, produto.Ativo, produto.ComissaoBps);
     }
 
     public async Task DefinirAtivo(Guid id, bool ativo, CancellationToken ct)
