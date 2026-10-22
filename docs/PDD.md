@@ -116,6 +116,8 @@ Todas no mesmo app, liberadas pelo papel do usuário.
 
 ### Cobrança
 
+- No balcão, Pix (QR na tela) ou cartão de crédito em até 12 vezes. O cartão
+  vai do celular direto ao Pagar.me; a plataforma não vê número nem código.
 - Uma cobrança só anda para a frente - pendente vira paga, cancelada ou
   falha; paga só vira estornada. Aviso atrasado não desfaz pagamento.
 - Cobrança que não chegou ao Pagar.me é reencontrada pelo código; sem pedido
@@ -399,6 +401,7 @@ Estimativa em semanas de cerca de 20 horas.
 
 | Data | Mudança |
 | --- | --- |
+| 22/10/2026 | Venda no cartão de crédito na Nova venda, em até 12 vezes, quando a revenda tem a chave pública do Pagar.me. |
 | 22/10/2026 | Segundo fator por app autenticador para o dono e a operadora, opcional. |
 | 22/10/2026 | Auditoria - histórico na ficha da placa e tela Auditoria do dono. |
 | 22/10/2026 | Comissão por produto no catálogo - vale a do vendedor, depois a do produto, depois a padrão. |

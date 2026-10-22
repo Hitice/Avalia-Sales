@@ -15,6 +15,12 @@ public sealed class OpcoesPagarme
     [Required, RegularExpression("^rp_[A-Za-z0-9]+$")] public string RecebedorAvalia { get; init; } = string.Empty;
 
     /// <summary>
+    /// pk_test_ ou pk_, a chave pública: o navegador manda o cartão direto ao
+    /// Pagar.me e a API recebe só o token. Vazia, a venda é só no Pix.
+    /// </summary>
+    [RegularExpression("^$|^pk_[A-Za-z0-9_]+$")] public string ChavePublica { get; init; } = string.Empty;
+
+    /// <summary>
     /// Segredo na URL do webhook (/webhooks/pagarme/{segredo}). O Pagar.me não
     /// assina o webhook; o segredo barra quem não sabe a URL, e a reconsulta
     /// do pedido barra o resto.

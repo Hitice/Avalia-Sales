@@ -2330,6 +2330,25 @@
         }
       }
     },
+    "/pagamento/cartao": {
+      "get": {
+        "tags": [
+          "Balc\u00E3o"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfiguracaoDoCartao"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/lugares": {
       "get": {
         "tags": [
@@ -2893,6 +2912,34 @@
             ]
           }
         }
+      },
+      "ConfiguracaoDoCartao": {
+        "required": [
+          "disponivel",
+          "chavePublica",
+          "simulado",
+          "parcelasMaximas"
+        ],
+        "type": "object",
+        "properties": {
+          "disponivel": {
+            "type": "boolean"
+          },
+          "chavePublica": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "simulado": {
+            "type": "boolean"
+          },
+          "parcelasMaximas": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "Simulado: o front gera um token de mentira, sem chamar o Pagar.me."
       },
       "Consignar": {
         "required": [

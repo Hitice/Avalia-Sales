@@ -3100,6 +3100,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/pagamento/cartao": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConfiguracaoDoCartao"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/lugares": {
         parameters: {
             query?: never;
@@ -3538,6 +3573,14 @@ export interface components {
         };
         CodigoDoAutenticador: {
             codigo: null | string;
+        };
+        /** @description Simulado: o front gera um token de mentira, sem chamar o Pagar.me. */
+        ConfiguracaoDoCartao: {
+            disponivel: boolean;
+            chavePublica: null | string;
+            simulado: boolean;
+            /** Format: int32 */
+            parcelasMaximas: number;
         };
         Consignar: {
             /** Format: uuid */

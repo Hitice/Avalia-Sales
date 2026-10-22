@@ -18,8 +18,24 @@ public sealed class GatewaySimulado(IOptions<OpcoesPagarme> opcoes, IOptions<App
 
     public string RecebedorDaAvalia => opcoes.Value.RecebedorAvalia;
 
-    public Task<PedidoDoGateway> CriarPedido(PedidoNoGateway pedido, CancellationToken ct) =>
-        Task.FromResult(Ler(pedido.Codigo) ?? throw new Application.IntegracaoException("Simulador", null, "código fora do formato da cobrança"));
+    /// <summary>Cartão aprova na hora, como o cartão de teste do sandbox; token com "recusado" falha.</summary>
+    public Task<PedidoDoGateway> CriarPedido(PedidoNoGateway pedido, CancellationToken ct)
+    {
+        var lido = Ler(pedido.Codigo) ?? throw new Application.IntegracaoException("Simulador", null, "código fora do formato da cobrança");
+        if (pedido.Meio != MeioDePagamento.Cartao)
+        {
+            return Task.FromResult(lido);
+        }
+
+        var recusado = pedido.TokenDoCartao?.Contains("recusado", StringComparison.OrdinalIgnoreCase) == true;
+        return Task.FromResult(lido with
+        {
+            Situacao = recusado ? SituacaoDaCobranca.Falhou : SituacaoDaCobranca.Paga,
+            PagoEm = recusado ? null : relogio.GetUtcNow(),
+            PixCopiaECola = null,
+            PixExpiraEm = null,
+        });
+    }
 
     /// <summary>O link abre uma página da própria API em Development que avisa que o pagamento é simulado.</summary>
     public Task<LinkDoGateway> CriarLink(LinkNoGateway link, CancellationToken ct) =>

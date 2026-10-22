@@ -253,6 +253,16 @@ Conferido na referência oficial em 21/10/2026.
   eventos (os exemplos da referência mostram que sim) e como o painel do
   Pagar.me deixa configurar o webhook.
 
+- Cartão no balcão - o navegador manda número, validade, nome e CVV direto a
+  `POST https://api.pagar.me/core/v5/tokens?appId={pk}` com a chave pública
+  (`Pagarme__ChavePublica`, pk_test_ ou pk_) e recebe um token de uso único; a
+  API recebe só o token e cria o pedido com `credit_card.card_token`, parcelas
+  e o mesmo split. `GET /pagamento/cartao` diz ao front se o cartão está
+  disponível. Sem chave pública, a venda é só no Pix. No simulador, o front
+  gera um token de mentira e o cartão aprova na hora (final 0002 recusa). O
+  formato do `/tokens` segue a referência e ainda precisa ser conferido com a
+  chave de sandbox.
+
 ### D4Sign (no código)
 
 Conferido na referência oficial em 21/10/2026.
@@ -601,6 +611,7 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
 
 | Data | Mudança |
 | --- | --- |
+| 22/10/2026 | Cartão no balcão - tokenização no navegador (`lib/cartao.ts`, Luhn e validade), `GET /pagamento/cartao`, `Pagarme:ChavePublica`, cartão no simulador; testes de ponta a ponta com cartão aprovado e recusado. |
 | 22/10/2026 | Segundo fator - `GestorDeSegundoFator`, `AuthenticatorTokenProvider`, rotas `/auth/entrar/codigo` e `/conta/segundo-fator`, tela Segurança, passo do código na entrada; teste de ponta a ponta liga o fator e entra com o código. |
 | 22/10/2026 | Auditoria (`RegistroDeAuditoria`, `Auditoria`, migration Auditoria), registrada nos casos de uso de placa, venda, equipe, comissão, produto, repasse, marca, links e LGPD; `FichaDto.Historico`; tela Auditoria. 195 testes na API. |
 | 22/10/2026 | `produtos.comissao_bps` (migration ComissaoDoProduto); `Vendas.QuemVende` resolve vendedor, produto e padrão. |

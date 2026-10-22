@@ -45,6 +45,14 @@ public static class RotasDaEquipe
             return Results.NoContent();
         });
 
+        // O cartão vai do navegador ao Pagar.me com a chave pública; a API só recebe o token.
+        equipe.MapGet("/pagamento/cartao", (Microsoft.Extensions.Options.IOptions<Infrastructure.Integracoes.Pagarme.OpcoesPagarme> pagarme) =>
+            new ConfiguracaoDoCartao(
+                pagarme.Value.Simulado || pagarme.Value.ChavePublica.Length > 0,
+                pagarme.Value.Simulado || pagarme.Value.ChavePublica.Length == 0 ? null : pagarme.Value.ChavePublica,
+                pagarme.Value.Simulado,
+                Application.Pagamentos.Cobrancas.ParcelasMaximas));
+
         // A chave do Google fica no servidor; o front pede por aqui.
         equipe.MapGet("/lugares", async (string? texto, ILugares lugares, CancellationToken ct) =>
         {
@@ -61,3 +69,6 @@ public static class RotasDaEquipe
 }
 
 public sealed record ReceberPorFora(Domain.Pagamentos.MeioDePagamento Meio);
+
+/// <summary>Simulado: o front gera um token de mentira, sem chamar o Pagar.me.</summary>
+public sealed record ConfiguracaoDoCartao(bool Disponivel, string? ChavePublica, bool Simulado, int ParcelasMaximas);

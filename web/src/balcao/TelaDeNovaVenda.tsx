@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ChevronLeft } from 'lucide-react'
 import { useCallback, useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { type UseFormReturn, useForm } from 'react-hook-form'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import { useSessao } from '@/acesso/sessao'
 import { mensagemDoErro } from '@/api/cliente'
@@ -15,12 +15,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { formatarCentavos, paraCentavos } from '@/dinheiro/dinheiro'
+import { type ConfiguracaoDoCartao, cartaoValido, tokenizarCartao, validadeValida } from '@/lib/cartao'
 import { documentoOpcional, emailOpcional, telefone, texto } from '@/lib/esquemas'
 import { z } from 'zod'
 import { Campo } from '@/componentes/Campo'
 import { extrairCodigo } from './codigo'
-import { useFicha, useVender } from './consultas'
+import { useConfiguracaoDoCartao, useFicha, useVender } from './consultas'
 import { destinoPronto } from './destino'
 import { EscolhaDeDestino } from './EscolhaDeDestino'
 import { LeitorDeQr } from './LeitorDeQr'
@@ -42,6 +44,16 @@ const esquemaDoCliente = z.object({
   email: emailOpcional,
 })
 type Cliente = z.infer<typeof esquemaDoCliente>
+const esquemaDoCartao = z.object({
+  numero: z.string().refine(cartaoValido, 'Número do cartão não confere.'),
+  nome: texto('o nome impresso no cartão'),
+  validade: z.string().refine((t) => validadeValida(t), 'Validade em MM/AA, ainda não vencida.'),
+  cvv: z.string().trim().regex(/^\d{3,4}$/, 'O código de 3 ou 4 dígitos do verso.'),
+  parcelas: z.string(),
+})
+type Cartao = z.infer<typeof esquemaDoCartao>
+const CARTAO_VAZIO: Cartao = { numero: '', nome: '', validade: '', cvv: '', parcelas: '1' }
+
 const CLIENTE_VAZIO: Cliente = { empresa: '', responsavel: '', telefone: '', documento: '', email: '' }
 const DESTINO_VAZIO: DestinoInformado = { tipo: 'Google', lugarNoGoogle: null, link: null }
 
@@ -73,6 +85,11 @@ export function TelaDeNovaVenda() {
   const [valor, setValor] = useState('')
   const [venda, setVenda] = useState<VendaRegistrada | null>(null)
   const vender = useVender()
+  const configDoCartao = useConfiguracaoDoCartao()
+  const [meio, setMeio] = useState<'Pix' | 'Cartao'>('Pix')
+  const formularioDoCartao = useForm<Cartao>({ resolver: zodResolver(esquemaDoCartao), mode: 'onChange', defaultValues: CARTAO_VAZIO })
+  const [tokenizando, setTokenizando] = useState(false)
+  const [recusaDoCartao, setRecusaDoCartao] = useState<string | null>(null)
   const fichaDaPlaca = useFicha(codigo || undefined)
 
   /** Trocar de passo apaga a recusa da última tentativa: ela fala do dado de antes. */
@@ -96,10 +113,48 @@ export function TelaDeNovaVenda() {
     setDestino(DESTINO_VAZIO)
     setLugar(null)
     setValor('')
+    setMeio('Pix')
+    formularioDoCartao.reset(CARTAO_VAZIO)
     setVenda(null)
   }
 
   const indice = PASSOS.findIndex((p) => p.id === passo)
+
+  /** No cartão, tokeniza antes: número e CVV vão ao Pagar.me, e a API recebe só o token. */
+  async function registrar() {
+    setRecusaDoCartao(null)
+    let tokenDoCartao: string | null = null
+    let parcelas = 1
+    if (meio === 'Cartao' && configDoCartao.data) {
+      setTokenizando(true)
+      try {
+        const cartao = formularioDoCartao.getValues()
+        tokenDoCartao = await tokenizarCartao(configDoCartao.data, cartao)
+        parcelas = Number(cartao.parcelas)
+      } catch (e) {
+        setRecusaDoCartao(e instanceof Error ? e.message : 'Não deu para usar o cartão.')
+        return
+      } finally {
+        setTokenizando(false)
+      }
+    }
+
+    vender.mutate({
+      ...clienteParaEnvio(formularioDoCliente.getValues()),
+      codigo,
+      produtoId,
+      destino,
+      valorCents: valor.trim() ? paraCentavos(valor) : null,
+      meio,
+      tokenDoCartao,
+      parcelas,
+    }, {
+      onSuccess: (registrada) => {
+        formularioDoCartao.reset(CARTAO_VAZIO)
+        setVenda(registrada)
+      },
+    })
+  }
 
   if (venda) return <Resultado venda={venda} aoRecomecar={recomecar} />
 
@@ -158,7 +213,8 @@ export function TelaDeNovaVenda() {
       )}
 
       {passo === 'cobranca' && (
-        <PassoDaCobranca produtoId={produtoId} aoEscolher={setProdutoId} valor={valor} aoDigitarValor={setValor} erro={vender.error} />
+        <PassoDaCobranca produtoId={produtoId} aoEscolher={setProdutoId} valor={valor} aoDigitarValor={setValor} erro={recusaDoCartao ?? vender.error}
+          meio={meio} aoMudarMeio={setMeio} cartao={configDoCartao.data ?? null} formularioDoCartao={formularioDoCartao} />
       )}
 
       <div className="fixed inset-x-0 bottom-0 border-t bg-card p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
@@ -176,17 +232,10 @@ export function TelaDeNovaVenda() {
             <Button
               size="lg"
               className="flex-1"
-              disabled={!produtoId || vender.isPending || (valor.trim() !== '' && paraCentavos(valor) === null)}
-              onClick={() => vender.mutate({
-                ...clienteParaEnvio(formularioDoCliente.getValues()),
-                codigo,
-                produtoId,
-                destino,
-                valorCents: valor.trim() ? paraCentavos(valor) : null,
-                meio: 'Pix',
-              }, { onSuccess: setVenda })}
+              disabled={!produtoId || vender.isPending || tokenizando || (valor.trim() !== '' && paraCentavos(valor) === null) || (meio === 'Cartao' && !formularioDoCartao.formState.isValid)}
+              onClick={registrar}
             >
-              {vender.isPending ? 'Registrando...' : 'Registrar venda'}
+              {tokenizando || vender.isPending ? 'Registrando...' : meio === 'Cartao' ? 'Cobrar no cartão' : 'Registrar venda'}
             </Button>
           )}
         </div>
@@ -246,12 +295,16 @@ function PassoDaPlaca({ codigo, digitado, aoDigitar, aoLer }: {
   )
 }
 
-function PassoDaCobranca({ produtoId, aoEscolher, valor, aoDigitarValor, erro }: {
+function PassoDaCobranca({ produtoId, aoEscolher, valor, aoDigitarValor, erro, meio, aoMudarMeio, cartao, formularioDoCartao }: {
   produtoId: string
   aoEscolher: (id: string) => void
   valor: string
   aoDigitarValor: (v: string) => void
   erro: unknown
+  meio: 'Pix' | 'Cartao'
+  aoMudarMeio: (m: 'Pix' | 'Cartao') => void
+  cartao: ConfiguracaoDoCartao | null
+  formularioDoCartao: UseFormReturn<Cartao>
 }) {
   const produtos = useProdutos()
   const ativos = (produtos.data ?? []).filter((p) => p.ativo)
@@ -273,6 +326,33 @@ function PassoDaCobranca({ produtoId, aoEscolher, valor, aoDigitarValor, erro }:
           <FieldLabel htmlFor="valor">Valor cobrado</FieldLabel>
           <Input id="valor" inputMode="decimal" placeholder={escolhido ? formatarCentavos(escolhido.precoCents) : '0,00'} value={valor} onChange={(e) => aoDigitarValor(e.target.value)} />
         </Field>
+        {cartao?.disponivel && (
+          <Tabs value={meio} onValueChange={(m) => aoMudarMeio(m as 'Pix' | 'Cartao')}>
+            <TabsList className="w-full">
+              <TabsTrigger value="Pix">Pix</TabsTrigger>
+              <TabsTrigger value="Cartao">Cartão</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        )}
+        {meio === 'Cartao' && cartao && (
+          <div className="grid gap-4">
+            <Campo formulario={formularioDoCartao} nome="numero" rotulo="Número do cartão" inputMode="numeric" autoComplete="cc-number" />
+            <Campo formulario={formularioDoCartao} nome="nome" rotulo="Nome impresso" autoComplete="cc-name" className="uppercase" />
+            <div className="grid grid-cols-2 gap-3">
+              <Campo formulario={formularioDoCartao} nome="validade" rotulo="Validade" placeholder="MM/AA" inputMode="numeric" autoComplete="cc-exp" />
+              <Campo formulario={formularioDoCartao} nome="cvv" rotulo="Código" inputMode="numeric" autoComplete="cc-csc" type="password" />
+            </div>
+            <Field>
+              <FieldLabel htmlFor="parcelas">Parcelas</FieldLabel>
+              <Select value={formularioDoCartao.watch('parcelas')} onValueChange={(v) => formularioDoCartao.setValue('parcelas', v)}>
+                <SelectTrigger id="parcelas" className="w-full"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: cartao.parcelasMaximas }, (_, i) => i + 1).map((n) => <SelectItem key={n} value={String(n)}>{n === 1 ? 'À vista' : `${n} vezes`}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </Field>
+          </div>
+        )}
       </CardContent>
     </Card>
   )

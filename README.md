@@ -37,7 +37,7 @@ export ConnectionStrings__Banco="Host=localhost;Database=avalia_sales_dev;Userna
 export Jwt__Chave="$(openssl rand -base64 48)"
 # Pagar.me e D4Sign: chaves de sandbox, ou valores falsos para só navegar.
 # Em Development o Pagar.me roda simulado (appsettings.Development.json): o Pix fica pago 20 s depois.
-export Pagarme__ChaveSecreta=sk_test_... Pagarme__RecebedorAvalia=rp_... Pagarme__SegredoDoWebhook=<32+ caracteres>
+export Pagarme__ChaveSecreta=sk_test_... Pagarme__ChavePublica=pk_test_... Pagarme__RecebedorAvalia=rp_... Pagarme__SegredoDoWebhook=<32+ caracteres>
 export D4Sign__TokenApi=... D4Sign__SegredoHmac=... D4Sign__Cofre=... D4Sign__UrlDoWebhook=https://...
 # Opcionais: sem eles o e-mail espera na fila e a busca no Google pede o link colado
 export Resend__ChaveApi=re_... Resend__Remetente="Avalia Sales <avisos@seu-dominio>" Resend__ResponderPara=suporte@seu-dominio Google__ChaveDoServidor=...

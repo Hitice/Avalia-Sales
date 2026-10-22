@@ -1,19 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { chamarApi, enviarJson } from '@/api/cliente'
+import type { components } from '@/api/esquema'
 import type { DestinoInformado, Ficha, Lugar, RenovacaoAberta, VendaRegistrada } from '@/api/tipos'
+import type { ConfiguracaoDoCartao } from '@/lib/cartao'
 
-export type NovaVenda = {
-  codigo: string
-  produtoId: string
-  empresa: string
-  responsavel: string
-  telefone: string
-  documento: string | null
-  email: string | null
-  destino: DestinoInformado
-  valorCents: number | null
-  meio: 'Pix'
-}
+export type NovaVenda = components['schemas']['NovaVenda']
 
 /** A ficha da placa; refeita a cada 5 s enquanto `acompanhar` estiver ligado (esperando o Pix). */
 export function useFicha(codigo: string | undefined, acompanhar = false) {
@@ -64,3 +55,7 @@ export function useRenovar(codigo: string) {
     onSuccess: () => cliente.invalidateQueries({ queryKey: ['placa', codigo] }),
   })
 }
+
+/** Se a revenda vende no cartão, e com que chave pública o navegador tokeniza. */
+export const useConfiguracaoDoCartao = () =>
+  useQuery({ queryKey: ['cartao'], queryFn: () => chamarApi<ConfiguracaoDoCartao>('/pagamento/cartao'), staleTime: 10 * 60_000 })
