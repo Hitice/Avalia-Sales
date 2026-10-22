@@ -15,9 +15,6 @@ public static class CodigoDaPlaca
     public const string Alfabeto = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
     public const int Tamanho = 6;
 
-    /// <summary>Larga de propósito: quem digita troca 1 por I, e a normalização conserta.</summary>
-    public const string RestricaoDaRota = "regex(^[0-9A-Za-z]{6}$)";
-
     public static string Sortear()
     {
         Span<char> codigo = stackalloc char[Tamanho];

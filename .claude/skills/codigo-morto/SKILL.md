@@ -36,7 +36,18 @@ dotnet dnx roslynator.dotnet.cli --yes --allow-roll-forward -- \
 
 O `--` antes de `find-symbol` é obrigatório: sem ele, o `dnx` engole as opções.
 
-### Falsos positivos conhecidos (conferidos em 21/10/2026)
+### Falsos positivos conhecidos (conferidos em 21/10/2026 e 22/10/2026)
+
+Em 22/10/2026 o comando listou 413 símbolos: 276 propriedades de DTO e
+entidade, construtores de serviço e de record, e métodos de rota. Só três eram
+mortos (`Mensagem.MarcarLida`, `CodigoDaPlaca.RestricaoDaRota` e
+`Renovacao.Cancelar`); o último revelou um defeito, a renovação esquecida que
+travava a venda, e voltou a ser usado na correção. Para separar o que conferir:
+
+```bash
+... find-symbol ... -v d > /tmp/ros.txt
+# classes, constantes e métodos, sem construtor vazio e sem teste
+```
 
 Em 21/10/2026 o comando acusou 21 símbolos, e nenhum era código morto:
 
@@ -65,7 +76,11 @@ npx knip            # na pasta do front
 npx knip --production   # ignora testes e configuração de desenvolvimento
 ```
 
-Entra quando o front existir.
+Configuração em `web/knip.json`: ignora o tipo gerado (`src/api/esquema.d.ts`)
+e os componentes copiados do shadcn (`src/components/ui`), cujas exportações
+são a interface da biblioteca, e conta como uso a exportação usada no próprio
+arquivo. Em 22/10/2026 saiu limpo, depois de remover `radio-group.tsx` e
+esquemas e apelidos de tipo sem uso.
 
 ## Conferência antes de apagar
 

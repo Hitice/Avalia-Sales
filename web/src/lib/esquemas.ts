@@ -22,6 +22,4 @@ export const senhaNova = z.string().min(SENHA_MINIMA, `${SENHA_MINIMA} caractere
 export const senhaOpcional = z.string().refine((t) => !t || t.length >= SENHA_MINIMA, `${SENHA_MINIMA} caracteres ou mais, ou em branco.`)
 
 export const reais = z.string().refine((t) => paraCentavos(t) !== null, 'Digite o valor, como 149,90.')
-export const reaisOpcional = z.string().refine((t) => !t.trim() || paraCentavos(t) !== null, 'Digite o valor, como 149,90.')
 export const percentualOpcional = z.string().refine((t) => !t.trim() || paraBps(t) !== null, 'Digite em %, como 20 ou 22,5.')
-export const percentual = z.string().refine((t) => paraBps(t) !== null, 'Digite em %, como 20 ou 22,5.')

@@ -401,6 +401,7 @@ Estimativa em semanas de cerca de 20 horas.
 
 | Data | Mudança |
 | --- | --- |
+| 22/10/2026 | Renovação pedida e não paga (sem Pix vivo) não impede mais cancelar a venda nem trocar a placa: ela é cancelada junto. |
 | 22/10/2026 | Venda no cartão de crédito na Nova venda, em até 12 vezes, quando a revenda tem a chave pública do Pagar.me. |
 | 22/10/2026 | Segundo fator por app autenticador para o dono e a operadora, opcional. |
 | 22/10/2026 | Auditoria - histórico na ficha da placa e tela Auditoria do dono. |

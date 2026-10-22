@@ -36,6 +36,4 @@ public sealed class Mensagem : IAtendidoPelaOperadora
             RevendedorId = revendedor;
         }
     }
-
-    public void MarcarLida(DateTimeOffset agora) => LidaEm ??= agora;
 }

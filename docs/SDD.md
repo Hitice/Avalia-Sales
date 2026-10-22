@@ -485,6 +485,8 @@ tentativas.
 | Login desativado não entra e perde as sessões abertas | No código |
 | Convite do vendedor e "esqueci a senha" por link de uso único (`links_de_senha`, só o hash; convite 7 dias, redefinição 1 hora; link novo derruba o anterior). O token vai depois do `#`, fora de log e de Referer. Pedido de link responde igual com e sem conta. Senha trocada destrava o login e encerra as sessões abertas | No código |
 | Leitura do QR com limite de 300 por minuto por IP, sem cookie, robôs não contam | No código |
+| CSP no HTML do front (Nginx): só o próprio domínio, Pagar.me (token do cartão), Google Maps e Places, Sentry e `wasm-unsafe-eval` para o leitor de QR; `frame-ancestors 'none'` | No código; conferir com `curl -sI` no primeiro deploy |
+| Segredos - gitleaks no CI (job `segredos`) e sem achado no histórico; falso positivo conferido no `.gitleaksignore` | No código |
 | Auditoria - tabela `auditoria` com RLS, só de inserção (`REVOKE UPDATE, DELETE` do papel da aplicação, com teste), gravada na transação da ação; `GET /auditoria` só do dono e o histórico na ficha | No código |
 | Segundo fator (TOTP) opcional para dono e operadora: entrada em dois passos com desafio de 5 minutos, 10 códigos de recuperação, erro de código conta para o bloqueio, link de senha não pula o fator (ADR 0017) | No código |
 | LGPD - exportação dos dados do cliente (`GET /clientes/{id}/dados`) e anonimização (`POST /clientes/{id}/anonimizacao`, recusada com cobrança em aberto), só pelo dono e dentro do revendedor; valores ficam no razão | No código; prazo de guarda a definir (PDD 6b) |
@@ -611,6 +613,7 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
 
 | Data | Mudança |
 | --- | --- |
+| 22/10/2026 | Revisão pelas skills `seguranca` e `codigo-morto` - CSP no Nginx, gitleaks no CI, knip no front; removidos `radio-group`, esquemas e apelidos sem uso, `Mensagem.MarcarLida` e `CodigoDaPlaca.RestricaoDaRota`. Renovação aberta sem Pix vivo deixa de travar cancelamento e troca de placa: é cancelada na hora. |
 | 22/10/2026 | Cartão no balcão - tokenização no navegador (`lib/cartao.ts`, Luhn e validade), `GET /pagamento/cartao`, `Pagarme:ChavePublica`, cartão no simulador; testes de ponta a ponta com cartão aprovado e recusado. |
 | 22/10/2026 | Segundo fator - `GestorDeSegundoFator`, `AuthenticatorTokenProvider`, rotas `/auth/entrar/codigo` e `/conta/segundo-fator`, tela Segurança, passo do código na entrada; teste de ponta a ponta liga o fator e entra com o código. |
 | 22/10/2026 | Auditoria (`RegistroDeAuditoria`, `Auditoria`, migration Auditoria), registrada nos casos de uso de placa, venda, equipe, comissão, produto, repasse, marca, links e LGPD; `FichaDto.Historico`; tela Auditoria. 195 testes na API. |

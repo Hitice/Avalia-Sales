@@ -4,7 +4,7 @@ import { type Page, expect } from '@playwright/test'
 
 /** Logins da demonstração (Demonstracao.cs). */
 export const DONO = 'dono@revenda-a.dev'
-export const SENHA = 'demonstracao-123'
+const SENHA = 'demonstracao-123'
 
 export async function entrar(page: Page, email = DONO, senha = SENHA) {
   await page.goto('/entrar')
