@@ -45,8 +45,10 @@ server {
   # Câmera e NFC só para o próprio app, que lê a placa no balcão.
   add_header Permissions-Policy "camera=(self), nfc=(self), geolocation=(), microphone=()" always;
 
-  # A leitura da placa: o endereço impresso, que precisa responder para sempre.
-  location ~ ^/[qQ]/ {
+  # A leitura da placa (/q/) e o link curto (/l/): endereços impressos ou
+  # gravados na tag, que precisam responder para sempre. Sem isto, /L/ caía no
+  # app, que mandava para a entrada.
+  location ~ ^/[qQlL]/ {
     proxy_pass http://api;
     proxy_http_version 1.1;
     proxy_set_header Connection "";

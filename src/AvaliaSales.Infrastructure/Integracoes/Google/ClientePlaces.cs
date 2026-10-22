@@ -15,11 +15,16 @@ public sealed class ClientePlaces(HttpClient http, IOptions<OpcoesGoogle> opcoes
     private const string Sistema = "Google Places";
     private const int Resultados = 8;
 
+    /// <summary>O método do Text Search (New), relativo à base configurada em Google:UrlDoPlaces.</summary>
+    public const string Metodo = "./places:searchText";
+
     public bool Configurado => !string.IsNullOrWhiteSpace(opcoes.Value.ChaveDoServidor);
 
     public async Task<IReadOnlyList<Lugar>> Buscar(string texto, CancellationToken ct)
     {
-        using var pedido = new HttpRequestMessage(HttpMethod.Post, "places:searchText")
+        // "./" na frente: sozinho, "places:searchText" é lido como endereço absoluto de
+        // esquema "places:" e a chamada nem sai. Assim resolve sobre a base (/v1/).
+        using var pedido = new HttpRequestMessage(HttpMethod.Post, Metodo)
         {
             Content = JsonContent.Create(new { textQuery = texto, languageCode = "pt-BR", regionCode = "BR", pageSize = Resultados }),
         };

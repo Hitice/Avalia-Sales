@@ -35,8 +35,8 @@ export default defineConfig({
         // O hub de avisos (SignalR) usa WebSocket.
         ws: true,
       },
-      // A leitura da placa, como o Nginx: /q/ e /Q/ vão direto para a API.
-      '^/[qQ]/': { target: process.env.API_LOCAL ?? 'http://127.0.0.1:5199' },
+      // A leitura da placa e o link curto, como o Nginx: /q/ e /l/ vão direto para a API.
+      '^/[qQlL]/': { target: process.env.API_LOCAL ?? 'http://127.0.0.1:5199' },
     },
   },
   test: {
