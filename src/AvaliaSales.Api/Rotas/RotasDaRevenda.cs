@@ -77,6 +77,9 @@ public static class RotasDaRevenda
         dono.MapGet("/mapa", (Mapa mapa, CancellationToken ct) => mapa.Lugares(ct));
 
         // LGPD: o dono atende o titular. A exportação baixa como arquivo; a anonimização não volta atrás.
+        // Quem mudou o quê: destino, venda, comissão, equipe, marca. Só o dono vê.
+        dono.MapGet("/auditoria", (string? referencia, int? pagina, Application.Auditoria.Auditoria auditoria, CancellationToken ct) =>
+            auditoria.Listar(referencia, pagina ?? 1, ct));
         dono.MapGet("/clientes", (string? busca, Application.Clientes.Clientes clientes, CancellationToken ct) => clientes.Listar(busca, ct));
         dono.MapGet("/clientes/{id:guid}/dados", async (Guid id, Application.Clientes.Clientes clientes, CancellationToken ct) =>
             Results.Json(await clientes.Exportar(id, ct), contentType: "application/json", statusCode: 200));

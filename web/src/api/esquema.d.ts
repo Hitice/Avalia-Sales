@@ -2135,6 +2135,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auditoria": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    referencia?: string;
+                    pagina?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PaginaDeAuditoria"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/clientes": {
         parameters: {
             query?: never;
@@ -3241,6 +3279,8 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @enum {unknown} */
+        AcaoAuditada: "DestinoDefinido" | "DestinoTrocado" | "PlacaSuspensa" | "PlacaNoAr" | "PlacaTrocada" | "VendaCancelada" | "VendaEmCortesia" | "RecebidoPorFora" | "RecebimentoDesfeito" | "VendedorCadastrado" | "VendedorAlterado" | "VendedorDesativado" | "VendedorReativado" | "VendedorExcluido" | "ComissaoPadraoAlterada" | "ProdutoAlterado" | "RepasseRegistrado" | "ClienteAnonimizado" | "MarcaAlterada" | "LinkAlterado" | "LinkExcluido";
         AlterarAtivo: {
             ativo: boolean;
         };
@@ -3398,6 +3438,7 @@ export interface components {
             consignadaA: null | string;
             venda: null | components["schemas"]["VendaDaFicha"];
             leituras: components["schemas"]["LeituraDto"][];
+            historico: components["schemas"]["RegistroDto"][];
         };
         GerarLote: {
             /** Format: int32 */
@@ -3593,6 +3634,11 @@ export interface components {
             custoPorPlacaCents: number;
             ativo: boolean;
         };
+        PaginaDeAuditoria: {
+            registros: components["schemas"]["RegistroDto"][];
+            /** Format: int32 */
+            total: number;
+        };
         PaginaDePlacas: {
             placas: components["schemas"]["PlacaDaLista"][];
             /** Format: int32 */
@@ -3686,6 +3732,18 @@ export interface components {
         };
         ReceberPorFora: {
             meio: components["schemas"]["MeioDePagamento"];
+        };
+        RegistroDto: {
+            /** Format: uuid */
+            id: string;
+            acao: components["schemas"]["AcaoAuditada"];
+            alvo: string;
+            referencia: string;
+            antes: null | string;
+            depois: null | string;
+            quem: string;
+            /** Format: date-time */
+            ocorridoEm: string;
         };
         RenovacaoAberta: {
             /** Format: uuid */

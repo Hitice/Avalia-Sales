@@ -1,6 +1,7 @@
 using AvaliaSales.Application.Equipe;
 using AvaliaSales.Domain;
 using AvaliaSales.Domain.Acesso;
+using AvaliaSales.Domain.Auditoria;
 using AvaliaSales.Domain.Pagamentos;
 using AvaliaSales.Domain.Placas;
 using Microsoft.EntityFrameworkCore;
@@ -15,13 +16,13 @@ public sealed record VendaDaFicha(Guid Id, string Cliente, string Responsavel, s
 
 public sealed record FichaDto(string Codigo, string Endereco, long Sequencia, EstadoDaPlaca Estado, string? Destino, DateTimeOffset? VenceEm,
     DateTimeOffset? FimDaCarencia, long TotalLeituras, DateTimeOffset? UltimaLeituraEm, string? ConsignadaA, VendaDaFicha? Venda,
-    IReadOnlyList<LeituraDto> Leituras);
+    IReadOnlyList<LeituraDto> Leituras, IReadOnlyList<Auditoria.RegistroDto> Historico);
 
 /// <summary>
 /// A placa vendida: destino, vencimento, leituras e o liga e desliga. O dono
 /// mexe em qualquer placa; o vendedor, só nas que vendeu.
 /// </summary>
-public sealed class FichaDaPlaca(IBancoDeDados banco, IUsuarioAtual usuario, IContas contas, IOptions<OpcoesDaPlataforma> plataforma, TimeProvider relogio)
+public sealed class FichaDaPlaca(IBancoDeDados banco, IUsuarioAtual usuario, IContas contas, Auditoria.Auditoria auditoria, IOptions<OpcoesDaPlataforma> plataforma, TimeProvider relogio)
 {
     public const int DiasDeLeitura = 30;
 
@@ -55,14 +56,21 @@ public sealed class FichaDaPlaca(IBancoDeDados banco, IUsuarioAtual usuario, ICo
         }
 
         return new FichaDto(placa.Codigo, plataforma.Value.EnderecoDaPlaca(placa.Codigo), placa.Sequencia, placa.Estado(agora), placa.Destino, placa.VenceEm, placa.FimDaCarencia,
-            placa.TotalLeituras, placa.UltimaLeituraEm, consignada, venda, leituras);
+            placa.TotalLeituras, placa.UltimaLeituraEm, consignada, venda, leituras,
+            (await auditoria.Listar(placa.Codigo, 1, ct)).Registros);
     }
 
     public async Task Apontar(string codigo, DestinoInformado destino, CancellationToken ct)
     {
         var placa = await Achar(codigo, ct);
         await ExigirQuePodeMexer(placa, ct);
+        var antes = placa.Destino;
         placa.Apontar(destino.Resolver(plataforma.Value.HostPublico));
+        if (placa.Destino != antes)
+        {
+            auditoria.Registrar(AcaoAuditada.DestinoTrocado, $"Placa {placa.Codigo}", placa.Codigo, antes, placa.Destino);
+        }
+
         await banco.SaveChangesAsync(ct);
     }
 
@@ -71,8 +79,10 @@ public sealed class FichaDaPlaca(IBancoDeDados banco, IUsuarioAtual usuario, ICo
         var placa = await Achar(codigo, ct);
         await ExigirQuePodeMexer(placa, ct);
         placa.Alternar();
+        var estado = placa.Estado(relogio.GetUtcNow());
+        auditoria.Registrar(estado == EstadoDaPlaca.Suspensa ? AcaoAuditada.PlacaSuspensa : AcaoAuditada.PlacaNoAr, $"Placa {placa.Codigo}", placa.Codigo);
         await banco.SaveChangesAsync(ct);
-        return placa.Estado(relogio.GetUtcNow());
+        return estado;
     }
 
     private async Task<Placa> Achar(string codigo, CancellationToken ct)

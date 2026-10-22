@@ -1,7 +1,8 @@
 using AvaliaSales.Application.Placas;
-using AvaliaSales.Domain;
+using AvaliaSales.Domain.Auditoria;
 using AvaliaSales.Domain.Links;
 using AvaliaSales.Domain.Placas;
+using AvaliaSales.Domain;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
@@ -19,7 +20,7 @@ public sealed record LeituraDoLink(string? Destino, bool Ativo);
 /// O encurtador do revendedor. A venda com destino no Google cria ou
 /// reaproveita o link do negócio; a tela Links cria o do negócio sem placa.
 /// </summary>
-public sealed class Links(IBancoDeDados banco, IRevendedorAtual atual, IOptions<OpcoesDaPlataforma> plataforma, TimeProvider relogio)
+public sealed class Links(IBancoDeDados banco, IRevendedorAtual atual, Auditoria.Auditoria auditoria, IOptions<OpcoesDaPlataforma> plataforma, TimeProvider relogio)
 {
     /// <summary>Sorteios antes de desistir; com 32^6 códigos, chegar aqui é defeito, e não azar.</summary>
     private const int Sorteios = 20;
@@ -49,7 +50,13 @@ public sealed class Links(IBancoDeDados banco, IRevendedorAtual atual, IOptions<
             throw new RegraDeNegocioException("Outro link já leva a este destino.");
         }
 
+        var antes = link.Destino;
         link.Alterar(comando.Titulo, destino);
+        if (antes != destino)
+        {
+            auditoria.Registrar(AcaoAuditada.LinkAlterado, $"Link {link.Codigo}", link.Codigo, antes, destino);
+        }
+
         await banco.SaveChangesAsync(ct);
         return ParaDto(link);
     }
@@ -63,7 +70,9 @@ public sealed class Links(IBancoDeDados banco, IRevendedorAtual atual, IOptions<
     /// <summary>O código continua reservado: o endereço excluído responde "não encontrado" para sempre.</summary>
     public async Task Excluir(Guid id, CancellationToken ct)
     {
-        banco.Links.Remove(await Achar(id, ct));
+        var link = await Achar(id, ct);
+        banco.Links.Remove(link);
+        auditoria.Registrar(AcaoAuditada.LinkExcluido, $"Link {link.Codigo}", link.Codigo, link.Destino, null);
         await banco.SaveChangesAsync(ct);
     }
 

@@ -1,7 +1,8 @@
 using AvaliaSales.Application.Avisos;
-using AvaliaSales.Domain;
 using AvaliaSales.Domain.Acesso;
+using AvaliaSales.Domain.Auditoria;
 using AvaliaSales.Domain.Equipe;
+using AvaliaSales.Domain;
 using Microsoft.EntityFrameworkCore;
 
 namespace AvaliaSales.Application.Equipe;
@@ -16,7 +17,7 @@ public sealed record NovoVendedor(string Nome, string Email, string? Senha, stri
 public sealed record AlterarVendedor(string Nome, string? Telefone, string? ChavePix, int? ComissaoBps);
 
 /// <summary>A equipe do revendedor: só o dono mexe, e toda mudança de comissão vale para venda nova.</summary>
-public sealed class Equipe(IBancoDeDados banco, IContas contas, IRevendedorAtual atual, TimeProvider relogio)
+public sealed class Equipe(IBancoDeDados banco, IContas contas, IRevendedorAtual atual, Auditoria.Auditoria auditoria, TimeProvider relogio)
 {
     public async Task<IReadOnlyList<VendedorDto>> Listar(CancellationToken ct)
     {
@@ -37,6 +38,7 @@ public sealed class Equipe(IBancoDeDados banco, IContas contas, IRevendedorAtual
         var vendedor = new Vendedor(id, comando.Nome, comando.Email, relogio.GetUtcNow());
         vendedor.Alterar(comando.Nome, comando.Telefone, comando.ChavePix, comando.ComissaoBps);
         banco.Vendedores.Add(vendedor);
+        auditoria.Registrar(AcaoAuditada.VendedorCadastrado, $"Vendedor {vendedor.Nome}", vendedor.Id.ToString(), null, Resumo(vendedor));
         await banco.SaveChangesAsync(ct);
         var link = senha is null ? await contas.Convidar(id, await Remetente(ct), ct) : null;
         await transacao.CommitAsync(ct);
@@ -59,7 +61,13 @@ public sealed class Equipe(IBancoDeDados banco, IContas contas, IRevendedorAtual
     public async Task<VendedorDto> Alterar(Guid id, AlterarVendedor comando, CancellationToken ct)
     {
         var vendedor = await Achar(id, ct);
+        var antes = Resumo(vendedor);
         vendedor.Alterar(comando.Nome, comando.Telefone, comando.ChavePix, comando.ComissaoBps);
+        if (Resumo(vendedor) != antes)
+        {
+            auditoria.Registrar(AcaoAuditada.VendedorAlterado, $"Vendedor {vendedor.Nome}", vendedor.Id.ToString(), antes, Resumo(vendedor));
+        }
+
         await banco.SaveChangesAsync(ct);
         var semSenha = await contas.SemSenha([id], ct);
         return ParaDto(vendedor, await ComissaoPadrao(ct), await banco.Vendas.CountAsync(v => v.VendedorId == id, ct), semSenha.Count > 0);
@@ -70,6 +78,7 @@ public sealed class Equipe(IBancoDeDados banco, IContas contas, IRevendedorAtual
         var vendedor = await Achar(id, ct);
         await using var transacao = await banco.Database.BeginTransactionAsync(ct);
         vendedor.DefinirAtivo(ativo);
+        auditoria.Registrar(ativo ? AcaoAuditada.VendedorReativado : AcaoAuditada.VendedorDesativado, $"Vendedor {vendedor.Nome}", vendedor.Id.ToString());
         await banco.SaveChangesAsync(ct);
         await contas.DefinirAtivo(id, ativo, ct);
         await transacao.CommitAsync(ct);
@@ -91,6 +100,7 @@ public sealed class Equipe(IBancoDeDados banco, IContas contas, IRevendedorAtual
         }
 
         banco.Vendedores.Remove(vendedor);
+        auditoria.Registrar(AcaoAuditada.VendedorExcluido, $"Vendedor {vendedor.Nome}", vendedor.Id.ToString(), Resumo(vendedor), null);
         await banco.SaveChangesAsync(ct);
         await contas.Excluir(id, ct);
         await transacao.CommitAsync(ct);
@@ -102,9 +112,17 @@ public sealed class Equipe(IBancoDeDados banco, IContas contas, IRevendedorAtual
     public async Task DefinirComissaoPadrao(int bps, CancellationToken ct)
     {
         var revendedor = await banco.Revendedores.SingleAsync(r => r.Id == atual.RevendedorId, ct);
+        var antes = revendedor.ComissaoPadraoBps;
         revendedor.DefinirComissaoPadrao(bps);
+        auditoria.Registrar(AcaoAuditada.ComissaoPadraoAlterada, "Comissão padrão", revendedor.Id.ToString(), Percentual(antes), Percentual(bps));
         await banco.SaveChangesAsync(ct);
     }
+
+    /// <summary>O que vai à auditoria do vendedor: a comissão é o que importa; contato vai para provar quem mudou o Pix.</summary>
+    private static string Resumo(Vendedor v) =>
+        $"comissão {(v.ComissaoBps is { } bps ? Percentual(bps) : "padrão")}, Pix {v.ChavePix ?? "-"}, telefone {v.Telefone ?? "-"}";
+
+    private static string Percentual(int bps) => (bps / 100m).ToString("0.##", System.Globalization.CultureInfo.GetCultureInfo("pt-BR")) + "%";
 
     private async Task<Vendedor> Achar(Guid id, CancellationToken ct) =>
         await banco.Vendedores.SingleOrDefaultAsync(v => v.Id == id, ct)

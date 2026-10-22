@@ -62,6 +62,7 @@ const MENU: Record<Papel, Item[]> = {
     { para: '/painel/mapa', rotulo: 'Mapa' },
     { para: '/painel/catalogo', rotulo: 'Catálogo' },
     { para: '/painel/marca', rotulo: 'Marca' },
+    { para: '/painel/auditoria', rotulo: 'Auditoria' },
     { para: '/painel/suporte', rotulo: 'Falar com a Avalia' },
   ],
   Vendedor: [

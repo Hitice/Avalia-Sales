@@ -15,6 +15,7 @@ public static class InjecaoDeDependencias
     {
         servicos.AddScoped<FilaDeEmails>();
         servicos.AddScoped<Produtos>();
+        servicos.AddScoped<Auditoria.Auditoria>();
         servicos.AddScoped<Links.Links>();
         servicos.AddScoped<Pacotes>();
         servicos.AddScoped<PedidosDePlacas>();

@@ -1,4 +1,5 @@
 using AvaliaSales.Domain.Atendimento;
+using AvaliaSales.Domain.Auditoria;
 using AvaliaSales.Domain.Avisos;
 using AvaliaSales.Domain.Catalogo;
 using AvaliaSales.Domain.Contratos;
@@ -44,6 +45,7 @@ public interface IBancoDeDados
     DbSet<Mensagem> Mensagens { get; }
     DbSet<LinkCurto> Links { get; }
     DbSet<CodigoDeLink> CodigosDeLink { get; }
+    DbSet<RegistroDeAuditoria> Auditoria { get; }
 
     /// <summary>Para abrir transação. SQL direto não sai daqui: mora nos métodos abaixo, na Infrastructure.</summary>
     DatabaseFacade Database { get; }

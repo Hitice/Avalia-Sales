@@ -1,7 +1,8 @@
 using AvaliaSales.Application.Equipe;
-using AvaliaSales.Domain;
 using AvaliaSales.Domain.Acesso;
+using AvaliaSales.Domain.Auditoria;
 using AvaliaSales.Domain.Financeiro;
+using AvaliaSales.Domain;
 using Microsoft.EntityFrameworkCore;
 
 namespace AvaliaSales.Application.Financeiro;
@@ -17,7 +18,7 @@ public sealed record NovoRepasse(Guid VendedorId, DateTimeOffset? Ate, string? C
 /// do razão: comissão devida das vendas pagas, menos estornos, menos o já
 /// repassado. A comissão só existe quando o cliente paga.
 /// </summary>
-public sealed class Comissoes(IBancoDeDados banco, IUsuarioAtual usuario, IContas contas, TimeProvider relogio)
+public sealed class Comissoes(IBancoDeDados banco, IUsuarioAtual usuario, IContas contas, Auditoria.Auditoria auditoria, TimeProvider relogio)
 {
     public async Task<IReadOnlyList<SaldoDeComissao>> Saldos(CancellationToken ct)
     {
@@ -82,6 +83,8 @@ public sealed class Comissoes(IBancoDeDados banco, IUsuarioAtual usuario, IConta
         }
 
         banco.Repasses.Add(repasse);
+        auditoria.Registrar(AcaoAuditada.RepasseRegistrado, $"Vendedor {vendedor.Nome}", vendedor.Id.ToString(), null,
+            $"{valor} centavos, {vendas.Count} vendas, comprovante {pedido.Comprovante ?? "-"}");
         banco.AvisarAoVivo("comissao", vendedor.RevendedorId);
         banco.Lancamentos.Add(new Lancamento(TipoDeLancamento.ComissaoPaga, repasse.Id, -valor, $"Comissão repassada a {vendedor.Nome}", agora, vendedorId: vendedor.Id));
         await banco.SaveChangesAsync(ct);

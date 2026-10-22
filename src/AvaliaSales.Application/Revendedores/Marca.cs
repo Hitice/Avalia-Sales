@@ -1,3 +1,4 @@
+using AvaliaSales.Domain.Auditoria;
 using AvaliaSales.Domain.Revendedores;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,7 +10,7 @@ public sealed record MarcaDto(string? NomeExibido, string? CorPrimaria, string? 
 public sealed record GravarMarca(string? NomeExibido, string CorPrimaria, string CorDestaque);
 
 /// <summary>White label: o dono define a marca, e a equipe dele vê o app com ela. Login e área da operadora ficam com a marca da plataforma.</summary>
-public sealed class Marca(IBancoDeDados banco, IRevendedorAtual atual, TimeProvider relogio)
+public sealed class Marca(IBancoDeDados banco, IRevendedorAtual atual, Auditoria.Auditoria auditoria, TimeProvider relogio)
 {
     public async Task<MarcaDto> Ler(CancellationToken ct)
     {
@@ -23,7 +24,10 @@ public sealed class Marca(IBancoDeDados banco, IRevendedorAtual atual, TimeProvi
     public async Task<MarcaDto> Gravar(GravarMarca comando, CancellationToken ct)
     {
         var revendedor = await Atual(ct);
+        var antes = $"{revendedor.NomeExibido ?? "-"} {revendedor.CorPrimaria ?? "-"} {revendedor.CorDestaque ?? "-"}";
         revendedor.DefinirMarca(comando.NomeExibido, comando.CorPrimaria, comando.CorDestaque, relogio.GetUtcNow());
+        auditoria.Registrar(AcaoAuditada.MarcaAlterada, "Marca", revendedor.Id.ToString(), antes,
+            $"{revendedor.NomeExibido ?? "-"} {revendedor.CorPrimaria} {revendedor.CorDestaque}");
         await banco.SaveChangesAsync(ct);
         return await Ler(ct);
     }
@@ -33,6 +37,7 @@ public sealed class Marca(IBancoDeDados banco, IRevendedorAtual atual, TimeProvi
     {
         var revendedor = await Atual(ct);
         revendedor.RemoverMarca(relogio.GetUtcNow());
+        auditoria.Registrar(AcaoAuditada.MarcaAlterada, "Marca", revendedor.Id.ToString(), null, "marca da plataforma");
         await banco.Logos.Where(l => l.RevendedorId == revendedor.Id).ExecuteDeleteAsync(ct);
         await banco.SaveChangesAsync(ct);
     }

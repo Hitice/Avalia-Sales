@@ -3,6 +3,7 @@ using AvaliaSales.Application.Pagamentos;
 using AvaliaSales.Application.Placas;
 using AvaliaSales.Domain;
 using AvaliaSales.Domain.Acesso;
+using AvaliaSales.Domain.Auditoria;
 using AvaliaSales.Domain.Pagamentos;
 using AvaliaSales.Domain.Placas;
 using AvaliaSales.Domain.Vendas;
@@ -45,6 +46,7 @@ public sealed class Vendas(
     Cobrancas cobrancas,
     IContas contas,
     Links.Links links,
+    Auditoria.Auditoria auditoria,
     IOptions<OpcoesDaPlataforma> plataforma,
     TimeProvider relogio)
 {
@@ -78,6 +80,7 @@ public sealed class Vendas(
             placa.CustoCents, comissaoBps, pedido.Meio, agora);
         placa.Vender(venda.Id, destino, agora);
         banco.Vendas.Add(venda);
+        auditoria.Registrar(AcaoAuditada.DestinoDefinido, $"Placa {placa.Codigo}", placa.Codigo, null, destino);
         var linkCurto = pedido.Destino.Tipo == TipoDeDestino.Google ? await links.DoNegocio(cliente.Id, cliente.Nome, destino, ct) : null;
         banco.AvisarAoVivo("venda", placa.RevendedorId);
         await banco.SaveChangesAsync(ct);
@@ -123,6 +126,7 @@ public sealed class Vendas(
 
         await ExigirSemCobrancaViva(venda, "Venda com Pix em aberto ou já paga.", ct);
         await cobrancas.RegistrarPorFora(OrigemDaCobranca.Venda, venda.Id, meio, venda.ValorCents, ct);
+        await RegistrarNaPlaca(venda, AcaoAuditada.RecebidoPorFora, meio.ToString(), ct);
         await banco.SaveChangesAsync(ct);
     }
 
@@ -139,6 +143,7 @@ public sealed class Vendas(
         }
 
         await cobrancas.DesfazerPorFora(cobranca, ct);
+        await RegistrarNaPlaca(venda, AcaoAuditada.RecebimentoDesfeito, null, ct);
         await banco.SaveChangesAsync(ct);
     }
 
@@ -154,6 +159,7 @@ public sealed class Vendas(
         await ExigirSemRenovacaoAberta(venda.PlacaId, ct);
         var placa = await banco.Placas.SingleAsync(p => p.Id == venda.PlacaId, ct);
         venda.Cancelar();
+        auditoria.Registrar(AcaoAuditada.VendaCancelada, $"Venda da placa {placa.Codigo}", placa.Codigo, placa.Destino, null);
         placa.DesfazerVenda();
         banco.AvisarAoVivo("venda", venda.RevendedorId);
         await banco.SaveChangesAsync(ct);
@@ -164,7 +170,9 @@ public sealed class Vendas(
     {
         var venda = await AcharVenda(vendaId, ct);
         await ExigirSemCobrancaViva(venda, "Venda com cobrança em aberto ou paga.", ct);
+        var valorAntes = venda.ValorCents;
         venda.TornarCortesia();
+        await RegistrarNaPlaca(venda, AcaoAuditada.VendaEmCortesia, $"{valorAntes} centavos", ct);
         banco.AvisarAoVivo("venda", venda.RevendedorId);
         await banco.SaveChangesAsync(ct);
     }
@@ -186,10 +194,19 @@ public sealed class Vendas(
 
         nova.ReceberVendaDe(antiga);
         venda.TrocarPlaca(nova.Id);
+        // Nas duas placas: a ficha de cada uma conta para onde a venda foi ou de onde veio.
+        auditoria.Registrar(AcaoAuditada.PlacaTrocada, $"Placa {antiga.Codigo}", antiga.Codigo, antiga.Codigo, nova.Codigo);
+        auditoria.Registrar(AcaoAuditada.PlacaTrocada, $"Placa {nova.Codigo}", nova.Codigo, antiga.Codigo, nova.Codigo);
         banco.AvisarAoVivo("venda", venda.RevendedorId);
         await banco.SaveChangesAsync(ct);
         await transacao.CommitAsync(ct);
         return nova.Codigo;
+    }
+
+    private async Task RegistrarNaPlaca(Venda venda, AcaoAuditada acao, string? depois, CancellationToken ct)
+    {
+        var codigo = await banco.Placas.Where(p => p.Id == venda.PlacaId).Select(p => p.Codigo).SingleAsync(ct);
+        auditoria.Registrar(acao, $"Venda da placa {codigo}", codigo, null, depois);
     }
 
     /// <summary>A renovação em aberto aponta para a placa: paga depois, estenderia uma placa fora da venda.</summary>

@@ -475,7 +475,8 @@ tentativas.
 | Login desativado não entra e perde as sessões abertas | No código |
 | Convite do vendedor e "esqueci a senha" por link de uso único (`links_de_senha`, só o hash; convite 7 dias, redefinição 1 hora; link novo derruba o anterior). O token vai depois do `#`, fora de log e de Referer. Pedido de link responde igual com e sem conta. Senha trocada destrava o login e encerra as sessões abertas | No código |
 | Leitura do QR com limite de 300 por minuto por IP, sem cookie, robôs não contam | No código |
-| 2FA do dono, auditoria | Plano |
+| Auditoria - tabela `auditoria` com RLS, só de inserção (`REVOKE UPDATE, DELETE` do papel da aplicação, com teste), gravada na transação da ação; `GET /auditoria` só do dono e o histórico na ficha | No código |
+| 2FA do dono | Plano |
 | LGPD - exportação dos dados do cliente (`GET /clientes/{id}/dados`) e anonimização (`POST /clientes/{id}/anonimizacao`, recusada com cobrança em aberto), só pelo dono e dentro do revendedor; valores ficam no razão | No código; prazo de guarda a definir (PDD 6b) |
 
 Revisão pela skill `seguranca` (OWASP ASVS 5.0).
@@ -600,6 +601,7 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
 
 | Data | Mudança |
 | --- | --- |
+| 22/10/2026 | Auditoria (`RegistroDeAuditoria`, `Auditoria`, migration Auditoria), registrada nos casos de uso de placa, venda, equipe, comissão, produto, repasse, marca, links e LGPD; `FichaDto.Historico`; tela Auditoria. 195 testes na API. |
 | 22/10/2026 | `produtos.comissao_bps` (migration ComissaoDoProduto); `Vendas.QuemVende` resolve vendedor, produto e padrão. |
 | 22/10/2026 | Testes de ponta a ponta com Playwright e axe, job `e2e` no CI. O axe achou e foram corrigidos: contraste da aba inativa e telas sem `h1` (entrada, cadastro, senha, catálogo). |
 | 22/10/2026 | Formulários de cadastro em React Hook Form + Zod com `Campo` e `lib/esquemas.ts` (Nova venda, Equipe, Links, senha, Pacotes, Cupons); o de Pacotes não limpa mais o que foi digitado quando a gravação falha. |

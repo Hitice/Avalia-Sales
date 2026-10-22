@@ -1,4 +1,4 @@
-import type { EstadoDaPlaca, SituacaoDaCobranca, SituacaoDoContrato, SituacaoDoPedido } from './tipos'
+import type { AcaoAuditada, EstadoDaPlaca, SituacaoDaCobranca, SituacaoDoContrato, SituacaoDoPedido } from './tipos'
 
 /** Os nomes que a tela mostra para cada situação da API. */
 export const ROTULO_DO_ESTADO: Record<EstadoDaPlaca, string> = {
@@ -58,4 +58,28 @@ export function formatarTelefone(digitos: string | null): string {
   const local = digitos.slice(-11)
   const m = /^(\d{2})(\d{4,5})(\d{4})$/.exec(local.length === 11 ? local : digitos.slice(-10))
   return m ? `${pais}(${m[1]}) ${m[2]}-${m[3]}` : digitos
+}
+
+export const ROTULO_DA_ACAO: Record<AcaoAuditada, string> = {
+  DestinoDefinido: 'Destino definido na venda',
+  DestinoTrocado: 'Destino trocado',
+  PlacaSuspensa: 'Placa suspensa',
+  PlacaNoAr: 'Placa de volta ao ar',
+  PlacaTrocada: 'Placa trocada',
+  VendaCancelada: 'Venda cancelada',
+  VendaEmCortesia: 'Venda virou cortesia',
+  RecebidoPorFora: 'Recebido por fora',
+  RecebimentoDesfeito: 'Recebimento desfeito',
+  VendedorCadastrado: 'Vendedor cadastrado',
+  VendedorAlterado: 'Vendedor alterado',
+  VendedorDesativado: 'Vendedor desativado',
+  VendedorReativado: 'Vendedor reativado',
+  VendedorExcluido: 'Vendedor excluído',
+  ComissaoPadraoAlterada: 'Comissão padrão alterada',
+  ProdutoAlterado: 'Produto alterado',
+  RepasseRegistrado: 'Repasse registrado',
+  ClienteAnonimizado: 'Cliente anonimizado',
+  MarcaAlterada: 'Marca alterada',
+  LinkAlterado: 'Link alterado',
+  LinkExcluido: 'Link excluído',
 }

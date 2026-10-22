@@ -10,6 +10,7 @@ import { formatarCentavos } from '@/dinheiro/dinheiro'
 import { PixNaTela } from '@/componentes/PixNaTela'
 import { useAlternar, useApontar, useFicha, useRenovar } from './consultas'
 import { destinoPronto } from './destino'
+import { Historico } from '@/auditoria/Historico'
 import { EscolhaDeDestino } from './EscolhaDeDestino'
 import { GravarNfc } from './BotoesDeNfc'
 
@@ -117,6 +118,10 @@ export function TelaDaPlaca() {
             </div>
           )}
         </CardContent>
+      </Card>
+      <Card>
+        <CardHeader><CardTitle>Histórico</CardTitle></CardHeader>
+        <CardContent><Historico registros={f.historico} /></CardContent>
       </Card>
     </div>
   )

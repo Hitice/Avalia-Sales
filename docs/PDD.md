@@ -82,6 +82,7 @@ Todas no mesmo app, liberadas pelo papel do usuário.
 | Catálogo | Revendedor | Computador e celular | Produtos e preço da tabela do revendedor |
 | Marca | Revendedor | Computador | Logo, cores e nome exibido, com prévia |
 | Painel | Revendedor | Computador | Vendas e pagamentos ao vivo, saldo de comissão, registro de repasse |
+| Auditoria | Revendedor | Computador | Quem mudou o quê, com antes e depois e busca pelo código |
 | Mapa | Revendedor | Computador | Lugares vendidos, no Google Maps |
 | Painel do vendedor | Vendedor | Celular | Vendas do mês, comissão a receber, esperando pagamento e recebida, placas com ele |
 | Nova venda | Vendedor | Celular | Negócio no Google, QR da placa, cliente, cobrança, gravação do NFC |
@@ -156,6 +157,18 @@ Todas no mesmo app, liberadas pelo papel do usuário.
   paga. O mesmo pagamento nunca é lançado duas vezes.
 - Competência no fuso de Brasília. O líquido do mês é receita menos taxa menos
   comissão; a taxa do Pagar.me sai no extrato do Pagar.me.
+
+### Auditoria
+
+- Fica registrado quem fez, o quê, onde, o valor de antes e o de depois:
+  destino da placa (na venda e nas trocas), suspender e pôr no ar, troca de
+  placa, cancelamento, cortesia, recebido por fora e o desfazer, equipe
+  (cadastro, alteração, desativação, exclusão), comissão padrão, produto,
+  repasse, marca, links e anonimização do cliente.
+- A ficha da placa mostra o histórico dela; a tela Auditoria, só do dono,
+  mostra tudo, com busca pelo código.
+- Registro não se altera nem se apaga, nem pela aplicação. A anonimização
+  registra o fato sem o nome do cliente.
 
 ### Link curto
 
@@ -385,6 +398,7 @@ Estimativa em semanas de cerca de 20 horas.
 
 | Data | Mudança |
 | --- | --- |
+| 22/10/2026 | Auditoria - histórico na ficha da placa e tela Auditoria do dono. |
 | 22/10/2026 | Comissão por produto no catálogo - vale a do vendedor, depois a do produto, depois a padrão. |
 | 22/10/2026 | Celular e computador revistos - tabelas viram cartões no celular, menu lateral no computador, traço e títulos da marca Avalia, entrada na cor noite. |
 | 22/10/2026 | Confirmação do e-mail do dono antes do contrato e dos avisos. E-mail da revenda com o nome dela no remetente, resposta ao dono e a cor da marca. No iPhone, NFC pelo NFC Tools. |

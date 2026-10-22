@@ -2,7 +2,7 @@ import { test } from '@playwright/test'
 import { entrar, semRolagemLateral, semViolacaoGrave } from './apoio'
 
 const TELAS_DO_DONO = ['/painel/inicio', '/painel/vendas', '/painel/estoque', '/painel/pedidos', '/painel/equipe', '/painel/clientes', '/links',
-  '/painel/comissoes', '/painel/razao', '/painel/mapa', '/painel/catalogo', '/painel/marca', '/painel/suporte']
+  '/painel/comissoes', '/painel/razao', '/painel/mapa', '/painel/catalogo', '/painel/marca', '/painel/auditoria', '/painel/suporte']
 
 test('telas do dono sem violação grave e sem rolagem para o lado', async ({ page }) => {
   await entrar(page)

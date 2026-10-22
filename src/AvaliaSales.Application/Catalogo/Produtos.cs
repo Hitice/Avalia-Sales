@@ -1,5 +1,6 @@
-using AvaliaSales.Domain;
+using AvaliaSales.Domain.Auditoria;
 using AvaliaSales.Domain.Catalogo;
+using AvaliaSales.Domain;
 using Microsoft.EntityFrameworkCore;
 
 namespace AvaliaSales.Application.Catalogo;
@@ -13,7 +14,7 @@ public sealed record CadastrarProduto(string Nome, long PrecoCents, int? Comissa
 /// Catálogo do revendedor logado. O filtro por revendedor fica na
 /// infraestrutura; aqui não há parâmetro de revendedor para alguém esquecer.
 /// </summary>
-public sealed class Produtos(IBancoDeDados banco)
+public sealed class Produtos(IBancoDeDados banco, Auditoria.Auditoria auditoria)
 {
     public async Task<IReadOnlyList<ProdutoDto>> Listar(CancellationToken ct) =>
         await banco.Produtos
@@ -33,7 +34,14 @@ public sealed class Produtos(IBancoDeDados banco)
     public async Task<ProdutoDto> Alterar(Guid id, CadastrarProduto comando, CancellationToken ct)
     {
         var produto = await Achar(id, ct);
+        var antes = $"{produto.PrecoCents} centavos, comissão {produto.ComissaoBps?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "padrão"} bps";
         produto.Alterar(comando.Nome, comando.PrecoCents, comando.ComissaoBps);
+        var depois = $"{produto.PrecoCents} centavos, comissão {produto.ComissaoBps?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "padrão"} bps";
+        if (depois != antes)
+        {
+            auditoria.Registrar(AcaoAuditada.ProdutoAlterado, $"Produto {produto.Nome}", produto.Id.ToString(), antes, depois);
+        }
+
         await banco.SaveChangesAsync(ct);
         return new ProdutoDto(produto.Id, produto.Nome, produto.PrecoCents, produto.Ativo, produto.ComissaoBps);
     }

@@ -2,6 +2,7 @@ using System.Linq.Expressions;
 using AvaliaSales.Application;
 using AvaliaSales.Domain;
 using AvaliaSales.Domain.Atendimento;
+using AvaliaSales.Domain.Auditoria;
 using AvaliaSales.Domain.Avisos;
 using AvaliaSales.Domain.Catalogo;
 using AvaliaSales.Domain.Contratos;
@@ -54,6 +55,7 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
     public DbSet<Mensagem> Mensagens => Set<Mensagem>();
     public DbSet<LinkCurto> Links => Set<LinkCurto>();
     public DbSet<CodigoDeLink> CodigosDeLink => Set<CodigoDeLink>();
+    public DbSet<RegistroDeAuditoria> Auditoria => Set<RegistroDeAuditoria>();
 
     /// <summary>Lido pelo filtro global a cada consulta, e não na montagem do modelo.</summary>
     public Guid? RevendedorAtual => revendedor.RevendedorId;
@@ -115,6 +117,19 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
             l.HasOne<Revendedor>().WithMany().HasForeignKey(x => x.RevendedorId).OnDelete(DeleteBehavior.Restrict);
             l.HasOne<Cliente>().WithMany().HasForeignKey(x => x.ClienteId).OnDelete(DeleteBehavior.SetNull);
             l.HasOne<CodigoDeLink>().WithOne().HasForeignKey<LinkCurto>(x => x.Codigo).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelo.Entity<RegistroDeAuditoria>(a =>
+        {
+            a.ToTable("auditoria");
+            a.Property(x => x.Acao).HasConversion<string>().HasMaxLength(40);
+            a.Property(x => x.Alvo).HasMaxLength(RegistroDeAuditoria.AlvoMaximo).IsRequired();
+            a.Property(x => x.Referencia).HasMaxLength(64).IsRequired();
+            a.Property(x => x.Antes).HasMaxLength(RegistroDeAuditoria.ValorMaximo);
+            a.Property(x => x.Depois).HasMaxLength(RegistroDeAuditoria.ValorMaximo);
+            a.HasIndex(x => new { x.RevendedorId, x.OcorridoEm });
+            a.HasIndex(x => new { x.RevendedorId, x.Referencia });
+            a.HasOne<Revendedor>().WithMany().HasForeignKey(x => x.RevendedorId).OnDelete(DeleteBehavior.Restrict);
         });
 
         modelo.Entity<CodigoDeLink>(c =>

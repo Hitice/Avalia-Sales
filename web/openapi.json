@@ -1586,6 +1586,42 @@
         }
       }
     },
+    "/auditoria": {
+      "get": {
+        "tags": [
+          "Revenda"
+        ],
+        "parameters": [
+          {
+            "name": "referencia",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pagina",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginaDeAuditoria"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/clientes": {
       "get": {
         "tags": [
@@ -2412,6 +2448,31 @@
   },
   "components": {
     "schemas": {
+      "AcaoAuditada": {
+        "enum": [
+          "DestinoDefinido",
+          "DestinoTrocado",
+          "PlacaSuspensa",
+          "PlacaNoAr",
+          "PlacaTrocada",
+          "VendaCancelada",
+          "VendaEmCortesia",
+          "RecebidoPorFora",
+          "RecebimentoDesfeito",
+          "VendedorCadastrado",
+          "VendedorAlterado",
+          "VendedorDesativado",
+          "VendedorReativado",
+          "VendedorExcluido",
+          "ComissaoPadraoAlterada",
+          "ProdutoAlterado",
+          "RepasseRegistrado",
+          "ClienteAnonimizado",
+          "MarcaAlterada",
+          "LinkAlterado",
+          "LinkExcluido"
+        ]
+      },
       "AlterarAtivo": {
         "required": [
           "ativo"
@@ -2922,7 +2983,8 @@
           "ultimaLeituraEm",
           "consignadaA",
           "venda",
-          "leituras"
+          "leituras",
+          "historico"
         ],
         "type": "object",
         "properties": {
@@ -2990,6 +3052,12 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/LeituraDto"
+            }
+          },
+          "historico": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RegistroDto"
             }
           }
         }
@@ -3697,6 +3765,25 @@
           }
         }
       },
+      "PaginaDeAuditoria": {
+        "required": [
+          "registros",
+          "total"
+        ],
+        "type": "object",
+        "properties": {
+          "registros": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RegistroDto"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "PaginaDePlacas": {
         "required": [
           "placas",
@@ -4026,6 +4113,53 @@
         "properties": {
           "meio": {
             "$ref": "#/components/schemas/MeioDePagamento"
+          }
+        }
+      },
+      "RegistroDto": {
+        "required": [
+          "id",
+          "acao",
+          "alvo",
+          "referencia",
+          "antes",
+          "depois",
+          "quem",
+          "ocorridoEm"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "acao": {
+            "$ref": "#/components/schemas/AcaoAuditada"
+          },
+          "alvo": {
+            "type": "string"
+          },
+          "referencia": {
+            "type": "string"
+          },
+          "antes": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "depois": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "quem": {
+            "type": "string"
+          },
+          "ocorridoEm": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },

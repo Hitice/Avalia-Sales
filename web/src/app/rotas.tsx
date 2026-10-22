@@ -58,6 +58,7 @@ export const rotas = createBrowserRouter([{
               { path: 'suporte', lazy: tela(() => import('@/atendimento/TelaDeSuporte'), 'TelaDeSuporte') },
               { path: 'catalogo', lazy: tela(() => import('@/catalogo/TelaDoCatalogo'), 'TelaDoCatalogo') },
               { path: 'marca', lazy: tela(() => import('@/marca/TelaDaMarca'), 'TelaDaMarca') },
+              { path: 'auditoria', lazy: tela(() => import('@/auditoria/TelaDeAuditoria'), 'TelaDeAuditoria') },
             ],
           },
           {

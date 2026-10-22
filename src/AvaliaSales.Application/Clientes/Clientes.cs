@@ -1,5 +1,6 @@
-using AvaliaSales.Domain;
+using AvaliaSales.Domain.Auditoria;
 using AvaliaSales.Domain.Pagamentos;
+using AvaliaSales.Domain;
 using Microsoft.EntityFrameworkCore;
 
 namespace AvaliaSales.Application.Clientes;
@@ -19,7 +20,7 @@ public sealed record DadosDoCliente(
 /// Os clientes do revendedor e os direitos do titular. O revendedor é o
 /// controlador; a plataforma, a operadora. Exportar e anonimizar são do dono.
 /// </summary>
-public sealed class Clientes(IBancoDeDados banco, IRevendedorAtual atual, TimeProvider relogio)
+public sealed class Clientes(IBancoDeDados banco, IRevendedorAtual atual, Auditoria.Auditoria auditoria, TimeProvider relogio)
 {
     public async Task<IReadOnlyList<ClienteDaLista>> Listar(string? busca, CancellationToken ct)
     {
@@ -78,6 +79,8 @@ public sealed class Clientes(IBancoDeDados banco, IRevendedorAtual atual, TimePr
         }
 
         cliente.Anonimizar(relogio.GetUtcNow());
+        // Sem nome nem contato: a auditoria não pode guardar o que a anonimização apagou.
+        auditoria.Registrar(AcaoAuditada.ClienteAnonimizado, "Cliente", cliente.Id.ToString());
         await banco.SaveChangesAsync(ct);
     }
 
