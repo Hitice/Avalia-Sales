@@ -49,7 +49,7 @@ public sealed class Vendas(
     {
         if (pedido.Meio is not (MeioDePagamento.Pix or MeioDePagamento.Cartao or MeioDePagamento.Link))
         {
-            throw new RegraDeNegocioException("A venda nasce com Pix ou cartão. Recebido em dinheiro se confirma depois, na lista de vendas.");
+            throw new RegraDeNegocioException("Escolha Pix ou cartão.");
         }
 
         var (vendedorId, comissaoBps) = await QuemVende(ct);
@@ -117,7 +117,7 @@ public sealed class Vendas(
             throw new RegraDeNegocioException("Esta venda não tem valor a receber.");
         }
 
-        await ExigirSemCobrancaViva(venda, "Esta venda tem Pix em aberto ou já está paga. Espere o Pix vencer para confirmar por fora.", ct);
+        await ExigirSemCobrancaViva(venda, "Venda com Pix em aberto ou já paga.", ct);
         await cobrancas.RegistrarPorFora(OrigemDaCobranca.Venda, venda.Id, meio, venda.ValorCents, ct);
         await banco.SaveChangesAsync(ct);
     }
@@ -146,7 +146,7 @@ public sealed class Vendas(
     public async Task Cancelar(Guid vendaId, CancellationToken ct)
     {
         var venda = await AcharVenda(vendaId, ct);
-        await ExigirSemCobrancaViva(venda, "Esta venda tem cobrança em aberto ou paga. Espere o Pix vencer, ou estorne no Pagar.me, antes de cancelar.", ct);
+        await ExigirSemCobrancaViva(venda, "Venda com cobrança em aberto ou paga.", ct);
         await ExigirSemRenovacaoAberta(venda.PlacaId, ct);
         var placa = await banco.Placas.SingleAsync(p => p.Id == venda.PlacaId, ct);
         venda.Cancelar();
@@ -159,7 +159,7 @@ public sealed class Vendas(
     public async Task Cortesia(Guid vendaId, CancellationToken ct)
     {
         var venda = await AcharVenda(vendaId, ct);
-        await ExigirSemCobrancaViva(venda, "Esta venda tem cobrança em aberto ou paga; cortesia é para venda sem cobrança.", ct);
+        await ExigirSemCobrancaViva(venda, "Venda com cobrança em aberto ou paga.", ct);
         venda.TornarCortesia();
         banco.AvisarAoVivo("venda", venda.RevendedorId);
         await banco.SaveChangesAsync(ct);
@@ -193,7 +193,7 @@ public sealed class Vendas(
     {
         if (await banco.Renovacoes.AnyAsync(r => r.PlacaId == placaId && r.Situacao == SituacaoDaRenovacao.Aberta, ct))
         {
-            throw new RegraDeNegocioException("A placa tem renovação em aberto. Espere o Pix dela vencer.");
+            throw new RegraDeNegocioException("Placa com renovação em aberto.");
         }
     }
 
@@ -288,7 +288,7 @@ public sealed class Vendas(
         }
         catch (IntegracaoException)
         {
-            return (null, "O Pagar.me não respondeu. Gere a cobrança de novo na lista de vendas.");
+            return (null, "O Pagar.me não respondeu. Gere a cobrança de novo em Vendas.");
         }
     }
 

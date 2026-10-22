@@ -115,7 +115,7 @@ export function TelaDeComissoes() {
             >
               <Erro erro={repassar.error ? mensagemDoErro(repassar.error) : null} />
               {repassar.data && <Alert><AlertDescription>Repasse de {formatarCentavos(repassar.data.valorCents)} registrado, {repassar.data.vendas} vendas.</AlertDescription></Alert>}
-              <p className="text-sm">A pagar agora: <span className="font-medium tabular-nums">{formatarCentavos(escolhido.abertaCents)}</span>. Faça o Pix e registre aqui.</p>
+              <p className="text-sm">A pagar: <span className="font-medium tabular-nums">{formatarCentavos(escolhido.abertaCents)}</span>.</p>
               <Field>
                 <FieldLabel htmlFor="ate">Vendas pagas até</FieldLabel>
                 <Input id="ate" type="date" value={ate} onChange={(e) => setAte(e.target.value)} />

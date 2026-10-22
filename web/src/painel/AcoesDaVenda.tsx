@@ -68,7 +68,7 @@ export function AcoesDaVenda({ venda, dono }: { venda: VendaDaLista; dono: boole
           <DialogDescription>{venda.cliente}, {formatarCentavos(venda.valorCents)}{venda.cortesia ? ', cortesia' : ''}</DialogDescription>
         </DialogHeader>
         <Erro erro={erro ? mensagemDoErro(erro) : null} />
-        {venda.pagamento === 'Pendente' && <p className="text-muted-foreground">Pix em aberto. Para mudar a venda, espere o Pix vencer.</p>}
+        {venda.pagamento === 'Pendente' && <p className="text-muted-foreground">Pix em aberto.</p>}
 
         {confirmando ? (
           <DialogFooter>
@@ -104,7 +104,7 @@ export function AcoesDaVenda({ venda, dono }: { venda: VendaDaLista; dono: boole
                   <Input id={`troca-${venda.id}`} value={codigo} onChange={(e) => setCodigo(e.target.value)} placeholder="Código da placa nova" autoComplete="off" className="uppercase placeholder:normal-case" />
                   <Button type="submit" variant="outline" disabled={ocupado || codigo.trim().length < 6}>Trocar</Button>
                 </div>
-                <p className="text-xs text-muted-foreground">A placa {venda.codigo} é encerrada e não volta a circular.</p>
+                <p className="text-xs text-muted-foreground">A placa {venda.codigo} será encerrada.</p>
               </form>
             )}
             {podeDesfazerVenda && (

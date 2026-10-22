@@ -25,11 +25,11 @@ export function TelaDoMapa() {
   return (
     <>
       <Cabecalho titulo="Mapa" />
-      {configuracao.data && !chave && <Aviso>O mapa do Google não está ligado nesta instalação. Os lugares vendidos estão na lista abaixo.</Aviso>}
+      {configuracao.data && !chave && <Aviso>Mapa indisponível.</Aviso>}
       {chave && lugares.data && <MapaDoGoogle chave={chave} idDoMapa={configuracao.data!.idDoMapa} lugares={lugares.data} />}
       <Card className="mt-4">
         <CardContent>
-          <EstadoDaConsulta carregando={lugares.isPending} erro={lugares.error} vazio={lugares.data?.length === 0} textoVazio="Nenhuma placa vendida com lugar do Google ainda." />
+          <EstadoDaConsulta carregando={lugares.isPending} erro={lugares.error} vazio={lugares.data?.length === 0} textoVazio="Nenhum lugar no mapa." />
           {lugares.data && lugares.data.length > 0 && (
             <Rolagem>
               <Table>
@@ -103,7 +103,7 @@ function MapaDoGoogle({ chave, idDoMapa, lugares }: { chave: string; idDoMapa: s
       if (!limites.isEmpty()) mapa.fitBounds(limites)
     }
 
-    desenhar().catch(() => !cancelado && setErro('Não deu para carregar o mapa do Google. Confira a chave e o domínio liberado nela.'))
+    desenhar().catch(() => !cancelado && setErro('Não foi possível carregar o mapa.'))
     return () => {
       cancelado = true
     }

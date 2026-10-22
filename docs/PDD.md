@@ -360,6 +360,7 @@ Estimativa em semanas de cerca de 20 horas.
 
 | Data | Mudança |
 | --- | --- |
+| 22/10/2026 | Texto das telas revisto - sem frase de explicação; rótulo, ação e recusa curta. |
 | 22/10/2026 | Renovação recebida por fora. Logo aceita foto grande e é reduzido no navegador. |
 | 22/10/2026 | Depois da venda - cancelamento, cortesia, troca de placa e recebido em dinheiro ou outro Pix, na tela Vendas. |
 | 21/10/2026 | LGPD - papéis de controlador e operadora, dado mínimo, exportação e anonimização do cliente na tela Clientes. |

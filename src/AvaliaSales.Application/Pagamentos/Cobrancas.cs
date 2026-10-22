@@ -53,7 +53,7 @@ public sealed class Cobrancas(IBancoDeDados banco, IGatewayDePagamento gateway, 
 
         if (comando.Meio is MeioDePagamento.Dinheiro or MeioDePagamento.OutroPix)
         {
-            throw new RegraDeNegocioException("Pagamento em dinheiro ou outro Pix se confirma na lista de vendas, depois da venda.");
+            throw new RegraDeNegocioException("Escolha Pix ou cartão.");
         }
 
         if (comando.Meio == MeioDePagamento.Cartao && string.IsNullOrWhiteSpace(comando.TokenDoCartao))

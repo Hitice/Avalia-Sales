@@ -66,7 +66,7 @@ export function TelaDaEquipe() {
         <Erro erro={recusa ?? (erro ? mensagemDoErro(erro) : null)} />
         <Card className="mt-3">
           <CardContent>
-            <EstadoDaConsulta carregando={equipe.isPending} erro={equipe.error} vazio={equipe.data?.length === 0} textoVazio="Nenhum vendedor ainda. Cadastre o primeiro ao lado." />
+            <EstadoDaConsulta carregando={equipe.isPending} erro={equipe.error} vazio={equipe.data?.length === 0} textoVazio="Nenhum vendedor." />
             {equipe.data && equipe.data.length > 0 && (
               <Rolagem>
                 <Table>
@@ -132,7 +132,7 @@ export function TelaDaEquipe() {
                 if (bps !== null) padrao.mutate(bps, { onSuccess: () => setComissaoPadrao('') })
               }}
             >
-              <p className="text-sm text-muted-foreground">Hoje: {revenda.data ? formatarBps(revenda.data.revendedor.comissaoPadraoBps) : '-'}. Vale para venda nova.</p>
+              <p className="text-sm text-muted-foreground">Atual: {revenda.data ? formatarBps(revenda.data.revendedor.comissaoPadraoBps) : '-'}.</p>
               <Field>
                 <FieldLabel htmlFor="padrao">Nova comissão (%)</FieldLabel>
                 <Input id="padrao" inputMode="decimal" value={comissaoPadrao} onChange={(e) => setComissaoPadrao(e.target.value)} />

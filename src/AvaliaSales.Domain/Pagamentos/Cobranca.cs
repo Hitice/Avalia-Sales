@@ -80,7 +80,7 @@ public sealed class Cobranca : IDoRevendedor
     {
         if (meio is not (MeioDePagamento.Dinheiro or MeioDePagamento.OutroPix))
         {
-            throw new RegraDeNegocioException("Escolha como o cliente pagou: em dinheiro ou por outro Pix.");
+            throw new RegraDeNegocioException("Escolha dinheiro ou outro Pix.");
         }
 
         return new Cobranca(origem, origemId, meio, valorCents, taxaAvaliaBps)

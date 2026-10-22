@@ -46,7 +46,7 @@ public sealed class Cupons(IBancoDeDados banco)
         var cupom = await Achar(id, ct);
         if (cupom.Usos > 0)
         {
-            throw new RegraDeNegocioException("Cupom já usado é desativado, e não excluído: o pedido guarda o código.");
+            throw new RegraDeNegocioException("Cupom já usado não se exclui. Desative.");
         }
 
         banco.Cupons.Remove(cupom);

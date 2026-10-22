@@ -569,6 +569,7 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
 
 | Data | Mudança |
 | --- | --- |
+| 22/10/2026 | Revisão do texto das telas e das recusas da API (`RegraDeNegocioException`), mais curtas. |
 | 22/10/2026 | Renovação recebida por fora (`/placas/{codigo}/renovacao/recebimento`). Logo reduzido no navegador (`reduzirLogo`, canvas para WebP em até 512 px); `chamarResposta` só marca JSON quando o corpo é texto. 177 testes na API, 38 no front. |
 | 22/10/2026 | Cancelamento, cortesia, troca de placa e recebido por fora (rotas `/vendas/{id}/cancelamento`, `/cortesia`, `/troca-de-placa`, `/recebimento`), migration VendaDesfeita, diálogo de ações na tela Vendas. 176 testes. |
 | 21/10/2026 | LGPD - exportação e anonimização do cliente, tela Clientes. 172 testes. |

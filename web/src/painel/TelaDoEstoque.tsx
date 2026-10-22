@@ -44,7 +44,7 @@ export function TelaDoEstoque() {
         </div>
         <Card>
           <CardContent>
-            <EstadoDaConsulta carregando={placas.isPending} erro={placas.error} vazio={total === 0} textoVazio="Nenhuma placa aqui. Ative um lote em Pedidos de placas." />
+            <EstadoDaConsulta carregando={placas.isPending} erro={placas.error} vazio={total === 0} textoVazio="Nenhuma placa." />
             {total > 0 && (
               <Rolagem>
                 <Table>

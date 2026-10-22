@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { ESCURO, corValida, problemasDaMarca, razao, textoSobre } from './contraste'
+import { ESCURO, corValida, problemasDaMarca, textoSobre } from './contraste'
 import { type Marca, useLogo, useMarca } from './marca'
 import { LOGO_ESCOLHIDO, reduzirLogo } from './reduzirLogo'
 
@@ -90,7 +90,7 @@ function FormularioDaMarca({ marca, salvo, setSalvo }: { marca: Marca; salvo: bo
         <Card>
           <CardContent className="grid gap-4 pt-6">
             <Erro erro={erro ? (typeof erro === 'string' ? erro : mensagemDoErro(erro)) : null} />
-            {salvo && <Alert><AlertDescription>Marca salva. Sua equipe vê o app com ela no próximo acesso.</AlertDescription></Alert>}
+            {salvo && <Alert><AlertDescription>Marca salva.</AlertDescription></Alert>}
             <Field>
               <FieldLabel htmlFor="nome">Nome exibido</FieldLabel>
               <Input id="nome" maxLength={40} placeholder="Avalia Sales" value={nome} onChange={(e) => setNome(e.target.value)} />
@@ -119,14 +119,6 @@ function FormularioDaMarca({ marca, salvo, setSalvo }: { marca: Marca; salvo: bo
             <button type="button" className="h-11 rounded-lg px-4 text-sm font-medium outline-none" style={{ background: primaria, color: textoSobre(primaria), boxShadow: corValida(destaque) ? `0 0 0 3px ${destaque}` : undefined }}>
               Registrar venda
             </button>
-          )}
-          {corValida(primaria) && corValida(destaque) && (
-            <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
-              <dt className="text-muted-foreground">Texto na primária</dt>
-              <dd className="tabular-nums">{razao(primaria, textoSobre(primaria)).toFixed(1)}:1 (mínimo 4,5:1)</dd>
-              <dt className="text-muted-foreground">Destaque no branco</dt>
-              <dd className="tabular-nums">{razao(destaque, '#FFFFFF').toFixed(1)}:1 (mínimo 3:1)</dd>
-            </dl>
           )}
         </CardContent>
       </Card>

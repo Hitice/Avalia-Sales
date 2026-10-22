@@ -74,7 +74,7 @@ public sealed class Clientes(IBancoDeDados banco, IRevendedorAtual atual, TimePr
         var vendas = banco.Vendas.Where(v => v.ClienteId == id).Select(v => (Guid?)v.Id);
         if (await banco.Cobrancas.AnyAsync(c => c.Origem == OrigemDaCobranca.Venda && vendas.Contains(c.OrigemId) && c.Situacao == SituacaoDaCobranca.Pendente, ct))
         {
-            throw new RegraDeNegocioException("O cliente tem cobrança em aberto. Espere o pagamento ou o vencimento do Pix para anonimizar.");
+            throw new RegraDeNegocioException("Cliente com cobrança em aberto.");
         }
 
         cliente.Anonimizar(relogio.GetUtcNow());

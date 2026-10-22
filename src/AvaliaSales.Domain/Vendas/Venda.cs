@@ -132,7 +132,7 @@ public sealed class Venda : IDoRevendedor
 
         if (tabelaCents > 0 && valorCents > tabelaCents * TetoEmVezesDaTabela)
         {
-            throw new RegraDeNegocioException("Confira o valor: é mais de 5 vezes o preço de tabela. Use vírgula nos centavos, como 149,90.");
+            throw new RegraDeNegocioException("Valor acima de 5 vezes a tabela. Confira os centavos.");
         }
     }
 }

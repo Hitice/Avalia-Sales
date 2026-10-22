@@ -30,7 +30,7 @@ export function EscolhaDeDestino({ valor, aoMudar, nomeSugerido }: { valor: Dest
           <Button type="button" variant="outline" disabled={busca.trim().length < 3 || buscar.isPending} onClick={() => buscar.mutate(busca)}>Buscar</Button>
         </div>
         <Erro erro={buscar.error ? mensagemDoErro(buscar.error) : null} />
-        {buscar.data?.length === 0 && <p className="text-sm text-muted-foreground">Nada encontrado. Cole o link do perfil abaixo.</p>}
+        {buscar.data?.length === 0 && <p className="text-sm text-muted-foreground">Nada encontrado.</p>}
         {buscar.data && buscar.data.length > 0 && (
           <ul className="grid gap-2" aria-label="Negócios encontrados">
             {buscar.data.map((lugar) => (

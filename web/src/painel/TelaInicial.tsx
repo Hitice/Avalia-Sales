@@ -40,10 +40,10 @@ export function TelaInicial() {
       <Erro erro={revenda.error} />
       {r && !r.contratoAssinadoEm && (
         <Aviso>
-          Contrato de revenda: {revenda.data?.contrato ? ROTULO_DO_CONTRATO[revenda.data.contrato] : 'sendo preparado'}. Assine pelo e-mail da D4Sign para fazer o primeiro pedido de placas.
+          Contrato de revenda: {revenda.data?.contrato ? ROTULO_DO_CONTRATO[revenda.data.contrato].toLowerCase() : 'em preparo'}. Assine pelo e-mail da D4Sign.
         </Aviso>
       )}
-      {r && !r.recebedorPagarme && <div className="mt-3"><Aviso>A conta de recebimento no Pagar.me ainda não foi ligada. Sem ela, a venda sai sem cobrança.</Aviso></div>}
+      {r && !r.recebedorPagarme && <div className="mt-3"><Aviso>Conta de recebimento no Pagar.me pendente.</Aviso></div>}
       <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
         {numeros.map((n) => (
           <Card key={n.rotulo}>
@@ -52,7 +52,7 @@ export function TelaInicial() {
           </Card>
         ))}
       </div>
-      {r && <p className="mt-4 text-sm text-muted-foreground">Comissão padrão da equipe: {formatarBps(r.comissaoPadraoBps)}. Taxa da plataforma: {formatarBps(r.taxaAvaliaBps)} por venda paga.</p>}
+      {r && <p className="mt-4 text-sm text-muted-foreground">Comissão padrão: {formatarBps(r.comissaoPadraoBps)}. Taxa da plataforma: {formatarBps(r.taxaAvaliaBps)}.</p>}
       {r && (
         <form
           className="mt-3 flex flex-wrap items-center gap-2 text-sm"
@@ -62,8 +62,8 @@ export function TelaInicial() {
             if (bps !== null) definirRenovacao.mutate(bps, { onSuccess: () => setRenovacao('') })
           }}
         >
-          <label htmlFor="renovacao">Renovação: {formatarBps(r.renovacaoBps)} do valor da venda. Mudar para</label>
-          <Input id="renovacao" inputMode="decimal" className="w-24" placeholder="60" value={renovacao} onChange={(e) => setRenovacao(e.target.value)} />
+          <label htmlFor="renovacao">Renovação (% da venda)</label>
+          <Input id="renovacao" inputMode="decimal" className="w-24" placeholder={formatarBps(r.renovacaoBps).replace('%', '')} value={renovacao} onChange={(e) => setRenovacao(e.target.value)} />
           <Button type="submit" variant="outline" disabled={paraBps(renovacao) === null}>Salvar</Button>
           {definirRenovacao.error && <span className="text-destructive">{definirRenovacao.error.message}</span>}
         </form>

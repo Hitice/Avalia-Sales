@@ -93,7 +93,6 @@ export function TelaDeNovaVenda() {
                 <Input id={campo} type={tipo} autoComplete={auto} inputMode={campo === 'documento' ? 'numeric' : undefined} value={cliente[campo]} onChange={(e) => setCliente({ ...cliente, [campo]: e.target.value })} />
               </Field>
             ))}
-            <p className="text-sm text-muted-foreground">Sem documento e e-mail, a venda fica registrada sem o Pix.</p>
           </CardContent>
         </Card>
       )}
@@ -186,7 +185,7 @@ function PassoDaPlaca({ codigo, digitado, aoDigitar, aoLer, aoSeguir }: {
                   <Input aria-label="Código da placa" className="uppercase tabular-nums" placeholder="K7M2PX" value={digitado} onChange={(e) => aoDigitar(e.target.value)} />
                   <Button type="submit" variant="outline">Conferir</Button>
                 </form>
-                {digitado && !extrairCodigo(digitado) && <p className="text-sm text-destructive">São 6 letras e números, como K7M2PX.</p>}
+                {digitado && !extrairCodigo(digitado) && <p className="text-sm text-destructive">O código tem 6 caracteres.</p>}
               </>
             )}
         {codigo && ficha.isPending && <p role="status" className="text-sm text-muted-foreground">Conferindo {codigo}...</p>}
@@ -232,7 +231,6 @@ function PassoDaCobranca({ produtoId, aoEscolher, valor, aoDigitarValor, erro }:
           <FieldLabel htmlFor="valor">Valor cobrado</FieldLabel>
           <Input id="valor" inputMode="decimal" placeholder={escolhido ? formatarCentavos(escolhido.precoCents) : '0,00'} value={valor} onChange={(e) => aoDigitarValor(e.target.value)} />
         </Field>
-        <p className="text-sm text-muted-foreground">Em branco, sai pelo preço da tabela. Pagamento em Pix.</p>
       </CardContent>
     </Card>
   )
@@ -258,7 +256,7 @@ function Resultado({ venda, aoRecomecar }: { venda: VendaRegistrada; aoRecomecar
             </>
           )}
           {pagamento === 'Paga' && <p role="status" className="text-center text-lg font-semibold">Pagamento confirmado</p>}
-          {pagamento && pagamento !== 'Paga' && pagamento !== 'Pendente' && <Aviso>Pagamento {ROTULO_DO_PAGAMENTO[pagamento].toLowerCase()}. Gere a cobrança de novo na lista de vendas.</Aviso>}
+          {pagamento && pagamento !== 'Paga' && pagamento !== 'Pendente' && <Aviso>Pagamento {ROTULO_DO_PAGAMENTO[pagamento].toLowerCase()}.</Aviso>}
           <GravarNfc endereco={venda.endereco} />
         </CardContent>
       </Card>

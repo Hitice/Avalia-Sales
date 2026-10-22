@@ -99,7 +99,6 @@ export function TelaDeClientes() {
           )}
         </CardContent>
       </Card>
-      <p className="mt-3 text-xs text-muted-foreground">A revenda é a controladora dos dados dos clientes; a plataforma é a operadora. Anonimizar apaga nome, contato e documento e não volta atrás; as vendas ficam, com os valores, para o razão.</p>
     </>
   )
 }

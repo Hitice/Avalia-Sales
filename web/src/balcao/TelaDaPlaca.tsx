@@ -35,7 +35,7 @@ export function TelaDaPlaca() {
       {f.estado === 'EmEstoque' && (
         <Card>
           <CardContent className="grid gap-3 pt-6">
-            <p className="text-sm">Placa no estoque{f.consignadaA ? `, com ${f.consignadaA}` : ''}. Ela só vai ao ar com a venda.</p>
+            <p className="text-sm">No estoque{f.consignadaA ? `, com ${f.consignadaA}` : ''}.</p>
             <Button asChild><Link to={`/vender?codigo=${f.codigo}`}>Vender esta placa</Link></Button>
             <GravarNfc endereco={f.endereco} />
           </CardContent>
@@ -49,7 +49,7 @@ export function TelaDaPlaca() {
             <p className="text-muted-foreground">{f.venda.responsavel} - {formatarTelefone(f.venda.telefone)}</p>
             <p>{f.venda.produto}, {formatarCentavos(f.venda.valorCents)}, vendida por {f.venda.vendedor} em {formatarData(f.venda.vendidaEm)}</p>
             <p>Pagamento: {f.venda.pagamento ? ROTULO_DO_PAGAMENTO[f.venda.pagamento] : 'sem cobrança'}. Comissão: {formatarCentavos(f.venda.comissaoCents)}</p>
-            <p>Vence em {formatarData(f.venceEm)}; fica no ar até {formatarData(f.fimDaCarencia)}.</p>
+            <p>Vence em {formatarData(f.venceEm)}. Carência até {formatarData(f.fimDaCarencia)}.</p>
           </CardContent>
         </Card>
       )}
@@ -85,7 +85,6 @@ export function TelaDaPlaca() {
         <Card>
           <CardHeader><CardTitle>Renovação</CardTitle></CardHeader>
           <CardContent className="grid gap-3">
-            <p className="text-sm">Mais um ano a partir de {formatarData(f.venceEm)}.</p>
             <Erro erro={renovar.error ? mensagemDoErro(renovar.error) : null} />
             {renovar.data?.semCobranca && <Aviso>{renovar.data.semCobranca}</Aviso>}
             {renovar.data?.cobranca?.situacao === 'Paga' && <p role="status" className="font-medium">Renovação paga. Vence em {formatarData(f.venceEm)}.</p>}

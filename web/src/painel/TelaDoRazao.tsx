@@ -52,7 +52,6 @@ export function TelaDoRazao() {
           </Card>
         ))}
       </div>
-      <p className="mt-2 text-xs text-muted-foreground">A taxa do Pagar.me sai no extrato do Pagar.me.</p>
       <Card className="mt-4">
         <CardContent>
           <EstadoDaConsulta carregando={razao.isPending} erro={razao.error} vazio={r?.lancamentos.length === 0} textoVazio="Nenhum lançamento neste mês." />

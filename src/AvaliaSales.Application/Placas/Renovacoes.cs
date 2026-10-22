@@ -59,7 +59,7 @@ public sealed class Renovacoes(IBancoDeDados banco, IUsuarioAtual usuario, Cobra
         if (await banco.Cobrancas.AnyAsync(c => c.Origem == OrigemDaCobranca.Renovacao && c.OrigemId == renovacao.Id
                 && (c.Situacao == SituacaoDaCobranca.Pendente || c.Situacao == SituacaoDaCobranca.Paga), ct))
         {
-            throw new RegraDeNegocioException("A renovação tem Pix em aberto. Espere o Pix vencer para confirmar por fora.");
+            throw new RegraDeNegocioException("Renovação com Pix em aberto.");
         }
 
         var cobranca = await cobrancas.RegistrarPorFora(OrigemDaCobranca.Renovacao, renovacao.Id, meio, renovacao.ValorCents, ct);

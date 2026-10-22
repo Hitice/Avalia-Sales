@@ -61,7 +61,7 @@ export function TelaDoCatalogo() {
             <Alert variant="destructive"><AlertDescription>{produtos.error.message}</AlertDescription></Alert>
           )}
           {produtos.data?.length === 0 && (
-            <p className="text-sm text-muted-foreground">Nenhum produto ainda. Cadastre o primeiro em Novo produto.</p>
+            <p className="text-sm text-muted-foreground">Nenhum produto.</p>
           )}
           {produtos.data && produtos.data.length > 0 && (
             <Table>

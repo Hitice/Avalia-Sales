@@ -131,7 +131,7 @@ public sealed class PedidosDePlacas(
         if (await banco.Cobrancas.AnyAsync(c => c.Origem == Domain.Pagamentos.OrigemDaCobranca.PedidoDePlacas && c.OrigemId == id
                 && c.Situacao == Domain.Pagamentos.SituacaoDaCobranca.Pendente && c.UrlDoLink != null, ct))
         {
-            throw new RegraDeNegocioException("Há um link de pagamento em aberto para este pedido. Ele vence em 3 dias; depois disso o pedido pode ser cancelado.");
+            throw new RegraDeNegocioException("Pedido com link de pagamento em aberto.");
         }
 
         pedido.Cancelar();
