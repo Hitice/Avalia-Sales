@@ -1,19 +1,13 @@
+import type { components } from '@/api/esquema'
+
+type Esquema = components['schemas']
+
 import { create } from 'zustand'
 
-export type Papel = 'Operadora' | 'Dono' | 'Vendedor'
-
-export type Perfil = {
-  id: string
-  nome: string
-  email: string
-  papel: Papel
-  revendedorId: string | null
-  revendedor: string | null
-  /** Falso, o painel pede a confirmação: contrato e avisos esperam por ela. */
-  emailConfirmado: boolean
-}
-
-export type TokenEmitido = { token: string; expiraEm: string; perfil?: Perfil }
+/** Perfil e token vêm do contrato da API (`npm run tipos`). */
+export type Papel = Esquema['Papel']
+export type Perfil = Esquema['Perfil']
+export type TokenEmitido = Esquema['TokenEmitido']
 
 /**
  * Sessão em memória. O token de acesso não vai para localStorage nem

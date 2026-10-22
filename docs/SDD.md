@@ -89,6 +89,10 @@ negócio e duas travas independentes:
 
 ## 3a. Front
 
+- Contrato - `web/openapi.json` é o OpenAPI da API, versionado e conferido
+  pelo `ContratoDaApiTest`; `npm run tipos` gera `src/api/esquema.d.ts` com o
+  openapi-typescript, e `src/api/tipos.ts` só apelida os tipos gerados. O CI
+  falha se o contrato ou os tipos ficarem para trás.
 - Rotas por papel - `/entrar` e `/cadastro` abertas; `/operadora/*`
   (pedidos, lotes, pacotes, revendedores) só para a operadora; `/painel/*`
   (início, vendas, estoque, pedidos de placas, equipe, catálogo) só para o
@@ -588,6 +592,7 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
 
 | Data | Mudança |
 | --- | --- |
+| 22/10/2026 | Contrato da API versionado em `web/openapi.json` (ContratoDaApiTest falha se divergir e regrava fora do CI); tipos do front gerados dele com openapi-typescript (`npm run tipos`, `src/api/esquema.d.ts`), conferidos no CI. JSON da API com número estrito; papel do perfil como enumeração. |
 | 22/10/2026 | Front - `Table` rotula as células pelo cabeçalho e vira cartão abaixo de `md`; menu lateral a partir de `lg`, de cima com quebra em `md`, barra de baixo no celular; `--traco`, `--noite` e Inter Display (`public/fonts/inter-display.woff2`) nos títulos. |
 | 22/10/2026 | Renovação da sessão fora do limite da entrada (`LimiteDeRenovacao`, `Limites:RenovacoesPorMinuto`); a renovação no front só limpa a sessão no 401. Vários usuários no mesmo IP eram derrubados ao abrir páginas em sequência. |
 | 22/10/2026 | Confirmação de e-mail do dono, remetente e resposta por revenda, HTML com a marca (`ModeloDeEmail`), migration EmailConfirmadoERemetente (contas antigas marcadas como confirmadas). NFC no iPhone pelo NFC Tools. |

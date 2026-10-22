@@ -1,0 +1,4663 @@
+{
+  "openapi": "3.1.1",
+  "info": {
+    "title": "AvaliaSales.Api | v1",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/conta/email/confirmacao": {
+      "post": {
+        "tags": [
+          "AvaliaSales.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/cadastro": {
+      "post": {
+        "tags": [
+          "RotasDeAcesso"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NovoCadastro"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenEmitido"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/marca": {
+      "get": {
+        "tags": [
+          "Marca"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarcaDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/marca/logo": {
+      "get": {
+        "tags": [
+          "Marca"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/q/{codigo}": {
+      "get": {
+        "tags": [
+          "Leitura"
+        ],
+        "parameters": [
+          {
+            "name": "codigo",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "head": {
+        "tags": [
+          "Leitura"
+        ],
+        "parameters": [
+          {
+            "name": "codigo",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/l/{codigo}": {
+      "get": {
+        "tags": [
+          "Leitura"
+        ],
+        "parameters": [
+          {
+            "name": "codigo",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "head": {
+        "tags": [
+          "Leitura"
+        ],
+        "parameters": [
+          {
+            "name": "codigo",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/auth/renovar": {
+      "post": {
+        "tags": [
+          "RotasDeAcesso"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenEmitido"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/sair": {
+      "post": {
+        "tags": [
+          "RotasDeAcesso"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/auth/entrar": {
+      "post": {
+        "tags": [
+          "RotasDeAcesso"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PedidoDeEntrada"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenEmitido"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/senha/link": {
+      "post": {
+        "tags": [
+          "AvaliaSales.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PedidoDeLink"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/auth/senha": {
+      "post": {
+        "tags": [
+          "RotasDeAcesso"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NovaSenha"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenEmitido"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/email": {
+      "post": {
+        "tags": [
+          "AvaliaSales.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PedidoDeConfirmacao"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/produtos": {
+      "get": {
+        "tags": [
+          "Cat\u00E1logo"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProdutoDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Cat\u00E1logo"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CadastrarProduto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/produtos/{id}": {
+      "put": {
+        "tags": [
+          "Cat\u00E1logo"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CadastrarProduto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProdutoDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Cat\u00E1logo"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/produtos/{id}/ativo": {
+      "put": {
+        "tags": [
+          "Cat\u00E1logo"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlterarAtivo"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/links": {
+      "get": {
+        "tags": [
+          "Links"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LinkDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Links"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GravarLink"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/links/{id}": {
+      "put": {
+        "tags": [
+          "Links"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GravarLink"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LinkDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Links"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/links/{id}/ativo": {
+      "put": {
+        "tags": [
+          "Links"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlterarAtivo"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/operadora/pacotes": {
+      "get": {
+        "tags": [
+          "Operadora"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PacoteDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Operadora"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GravarPacote"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/operadora/pacotes/{id}": {
+      "put": {
+        "tags": [
+          "Operadora"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GravarPacote"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PacoteDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Operadora"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/operadora/pacotes/{id}/ativo": {
+      "put": {
+        "tags": [
+          "Operadora"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlterarAtivo"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/operadora/cupons": {
+      "get": {
+        "tags": [
+          "Operadora"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CupomDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Operadora"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GravarCupom"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/operadora/cupons/{id}": {
+      "put": {
+        "tags": [
+          "Operadora"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GravarCupom"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CupomDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Operadora"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/operadora/cupons/{id}/ativo": {
+      "put": {
+        "tags": [
+          "Operadora"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlterarAtivo"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/operadora/lotes": {
+      "get": {
+        "tags": [
+          "Operadora"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LoteDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Operadora"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GerarLote"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/operadora/lotes/{id}/impressao": {
+      "get": {
+        "tags": [
+          "Operadora"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/operadora/pedidos": {
+      "get": {
+        "tags": [
+          "Operadora"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PedidoDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/operadora/pedidos/{id}/pagamento": {
+      "post": {
+        "tags": [
+          "Operadora"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/operadora/pedidos/{id}/despacho": {
+      "post": {
+        "tags": [
+          "Operadora"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DespacharPedido"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/operadora/erp": {
+      "get": {
+        "tags": [
+          "Operadora"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EnvioDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/operadora/erp/{pedidoId}/reenvio": {
+      "post": {
+        "tags": [
+          "Operadora"
+        ],
+        "parameters": [
+          {
+            "name": "pedidoId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/operadora/revendedores": {
+      "get": {
+        "tags": [
+          "Operadora"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RevendedorDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/operadora/revendedores/{id}/recebedor": {
+      "put": {
+        "tags": [
+          "Operadora"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DefinirRecebedor"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/operadora/revendedores/{id}/contrato-assinado": {
+      "post": {
+        "tags": [
+          "Operadora"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/revenda": {
+      "get": {
+        "tags": [
+          "Revenda"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MinhaRevenda"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/revenda/comissao": {
+      "put": {
+        "tags": [
+          "Revenda"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DefinirComissao"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/pacotes": {
+      "get": {
+        "tags": [
+          "Revenda"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PacoteDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pedidos": {
+      "get": {
+        "tags": [
+          "Revenda"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PedidoDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Revenda"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NovoPedido"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/pedidos/{id}/pagamento": {
+      "post": {
+        "tags": [
+          "Revenda"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/pedidos/{id}/cancelamento": {
+      "post": {
+        "tags": [
+          "Revenda"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/lotes/ativacao": {
+      "post": {
+        "tags": [
+          "Revenda"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AtivarLote"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AtivacaoDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/equipe": {
+      "get": {
+        "tags": [
+          "Revenda"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/VendedorDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Revenda"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NovoVendedor"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/equipe/{id}/convite": {
+      "post": {
+        "tags": [
+          "Revenda"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VendedorDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/equipe/{id}": {
+      "put": {
+        "tags": [
+          "Revenda"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlterarVendedor"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VendedorDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Revenda"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/equipe/{id}/ativo": {
+      "put": {
+        "tags": [
+          "Revenda"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlterarAtivo"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/revenda/renovacao": {
+      "put": {
+        "tags": [
+          "Revenda"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DefinirRenovacao"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/repasses": {
+      "get": {
+        "tags": [
+          "Revenda"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RepasseDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Revenda"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NovoRepasse"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/razao": {
+      "get": {
+        "tags": [
+          "Revenda"
+        ],
+        "parameters": [
+          {
+            "name": "competencia",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResumoDoMes"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/razao/meses": {
+      "get": {
+        "tags": [
+          "Revenda"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/mapa": {
+      "get": {
+        "tags": [
+          "Revenda"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LugarNoMapa"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clientes": {
+      "get": {
+        "tags": [
+          "Revenda"
+        ],
+        "parameters": [
+          {
+            "name": "busca",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ClienteDaLista"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clientes/{id}/dados": {
+      "get": {
+        "tags": [
+          "Revenda"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/clientes/{id}/anonimizacao": {
+      "post": {
+        "tags": [
+          "Revenda"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/mapa/configuracao": {
+      "get": {
+        "tags": [
+          "Revenda"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnonymousTypeOfstringAndstring"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/vendas/{id}/cancelamento": {
+      "post": {
+        "tags": [
+          "Revenda"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/vendas/{id}/recebimento": {
+      "delete": {
+        "tags": [
+          "Revenda"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Balc\u00E3o"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReceberPorFora"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/vendas/{id}/cortesia": {
+      "post": {
+        "tags": [
+          "Revenda"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/vendas/{id}/troca-de-placa": {
+      "post": {
+        "tags": [
+          "Revenda"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrocarPlaca"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/estoque/consignacao": {
+      "post": {
+        "tags": [
+          "Revenda"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Consignar"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/estoque/devolucao": {
+      "post": {
+        "tags": [
+          "Revenda"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Devolver"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/placas": {
+      "get": {
+        "tags": [
+          "Balc\u00E3o"
+        ],
+        "parameters": [
+          {
+            "name": "estado",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/EstadoDaPlaca"
+            }
+          },
+          {
+            "name": "consignadaA",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "codigo",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pagina",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginaDePlacas"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/placas/{codigo}": {
+      "get": {
+        "tags": [
+          "Balc\u00E3o"
+        ],
+        "parameters": [
+          {
+            "name": "codigo",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FichaDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/placas/{codigo}/destino": {
+      "put": {
+        "tags": [
+          "Balc\u00E3o"
+        ],
+        "parameters": [
+          {
+            "name": "codigo",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DestinoInformado"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/placas/{codigo}/alternar": {
+      "post": {
+        "tags": [
+          "Balc\u00E3o"
+        ],
+        "parameters": [
+          {
+            "name": "codigo",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/placas/{codigo}/renovacao": {
+      "post": {
+        "tags": [
+          "Balc\u00E3o"
+        ],
+        "parameters": [
+          {
+            "name": "codigo",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RenovacaoAberta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/placas/{codigo}/renovacao/recebimento": {
+      "post": {
+        "tags": [
+          "Balc\u00E3o"
+        ],
+        "parameters": [
+          {
+            "name": "codigo",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReceberPorFora"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RenovacaoAberta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/comissoes": {
+      "get": {
+        "tags": [
+          "Balc\u00E3o"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SaldoDeComissao"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/vendas": {
+      "get": {
+        "tags": [
+          "Balc\u00E3o"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/VendaDaLista"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Balc\u00E3o"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NovaVenda"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/vendas/{id}/cobranca": {
+      "post": {
+        "tags": [
+          "Balc\u00E3o"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VendaRegistrada"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/lugares": {
+      "get": {
+        "tags": [
+          "Balc\u00E3o"
+        ],
+        "parameters": [
+          {
+            "name": "texto",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Lugar"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/revenda/marca": {
+      "put": {
+        "tags": [
+          "Marca"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GravarMarca"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarcaDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Marca"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/revenda/marca/logo": {
+      "put": {
+        "tags": [
+          "Marca"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Marca"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/chat": {
+      "get": {
+        "tags": [
+          "Chat"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MensagemDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Chat"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NovaMensagem"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/operadora/chat": {
+      "get": {
+        "tags": [
+          "Chat"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ConversaDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/operadora/chat/{revendedorId}": {
+      "get": {
+        "tags": [
+          "Chat"
+        ],
+        "parameters": [
+          {
+            "name": "revendedorId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MensagemDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Chat"
+        ],
+        "parameters": [
+          {
+            "name": "revendedorId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NovaMensagem"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/webhooks/pagarme/{segredo}": {
+      "post": {
+        "tags": [
+          "RotasDeWebhook"
+        ],
+        "parameters": [
+          {
+            "name": "segredo",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/webhooks/d4sign": {
+      "post": {
+        "tags": [
+          "RotasDeWebhook"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AlterarAtivo": {
+        "required": [
+          "ativo"
+        ],
+        "type": "object",
+        "properties": {
+          "ativo": {
+            "type": "boolean"
+          }
+        }
+      },
+      "AlterarVendedor": {
+        "required": [
+          "nome",
+          "telefone",
+          "chavePix",
+          "comissaoBps"
+        ],
+        "type": "object",
+        "properties": {
+          "nome": {
+            "type": "string"
+          },
+          "telefone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "chavePix": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "comissaoBps": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "AnonymousTypeOfstringAndstring": {
+        "required": [
+          "chave",
+          "idDoMapa"
+        ],
+        "type": "object",
+        "properties": {
+          "chave": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "idDoMapa": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "AtivacaoDto": {
+        "required": [
+          "lote",
+          "placas",
+          "primeiroCodigo",
+          "ultimoCodigo"
+        ],
+        "type": "object",
+        "properties": {
+          "lote": {
+            "type": "string"
+          },
+          "placas": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "primeiroCodigo": {
+            "type": "string"
+          },
+          "ultimoCodigo": {
+            "type": "string"
+          }
+        }
+      },
+      "AtivarLote": {
+        "required": [
+          "numero"
+        ],
+        "type": "object",
+        "properties": {
+          "numero": {
+            "type": "string"
+          }
+        }
+      },
+      "CadastrarProduto": {
+        "required": [
+          "nome",
+          "precoCents"
+        ],
+        "type": "object",
+        "properties": {
+          "nome": {
+            "type": "string"
+          },
+          "precoCents": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ClienteDaLista": {
+        "required": [
+          "id",
+          "nome",
+          "responsavel",
+          "telefone",
+          "documento",
+          "email",
+          "placas",
+          "criadoEm",
+          "anonimizado"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nome": {
+            "type": "string"
+          },
+          "responsavel": {
+            "type": "string"
+          },
+          "telefone": {
+            "type": "string"
+          },
+          "documento": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "placas": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "criadoEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "anonimizado": {
+            "type": "boolean"
+          }
+        }
+      },
+      "CobrancaDto": {
+        "required": [
+          "id",
+          "situacao",
+          "valorCents",
+          "taxaAvaliaCents",
+          "pixCopiaECola",
+          "pixQrCodeUrl",
+          "pixExpiraEm"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "situacao": {
+            "$ref": "#/components/schemas/SituacaoDaCobranca"
+          },
+          "valorCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "taxaAvaliaCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "pixCopiaECola": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "pixQrCodeUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "pixExpiraEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "urlDoLink": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "Consignar": {
+        "required": [
+          "vendedorId",
+          "codigos",
+          "quantidade"
+        ],
+        "type": "object",
+        "properties": {
+          "vendedorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "codigos": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "quantidade": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "ConversaDto": {
+        "required": [
+          "revendedorId",
+          "revendedor",
+          "ultimaMensagem",
+          "ultimaEm",
+          "naoLidas"
+        ],
+        "type": "object",
+        "properties": {
+          "revendedorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "revendedor": {
+            "type": "string"
+          },
+          "ultimaMensagem": {
+            "type": "string"
+          },
+          "ultimaEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "naoLidas": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "CupomDto": {
+        "required": [
+          "id",
+          "codigo",
+          "descontoBps",
+          "descontoCents",
+          "validoAte",
+          "usosMaximos",
+          "usos",
+          "ativo"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "codigo": {
+            "type": "string"
+          },
+          "descontoBps": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "descontoCents": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          },
+          "validoAte": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "usosMaximos": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "usos": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "ativo": {
+            "type": "boolean"
+          }
+        }
+      },
+      "DefinirComissao": {
+        "required": [
+          "comissaoBps"
+        ],
+        "type": "object",
+        "properties": {
+          "comissaoBps": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "DefinirRecebedor": {
+        "required": [
+          "recebedor"
+        ],
+        "type": "object",
+        "properties": {
+          "recebedor": {
+            "type": "string"
+          }
+        }
+      },
+      "DefinirRenovacao": {
+        "required": [
+          "renovacaoBps"
+        ],
+        "type": "object",
+        "properties": {
+          "renovacaoBps": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "DespacharPedido": {
+        "required": [
+          "lote"
+        ],
+        "type": "object",
+        "properties": {
+          "lote": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "DestinoInformado": {
+        "required": [
+          "tipo",
+          "lugarNoGoogle",
+          "link"
+        ],
+        "type": "object",
+        "properties": {
+          "tipo": {
+            "$ref": "#/components/schemas/TipoDeDestino"
+          },
+          "lugarNoGoogle": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "link": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "O destino como vem da tela. O link colado vence a busca: foi a pessoa que o trouxe do perfil."
+      },
+      "Devolver": {
+        "required": [
+          "vendedorId"
+        ],
+        "type": "object",
+        "properties": {
+          "vendedorId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "EnvioDto": {
+        "required": [
+          "pedidoId",
+          "cliente",
+          "quantidade",
+          "valorCents",
+          "situacao",
+          "numeroNoErp",
+          "tentativas",
+          "ultimoErro",
+          "criadoEm"
+        ],
+        "type": "object",
+        "properties": {
+          "pedidoId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "cliente": {
+            "type": "string"
+          },
+          "quantidade": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "valorCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "situacao": {
+            "$ref": "#/components/schemas/SituacaoDoEnvio"
+          },
+          "numeroNoErp": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "tentativas": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "ultimoErro": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "criadoEm": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "EstadoDaPlaca": {
+        "enum": [
+          "EmEstoque",
+          "Ativa",
+          "Carencia",
+          "Vencida",
+          "Suspensa",
+          "Baixada"
+        ],
+        "description": "A situa\u00E7\u00E3o gravada mais o prazo: car\u00EAncia e vencida saem da data, n\u00E3o de coluna."
+      },
+      "FichaDto": {
+        "required": [
+          "codigo",
+          "endereco",
+          "sequencia",
+          "estado",
+          "destino",
+          "venceEm",
+          "fimDaCarencia",
+          "totalLeituras",
+          "ultimaLeituraEm",
+          "consignadaA",
+          "venda",
+          "leituras"
+        ],
+        "type": "object",
+        "properties": {
+          "codigo": {
+            "type": "string"
+          },
+          "endereco": {
+            "type": "string"
+          },
+          "sequencia": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "estado": {
+            "$ref": "#/components/schemas/EstadoDaPlaca"
+          },
+          "destino": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "venceEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "fimDaCarencia": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "totalLeituras": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "ultimaLeituraEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "consignadaA": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "venda": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/VendaDaFicha"
+              }
+            ]
+          },
+          "leituras": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LeituraDto"
+            }
+          }
+        }
+      },
+      "GerarLote": {
+        "required": [
+          "quantidade"
+        ],
+        "type": "object",
+        "properties": {
+          "quantidade": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "GravarCupom": {
+        "required": [
+          "codigo",
+          "descontoBps",
+          "descontoCents",
+          "validoAte",
+          "usosMaximos"
+        ],
+        "type": "object",
+        "properties": {
+          "codigo": {
+            "type": "string"
+          },
+          "descontoBps": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "descontoCents": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          },
+          "validoAte": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "usosMaximos": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "GravarLink": {
+        "required": [
+          "titulo",
+          "destino"
+        ],
+        "type": "object",
+        "properties": {
+          "titulo": {
+            "type": "string"
+          },
+          "destino": {
+            "$ref": "#/components/schemas/DestinoInformado"
+          }
+        },
+        "description": "T\u00EDtulo e destino; o destino vem como na venda (lugar do Google, link de avalia\u00E7\u00E3o colado ou link do cliente)."
+      },
+      "GravarMarca": {
+        "required": [
+          "nomeExibido",
+          "corPrimaria",
+          "corDestaque"
+        ],
+        "type": "object",
+        "properties": {
+          "nomeExibido": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "corPrimaria": {
+            "type": "string"
+          },
+          "corDestaque": {
+            "type": "string"
+          }
+        }
+      },
+      "GravarPacote": {
+        "required": [
+          "quantidade",
+          "precoCents"
+        ],
+        "type": "object",
+        "properties": {
+          "quantidade": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "precoCents": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "LancamentoDto": {
+        "required": [
+          "id",
+          "tipo",
+          "valorCents",
+          "descricao",
+          "ocorridoEm",
+          "competencia",
+          "estorno"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "tipo": {
+            "$ref": "#/components/schemas/TipoDeLancamento"
+          },
+          "valorCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "descricao": {
+            "type": "string"
+          },
+          "ocorridoEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "competencia": {
+            "type": "string"
+          },
+          "estorno": {
+            "type": "boolean"
+          }
+        }
+      },
+      "LeituraDto": {
+        "required": [
+          "dia",
+          "total"
+        ],
+        "type": "object",
+        "properties": {
+          "dia": {
+            "type": "string",
+            "format": "date"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "LinkDto": {
+        "required": [
+          "id",
+          "codigo",
+          "endereco",
+          "titulo",
+          "destino",
+          "clienteId",
+          "ativo",
+          "cliques",
+          "ultimoCliqueEm",
+          "criadoEm"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "codigo": {
+            "type": "string"
+          },
+          "endereco": {
+            "type": "string"
+          },
+          "titulo": {
+            "type": "string"
+          },
+          "destino": {
+            "type": "string"
+          },
+          "clienteId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "ativo": {
+            "type": "boolean"
+          },
+          "cliques": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "ultimoCliqueEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "criadoEm": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "LoteDto": {
+        "required": [
+          "id",
+          "rotulo",
+          "numero",
+          "quantidade",
+          "criadoEm",
+          "revendedor",
+          "despachadoEm",
+          "ativadoEm"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "rotulo": {
+            "type": "string"
+          },
+          "numero": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "quantidade": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "criadoEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "revendedor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "despachadoEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "ativadoEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "Lugar": {
+        "required": [
+          "id",
+          "nome",
+          "endereco"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "nome": {
+            "type": "string"
+          },
+          "endereco": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "LugarNoMapa": {
+        "required": [
+          "clienteId",
+          "nome",
+          "lugarNoGoogle",
+          "placas",
+          "placasNoAr",
+          "leituras30Dias"
+        ],
+        "type": "object",
+        "properties": {
+          "clienteId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nome": {
+            "type": "string"
+          },
+          "lugarNoGoogle": {
+            "type": "string"
+          },
+          "placas": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "placasNoAr": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "leituras30Dias": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "MarcaDto": {
+        "required": [
+          "nomeExibido",
+          "corPrimaria",
+          "textoSobrePrimaria",
+          "corDestaque",
+          "textoSobreDestaque",
+          "temLogo",
+          "versao"
+        ],
+        "type": "object",
+        "properties": {
+          "nomeExibido": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "corPrimaria": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "textoSobrePrimaria": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "corDestaque": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "textoSobreDestaque": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "temLogo": {
+            "type": "boolean"
+          },
+          "versao": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "description": "A marca como o app aplica: as cores prontas, com o texto de cada uma j\u00E1 escolhido pelo contraste."
+      },
+      "MeioDePagamento": {
+        "enum": [
+          "Pix",
+          "Cartao",
+          "Link",
+          "Dinheiro",
+          "OutroPix"
+        ]
+      },
+      "MensagemDto": {
+        "required": [
+          "id",
+          "daOperadora",
+          "autor",
+          "texto",
+          "enviadaEm",
+          "lidaEm"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "daOperadora": {
+            "type": "boolean"
+          },
+          "autor": {
+            "type": "string"
+          },
+          "texto": {
+            "type": "string"
+          },
+          "enviadaEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lidaEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "MinhaRevenda": {
+        "required": [
+          "revendedor",
+          "contrato"
+        ],
+        "type": "object",
+        "properties": {
+          "revendedor": {
+            "$ref": "#/components/schemas/RevendedorDto"
+          },
+          "contrato": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SituacaoDoContrato"
+              }
+            ]
+          }
+        }
+      },
+      "NovaMensagem": {
+        "required": [
+          "texto"
+        ],
+        "type": "object",
+        "properties": {
+          "texto": {
+            "type": "string"
+          }
+        }
+      },
+      "NovaSenha": {
+        "required": [
+          "token",
+          "senha"
+        ],
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "senha": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "NovaVenda": {
+        "required": [
+          "codigo",
+          "produtoId",
+          "empresa",
+          "responsavel",
+          "telefone",
+          "documento",
+          "email",
+          "destino",
+          "valorCents"
+        ],
+        "type": "object",
+        "properties": {
+          "codigo": {
+            "type": "string"
+          },
+          "produtoId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "empresa": {
+            "type": "string"
+          },
+          "responsavel": {
+            "type": "string"
+          },
+          "telefone": {
+            "type": "string"
+          },
+          "documento": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "destino": {
+            "$ref": "#/components/schemas/DestinoInformado"
+          },
+          "valorCents": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          },
+          "meio": {
+            "$ref": "#/components/schemas/MeioDePagamento"
+          },
+          "tokenDoCartao": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "parcelas": {
+            "type": "integer",
+            "format": "int32",
+            "default": 1
+          }
+        }
+      },
+      "NovoCadastro": {
+        "required": [
+          "empresa",
+          "cnpj",
+          "nome",
+          "email",
+          "senha"
+        ],
+        "type": "object",
+        "properties": {
+          "empresa": {
+            "type": "string"
+          },
+          "cnpj": {
+            "type": "string"
+          },
+          "nome": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "senha": {
+            "type": "string"
+          }
+        }
+      },
+      "NovoPedido": {
+        "required": [
+          "pacoteId",
+          "cupom"
+        ],
+        "type": "object",
+        "properties": {
+          "pacoteId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "cupom": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "NovoRepasse": {
+        "required": [
+          "vendedorId",
+          "ate",
+          "comprovante"
+        ],
+        "type": "object",
+        "properties": {
+          "vendedorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "ate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "comprovante": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "NovoVendedor": {
+        "required": [
+          "nome",
+          "email",
+          "senha",
+          "telefone",
+          "chavePix",
+          "comissaoBps"
+        ],
+        "type": "object",
+        "properties": {
+          "nome": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "senha": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "telefone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "chavePix": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "comissaoBps": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        },
+        "description": "Sem senha, o vendedor recebe o convite e cria a dele."
+      },
+      "PacoteDto": {
+        "required": [
+          "id",
+          "quantidade",
+          "precoCents",
+          "custoPorPlacaCents",
+          "ativo"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "quantidade": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "precoCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "custoPorPlacaCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "ativo": {
+            "type": "boolean"
+          }
+        }
+      },
+      "PaginaDePlacas": {
+        "required": [
+          "placas",
+          "total",
+          "porEstado"
+        ],
+        "type": "object",
+        "properties": {
+          "placas": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlacaDaLista"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "porEstado": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        }
+      },
+      "Papel": {
+        "enum": [
+          "Operadora",
+          "Dono",
+          "Vendedor"
+        ],
+        "description": "O papel de quem entra. A operadora \u00E9 a Avalia operando a plataforma e n\u00E3o\npertence a revendedor; dono e vendedor pertencem a um revendedor s\u00F3."
+      },
+      "PedidoDeConfirmacao": {
+        "required": [
+          "token"
+        ],
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "PedidoDeEntrada": {
+        "required": [
+          "email",
+          "senha"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "senha": {
+            "type": "string"
+          }
+        }
+      },
+      "PedidoDeLink": {
+        "required": [
+          "email"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "PedidoDto": {
+        "required": [
+          "id",
+          "revendedorId",
+          "revendedor",
+          "quantidade",
+          "valorCents",
+          "situacao",
+          "criadoEm",
+          "pagoEm",
+          "lote",
+          "despachadoEm",
+          "ativadoEm",
+          "precoDoPacoteCents",
+          "cupom",
+          "descontoCents",
+          "urlDePagamento"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "revendedorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "revendedor": {
+            "type": "string"
+          },
+          "quantidade": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "valorCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "situacao": {
+            "$ref": "#/components/schemas/SituacaoDoPedido"
+          },
+          "criadoEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "pagoEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "lote": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "despachadoEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "ativadoEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "precoDoPacoteCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "cupom": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "descontoCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "urlDePagamento": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "Perfil": {
+        "required": [
+          "id",
+          "nome",
+          "email",
+          "papel",
+          "revendedorId",
+          "revendedor",
+          "emailConfirmado"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nome": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "papel": {
+            "$ref": "#/components/schemas/Papel"
+          },
+          "revendedorId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "revendedor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "emailConfirmado": {
+            "type": "boolean"
+          }
+        },
+        "description": "Com o e-mail sem confirmar, o painel pede a confirma\u00E7\u00E3o; contrato e avisos esperam por ela."
+      },
+      "PlacaDaLista": {
+        "required": [
+          "codigo",
+          "sequencia",
+          "estado",
+          "consignadaA",
+          "consignadaANome",
+          "destino",
+          "vendidaEm",
+          "venceEm",
+          "totalLeituras",
+          "ultimaLeituraEm"
+        ],
+        "type": "object",
+        "properties": {
+          "codigo": {
+            "type": "string"
+          },
+          "sequencia": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "estado": {
+            "$ref": "#/components/schemas/EstadoDaPlaca"
+          },
+          "consignadaA": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "consignadaANome": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "destino": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "vendidaEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "venceEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "totalLeituras": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "ultimaLeituraEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "ProdutoDto": {
+        "required": [
+          "id",
+          "nome",
+          "precoCents",
+          "ativo"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nome": {
+            "type": "string"
+          },
+          "precoCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "ativo": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ReceberPorFora": {
+        "required": [
+          "meio"
+        ],
+        "type": "object",
+        "properties": {
+          "meio": {
+            "$ref": "#/components/schemas/MeioDePagamento"
+          }
+        }
+      },
+      "RenovacaoAberta": {
+        "required": [
+          "id",
+          "codigo",
+          "valorCents",
+          "venceEm",
+          "cobranca",
+          "semCobranca"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "codigo": {
+            "type": "string"
+          },
+          "valorCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "venceEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "cobranca": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CobrancaDto"
+              }
+            ]
+          },
+          "semCobranca": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "RepasseDto": {
+        "required": [
+          "id",
+          "vendedorId",
+          "vendedor",
+          "valorCents",
+          "vendas",
+          "ateVendaEm",
+          "pagoEm",
+          "comprovante"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "vendedorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "vendedor": {
+            "type": "string"
+          },
+          "valorCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "vendas": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "ateVendaEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "pagoEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "comprovante": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ResumoDoMes": {
+        "required": [
+          "competencia",
+          "receitaCents",
+          "taxaAvaliaCents",
+          "comissaoCents",
+          "liquidoCents",
+          "lancamentos"
+        ],
+        "type": "object",
+        "properties": {
+          "competencia": {
+            "type": "string"
+          },
+          "receitaCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "taxaAvaliaCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "comissaoCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "liquidoCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "lancamentos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LancamentoDto"
+            }
+          }
+        }
+      },
+      "RevendedorDto": {
+        "required": [
+          "id",
+          "nome",
+          "cnpj",
+          "taxaAvaliaBps",
+          "comissaoPadraoBps",
+          "recebedorPagarme",
+          "contratoAssinadoEm",
+          "criadoEm",
+          "renovacaoBps"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nome": {
+            "type": "string"
+          },
+          "cnpj": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "taxaAvaliaBps": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "comissaoPadraoBps": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "recebedorPagarme": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "contratoAssinadoEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "criadoEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "renovacaoBps": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "SaldoDeComissao": {
+        "required": [
+          "vendedorId",
+          "vendedor",
+          "chavePix",
+          "devidaCents",
+          "repassadaCents",
+          "abertaCents",
+          "ultimoRepasse"
+        ],
+        "type": "object",
+        "properties": {
+          "vendedorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "vendedor": {
+            "type": "string"
+          },
+          "chavePix": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "devidaCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "repassadaCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "abertaCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "ultimoRepasse": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "SituacaoDaCobranca": {
+        "enum": [
+          "Pendente",
+          "Paga",
+          "Cancelada",
+          "Falhou",
+          "Estornada",
+          null
+        ]
+      },
+      "SituacaoDaVenda": {
+        "enum": [
+          "Registrada",
+          "Cancelada"
+        ]
+      },
+      "SituacaoDoContrato": {
+        "enum": [
+          "Rascunho",
+          "AguardandoAssinatura",
+          "Assinado",
+          "Cancelado",
+          null
+        ]
+      },
+      "SituacaoDoEnvio": {
+        "enum": [
+          "Pendente",
+          "Enviado",
+          "Parado"
+        ]
+      },
+      "SituacaoDoPedido": {
+        "enum": [
+          "AguardandoPagamento",
+          "Pago",
+          "Despachado",
+          "Ativado",
+          "Cancelado"
+        ]
+      },
+      "TipoDeDestino": {
+        "enum": [
+          "Google",
+          "Link"
+        ]
+      },
+      "TipoDeLancamento": {
+        "enum": [
+          "Receita",
+          "TaxaAvalia",
+          "ComissaoDevida",
+          "ComissaoPaga"
+        ],
+        "description": "O que o lan\u00E7amento registra, do ponto de vista do revendedor."
+      },
+      "TokenEmitido": {
+        "required": [
+          "token",
+          "expiraEm",
+          "perfil"
+        ],
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "expiraEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "perfil": {
+            "$ref": "#/components/schemas/Perfil"
+          }
+        }
+      },
+      "TrocarPlaca": {
+        "required": [
+          "codigo"
+        ],
+        "type": "object",
+        "properties": {
+          "codigo": {
+            "type": "string"
+          }
+        }
+      },
+      "VendaDaFicha": {
+        "required": [
+          "id",
+          "cliente",
+          "responsavel",
+          "telefone",
+          "produto",
+          "vendedor",
+          "valorCents",
+          "comissaoCents",
+          "pagamento",
+          "vendidaEm"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "cliente": {
+            "type": "string"
+          },
+          "responsavel": {
+            "type": "string"
+          },
+          "telefone": {
+            "type": "string"
+          },
+          "produto": {
+            "type": "string"
+          },
+          "vendedor": {
+            "type": "string"
+          },
+          "valorCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "comissaoCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "pagamento": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SituacaoDaCobranca"
+              }
+            ]
+          },
+          "vendidaEm": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "VendaDaLista": {
+        "required": [
+          "id",
+          "codigo",
+          "cliente",
+          "produto",
+          "vendedorId",
+          "vendedor",
+          "valorCents",
+          "comissaoCents",
+          "meio",
+          "pagamento",
+          "vendidaEm",
+          "pagaEm",
+          "situacao",
+          "cortesia",
+          "pagoPor"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "codigo": {
+            "type": "string"
+          },
+          "cliente": {
+            "type": "string"
+          },
+          "produto": {
+            "type": "string"
+          },
+          "vendedorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "vendedor": {
+            "type": "string"
+          },
+          "valorCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "comissaoCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "meio": {
+            "$ref": "#/components/schemas/MeioDePagamento"
+          },
+          "pagamento": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SituacaoDaCobranca"
+              }
+            ]
+          },
+          "vendidaEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "pagaEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "situacao": {
+            "$ref": "#/components/schemas/SituacaoDaVenda"
+          },
+          "cortesia": {
+            "type": "boolean"
+          },
+          "pagoPor": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/MeioDePagamento"
+              }
+            ]
+          }
+        }
+      },
+      "VendaRegistrada": {
+        "required": [
+          "vendaId",
+          "codigo",
+          "endereco",
+          "valorCents",
+          "venceEm",
+          "cobranca",
+          "semCobranca"
+        ],
+        "type": "object",
+        "properties": {
+          "vendaId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "codigo": {
+            "type": "string"
+          },
+          "endereco": {
+            "type": "string"
+          },
+          "valorCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "venceEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "cobranca": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CobrancaDto"
+              }
+            ]
+          },
+          "semCobranca": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "linkCurto": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "LinkCurto - o /L/ do neg\u00F3cio, quando o destino \u00E9 a avalia\u00E7\u00E3o no Google."
+      },
+      "VendedorDto": {
+        "required": [
+          "id",
+          "nome",
+          "email",
+          "telefone",
+          "chavePix",
+          "comissaoBps",
+          "comissaoEfetivaBps",
+          "ativo",
+          "vendas",
+          "convitePendente"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nome": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "telefone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "chavePix": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "comissaoBps": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "comissaoEfetivaBps": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "ativo": {
+            "type": "boolean"
+          },
+          "vendas": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "convitePendente": {
+            "type": "boolean"
+          },
+          "linkDoConvite": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "LinkDoConvite s\u00F3 vem na resposta de quem acabou de convidar."
+      }
+    },
+    "securitySchemes": {
+      "Bearer": {
+        "type": "http",
+        "description": "Token de POST /auth/entrar",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "security": [
+    {
+      "Bearer": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "AvaliaSales.Api"
+    },
+    {
+      "name": "RotasDeAcesso"
+    },
+    {
+      "name": "Marca"
+    },
+    {
+      "name": "Leitura"
+    },
+    {
+      "name": "Cat\u00E1logo"
+    },
+    {
+      "name": "Links"
+    },
+    {
+      "name": "Operadora"
+    },
+    {
+      "name": "Revenda"
+    },
+    {
+      "name": "Balc\u00E3o"
+    },
+    {
+      "name": "Chat"
+    },
+    {
+      "name": "RotasDeWebhook"
+    }
+  ]
+}

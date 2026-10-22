@@ -140,7 +140,12 @@ builder.Services.AddRateLimiter(limites =>
 });
 
 // Situações e papéis saem pelo nome ("EmEstoque", "Paga"), e não pelo número: o contrato da API não muda se a ordem do enum mudar.
-builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter()));
+// Número só como número: o padrão da web aceitaria "149" como 149, e o contrato (web/openapi.json) diria number | string.
+builder.Services.ConfigureHttpJsonOptions(o =>
+{
+    o.SerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+    o.SerializerOptions.NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.Strict;
+});
 builder.Services.AddSignalR();
 builder.Services.AddHostedService<OuvinteDeAvisos>();
 builder.Services.AddProblemDetails();

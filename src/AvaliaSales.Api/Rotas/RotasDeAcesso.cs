@@ -36,17 +36,17 @@ public static class RotasDeAcesso
     public static void MapearAcesso(this IEndpointRouteBuilder rotas)
     {
         var sessao = rotas.MapGroup("/auth").AllowAnonymous().RequireRateLimiting(LimiteDeRenovacao);
-        sessao.MapPost("/renovar", Renovar);
+        sessao.MapPost("/renovar", Renovar).Produces<TokenEmitido>();
         sessao.MapPost("/sair", Sair);
 
         var auth = rotas.MapGroup("/auth").AllowAnonymous().RequireRateLimiting(LimiteDeEntrada);
-        auth.MapPost("/entrar", Entrar);
+        auth.MapPost("/entrar", Entrar).Produces<TokenEmitido>();
         auth.MapPost("/senha/link", async (PedidoDeLink pedido, GestorDeSenhas senhas, CancellationToken ct) =>
         {
             await senhas.PedirRedefinicao(pedido.Email, ct);
             return Results.NoContent();
         });
-        auth.MapPost("/senha", DefinirSenha);
+        auth.MapPost("/senha", DefinirSenha).Produces<TokenEmitido>();
         auth.MapPost("/email", async (PedidoDeConfirmacao pedido, GestorDeSenhas senhas, CancellationToken ct) =>
         {
             await senhas.Confirmar(pedido.Token, ct);
@@ -59,7 +59,7 @@ public static class RotasDeAcesso
             await senhas.PedirConfirmacao(atual.UsuarioId ?? throw new InvalidOperationException("Sem usuário."), ct);
             return Results.NoContent();
         }).RequireAuthorization().RequireRateLimiting(LimiteDeEntrada);
-        rotas.MapPost("/cadastro", Cadastrar).AllowAnonymous().RequireRateLimiting(LimiteDeEntrada);
+        rotas.MapPost("/cadastro", Cadastrar).AllowAnonymous().RequireRateLimiting(LimiteDeEntrada).Produces<TokenEmitido>();
     }
 
     /// <summary>
