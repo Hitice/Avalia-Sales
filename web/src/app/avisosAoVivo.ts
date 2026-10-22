@@ -37,7 +37,8 @@ export function useAvisosAoVivo(): string | null {
     const conexao = new HubConnectionBuilder()
       .withUrl('/api/hubs/avisos', { accessTokenFactory: () => useSessao.getState().token ?? '' })
       .withAutomaticReconnect()
-      .configureLogging(LogLevel.Warning)
+      // Trocar de página no meio da negociação para a conexão; isso não é erro para o console.
+      .configureLogging(LogLevel.Critical)
       .build()
 
     conexao.on('aviso', ({ tipo }: { tipo: string }) => {

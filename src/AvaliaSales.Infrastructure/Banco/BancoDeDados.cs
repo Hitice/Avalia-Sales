@@ -47,6 +47,7 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
     public DbSet<Repasse> Repasses => Set<Repasse>();
     public DbSet<Renovacao> Renovacoes => Set<Renovacao>();
     public DbSet<EnvioAoErp> EnviosAoErp => Set<EnvioAoErp>();
+    public DbSet<LogoDoRevendedor> Logos => Set<LogoDoRevendedor>();
 
     /// <summary>Lido pelo filtro global a cada consulta, e não na montagem do modelo.</summary>
     public Guid? RevendedorAtual => revendedor.RevendedorId;
@@ -81,7 +82,19 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
             r.Property(x => x.Nome).HasMaxLength(Revendedor.NomeMaximo).IsRequired();
             r.Property(x => x.RecebedorPagarme).HasMaxLength(64);
             r.Property(x => x.Cnpj).HasMaxLength(14);
+            r.Property(x => x.NomeExibido).HasMaxLength(Revendedor.NomeExibidoMaximo);
+            r.Property(x => x.CorPrimaria).HasMaxLength(7).IsFixedLength();
+            r.Property(x => x.CorDestaque).HasMaxLength(7).IsFixedLength();
             r.HasIndex(x => x.Cnpj).IsUnique();
+        });
+
+        modelo.Entity<LogoDoRevendedor>(l =>
+        {
+            l.ToTable("logos");
+            l.HasKey(x => x.RevendedorId);
+            l.Property(x => x.RevendedorId).ValueGeneratedNever();
+            l.Property(x => x.Tipo).HasMaxLength(20);
+            l.HasOne<Revendedor>().WithOne().HasForeignKey<LogoDoRevendedor>(x => x.RevendedorId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelo.Entity<Produto>(p =>

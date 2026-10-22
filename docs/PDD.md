@@ -240,11 +240,19 @@ porta o negócio e troca a tecnologia onde a stack pede.
 
 ## 7. Marca do revendedor
 
-O dono configura logo, cor primária, cor de destaque e nome exibido. Vale para
-todos os usuários dele, no app e no e-mail. A plataforma gera os tons a partir
-das cores e recusa cor sem contraste de 4,5:1 com o texto. A tela de login e a
-área da operadora usam a marca da plataforma. Logo só em PNG ou WebP, até
-512 KB.
+O dono configura, na tela Marca, o nome exibido (até 40 caracteres), a cor
+primária, a cor de destaque e o logo. Vale para todos os usuários dele no app.
+A tela mostra a prévia e o contraste antes de salvar, e a API confere de novo:
+
+- Cor primária - fundo de botão; o texto por cima (branco ou escuro, o de maior
+  contraste) precisa de 4,5:1.
+- Cor de destaque - anel de foco e realce do menu; precisa de 3:1 sobre o
+  branco.
+- Logo - PNG ou WebP, conferido pelos bytes do arquivo, até 512 KB.
+
+A tela de login e a área da operadora usam a marca da plataforma. Voltar à
+marca da plataforma apaga cores, nome e logo. O e-mail com a marca do
+revendedor fica para depois.
 
 ## 8. Fora do escopo
 
@@ -279,7 +287,7 @@ Estimativa em semanas de cerca de 20 horas.
 | Integrações | Pagar.me (cobrança, split, webhook) e D4Sign (envio, webhook) no código | - | Feita, falta sandbox real |
 | 1. Revenda | Cadastro, contrato, pedido, lote, equipe, venda, NFC e QR | 3 | Feita em simulação; falta o sandbox real do Pagar.me e da D4Sign |
 | 2. Pagamento | Checkout do pedido de placas, cupom, comissão, razão | 3 | Feita em simulação; falta o sandbox real |
-| 3. Serviços | Chat, painel ao vivo, mapa, Worker, Protheus simulado, white label | 4 | Painel ao vivo, Worker e Protheus simulado feitos; mapa, white label e chat a fazer |
+| 3. Serviços | Chat, painel ao vivo, mapa, Worker, Protheus simulado, white label | 4 | Painel ao vivo, Worker, Protheus simulado e white label feitos; mapa e chat a fazer |
 | 4. Avalia | Teste, integração com o Sales, migração e volta | 3 | A fazer |
 
 ## 11. Decisões pendentes
@@ -298,6 +306,7 @@ Estimativa em semanas de cerca de 20 horas.
 
 | Data | Mudança |
 | --- | --- |
+| 21/10/2026 | White label - tela Marca com nome exibido, cores e logo, contraste conferido na tela e na API. |
 | 21/10/2026 | Avisos ao vivo nas telas e pedido de venda no Protheus para cada pedido de placas pago. |
 | 21/10/2026 | Fase 2 - pedido de placas pago pelo checkout do Pagar.me, cupons da operadora, razão do revendedor, saldo e repasse de comissão, renovação da placa. |
 | 21/10/2026 | Telas da Fase 1 para a operadora, o dono e o vendedor. Recarregar a página mantém o login. |

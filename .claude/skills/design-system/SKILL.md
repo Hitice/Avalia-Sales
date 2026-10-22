@@ -121,7 +121,7 @@ Conferidas na API do GitHub e no npm em 21/10/2026, pelo critério da skill
 | [Playwright](https://github.com/microsoft/playwright) | Teste de ponta a ponta | 98 mil | |
 | [Style Dictionary](https://github.com/style-dictionary/style-dictionary) | Tokens em JSON, só se surgir outro consumidor | 4,9 mil | 5.7.0 |
 
-Estado em 21/10/2026: o front existe em `web/` com entrada e catálogo. Tokens
+Estado em 21/10/2026: o front tem as telas das Fases 1 a 3 e a marca do revendedor aplicada nas variáveis (`web/src/marca`). Tokens
 em `web/src/estilos/tokens.css`; toque de 44 px aplicado nos tamanhos de
 `components/ui/button.tsx` e `input.tsx`; anel de foco em cor cheia. Storybook e
 axe ainda não instalados (pendência no SDD).

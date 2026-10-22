@@ -115,6 +115,13 @@ negócio e duas travas independentes:
   usado como texto sobre branco (3,4:1). Variantes `dark:` só com a classe
   `.dark`, que ainda não existe.
 - Toque - campos e botões com 44 px abaixo de 768 px e 36 px acima.
+- White label - depois do login, o app lê `GET /marca` e grava só as variáveis
+  do tema em `:root` (`--primary`, `--primary-foreground`, `--ring`,
+  `--destaque`, `--accent` e as de gráfico). O fundo do realce sai do tom 92 da
+  paleta tonal do Material (`@material/material-color-utilities` 0.4.0). O
+  logo vem com o token e vira URL local, com a versão da marca na chave. A
+  conta de contraste é a mesma no front (`marca/contraste.ts`) e no Domain
+  (`Contraste`).
 - Balcão - a Nova venda tem um passo por tela (placa, cliente, destino,
   cobrança) com o botão no pé da tela. A placa entra pelo QR da câmera
   traseira, pelo NFC (Web NFC, só Chrome do Android) ou digitada, e a leitura da
@@ -123,7 +130,8 @@ negócio e duas travas independentes:
   cada 5 s). Com Web NFC, a tela grava o endereço da placa numa tag em branco.
 - Testes - Vitest e Testing Library: dinheiro, sessão, renovação (uma só para
   chamadas simultâneas), rota protegida por papel, código da placa, percentual,
-  CNPJ, telefone e a tela de entrada. 34 testes em 21/10/2026. Fluxos
+  CNPJ, telefone, contraste da marca e a tela de entrada. 36 testes em
+  21/10/2026. Fluxos
   conferidos no navegador com os dados da demonstração - dono a 1440 px, Nova
   venda e ficha a 390 px até o Pix pago pelo simulador, operadora despachando
   lote.
@@ -181,6 +189,8 @@ aponta para a venda.
 | `cobrancas` (colunas novas) | Link no Pagar.me e URL do checkout | - |
 | `vendas` (coluna nova) | Repasse que pagou a comissão | - |
 | `revendedores` (coluna nova) | Preço da renovação (6000 = 60%) | - |
+| `logos` | Logo do revendedor (PNG ou WebP, até 512 KB) | RLS; tabela própria para o revendedor, lido em toda cobrança, não carregar a imagem |
+| `revendedores` (colunas novas) | Nome exibido, cor primária, cor de destaque, marca alterada em | - |
 | `envios_ao_erp` | Pedido pago a caminho do Protheus: cliente, CNPJ, quantidade, valor, situação, número no ERP, tentativas, erro | Sem RLS (fila da operadora); um por pedido |
 
 ### Planejado
@@ -444,7 +454,8 @@ Revisão pela skill `seguranca` (OWASP ASVS 5.0).
   o Worker de relógio adiantado (pedido pago pelo link, razão, repasse,
   estorno pelo webhook, renovação), aviso ao vivo pelo hub (chega ao dono
   certo e não à outra revenda; sem token, 401), contrato e fila do Protheus.
-  152 testes em 21/10/2026.
+  Marca (contraste, logo pelos bytes, equipe lê e não grava, outra revenda não
+  vê). 160 testes em 21/10/2026.
 - Os testes entram no Postgres com o papel `avalia_app_teste`, membro do
   `avalia_app`: as mesmas permissões e o mesmo RLS, sem trocar a senha que a API
   local usa.
@@ -479,6 +490,7 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
 | 21/10/2026 | Pedido de placas pelo checkout, sem split | O link só divide em cartão; o pacote é todo da Avalia |
 | 21/10/2026 | Avisos ao vivo pelo LISTEN/NOTIFY do Postgres | API e Worker são processos separados; o NOTIFY sai no commit e não pede Redis |
 | 21/10/2026 | Protheus por contrato REST próprio e fila | Sem ambiente público; a chave do pedido evita pedido de venda repetido |
+| 21/10/2026 | Marca só nas variáveis do tema, contraste conferido nas duas pontas | Componente nenhum muda; a API não confia na tela |
 | 21/10/2026 | Swagger UI sobre o OpenAPI nativo do ASP.NET Core | O documento é o do framework; o Swashbuckle entra só como página |
 | 21/10/2026 | `@hookform/resolvers` 5.9 e não 6.0 | A 6.0.0 declara versões conflitantes de uma dependência opcional e não instala sem forçar |
 | 21/10/2026 | Nenhuma biblioteca de idempotência pronta | A mais citada tinha 329 estrelas e nenhum commit desde 11/2024; o Postgres já garante unicidade |
@@ -509,6 +521,7 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
 
 | Data | Mudança |
 | --- | --- |
+| 21/10/2026 | White label - marca do revendedor (nome, cores e logo em tabela própria com RLS), rotas `/marca` e `/revenda/marca`, tela Marca com prévia, cores aplicadas nas variáveis do tema. |
 | 21/10/2026 | Fase 3, primeira parte - avisos ao vivo (SignalR com LISTEN/NOTIFY), Protheus por contrato REST e simulador com fila no Worker, tela do ERP da operadora. |
 | 21/10/2026 | Fase 2 - checkout do Pagar.me para o pedido de placas, cupons, razão, saldo e repasse de comissão, renovação, efeitos do pagamento, telas de cupons, comissões, razão e renovação. Front em HTTPS na rede local para testar Web NFC e câmera no celular, com `/q/` passando pelo Vite. |
 | 21/10/2026 | Telas da Fase 1 - operadora (pedidos, lotes com download da impressão, pacotes, revendedores), dono (início, vendas com nova cobrança, estoque com consignação, pedidos de placas com ativação de lote, equipe e comissão, catálogo com editar, desativar e excluir), balcão (Nova venda com QR, NFC e Pix, ficha da placa) e cadastro. Sessão restaurada pelo cookie ao recarregar. Endereço da placa nas respostas de venda e ficha, para a gravação do NFC. |

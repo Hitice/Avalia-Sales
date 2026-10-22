@@ -38,6 +38,7 @@ public interface IBancoDeDados
     DbSet<Repasse> Repasses { get; }
     DbSet<Renovacao> Renovacoes { get; }
     DbSet<EnvioAoErp> EnviosAoErp { get; }
+    DbSet<LogoDoRevendedor> Logos { get; }
 
     /// <summary>Para abrir transação. SQL direto não sai daqui: mora nos métodos abaixo, na Infrastructure.</summary>
     DatabaseFacade Database { get; }

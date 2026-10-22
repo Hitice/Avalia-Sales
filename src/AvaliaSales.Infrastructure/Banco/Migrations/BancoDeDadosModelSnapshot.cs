@@ -1025,6 +1025,29 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                     b.ToTable("renovacoes", (string)null);
                 });
 
+            modelBuilder.Entity("AvaliaSales.Domain.Revendedores.LogoDoRevendedor", b =>
+                {
+                    b.Property<Guid>("RevendedorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("revendedor_id");
+
+                    b.Property<byte[]>("Conteudo")
+                        .IsRequired()
+                        .HasColumnType("bytea")
+                        .HasColumnName("conteudo");
+
+                    b.Property<string>("Tipo")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("tipo");
+
+                    b.HasKey("RevendedorId")
+                        .HasName("pk_logos");
+
+                    b.ToTable("logos", (string)null);
+                });
+
             modelBuilder.Entity("AvaliaSales.Domain.Revendedores.Revendedor", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1045,15 +1068,36 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("contrato_assinado_em");
 
+                    b.Property<string>("CorDestaque")
+                        .HasMaxLength(7)
+                        .HasColumnType("character(7)")
+                        .HasColumnName("cor_destaque")
+                        .IsFixedLength();
+
+                    b.Property<string>("CorPrimaria")
+                        .HasMaxLength(7)
+                        .HasColumnType("character(7)")
+                        .HasColumnName("cor_primaria")
+                        .IsFixedLength();
+
                     b.Property<DateTimeOffset>("CriadoEm")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("criado_em");
+
+                    b.Property<DateTimeOffset?>("MarcaAlteradaEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("marca_alterada_em");
 
                     b.Property<string>("Nome")
                         .IsRequired()
                         .HasMaxLength(120)
                         .HasColumnType("character varying(120)")
                         .HasColumnName("nome");
+
+                    b.Property<string>("NomeExibido")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("nome_exibido");
 
                     b.Property<string>("RecebedorPagarme")
                         .HasMaxLength(64)
@@ -1806,6 +1850,16 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_renovacoes_vendas_venda_id");
+                });
+
+            modelBuilder.Entity("AvaliaSales.Domain.Revendedores.LogoDoRevendedor", b =>
+                {
+                    b.HasOne("AvaliaSales.Domain.Revendedores.Revendedor", null)
+                        .WithOne()
+                        .HasForeignKey("AvaliaSales.Domain.Revendedores.LogoDoRevendedor", "RevendedorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_logos_revendedores_revendedor_id");
                 });
 
             modelBuilder.Entity("AvaliaSales.Domain.Vendas.Cliente", b =>

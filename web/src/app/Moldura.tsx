@@ -3,6 +3,7 @@ import { sairDaSessao } from '@/acesso/renovacao'
 import { type Papel, useSessao } from '@/acesso/sessao'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { useLogo, useMarca } from '@/marca/marca'
 import { useAvisosAoVivo } from './avisosAoVivo'
 
 type Item = { para: string; rotulo: string }
@@ -27,6 +28,7 @@ const MENU: Record<Papel, Item[]> = {
     { para: '/painel/comissoes', rotulo: 'Comissões' },
     { para: '/painel/razao', rotulo: 'Razão' },
     { para: '/painel/catalogo', rotulo: 'Catálogo' },
+    { para: '/painel/marca', rotulo: 'Marca' },
   ],
   Vendedor: [
     { para: '/vender', rotulo: 'Nova venda' },
@@ -40,6 +42,8 @@ export function Moldura() {
   const perfil = useSessao((s) => s.perfil)
   const navegar = useNavigate()
   const aviso = useAvisosAoVivo()
+  const marca = useMarca()
+  const logo = useLogo(marca)
   const itens = perfil ? MENU[perfil.papel] : []
 
   async function sair() {
@@ -51,8 +55,10 @@ export function Moldura() {
     <div className="min-h-svh">
       <header className="sticky top-0 z-10 border-b bg-card">
         <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-4">
-          <span className="font-semibold whitespace-nowrap">Avalia Sales</span>
-          {perfil?.revendedor && <span className="hidden truncate text-sm text-muted-foreground sm:inline">{perfil.revendedor}</span>}
+          {logo
+            ? <img src={logo} alt={marca?.nomeExibido ?? perfil?.revendedor ?? 'Logo'} className="h-8 w-auto max-w-32 object-contain" />
+            : <span className="font-semibold whitespace-nowrap">{marca?.nomeExibido ?? 'Avalia Sales'}</span>}
+          {perfil?.revendedor && !marca?.nomeExibido && <span className="hidden truncate text-sm text-muted-foreground sm:inline">{perfil.revendedor}</span>}
           {perfil?.papel === 'Operadora' && <span className="hidden text-sm text-muted-foreground sm:inline">Operação</span>}
           <div className="ml-auto flex items-center gap-3 text-sm">
             <span className="hidden text-muted-foreground md:inline">{perfil?.nome}</span>
