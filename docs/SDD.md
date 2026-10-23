@@ -180,7 +180,7 @@ Dinheiro em centavos (`bigint`, colunas `_cents`), taxa em pontos base
 | `leituras` | Leituras por placa e dia | RLS; chave (placa, dia), soma por `on conflict` |
 | `vendedores` | Equipe, com o mesmo id do login; comissão própria | RLS |
 | `clientes` | Negócio que comprou: documento, telefone, e-mail, lugar no Google (só o id), anonimizado em | RLS; documento único por revendedor |
-| `vendas` | Placa, cliente, produto, vendedor, valor, tabela, custo e comissão gravados | RLS; uma venda registrada por placa |
+| `vendas` | Placa, cliente, produto, vendedor, valor, tabela, custo, parte da Avalia (`parte_da_avalia_cents`) e comissão gravados | RLS; uma venda registrada por placa |
 | `emails` | Fila de e-mails com chave única, tentativas, próxima tentativa e id no Resend. A espera dobra a cada falha (1 minuto até 6 horas) e o envio desiste depois de 20, uns 3 dias | Sem RLS |
 | `revendedores` (colunas novas) | CNPJ (único), comissão padrão (2000 = 20%), contrato assinado em | - |
 | `cobrancas` (coluna nova) | `conferida_em`, para a reconsulta de pendente | Índice por origem |
@@ -193,7 +193,7 @@ Dinheiro em centavos (`bigint`, colunas `_cents`), taxa em pontos base
 | `vendas` (coluna nova) | Repasse que pagou a comissão | - |
 | `revendedores` (coluna nova) | Preço da renovação (6000 = 60%) | - |
 | `mensagens` | Mensagem de chamado: chamado, autor, se é da operadora, texto (até 2.000), enviada em, lida em | RLS com a operadora |
-| `produtos_da_plataforma` | Catálogo da Avalia - chave (única), nome, descrição, tipo (Placa, PlacaComServico, Servico), preço sugerido, situação (Disponivel, Esgotado, ForaDeLinha), ordem, foto padrão do front (`/produtos/*.jpg`), foto enviada (bytea até 512 KB, tipo e versão) | Sem RLS: da plataforma |
+| `produtos_da_plataforma` | Catálogo da Avalia - chave (única), nome, descrição, tipo (Placa, PlacaComServico, Servico), preço sugerido, desconto da revenda (`desconto_da_revenda_bps`, padrão 2000), situação (Disponivel, Esgotado, ForaDeLinha), ordem, foto padrão do front (`/produtos/*.jpg`), foto enviada (bytea até 512 KB, tipo e versão) | Sem RLS: da plataforma |
 | `produtos` (coluna nova) | `produto_da_plataforma_id` - o preço da revenda para um produto do catálogo (único por revenda); o produto sem ele é o de antes do catálogo, só para as vendas antigas | - |
 | `vendas` (mudança) | `placa_id` opcional - a venda de serviço não leva placa | - |
 | `pedidos_placas` (coluna nova) | `producao_em` e a situação EmProducao | - |
@@ -698,6 +698,7 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
 
 | Data | Mudança |
 | --- | --- |
+| 23/10/2026 | Parte da Avalia no serviço - `produtos_da_plataforma.desconto_da_revenda_bps` (2000; 1500 no `perfil-google-placa`) e `vendas.parte_da_avalia_cents` (migration `ParteDaAvaliaNosServicos`). A cobrança soma a parte à taxa em `taxa_avalia_cents`, que vai na regra da Avalia no split e no razão (por fora, a acertar); o piso do preço da revenda soma a parte. |
 | 23/10/2026 | `revendedores.taxa_avalia_bps` passa a 0 em todas as revendas e no padrão da coluna (migration `TaxaDaAvaliaZerada`); com taxa zero o split leva uma regra só, da revenda. `Revendedor.DefinirTaxaAvalia` para a edição futura pela operadora. |
 | 23/10/2026 | `pedidos_placas.retirada` (boolean, padrão falso) e `retirada` no corpo do despacho. Split com uma regra só quando o recebedor da revenda é o da Avalia. Comando `--conferir-pagarme` (`GET /recipients/{id}`). Logos das integrações em `web/public/parceiros`, mostrados como máscara na cor do texto. |
 | 23/10/2026 | Front - `componentes/AcoesDaLinha` (ação principal e menu no computador, fileira de botões no celular), `sombra-de-rolagem` no contêiner da tabela, botões da célula quebram linha, layout com coluna lateral a partir de `xl`. Faixas de quantidade de pacote dos testes separadas das dos pacotes semeados (20, 50 e 100). |

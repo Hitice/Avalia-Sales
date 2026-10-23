@@ -12,7 +12,7 @@ import { Indicador, Indicadores } from '@/componentes/Indicador'
 
 const ROTULO: Record<TipoDeLancamento, string> = {
   Receita: 'Receita',
-  TaxaAvalia: 'Taxa da plataforma',
+  TaxaAvalia: 'Parte da Avalia',
   ComissaoDevida: 'Comissão devida',
   ComissaoPaga: 'Comissão repassada',
 }
@@ -28,10 +28,10 @@ export function TelaDoRazao() {
   const [competencia, setCompetencia] = useState<string | undefined>()
   const razao = useRazao(competencia)
   const r = razao.data
-  // Sem taxa da plataforma no mês, o cartão dela não aparece.
+  // Sem taxa nem serviço da Avalia no mês, o cartão dela não aparece.
   const totais = r ? [
     { rotulo: 'Receita', valor: r.receitaCents },
-    ...(r.taxaAvaliaCents ? [{ rotulo: 'Taxa da plataforma', valor: -r.taxaAvaliaCents }] : []),
+    ...(r.taxaAvaliaCents ? [{ rotulo: 'Parte da Avalia', valor: -r.taxaAvaliaCents }] : []),
     { rotulo: 'Comissão', valor: -r.comissaoCents },
     { rotulo: 'Líquido', valor: r.liquidoCents },
   ] : []

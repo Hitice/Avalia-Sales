@@ -35,6 +35,10 @@ public sealed class Venda : IDoRevendedor
     public long ValorCents { get; private set; }
     public long TabelaCents { get; private set; }
     public long CustoCents { get; private set; }
+
+    /// <summary>A parte da Avalia no serviço que ela executa, gravada na venda como o preço e a comissão.</summary>
+    public long ParteDaAvaliaCents { get; private set; }
+
     public int ComissaoBps { get; private set; }
     public MeioDePagamento Meio { get; private set; }
     public SituacaoDaVenda Situacao { get; private set; } = SituacaoDaVenda.Registrada;
@@ -57,10 +61,16 @@ public sealed class Venda : IDoRevendedor
     }
 
     public Venda(Guid? placaId, Guid clienteId, Guid produtoId, long tabelaCents, Guid vendedorId, long? valorCents,
-        long custoCents, int comissaoBps, MeioDePagamento meio, DateTimeOffset agora)
+        long custoCents, int comissaoBps, MeioDePagamento meio, DateTimeOffset agora, long parteDaAvaliaCents = 0)
     {
         var valor = valorCents ?? tabelaCents;
         ConferirValor(valor, tabelaCents);
+        if (valor < parteDaAvaliaCents)
+        {
+            throw new RegraDeNegocioException("O preço ficou abaixo da parte da Avalia neste serviço. Ajuste o preço no catálogo.");
+        }
+
+        ParteDaAvaliaCents = parteDaAvaliaCents;
         PlacaId = placaId;
         ClienteId = clienteId;
         ProdutoId = produtoId;

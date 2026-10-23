@@ -87,7 +87,8 @@ public sealed class EfeitosDaCobranca(IBancoDeDados banco, FilaDeEmails avisos, 
         banco.Lancamentos.Add(new Lancamento(TipoDeLancamento.Receita, cobranca.Id, cobranca.ValorCents, $"Venda da {item}", quando, venda.Id, venda.VendedorId));
         if (cobranca.TaxaAvaliaCents > 0)
         {
-            var taxa = cobranca.PorFora ? $"Taxa da plataforma a acertar, {item} recebida por fora" : $"Taxa da plataforma, {item}";
+            var oQue = venda.ParteDaAvaliaCents > 0 ? "Parte da Avalia" : "Taxa da plataforma";
+            var taxa = cobranca.PorFora ? $"{oQue} a acertar, {item} recebida por fora" : $"{oQue}, {item}";
             banco.Lancamentos.Add(new Lancamento(TipoDeLancamento.TaxaAvalia, cobranca.Id, -cobranca.TaxaAvaliaCents, taxa, quando, venda.Id));
         }
 

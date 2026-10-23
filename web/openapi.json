@@ -5160,8 +5160,16 @@
           "ordem": {
             "type": "integer",
             "format": "int32"
+          },
+          "descontoDaRevendaBps": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
           }
-        }
+        },
+        "description": "Sem desconto informado, o produto novo nasce com o padr\u00E3o e o que existe mant\u00E9m o dele."
       },
       "ItemDoCatalogo": {
         "required": [
@@ -6442,7 +6450,9 @@
           "situacao",
           "ordem",
           "fotoUrl",
-          "temFotoEnviada"
+          "temFotoEnviada",
+          "descontoDaRevendaBps",
+          "parteDaAvaliaCents"
         ],
         "type": "object",
         "properties": {
@@ -6481,6 +6491,14 @@
           },
           "temFotoEnviada": {
             "type": "boolean"
+          },
+          "descontoDaRevendaBps": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "parteDaAvaliaCents": {
+            "type": "integer",
+            "format": "int64"
           }
         }
       },

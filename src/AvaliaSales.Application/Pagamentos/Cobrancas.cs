@@ -13,7 +13,8 @@ public sealed record CriarCobranca(
     string Descricao,
     Pagador Pagador,
     string? TokenDoCartao = null,
-    int Parcelas = 1);
+    int Parcelas = 1,
+    long ParteDaAvaliaCents = 0);
 
 public sealed record CobrancaDto(
     Guid Id,
@@ -66,7 +67,7 @@ public sealed class Cobrancas(IBancoDeDados banco, IGatewayDePagamento gateway, 
             throw new RegraDeNegocioException($"O parcelamento vai de 1 a {ParcelasMaximas} vezes.");
         }
 
-        var cobranca = new Cobranca(comando.Origem, comando.OrigemId, comando.Meio, comando.ValorCents, revendedor.TaxaAvaliaBps);
+        var cobranca = new Cobranca(comando.Origem, comando.OrigemId, comando.Meio, comando.ValorCents, revendedor.TaxaAvaliaBps, comando.ParteDaAvaliaCents);
         banco.Cobrancas.Add(cobranca);
         banco.Vinculos.Add(new VinculoExterno(VinculoExterno.Pagarme, cobranca.Codigo, revendedorId));
         await banco.SaveChangesAsync(ct);
@@ -182,11 +183,11 @@ public sealed class Cobrancas(IBancoDeDados banco, IGatewayDePagamento gateway, 
     /// O vendedor declara que recebeu fora do Pagar.me. A cobrança nasce paga e
     /// o efeito no negócio é o mesmo do Pix que caiu, no mesmo SaveChanges.
     /// </summary>
-    public async Task<Cobranca> RegistrarPorFora(OrigemDaCobranca origem, Guid origemId, MeioDePagamento meio, long valorCents, CancellationToken ct)
+    public async Task<Cobranca> RegistrarPorFora(OrigemDaCobranca origem, Guid origemId, MeioDePagamento meio, long valorCents, CancellationToken ct, long parteDaAvaliaCents = 0)
     {
         var revendedorId = atual.RevendedorId ?? throw new InvalidOperationException("Cobrança sem revendedor na requisição.");
         var taxa = await banco.Revendedores.Where(r => r.Id == revendedorId).Select(r => r.TaxaAvaliaBps).SingleAsync(ct);
-        var cobranca = Cobranca.RecebidaPorFora(origem, origemId, meio, valorCents, taxa, relogio.GetUtcNow());
+        var cobranca = Cobranca.RecebidaPorFora(origem, origemId, meio, valorCents, taxa, relogio.GetUtcNow(), parteDaAvaliaCents);
         banco.Cobrancas.Add(cobranca);
         await efeitos.Aplicar(cobranca, relogio.GetUtcNow(), ct);
         return cobranca;

@@ -37,9 +37,18 @@ revendedor é a Avalia.
 | --- | --- | --- | --- |
 | Pedido de placas | Revendedor | Avalia | Antes do envio do lote |
 | Venda da placa | Cliente final | O revendedor, pelo split do Pagar.me | No pagamento |
+| Venda de serviço | Cliente final | A Avalia a parte dela e o revendedor o resto, pelo split do Pagar.me | No pagamento |
 | Renovação | Cliente final | O revendedor, sem comissão | No pagamento |
 | Comissão | Revendedor | Vendedor, por Pix, registrado no painel | Quando o revendedor repassa |
 
+- Parte da Avalia no serviço - a revenda compra o serviço com desconto sobre
+  o preço sugerido (20% em todos; 15% no Perfil no Google com placa), e a Avalia
+  recebe o resto do sugerido pelo split, gravado na venda. Exemplo - landing
+  page sugerida a R$ 899,00: R$ 719,20 para a Avalia; a revenda que vende a
+  R$ 899,00 fica com R$ 179,80. A operadora muda o desconto por produto no
+  Catálogo da Avalia. A revenda não vende abaixo da parte da Avalia (mais o
+  custo da placa, no produto que leva placa). A placa avulsa não tem parte: a
+  revenda já pagou no pedido de placas.
 - Taxa da Avalia - zero. A Avalia ganha nas placas e nos serviços, e a
   revenda paga a tarifa do Pagar.me. A taxa continua um campo por revenda,
   gravado na cobrança no momento dela, para voltar a ser cobrada sem mudar o
@@ -121,7 +130,7 @@ Todas no mesmo app, liberadas pelo papel do usuário.
 | Nova venda | Dono e vendedor | Celular | Negócio no Google, QR da placa, cliente, cobrança, gravação do NFC; ou venda de serviço, sem placa |
 | Ficha da placa | Dono e vendedor | Celular | Destino, vencimento, leituras, histórico, troca, renovação |
 | Pedidos, Lotes, Pacotes e Cupons | Operadora | Computador | Fila de pedidos (produção, despacho do lote pelo envio ou para retirada), geração e impressão de lotes, pacotes e cupons |
-| Catálogo da Avalia | Operadora | Computador | Cadastrar e editar produto, foto com recorte, preço sugerido, ordem e situação |
+| Catálogo da Avalia | Operadora | Computador | Cadastrar e editar produto, foto com recorte, preço sugerido, desconto da revenda (e a parte da Avalia que sai dele), ordem e situação |
 | Serviços da operadora | Operadora | Computador | A fila de ordens de serviço - iniciar, entregar, cancelar |
 | Revendedores | Operadora | Computador | Revendas, recebedor no Pagar.me, contrato em papel, situação do encerramento |
 | Atendimento | Operadora | Computador | Fila de chamados pelo prazo, com o atrasado em vermelho |
@@ -511,6 +520,7 @@ porque está impresso nas placas vendidas.
 
 | Data | Mudança |
 | --- | --- |
+| 23/10/2026 | Parte da Avalia no serviço - a revenda tem 20% de desconto sobre o sugerido em todos os serviços e 15% no Perfil no Google com placa; o resto vai para a Avalia pelo split. O custo que a revenda vê no catálogo já inclui a parte da Avalia; recebido por fora, a parte fica a acertar no razão. |
 | 23/10/2026 | Taxa da Avalia zerada - a venda e a renovação vão inteiras para a revenda pelo split, que paga a tarifa do Pagar.me; a Avalia ganha nas placas e nos serviços. Venda já feita guarda a taxa dela. O razão e as Configurações só mostram a taxa quando ela existe. |
 | 23/10/2026 | Pedido de placas pode sair para retirada na Avalia - a operadora escolhe "Pronto para retirada" em vez de Despachar, o dono recebe o aviso de que a caixa está pronta e ativa o lote igual. Revenda com o mesmo recebedor da Avalia é cobrada numa regra só do split. Logos das integrações no pé da tela de entrada. |
 | 23/10/2026 | Tabelas cabem no cartão - com mais de uma ação, a linha mostra a principal (Editar) e as outras no botão "⋯" (Equipe, Pacotes, Cupons); o formulário lateral (Novo vendedor, Novo cupom e outros) fica ao lado só a partir de 1280 px; tabela mais larga que a tela mostra sombra na borda que rola. |

@@ -53,6 +53,47 @@ public sealed class ServicosTest(ApiDeTeste api)
     }
 
     [Fact]
+    public async Task Servico_tem_a_parte_da_Avalia_no_preco_minimo_na_cobranca_e_no_razao()
+    {
+        var operadora = await api.ClienteLogado(await api.CriarOperadora());
+        var revenda = await api.RevendaComEstoque("Revenda da Parte da Avalia");
+        var doCatalogo = (await operadora.Pegar("/operadora/catalogo")).EnumerateArray().Single(p => p.GetProperty("chave").GetString() == "cardapio-digital-profissional");
+        var parte = doCatalogo.GetProperty("parteDaAvaliaCents").GetInt64();
+        Assert.True(parte > 0);
+        var id = doCatalogo.GetProperty("id").GetGuid();
+
+        // Abaixo da parte da Avalia, a revenda venderia no prejuízo.
+        var recusa = await revenda.Dono.Colocar($"/catalogo/{id}", new { precoCents = parte - 1, comissaoBps = (int?)null }, HttpStatusCode.UnprocessableEntity);
+        Assert.Contains("custo", recusa.GetProperty("detail").GetString());
+        var item = (await revenda.Dono.Pegar("/catalogo")).EnumerateArray().Single(p => p.GetProperty("id").GetGuid() == id);
+        Assert.Equal(parte, item.GetProperty("pisoCents").GetInt64());
+
+        await Cenarios.ProdutoDoCatalogo(revenda.Dono, "cardapio-digital-profissional", parte + 10_000);
+        var venda = (await revenda.Dono.Postar("/vendas", Cenarios.Servico(id, "11955550802"), HttpStatusCode.Created)).GetProperty("vendaId").GetGuid();
+        await revenda.Dono.Postar($"/vendas/{venda}/recebimento", new { meio = "Dinheiro" }, HttpStatusCode.NoContent);
+
+        await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
+        Assert.Equal(parte, await banco.Contar($"select parte_da_avalia_cents from vendas where id = '{venda}'"));
+        Assert.Equal(parte, await banco.Contar($"select taxa_avalia_cents from cobrancas where origem_id = '{venda}'"));
+        Assert.Equal(1, await banco.Contar($"select count(*) from lancamentos where venda_id = '{venda}' and descricao like 'Parte da Avalia a acertar%'"));
+    }
+
+    [Fact]
+    public async Task Operadora_muda_o_desconto_da_revenda_e_a_parte_da_Avalia_acompanha()
+    {
+        var operadora = await api.ClienteLogado(await api.CriarOperadora());
+        var chave = $"servico-{Guid.NewGuid():N}"[..20];
+        var criado = await operadora.Postar("/operadora/catalogo",
+            new { chave, nome = "Serviço de teste", descricao = "", tipo = "Servico", precoSugeridoCents = 10_000L, ordem = 99 }, HttpStatusCode.Created);
+        Assert.Equal((2_000, 8_000L), (criado.GetProperty("descontoDaRevendaBps").GetInt32(), criado.GetProperty("parteDaAvaliaCents").GetInt64()));
+
+        var alterado = await operadora.Colocar($"/operadora/catalogo/{criado.GetProperty("id").GetGuid()}",
+            new { chave, nome = "Serviço de teste", descricao = "", tipo = "Servico", precoSugeridoCents = 10_000L, ordem = 99, descontoDaRevendaBps = 1_500 });
+
+        Assert.Equal((1_500, 8_500L), (alterado.GetProperty("descontoDaRevendaBps").GetInt32(), alterado.GetProperty("parteDaAvaliaCents").GetInt64()));
+    }
+
+    [Fact]
     public async Task Pedido_pago_entra_em_producao_antes_de_sair()
     {
         var operadora = await api.ClienteLogado(await api.CriarOperadora());

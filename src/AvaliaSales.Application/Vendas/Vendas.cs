@@ -63,7 +63,7 @@ public sealed class Vendas(
         var agora = relogio.GetUtcNow();
         if (doCatalogo is { UsaPlaca: false })
         {
-            return await RegistrarServico(pedido, produto, vendedorId, comissaoBps, agora, ct);
+            return await RegistrarServico(pedido, produto, doCatalogo.ParteDaAvaliaCents, vendedorId, comissaoBps, agora, ct);
         }
 
         var codigo = CodigoDaPlaca.Normalizar(pedido.Codigo);
@@ -82,7 +82,7 @@ public sealed class Vendas(
 
         var cliente = await EncontrarCliente(pedido, agora, ct);
         var venda = new Venda(placa.Id, cliente.Id, produto.Id, produto.PrecoCents, vendedorId, pedido.ValorCents,
-            placa.CustoCents, comissaoBps, pedido.Meio, agora);
+            placa.CustoCents, comissaoBps, pedido.Meio, agora, doCatalogo?.ParteDaAvaliaCents ?? 0);
         placa.Vender(venda.Id, destino, agora);
         banco.Vendas.Add(venda);
         auditoria.Registrar(AcaoAuditada.DestinoDefinido, $"Placa {placa.Codigo}", placa.Codigo, null, destino);
@@ -99,12 +99,12 @@ public sealed class Vendas(
     /// Serviço que a Avalia executa: sem placa nem destino. A ordem de serviço
     /// nasce quando o cliente paga (EfeitosDaCobranca).
     /// </summary>
-    private async Task<VendaRegistrada> RegistrarServico(NovaVenda pedido, Domain.Catalogo.Produto produto, Guid vendedorId, int comissaoBps,
+    private async Task<VendaRegistrada> RegistrarServico(NovaVenda pedido, Domain.Catalogo.Produto produto, long parteDaAvaliaCents, Guid vendedorId, int comissaoBps,
         DateTimeOffset agora, CancellationToken ct)
     {
         await using var transacao = await banco.Database.BeginTransactionAsync(ct);
         var cliente = await EncontrarCliente(pedido, agora, ct);
-        var venda = new Venda(null, cliente.Id, produto.Id, produto.PrecoCents, vendedorId, pedido.ValorCents, 0, comissaoBps, pedido.Meio, agora);
+        var venda = new Venda(null, cliente.Id, produto.Id, produto.PrecoCents, vendedorId, pedido.ValorCents, 0, comissaoBps, pedido.Meio, agora, parteDaAvaliaCents);
         banco.Vendas.Add(venda);
         banco.AvisarAoVivo("venda", atual.RevendedorId ?? Guid.Empty);
         await banco.SaveChangesAsync(ct);
@@ -195,7 +195,7 @@ public sealed class Vendas(
         }
 
         await ExigirSemCobrancaViva(venda, "Venda com Pix em aberto ou já paga.", ct);
-        await cobrancas.RegistrarPorFora(OrigemDaCobranca.Venda, venda.Id, meio, venda.ValorCents, ct);
+        await cobrancas.RegistrarPorFora(OrigemDaCobranca.Venda, venda.Id, meio, venda.ValorCents, ct, venda.ParteDaAvaliaCents);
         await RegistrarNaPlaca(venda, AcaoAuditada.RecebidoPorFora, meio.ToString(), ct);
         await banco.SaveChangesAsync(ct);
     }
@@ -410,7 +410,7 @@ public sealed class Vendas(
         try
         {
             var cobranca = await cobrancas.Criar(new CriarCobranca(OrigemDaCobranca.Venda, venda.Id, venda.Meio, venda.ValorCents,
-                descricao, new Pagador(cliente.Nome, cliente.Email, cliente.Documento, cliente.Telefone), tokenDoCartao, parcelas), ct);
+                descricao, new Pagador(cliente.Nome, cliente.Email, cliente.Documento, cliente.Telefone), tokenDoCartao, parcelas, venda.ParteDaAvaliaCents), ct);
             return (cobranca, null);
         }
         catch (RegraDeNegocioException recusa)

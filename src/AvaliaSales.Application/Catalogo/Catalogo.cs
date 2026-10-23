@@ -38,14 +38,14 @@ public sealed class Catalogo(IBancoDeDados banco, IUsuarioAtual usuario, Auditor
         {
             var meu = daRevenda.FirstOrDefault(r => r.ProdutoDaPlataformaId == p.Id);
             return new ItemDoCatalogo(p.Id, p.Chave, p.Nome, p.Descricao, p.Tipo, p.Situacao, FotoUrl(p), p.PrecoSugeridoCents,
-                meu?.PrecoCents ?? p.PrecoSugeridoCents, meu?.ComissaoBps, !dono ? 0 : p.UsaPlaca ? pisoDaPlaca : 1, meu?.Ativo ?? true);
+                meu?.PrecoCents ?? p.PrecoSugeridoCents, meu?.ComissaoBps, !dono ? 0 : Piso(p, pisoDaPlaca), meu?.Ativo ?? true);
         }).ToList();
     }
 
     public async Task<ItemDoCatalogo> Ajustar(Guid id, AjustarProduto comando, CancellationToken ct)
     {
         var (produto, doCatalogo) = await Garantir(id, ct);
-        var piso = doCatalogo is { UsaPlaca: false } ? 1 : await PisoDaPlaca(ct);
+        var piso = doCatalogo is { UsaPlaca: false } ? Piso(doCatalogo, 0) : doCatalogo is null ? await PisoDaPlaca(ct) : Piso(doCatalogo, await PisoDaPlaca(ct));
         var antes = Resumo(produto);
         produto.AjustarPreco(doCatalogo?.Nome ?? produto.Nome, comando.PrecoCents, comando.ComissaoBps, piso);
         if (Resumo(produto) != antes)
@@ -62,6 +62,9 @@ public sealed class Catalogo(IBancoDeDados banco, IUsuarioAtual usuario, Auditor
         (await Garantir(id, ct)).Produto.DefinirAtivo(ativo);
         await banco.SaveChangesAsync(ct);
     }
+
+    /// <summary>O menor preço da revenda: a placa que sai do estoque e a parte da Avalia no serviço.</summary>
+    private static long Piso(ProdutoDaPlataforma p, long pisoDaPlaca) => Math.Max(1, (p.UsaPlaca ? pisoDaPlaca : 0) + p.ParteDaAvaliaCents);
 
     /// <summary>
     /// O custo da placa da revenda: o maior entre as placas que ela tem em

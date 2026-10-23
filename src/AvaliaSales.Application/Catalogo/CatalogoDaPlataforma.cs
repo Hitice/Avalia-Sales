@@ -5,9 +5,11 @@ using Microsoft.EntityFrameworkCore;
 namespace AvaliaSales.Application.Catalogo;
 
 public sealed record ProdutoDaPlataformaDto(Guid Id, string Chave, string Nome, string Descricao, TipoDeProduto Tipo, long PrecoSugeridoCents,
-    SituacaoDoProduto Situacao, int Ordem, string? FotoUrl, bool TemFotoEnviada);
+    SituacaoDoProduto Situacao, int Ordem, string? FotoUrl, bool TemFotoEnviada, int DescontoDaRevendaBps, long ParteDaAvaliaCents);
 
-public sealed record GravarProdutoDaPlataforma(string Chave, string Nome, string? Descricao, TipoDeProduto Tipo, long PrecoSugeridoCents, int Ordem);
+/// <summary>Sem desconto informado, o produto novo nasce com o padrão e o que existe mantém o dele.</summary>
+public sealed record GravarProdutoDaPlataforma(string Chave, string Nome, string? Descricao, TipoDeProduto Tipo, long PrecoSugeridoCents, int Ordem,
+    int? DescontoDaRevendaBps = null);
 
 public sealed record DefinirSituacaoDoProduto(SituacaoDoProduto Situacao);
 
@@ -30,6 +32,7 @@ public sealed class CatalogoDaPlataforma(IBancoDeDados banco, TimeProvider relog
         }
 
         var produto = new ProdutoDaPlataforma(chave, comando.Nome, comando.Descricao ?? "", comando.Tipo, comando.PrecoSugeridoCents, comando.Ordem, relogio.GetUtcNow());
+        produto.DefinirDescontoDaRevenda(comando.DescontoDaRevendaBps ?? ProdutoDaPlataforma.DescontoPadraoBps);
         banco.ProdutosDaPlataforma.Add(produto);
         await banco.SaveChangesAsync(ct);
         return Dto(produto);
@@ -40,6 +43,11 @@ public sealed class CatalogoDaPlataforma(IBancoDeDados banco, TimeProvider relog
     {
         var produto = await Achar(id, ct);
         produto.Alterar(comando.Nome, comando.Descricao, comando.Tipo, comando.PrecoSugeridoCents, comando.Ordem);
+        if (comando.DescontoDaRevendaBps is { } desconto)
+        {
+            produto.DefinirDescontoDaRevenda(desconto);
+        }
+
         await banco.SaveChangesAsync(ct);
         return Dto(produto);
     }
@@ -80,5 +88,6 @@ public sealed class CatalogoDaPlataforma(IBancoDeDados banco, TimeProvider relog
         await banco.ProdutosDaPlataforma.SingleOrDefaultAsync(p => p.Id == id, ct) ?? throw new RegraDeNegocioException("Produto não encontrado.");
 
     private static ProdutoDaPlataformaDto Dto(ProdutoDaPlataforma p) =>
-        new(p.Id, p.Chave, p.Nome, p.Descricao, p.Tipo, p.PrecoSugeridoCents, p.Situacao, p.Ordem, Catalogo.FotoUrl(p), p.Foto is not null);
+        new(p.Id, p.Chave, p.Nome, p.Descricao, p.Tipo, p.PrecoSugeridoCents, p.Situacao, p.Ordem, Catalogo.FotoUrl(p), p.Foto is not null,
+            p.DescontoDaRevendaBps, p.ParteDaAvaliaCents);
 }

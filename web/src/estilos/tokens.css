@@ -30,7 +30,7 @@
   --accent-foreground: #1d1736;
   --destaque: oklch(0.671 0.234 342.3);
   --destaque-foreground: oklch(0.184 0.06 287.9);
-  --destructive: oklch(0.577 0.245 27.325);
+  --destructive: oklch(0.53 0.22 27.325);
   /* Campo conferido: borda e ícone, 4,9:1 sobre branco. */
   --sucesso: oklch(0.52 0.13 155);
   --border: oklch(0.91 0.012 285);

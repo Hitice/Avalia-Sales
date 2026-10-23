@@ -401,6 +401,10 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("criado_em");
 
+                    b.Property<int>("DescontoDaRevendaBps")
+                        .HasColumnType("integer")
+                        .HasColumnName("desconto_da_revenda_bps");
+
                     b.Property<string>("Descricao")
                         .IsRequired()
                         .HasMaxLength(600)
@@ -1828,6 +1832,10 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .HasMaxLength(10)
                         .HasColumnType("character varying(10)")
                         .HasColumnName("meio");
+
+                    b.Property<long>("ParteDaAvaliaCents")
+                        .HasColumnType("bigint")
+                        .HasColumnName("parte_da_avalia_cents");
 
                     b.Property<Guid?>("PlacaId")
                         .HasColumnType("uuid")

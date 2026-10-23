@@ -63,27 +63,36 @@ public sealed class Cobranca : IDoRevendedor
     {
     }
 
-    public Cobranca(OrigemDaCobranca origem, Guid? origemId, MeioDePagamento meio, long valorCents, int taxaAvaliaBps)
+    /// <summary>
+    /// O que é da Avalia: a taxa sobre o valor e a parte fixa do serviço que
+    /// ela executa. A soma nunca passa do valor cobrado.
+    /// </summary>
+    public Cobranca(OrigemDaCobranca origem, Guid? origemId, MeioDePagamento meio, long valorCents, int taxaAvaliaBps, long parteDaAvaliaCents = 0)
     {
         Origem = origem;
         OrigemId = origemId;
         Meio = meio;
         ValorCents = valorCents;
-        TaxaAvaliaCents = DivisaoDaCobranca.Calcular(valorCents, taxaAvaliaBps).AvaliaCents;
+        TaxaAvaliaCents = DivisaoDaCobranca.Calcular(valorCents, taxaAvaliaBps).AvaliaCents + parteDaAvaliaCents;
+        if (parteDaAvaliaCents < 0 || TaxaAvaliaCents > valorCents)
+        {
+            throw new RegraDeNegocioException("O valor não cobre a parte da Avalia neste serviço.");
+        }
     }
 
     /// <summary>
     /// Pagamento que não passou pelo Pagar.me: nasce paga, sem pedido no
     /// gateway. A taxa da Avalia não foi retida no split e fica a acertar.
     /// </summary>
-    public static Cobranca RecebidaPorFora(OrigemDaCobranca origem, Guid origemId, MeioDePagamento meio, long valorCents, int taxaAvaliaBps, DateTimeOffset agora)
+    public static Cobranca RecebidaPorFora(OrigemDaCobranca origem, Guid origemId, MeioDePagamento meio, long valorCents, int taxaAvaliaBps, DateTimeOffset agora,
+        long parteDaAvaliaCents = 0)
     {
         if (meio is not (MeioDePagamento.Dinheiro or MeioDePagamento.OutroPix))
         {
             throw new RegraDeNegocioException("Escolha dinheiro ou outro Pix.");
         }
 
-        return new Cobranca(origem, origemId, meio, valorCents, taxaAvaliaBps)
+        return new Cobranca(origem, origemId, meio, valorCents, taxaAvaliaBps, parteDaAvaliaCents)
         {
             Situacao = SituacaoDaCobranca.Paga,
             PagaEm = agora,

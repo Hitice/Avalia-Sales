@@ -5521,6 +5521,7 @@ export interface components {
             /** Format: int64 */
             precoCents: number;
         };
+        /** @description Sem desconto informado, o produto novo nasce com o padrão e o que existe mantém o dele. */
         GravarProdutoDaPlataforma: {
             chave: string;
             nome: string;
@@ -5530,6 +5531,8 @@ export interface components {
             precoSugeridoCents: number;
             /** Format: int32 */
             ordem: number;
+            /** Format: int32 */
+            descontoDaRevendaBps?: null | number;
         };
         /**
          * @description Um produto como a revenda vê: o do catálogo da Avalia com o preço dela.
@@ -5894,6 +5897,10 @@ export interface components {
             ordem: number;
             fotoUrl: null | string;
             temFotoEnviada: boolean;
+            /** Format: int32 */
+            descontoDaRevendaBps: number;
+            /** Format: int64 */
+            parteDaAvaliaCents: number;
         };
         ReceberPorFora: {
             meio: components["schemas"]["MeioDePagamento"];

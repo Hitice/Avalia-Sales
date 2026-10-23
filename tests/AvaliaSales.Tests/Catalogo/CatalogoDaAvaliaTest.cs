@@ -23,11 +23,11 @@ public sealed class CatalogoDaAvaliaTest(ApiDeTeste api)
 
         var doDono = (await revenda.Dono.Pegar("/catalogo")).EnumerateArray().Single(i => i.GetProperty("id").GetGuid() == id);
         Assert.Equal(30_000, doDono.GetProperty("precoCents").GetInt64());
-        Assert.Equal(1, doDono.GetProperty("pisoCents").GetInt64());
+        Assert.Equal(24_000, doDono.GetProperty("pisoCents").GetInt64()); // 80% do sugerido é a parte da Avalia
         Assert.Contains((await revenda.Dono.Pegar("/catalogo")).EnumerateArray(), i => i.GetProperty("chave").GetString() == "placa-avaliacao-google"
             && i.GetProperty("fotoUrl").GetString() == "/produtos/placa-avaliacao-google.jpg");
 
-        // Serviço: preço livre, só maior que zero. A revenda não cria produto nem mexe no catálogo da Avalia.
+        // Serviço: preço livre acima da parte da Avalia. A revenda não cria produto nem mexe no catálogo da Avalia.
         await revenda.Dono.Colocar($"/catalogo/{id}", new { precoCents = 25_000L });
         Assert.Equal(HttpStatusCode.Forbidden, (await revenda.Dono.GetAsync("/operadora/catalogo", Ct)).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await revenda.Dono.PostAsJsonAsync("/produtos", new { nome = "Placa", precoCents = 100 }, Ct)).StatusCode);

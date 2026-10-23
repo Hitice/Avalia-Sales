@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ImageOff, ImageUp, Plus } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { chamarApi, chamarResposta, enviarJson, mensagemDoErro } from '@/api/cliente'
-import { ROTULO_DO_PRODUTO, ROTULO_DO_TIPO } from '@/api/rotulos'
+import { formatarBps, paraBps, ROTULO_DO_PRODUTO, ROTULO_DO_TIPO } from '@/api/rotulos'
 import type { ProdutoDaPlataforma, SituacaoDoProduto, TipoDeProduto } from '@/api/tipos'
 import { Cabecalho, Erro, EstadoDaConsulta } from '@/componentes/Tela'
 import { Button } from '@/components/ui/button'
@@ -77,6 +77,11 @@ export function TelaDoCatalogoDaAvalia() {
                 <p className="text-xs text-muted-foreground">{ROTULO_DO_TIPO[p.tipo]}, ordem {p.ordem}</p>
                 <h2 className="font-heading text-lg font-semibold">{p.nome}</h2>
                 <p className="text-sm tabular-nums">Sugerido {formatarCentavos(p.precoSugeridoCents)}</p>
+                {p.tipo !== 'Placa' && (
+                  <p className="text-sm text-muted-foreground tabular-nums">
+                    Revenda com {formatarBps(p.descontoDaRevendaBps)} de desconto; Avalia recebe {formatarCentavos(p.parteDaAvaliaCents)}
+                  </p>
+                )}
               </div>
               <Select value={p.situacao} onValueChange={(v) => situacao.mutate({ id: p.id, valor: v as SituacaoDoProduto })}>
                 <SelectTrigger aria-label={`Situação de ${p.nome}`} className="w-full"><SelectValue /></SelectTrigger>
@@ -106,9 +111,10 @@ function FormularioDoProduto({ produto, aoFechar, aoSalvar }: { produto: Produto
   const [tipo, setTipo] = useState<TipoDeProduto>(produto?.tipo ?? 'Servico')
   const [preco, setPreco] = useState(produto ? (produto.precoSugeridoCents / 100).toFixed(2).replace('.', ',') : '')
   const [ordem, setOrdem] = useState(String(produto?.ordem ?? 10))
+  const [desconto, setDesconto] = useState(formatarBps(produto?.descontoDaRevendaBps ?? 2_000).replace('%', ''))
   const gravar = useMutation({
     mutationFn: () => {
-      const corpo = { chave, nome, descricao, tipo, precoSugeridoCents: paraCentavos(preco), ordem: Number(ordem) || 0 }
+      const corpo = { chave, nome, descricao, tipo, precoSugeridoCents: paraCentavos(preco), ordem: Number(ordem) || 0, descontoDaRevendaBps: paraBps(desconto) }
       return produto ? chamarApi(`/operadora/catalogo/${produto.id}`, enviarJson('PUT', corpo)) : chamarApi('/operadora/catalogo', enviarJson('POST', corpo))
     },
     onSuccess: async () => {
@@ -152,14 +158,22 @@ function FormularioDoProduto({ produto, aoFechar, aoSalvar }: { produto: Produto
               <Input id="ordem" inputMode="numeric" value={ordem} onChange={(e) => setOrdem(e.target.value.replace(/\D/g, ''))} />
             </Field>
           </div>
-          <Field>
-            <FieldLabel htmlFor="sugerido">Preço sugerido</FieldLabel>
-            <Input id="sugerido" inputMode="decimal" placeholder="0,00" value={preco} onChange={(e) => setPreco(e.target.value)} />
-          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field>
+              <FieldLabel htmlFor="sugerido">Preço sugerido</FieldLabel>
+              <Input id="sugerido" inputMode="decimal" placeholder="0,00" value={preco} onChange={(e) => setPreco(e.target.value)} />
+            </Field>
+            {tipo !== 'Placa' && (
+              <Field>
+                <FieldLabel htmlFor="desconto">Desconto da revenda (%)</FieldLabel>
+                <Input id="desconto" inputMode="decimal" value={desconto} onChange={(e) => setDesconto(e.target.value)} />
+              </Field>
+            )}
+          </div>
         </form>
         <DialogFooter>
           <Button variant="ghost" onClick={aoFechar}>Cancelar</Button>
-          <Button type="submit" form="produto" disabled={!nome.trim() || paraCentavos(preco) === null || (!produto && !chave.trim()) || gravar.isPending}>Salvar</Button>
+          <Button type="submit" form="produto" disabled={!nome.trim() || paraCentavos(preco) === null || paraBps(desconto) === null || (!produto && !chave.trim()) || gravar.isPending}>Salvar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
