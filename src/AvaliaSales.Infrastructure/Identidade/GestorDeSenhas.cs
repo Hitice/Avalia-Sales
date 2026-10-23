@@ -178,6 +178,61 @@ public sealed class GestorDeSenhas(BancoDeDados banco, UserManager<Usuario> usua
     }
 
     /// <summary>
+    /// Troca logada: confere a senha atual (erros seguidos bloqueiam como na
+    /// entrada), grava a nova, encerra todas as sessões e avisa por e-mail. Quem
+    /// chama abre a sessão nova deste aparelho.
+    /// </summary>
+    public async Task<Usuario> Trocar(Guid usuarioId, string? atual, string? nova, CancellationToken ct)
+    {
+        var usuario = await usuarios.FindByIdAsync(usuarioId.ToString()) ?? throw new RegraDeNegocioException("Login não encontrado.");
+        if (await usuarios.IsLockedOutAsync(usuario))
+        {
+            throw new RegraDeNegocioException("Muitas tentativas erradas. Espere 15 minutos.");
+        }
+
+        if (!await usuarios.CheckPasswordAsync(usuario, atual ?? string.Empty))
+        {
+            await usuarios.AccessFailedAsync(usuario);
+            throw new RegraDeNegocioException("Senha atual não confere.");
+        }
+
+        if (nova == atual)
+        {
+            throw new RegraDeNegocioException("A senha nova precisa ser diferente da atual.");
+        }
+
+        foreach (var validador in usuarios.PasswordValidators)
+        {
+            var conferida = await validador.ValidateAsync(usuarios, usuario, nova ?? string.Empty);
+            if (!conferida.Succeeded)
+            {
+                throw new RegraDeNegocioException(string.Join(" ", conferida.Errors.Select(Contas.Traduzir)));
+            }
+        }
+
+        var agora = relogio.GetUtcNow();
+        await using var transacao = await banco.Database.BeginTransactionAsync(ct);
+        usuario.PasswordHash = usuarios.PasswordHasher.HashPassword(usuario, nova!);
+        usuario.AccessFailedCount = 0;
+        usuario.LockoutEnd = null;
+        usuario.SecurityStamp = Guid.NewGuid().ToString("N");
+        await usuarios.UpdateAsync(usuario);
+        await banco.Sessoes.Where(s => s.UsuarioId == usuario.Id && s.EncerradaEm == null)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.EncerradaEm, agora), ct);
+        emails.Enfileirar($"senha-trocada:{usuario.Id:N}:{agora.ToUnixTimeSeconds()}", usuario.Email!, "Sua senha foi alterada",
+            $"""
+            Olá, {usuario.Nome}.
+
+            A senha da sua conta na Avalia Sales foi alterada agora. Os outros aparelhos saíram da conta.
+
+            Se não foi você, use "Esqueci a senha" em {plataforma.Value.UrlDoPainel}/esqueci e fale com o suporte.
+            """);
+        await banco.SaveChangesAsync(ct);
+        await transacao.CommitAsync(ct);
+        return usuario;
+    }
+
+    /// <summary>
     /// O link travado na transação de quem chama. Sem <paramref name="finalidade"/>,
     /// aceita os de senha (convite e redefinição) e recusa o de confirmação.
     /// </summary>

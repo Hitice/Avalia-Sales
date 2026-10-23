@@ -39,6 +39,35 @@
         }
       }
     },
+    "/conta/senha": {
+      "post": {
+        "tags": [
+          "AvaliaSales.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrocaDeSenha"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenEmitido"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/cadastro": {
       "post": {
         "tags": [
@@ -7085,6 +7114,27 @@
           },
           "perfil": {
             "$ref": "#/components/schemas/Perfil"
+          }
+        }
+      },
+      "TrocaDeSenha": {
+        "required": [
+          "atual",
+          "nova"
+        ],
+        "type": "object",
+        "properties": {
+          "atual": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "nova": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },

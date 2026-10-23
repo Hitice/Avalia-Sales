@@ -112,7 +112,7 @@ Todas no mesmo app, liberadas pelo papel do usuário.
 | Auditoria | Dono | Computador | Quem mudou o quê, com antes e depois, busca pelo código, filtro pela ação, 20 por página e exportação em JSON |
 | Suporte | Dono | Computador e celular | Chamados com a Avalia, com o prazo de resposta |
 | Notificações | Todos | Celular e computador | O sino do cabeçalho - pendências da revenda (contrato, recebimento, celular, endereço, distrato) e avisos ao vivo; o vendedor vê os dele (venda paga, comissão repassada, placas com ele) |
-| Meus dados | Todos | Celular e computador | No menu da conta - nome de todos; nome da empresa, celular e endereço do dono (o CNPJ não muda); telefone e chave Pix do vendedor; o dono encerra a conta aqui. O e-mail muda pelo Suporte |
+| Meus dados | Todos | Celular e computador | No menu da conta - nome de todos; nome da empresa, celular e endereço do dono (o CNPJ não muda); telefone e chave Pix do vendedor; trocar a senha (pede a atual; os outros aparelhos saem e chega um aviso por e-mail); o dono encerra a conta aqui. O e-mail muda pelo Suporte |
 | Segurança | Dono e operadora | Celular e computador | Ativar o segundo fator (app autenticador ou código no e-mail), com códigos de recuperação. Desativar manda um código novo ao e-mail cadastrado; o do app e os de recuperação também valem |
 | Painel do vendedor | Vendedor | Celular | Vendas do mês, comissão a receber, esperando pagamento e recebida, placas com ele |
 | Nova venda | Dono e vendedor | Celular | Negócio no Google, QR da placa, cliente, cobrança, gravação do NFC; ou venda de serviço, sem placa |
@@ -509,6 +509,7 @@ porque está impresso nas placas vendidas.
 
 | Data | Mudança |
 | --- | --- |
+| 23/10/2026 | Troca de senha logado, em Meus dados, para todos os papéis - pede a senha atual, derruba os outros aparelhos e avisa por e-mail. Vale também com a conta encerrada. |
 | 23/10/2026 | Cadastro temporário de operadora na tela de entrada - só e-mail @avaliaone.com.br, com código de 6 dígitos enviado ao e-mail. Fica fechado e só abre enquanto a Avalia cria a conta; cada operadora criada entra na auditoria. A operadora não pertence a revenda e não assina contrato. Sai depois da criação das contas da operação. |
 | 23/10/2026 | Importação recusada em conta encerrada, também no ensaio; vale depois da reabertura aprovada. |
 | 23/10/2026 | Venda trazida do sistema anterior aparece como "Paga no sistema anterior" e não se cobra, cancela, vira cortesia nem recebe por fora. A comissão devida trazida entra no mês da importação, sem mudar mês fechado do razão. |

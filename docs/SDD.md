@@ -564,7 +564,7 @@ tentativas.
 | Papéis operadora, dono e vendedor no token, com política por área da API; operadora sem revendedor | No código |
 | Refresh token rotativo em cookie HttpOnly e SameSite Strict, 14 dias, só o hash no banco; token já trocado apresentado de novo encerra o login inteiro (RFC 9700) | No código |
 | Login desativado não entra e perde as sessões abertas | No código |
-| Convite do vendedor e "esqueci a senha" por link de uso único (`links_de_senha`, só o hash; convite 24 horas, redefinição 1 hora; link novo derruba o anterior). O token vai depois do `#`, fora de log e de Referer. Pedido de link responde igual com e sem conta. Senha trocada destrava o login e encerra as sessões abertas | No código |
+| Convite do vendedor e "esqueci a senha" por link de uso único (`links_de_senha`, só o hash; convite 24 horas, redefinição 1 hora; link novo derruba o anterior). O token vai depois do `#`, fora de log e de Referer. Pedido de link responde igual com e sem conta. Senha trocada destrava o login e encerra as sessões abertas. Troca logada (`POST /conta/senha`) confere a senha atual com o bloqueio da entrada, encerra todas as sessões, abre a deste aparelho e avisa por e-mail | No código |
 | Leitura do QR com limite de 300 por minuto por IP, sem cookie, robôs não contam | No código |
 | CSP no HTML do front (Nginx): só o próprio domínio, Pagar.me (token do cartão), Google Maps e Places, Sentry e `wasm-unsafe-eval` para o leitor de QR; `frame-ancestors 'none'` | Em produção, conferida com `curl -sI` em 23/10/2026, com HSTS, nosniff, Referrer-Policy e Permissions-Policy |
 | Segredos - gitleaks no CI (job `segredos`) e sem achado no histórico; falso positivo conferido no `.gitleaksignore` | No código |
@@ -702,6 +702,7 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
 
 | Data | Mudança |
 | --- | --- |
+| 23/10/2026 | `POST /conta/senha` (`GestorDeSenhas.Trocar`), com limite da entrada e liberada na conta encerrada, como `/conta/segundo-fator`. |
 | 23/10/2026 | Cadastro temporário de operadora - `GET /cadastro/operadora`, `POST /cadastro/operadora/codigo` (limite por IP) e `POST /cadastro/operadora`. Só e-mail do domínio `Plataforma:DominioDaOperadora`, código do provedor de e-mail do Identity, bloqueio por tentativas erradas. Fechado por padrão: abre só com `Plataforma:CadastroDeOperadoraAberto=true`, que em produção vem da variável `CADASTRO_DE_OPERADORA_ABERTO` do ambiente `producao` do GitHub. Cada operadora criada entra na auditoria da operadora. |
 | 23/10/2026 | `Importacao.Importar` recusa revendedor com `encerrada_em`. |
 | 23/10/2026 | Migration VendaDoSistemaAnterior (`vendas.do_sistema_anterior`), recusa em `Vendas` (cobrança, cancelamento, cortesia, recebido por fora). A comissão devida importada entra com a data da importação; a da venda vai na descrição. |

@@ -24,6 +24,7 @@ public sealed class ContaEncerrada(RequestDelegate proximo)
         if ((leitura && !buscaNoGoogle)
             || caminho.StartsWithSegments("/auth") || caminho.StartsWithSegments(HubDeAvisos.Rota) || caminho.StartsWithSegments("/notificacoes")
             || caminho.StartsWithSegments("/revenda/reabertura") || caminho.StartsWithSegments("/chamados")
+            || caminho.StartsWithSegments("/conta/senha") || caminho.StartsWithSegments("/conta/segundo-fator")
             || atual.RevendedorId is not { } revendedor)
         {
             await proximo(http);

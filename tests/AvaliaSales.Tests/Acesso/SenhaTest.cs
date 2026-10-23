@@ -84,6 +84,29 @@ public sealed partial class SenhaTest(ApiDeTeste api)
         await anonimo.Postar("/auth/senha", new { token, senha = "agora-uma-senha-longa" });
     }
 
+    [Fact]
+    public async Task Troca_logada_confere_a_senha_atual_derruba_os_outros_aparelhos_e_avisa()
+    {
+        var (_, email) = await api.CriarRevendedor("Revenda Troca");
+        var esteAparelho = await api.ClienteLogado(email);
+        var outroAparelho = await api.ClienteLogado(email);
+
+        await esteAparelho.Postar("/conta/senha", new { atual = "senha-errada-123", nova = "senha-nova-do-dono" }, HttpStatusCode.UnprocessableEntity);
+        await esteAparelho.Postar("/conta/senha", new { atual = ApiDeTeste.Senha, nova = ApiDeTeste.Senha }, HttpStatusCode.UnprocessableEntity);
+        await esteAparelho.Postar("/conta/senha", new { atual = ApiDeTeste.Senha, nova = "curta" }, HttpStatusCode.UnprocessableEntity);
+        var emitido = await esteAparelho.Postar("/conta/senha", new { atual = ApiDeTeste.Senha, nova = "senha-nova-do-dono" });
+
+        Assert.False(string.IsNullOrEmpty(emitido.GetProperty("token").GetString()));
+        Assert.Equal(HttpStatusCode.OK, (await esteAparelho.PostAsync("/auth/renovar", null, TestContext.Current.CancellationToken)).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await outroAparelho.PostAsync("/auth/renovar", null, TestContext.Current.CancellationToken)).StatusCode);
+        var anonimo = api.Fabrica.CreateClient();
+        var antiga = await anonimo.PostAsJsonAsync("/auth/entrar", new { email, senha = ApiDeTeste.Senha }, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.Unauthorized, antiga.StatusCode);
+        await anonimo.Postar("/auth/entrar", new { email, senha = "senha-nova-do-dono" });
+        await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
+        Assert.Equal(1, await banco.Contar($"select count(*) from emails where para = '{email}' and assunto = 'Sua senha foi alterada'"));
+    }
+
     private async Task<string> UltimoEmail(string para)
     {
         await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);

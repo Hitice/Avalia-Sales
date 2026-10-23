@@ -17,6 +17,8 @@ public sealed record NovaSenha(string? Token, string? Senha);
 public sealed record PedidoDeConfirmacao(string? Token);
 public sealed record CodigoDeConfirmacao(string? Codigo);
 
+public sealed record TrocaDeSenha(string? Atual, string? Nova);
+
 public sealed record CodigoDaEntrada(string? Desafio, string? Codigo);
 
 public sealed record CodigoDoAutenticador(string? Codigo);
@@ -112,6 +114,11 @@ public static class RotasDeAcesso
             await senhas.ConfirmarComCodigo(atual.UsuarioId ?? throw new InvalidOperationException("Sem usuário."), pedido.Codigo, ct);
             return Results.NoContent();
         }).RequireAuthorization().RequireRateLimiting(LimiteDeEntrada);
+        // Troca logada: as outras sessões caem e este aparelho recebe uma sessão nova.
+        rotas.MapPost("/conta/senha", async (TrocaDeSenha pedido, HttpContext http, IUsuarioAtual atual, GestorDeSenhas senhas, GestorDeSessoes sessoes,
+            EmissorDeToken emissor, BancoDeDados banco, CancellationToken ct) =>
+            await Entrou(http, await senhas.Trocar(Guid.Parse(Atual(atual)), pedido.Atual, pedido.Nova, ct), sessoes, emissor, banco, ct))
+            .RequireAuthorization().RequireRateLimiting(LimiteDeEntrada).Produces<TokenEmitido>();
         rotas.MapPost("/cadastro", Cadastrar).AllowAnonymous().RequireRateLimiting(LimiteDeEntrada).Produces<TokenEmitido>();
 
         // Cadastro temporário da operadora pela tela de entrada (CadastroDeOperadora): só e-mail da Avalia, com código.
