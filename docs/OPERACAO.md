@@ -52,7 +52,15 @@ Arquitetura e decisões no [SDD](SDD.md); cada decisão estrutural em
    docker compose -f docker-compose.producao.yml --env-file /srv/avalia-sales/.env exec nginx nginx -s reload
    ```
 
-7. Operadora e revendedores:
+7. Operadora e revendedores. Todo `run --rm api` roda na pasta do checkout
+   (`/home/deploy/actions-runner/_work/Avalia-Sales/Avalia-Sales`) com a
+   versão que está no ar; sem `VERSAO`, o Compose usa a imagem `local`, que
+   pode ser antiga:
+
+   ```bash
+   export VERSAO=$(docker inspect --format '{{.Config.Image}}' avalia-sales-api-1 | cut -d: -f2)
+   ```
+
 
    ```bash
    docker compose -f docker-compose.producao.yml --env-file /srv/avalia-sales/.env run --rm api \
@@ -81,9 +89,11 @@ Arquitetura e decisões no [SDD](SDD.md); cada decisão estrutural em
    `re_`, que fica com a parte da Avalia)
    e `PAGARME_SEGREDO_DO_WEBHOOK` (já existe: o Compose não sobe sem ele). A chave não vai
    para o GitHub nem para o chat.
-2. Recriar API e Worker com o `.env` novo, na pasta do checkout:
+2. Recriar API e Worker com o `.env` novo, na pasta do checkout e com a
+   versão que está no ar (sem `VERSAO`, o Compose sobe a imagem `local`):
 
    ```bash
+   export VERSAO=$(docker inspect --format '{{.Config.Image}}' avalia-sales-api-1 | cut -d: -f2)
    docker compose -f docker-compose.producao.yml --env-file /srv/avalia-sales/.env up -d api worker
    ```
 
