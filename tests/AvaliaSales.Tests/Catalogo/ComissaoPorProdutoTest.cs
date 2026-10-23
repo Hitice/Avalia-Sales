@@ -21,9 +21,10 @@ public sealed class ComissaoPorProdutoTest(ApiDeTeste api)
         await (await api.ClienteLogado(comExcecao)).Postar("/vendas", Cenarios.Venda(revenda.Codigos[2], premium, "11955550003"), HttpStatusCode.Created);
 
         var vendas = (await revenda.Dono.Pegar("/vendas")).EnumerateArray().ToDictionary(v => v.GetProperty("codigo").GetString()!, v => v.GetProperty("comissaoCents").GetInt64());
-        Assert.Equal(15_000, vendas[revenda.Codigos[0]]); // 30% do produto
+        // No Perfil no Google com placa, a comissão é sobre o que fica com a revenda: R$ 500,00 menos R$ 424,15 da Avalia.
+        Assert.Equal(2_276, vendas[revenda.Codigos[0]]); // 30% do produto
         Assert.Equal(2_998, vendas[revenda.Codigos[1]]); // 20% padrão sobre R$ 149,90
-        Assert.Equal(5_000, vendas[revenda.Codigos[2]]); // 10% do vendedor vence o do produto
+        Assert.Equal(759, vendas[revenda.Codigos[2]]); // 10% do vendedor vence o do produto
     }
 
     [Fact]

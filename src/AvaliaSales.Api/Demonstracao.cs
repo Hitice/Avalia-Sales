@@ -147,7 +147,7 @@ internal static class Demonstracao
         // O preço da revenda para três produtos do catálogo da Avalia (a migration traz o catálogo).
         // Os dois que levam placa; a terceira venda repete o primeiro.
         var daPlaca = await DoCatalogo(banco, "placa-avaliacao-google", 14_990, ct);
-        var produtos = new[] { daPlaca, await DoCatalogo(banco, "perfil-google-placa", 49_900, ct), daPlaca };
+        var produtos = new[] { daPlaca, await DoCatalogo(banco, "perfil-google-placa", 19_990, ct), daPlaca };
 
         var bruna = await Vendedor(escopo.ServiceProvider, banco, revendedorId, "Bruna Lima", "vendedor@a.dev", 2_500, agora);
         var dono = (await banco.Users.SingleAsync(u => u.RevendedorId == revendedorId && u.Papel == Papel.Dono, ct)).Id;

@@ -188,9 +188,9 @@ Todas no mesmo app, liberadas pelo papel do usuário.
 | --- | --- |
 | Quem ajusta | Só o dono, na tela Vendedores; toda mudança vai à auditoria |
 | Níveis | Padrão do revendedor, exceção por produto, exceção por vendedor; vale a mais específica |
-| Base | Valor bruto da venda |
+| Base | O que fica com a revenda - na placa, o valor bruto da venda; no serviço, o valor menos a parte da Avalia. Exemplo - landing page a R$ 899,00 com 20%: R$ 35,96 (20% de R$ 179,80) |
 | Forma | Percentual em pontos base (2000 = 20%) |
-| Limite | Recusada se deixar o revendedor sem cobrir a taxa da Avalia e a do Pagar.me |
+| Limite | Até 50%, sobre a base acima; a parte da Avalia nunca entra na conta da comissão |
 | Mudança | Vale para venda nova; venda feita mantém o percentual gravado |
 | Cortesia e renovação | Sem comissão; o dono pode ligar comissão de renovação |
 | Estorno | Lançamento negativo no saldo do vendedor, descontado do próximo repasse |
@@ -520,6 +520,7 @@ porque está impresso nas placas vendidas.
 
 | Data | Mudança |
 | --- | --- |
+| 23/10/2026 | Comissão do serviço sobre o que fica com a revenda (valor menos a parte da Avalia), para a comissão não comer a margem. Na placa, segue sobre o valor bruto. |
 | 23/10/2026 | Parte da Avalia no serviço - a revenda tem 20% de desconto sobre o sugerido em todos os serviços e 15% no Perfil no Google com placa; o resto vai para a Avalia pelo split. O custo que a revenda vê no catálogo já inclui a parte da Avalia; recebido por fora, a parte fica a acertar no razão. |
 | 23/10/2026 | Taxa da Avalia zerada - a venda e a renovação vão inteiras para a revenda pelo split, que paga a tarifa do Pagar.me; a Avalia ganha nas placas e nos serviços. Venda já feita guarda a taxa dela. O razão e as Configurações só mostram a taxa quando ela existe. |
 | 23/10/2026 | Pedido de placas pode sair para retirada na Avalia - a operadora escolhe "Pronto para retirada" em vez de Despachar, o dono recebe o aviso de que a caixa está pronta e ativa o lote igual. Revenda com o mesmo recebedor da Avalia é cobrada numa regra só do split. Logos das integrações no pé da tela de entrada. |

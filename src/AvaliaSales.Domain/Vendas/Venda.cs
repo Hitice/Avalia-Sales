@@ -83,7 +83,11 @@ public sealed class Venda : IDoRevendedor
         VendidaEm = agora;
     }
 
-    public long ComissaoCents => Comissao.Calcular(ValorCents, ComissaoBps);
+    /// <summary>
+    /// Sobre o que fica com a revenda: na placa, o valor inteiro; no serviço,
+    /// o valor menos a parte da Avalia. Assim a comissão nunca come a margem.
+    /// </summary>
+    public long ComissaoCents => Comissao.Calcular(ValorCents - ParteDaAvaliaCents, ComissaoBps);
 
     /// <summary>
     /// Venda feita em outro sistema: o valor é o que foi cobrado lá, sem a regra
