@@ -706,6 +706,7 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
 
 | Data | Mudança |
 | --- | --- |
+| 23/10/2026 | `--importar-placas` lê a data sem hora (meia-noite em Brasília) e a grava em UTC; antes o Postgres recusava o fuso -03:00 e o arquivo inteiro caía no salvamento. |
 | 23/10/2026 | `converter_do_sales.py --no-ar-sem-venda-a-zero` - placa ativa ou suspensa sem venda no Sales entra como venda de R$ 0 na data do cadastro, sem vendedor; `--so-os-mapeados` deixa com o dono a venda de quem não está no `--vendedor`. |
 | 23/10/2026 | CI do `main` ignora push só de documento (`paths-ignore`), e com isso o deploy dele não fica esperando aprovação. Estorno de venda cancela as ordens de serviço abertas dela (`EfeitosDaCobranca.Estornar`). |
 | 23/10/2026 | `Parcelamento` (custo do Pix e do cartão de 1x a 12x); total do parcelado com o custo para o cliente e parte da Avalia líquida da tarifa no Pix e à vista; `custoDasParcelasBps` em `GET /pagamento/cartao`. Migration `PerfilDoGoogleComVintePorCento`. |

@@ -171,7 +171,7 @@ internal static class Importar
         }
     }
 
-    /// <summary>2026-01-10 é meia-noite em Brasília; com hora e fuso, vale o que veio.</summary>
+    /// <summary>2026-01-10 é meia-noite em Brasília; com hora e fuso, vale o que veio. Sai em UTC, que é o que o Postgres grava.</summary>
     private static DateTimeOffset? Data(string? texto, int linha)
     {
         if (texto is null)
@@ -182,11 +182,11 @@ internal static class Importar
         if (DateOnly.TryParseExact(texto, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var dia))
         {
             var meiaNoite = dia.ToDateTime(TimeOnly.MinValue);
-            return new DateTimeOffset(meiaNoite, Brasilia.GetUtcOffset(meiaNoite));
+            return new DateTimeOffset(meiaNoite, Brasilia.GetUtcOffset(meiaNoite)).ToUniversalTime();
         }
 
         return DateTimeOffset.TryParse(texto, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var data)
-            ? data
+            ? data.ToUniversalTime()
             : throw new FormatException($"Linha {linha}: data inválida {texto} (use 2026-01-10).");
     }
 

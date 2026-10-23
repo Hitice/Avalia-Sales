@@ -49,6 +49,26 @@ public sealed class ImportacaoTest(ApiDeTeste api)
     }
 
     [Fact]
+    public async Task Arquivo_com_data_sem_hora_chega_ao_banco()
+    {
+        var (revendedorId, _) = await api.CriarRevendedor("Revenda da Data sem Hora");
+        var arquivo = Path.GetTempFileName();
+        File.WriteAllText(arquivo, "codigo,situacao,destino,vendida_em,vence_em,valor_cents\n" +
+            $"{Codigo()},ativa,https://padaria.com.br,2026-09-25T13:54:38+00:00,2027-09-25,9990\n");
+        try
+        {
+            var resultado = await Importar(revendedorId, global::AvaliaSales.Api.Importar.LerPlacas(arquivo), ensaio: true);
+
+            Assert.Empty(resultado.Recusas);
+            Assert.Equal(1, resultado.NoAr);
+        }
+        finally
+        {
+            File.Delete(arquivo);
+        }
+    }
+
+    [Fact]
     public async Task Importacao_grava_placas_vendas_e_a_leitura_redireciona_e_libera_a_reserva()
     {
         var (revendedorId, email) = await api.CriarRevendedor("Revenda Importada");
@@ -214,6 +234,8 @@ public sealed class LeituraDoArquivoTest
             Assert.Equal("Padaria, Pão e Cia", linhas[0].ClienteNome);
             Assert.Equal(14_990, linhas[0].ValorCents);
             Assert.Equal(new DateTimeOffset(2026, 1, 10, 0, 0, 0, TimeSpan.FromHours(-3)), linhas[0].VendidaEm);
+            // O Postgres só grava timestamptz com fuso zero.
+            Assert.Equal(TimeSpan.Zero, linhas[0].VendidaEm!.Value.Offset);
             Assert.Null(linhas[1].VendidaEm);
             Assert.Equal(3, linhas[1].Linha);
         }
