@@ -16,6 +16,19 @@ public sealed class EncerramentoTest(ApiDeTeste api)
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     [Fact]
+    public async Task Revenda_sem_celular_salva_o_endereco_e_o_celular_vazio_nao_apaga_o_gravado()
+    {
+        var (_, email) = await api.CriarRevendedor("Revenda Sem Celular Endereço");
+        var dono = await api.ClienteLogado(email);
+
+        var salvo = await dono.Colocar("/conta/dados/empresa", new { nome = "Revenda Sem Celular Endereço", celular = (string?)null, endereco = ApiDeTeste.Endereco });
+
+        Assert.Equal("38400192", salvo.GetProperty("empresa").GetProperty("endereco").GetProperty("cep").GetString());
+        await dono.Colocar("/conta/dados/empresa", new { nome = "Revenda Sem Celular Endereço", celular = "(34) 99876-5432", endereco = (object?)null });
+        await dono.Colocar("/conta/dados/empresa", new { nome = "Revenda Sem Celular Endereço", celular = "", endereco = (object?)null }, HttpStatusCode.UnprocessableEntity);
+    }
+
+    [Fact]
     public async Task Encerrar_pede_o_endereco_da_empresa()
     {
         var (_, email) = await api.CriarRevendedor("Revenda Sem Endereço Encerra");
@@ -104,6 +117,10 @@ public sealed class EncerramentoTest(ApiDeTeste api)
 
         var renovacao = await avalia.Dono.Postar($"/placas/{vendida}/renovacao", new { });
         Assert.Equal(12_000, renovacao.GetProperty("valorCents").GetInt64());
+        var ficha = await avalia.Dono.Pegar($"/placas/{vendida}");
+        Assert.Equal("Padaria Pão Quente", ficha.GetProperty("venda").GetProperty("cliente").GetString());
+        Assert.Equal(20_000, ficha.GetProperty("venda").GetProperty("valorCents").GetInt64());
+        await revenda.Dono.Postar("/notificacoes/lidas", new { }, HttpStatusCode.NoContent);
     }
 
     [Fact]

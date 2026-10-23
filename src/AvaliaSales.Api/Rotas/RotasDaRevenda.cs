@@ -84,6 +84,8 @@ public static class RotasDaRevenda
             await contrato.Reenviar(Domain.Contratos.TipoDeContrato.ContratoDoRevendedor, ct);
             return Results.NoContent();
         });
+        dono.MapPost("/revenda/contrato/conferencia", (Application.Contratos.ContratoDaRevenda contrato, CancellationToken ct) =>
+            contrato.Conferir(Domain.Contratos.TipoDeContrato.ContratoDoRevendedor, ct));
         dono.MapGet("/revenda/contrato/pdf", async (Application.Contratos.ContratoDaRevenda contrato, CancellationToken ct) =>
         {
             var (pdf, nome) = await contrato.Copia(Domain.Contratos.TipoDeContrato.ContratoDoRevendedor, ct);
@@ -98,6 +100,8 @@ public static class RotasDaRevenda
             await contrato.Reenviar(Domain.Contratos.TipoDeContrato.Distrato, ct);
             return Results.NoContent();
         });
+        dono.MapPost("/revenda/encerramento/conferencia", (Application.Contratos.ContratoDaRevenda contrato, CancellationToken ct) =>
+            contrato.Conferir(Domain.Contratos.TipoDeContrato.Distrato, ct));
         dono.MapGet("/revenda/encerramento/pdf", async (Application.Contratos.ContratoDaRevenda contrato, CancellationToken ct) =>
         {
             var (pdf, nome) = await contrato.Copia(Domain.Contratos.TipoDeContrato.Distrato, ct);

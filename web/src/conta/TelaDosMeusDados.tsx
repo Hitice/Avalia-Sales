@@ -27,10 +27,12 @@ const esquemaDoEndereco = z.object({ endereco })
 /** Os dados de quem está logado: o nome de todos, a empresa do dono e o recebimento do vendedor. */
 export function TelaDosMeusDados() {
   const dados = useQuery({ queryKey: chave, queryFn: () => chamarApi<DadosDaConta>('/conta/dados') })
+  // Fora dos formulários: a chave abaixo os remonta quando a gravação volta, e o aviso sumiria junto.
+  const [salvo, setSalvo] = useState(false)
   if (dados.isPending) return <CarregandoTela />
   if (!dados.data) return <Erro erro={dados.error} />
   // A chave refaz os formulários quando os dados gravados voltam da API.
-  return <Formularios key={JSON.stringify(dados.data)} dados={dados.data} />
+  return <Formularios key={JSON.stringify(dados.data)} dados={dados.data} salvo={salvo} aoSalvar={setSalvo} />
 }
 
 function useGravar(caminho: string) {
@@ -45,7 +47,7 @@ function useGravar(caminho: string) {
   })
 }
 
-function Formularios({ dados }: { dados: DadosDaConta }) {
+function Formularios({ dados, salvo, aoSalvar }: { dados: DadosDaConta; salvo: boolean; aoSalvar: (salvo: boolean) => void }) {
   const renomear = useSessao((s) => s.renomear)
   const [nome, setNome] = useState(dados.nome)
   const [celular, setCelular] = useState(dados.empresa?.celular ? mascaraTelefone(dados.empresa.celular) : '')
@@ -59,7 +61,8 @@ function Formularios({ dados }: { dados: DadosDaConta }) {
     mode: 'onChange',
     defaultValues: { endereco: doEnderecoInformado(dados.empresa?.endereco) ?? ENDERECO_VAZIO },
   })
-  const [salvo, setSalvo] = useState(false)
+  // Lido na renderização: o formState do React Hook Form só acompanha o que a tela lê.
+  const enderecoMudou = formularioDoEndereco.formState.isDirty
   const salvando = gravarNome.isPending || gravarEmpresa.isPending || gravarRecebimento.isPending
   const erro = gravarNome.error ?? gravarEmpresa.error ?? gravarRecebimento.error
   // Celular vazio não trava o resto: só o digitado pela metade.
@@ -67,10 +70,9 @@ function Formularios({ dados }: { dados: DadosDaConta }) {
 
   /** Um Salvar para a tela toda: grava só o bloco que mudou. */
   async function salvar() {
-    setSalvo(false)
+    aoSalvar(false)
     try {
       if (nome.trim() !== dados.nome) renomear((await gravarNome.mutateAsync({ nome })).nome)
-      const enderecoMudou = formularioDoEndereco.formState.isDirty
       if (enderecoMudou && !(await formularioDoEndereco.trigger())) return
       const celularMudou = digitos(celular).length > 0 && digitos(celular) !== (dados.empresa?.celular ?? '')
       if (dados.empresa && (celularMudou || enderecoMudou)) {
@@ -83,7 +85,7 @@ function Formularios({ dados }: { dados: DadosDaConta }) {
       if (dados.recebimento && (digitos(telefone) !== (dados.recebimento.telefone ?? '') || chavePix.trim() !== (dados.recebimento.chavePix ?? ''))) {
         await gravarRecebimento.mutateAsync({ telefone: digitos(telefone) || null, chavePix: chavePix.trim() || null })
       }
-      setSalvo(true)
+      aoSalvar(true)
     } catch {
       // O erro aparece pelo estado da gravação.
     }

@@ -101,26 +101,12 @@ public sealed partial class ProcessadorDeEventos(
         }
         else if (situacao is not null)
         {
-            var contrato = await doRevendedor.Contratos.SingleOrDefaultAsync(c => c.DocumentoNaAssinatura == chave, ct);
-            mudou = contrato is not null && contrato.Atualizar(situacao.Value, relogio.GetUtcNow());
-
-            // O contrato de revenda assinado libera o primeiro pedido de placas; o distrato assinado
-            // encerra a conta, e o cancelado na D4Sign desfaz o pedido de encerramento.
-            if (mudou)
+            var doDocumento = await doRevendedor.Contratos.Where(c => c.DocumentoNaAssinatura == chave).Select(c => (Guid?)c.Id).SingleOrDefaultAsync(ct);
+            if (doDocumento is { } contratoId)
             {
-                var revendedor = await doRevendedor.Revendedores.SingleAsync(r => r.Id == vinculo.RevendedorId, ct);
-                switch (contrato!.Tipo, contrato.Situacao)
-                {
-                    case (TipoDeContrato.ContratoDoRevendedor, SituacaoDoContrato.Assinado):
-                        revendedor.RegistrarContratoAssinado(contrato.AssinadoEm!.Value);
-                        break;
-                    case (TipoDeContrato.Distrato, SituacaoDoContrato.Assinado):
-                        await escopo.ServiceProvider.GetRequiredService<EfeitosDoEncerramento>().Aplicar(revendedor, contrato.AssinadoEm!.Value, ct);
-                        break;
-                    case (TipoDeContrato.Distrato, SituacaoDoContrato.Cancelado) when revendedor.EncerradaEm is null:
-                        revendedor.DesistirDoEncerramento();
-                        break;
-                }
+                await ConferenciaDeAssinatura.Travar(doRevendedor, contratoId, ct);
+                var contrato = await doRevendedor.Contratos.SingleAsync(c => c.Id == contratoId, ct);
+                mudou = await escopo.ServiceProvider.GetRequiredService<EfeitosDaAssinatura>().Aplicar(contrato, situacao.Value, relogio.GetUtcNow(), ct);
             }
         }
 

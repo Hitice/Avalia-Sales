@@ -57,6 +57,13 @@ public sealed class Contrato : IDoRevendedor
 
     /// <summary>Último reenvio do e-mail de assinatura pedido pelo dono.</summary>
     public DateTimeOffset? ReenviadoEm { get; private set; }
+
+    /// <summary>
+    /// Última reconsulta da situação na D4Sign fora do webhook: pelo Worker, de
+    /// tempos em tempos, ou pelo botão do dono. Webhook perdido não deixa o
+    /// contrato parado.
+    /// </summary>
+    public DateTimeOffset? ConferidoEm { get; private set; }
     public DateTimeOffset CriadoEm { get; private set; } = DateTimeOffset.UtcNow;
 
     private Contrato()
@@ -130,6 +137,22 @@ public sealed class Contrato : IDoRevendedor
 
         return true;
     }
+
+    /// <summary>O dono confere no máximo uma vez por minuto: a conta da D4Sign tem limite de requisições.</summary>
+    public void PodeConferir(DateTimeOffset agora)
+    {
+        if (Situacao != SituacaoDoContrato.AguardandoAssinatura || DocumentoNaAssinatura is null)
+        {
+            throw new RegraDeNegocioException("O documento não está esperando assinatura.");
+        }
+
+        if (ConferidoEm is { } ultima && agora - ultima < TimeSpan.FromMinutes(1))
+        {
+            throw new RegraDeNegocioException("Aguarde 1 minuto para conferir de novo.");
+        }
+    }
+
+    public void RegistrarConferencia(DateTimeOffset agora) => ConferidoEm = agora;
 
     private static string Obrigatorio(string valor, string campo)
     {

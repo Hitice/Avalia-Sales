@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Download, Send } from 'lucide-react'
+import { Download, RefreshCw, Send } from 'lucide-react'
 import { useState } from 'react'
 import { chamarApi, enviarJson, mensagemDoErro } from '@/api/cliente'
 import type { MeuContrato } from '@/api/tipos'
@@ -76,6 +76,14 @@ function ContratoDeRevenda() {
     mutationFn: () => chamarApi('/revenda/contrato/reenvio', enviarJson('POST', {})),
     onSuccess: () => consultas.invalidateQueries({ queryKey: ['revenda', 'contrato'] }),
   })
+  // Confere na D4Sign se já assinou, sem esperar o aviso dela; assinado, libera os pedidos.
+  const conferir = useMutation({
+    mutationFn: () => chamarApi<MeuContrato>('/revenda/contrato/conferencia', enviarJson('POST', {})),
+    onSuccess: (novo) => {
+      consultas.setQueryData(['revenda', 'contrato'], novo)
+      return consultas.invalidateQueries({ queryKey: ['revenda'] })
+    },
+  })
   const [erroDaCopia, setErroDaCopia] = useState<unknown>(null)
   const c = contrato.data
 
@@ -92,7 +100,8 @@ function ContratoDeRevenda() {
     <Card>
       <CardHeader><CardTitle className="flex items-center gap-2">Contrato de revenda {c?.situacao && <Badge variant={c.situacao === 'Assinado' ? 'default' : 'secondary'}>{ROTULO_DO_CONTRATO[c.situacao]}</Badge>}</CardTitle></CardHeader>
       <CardContent className="grid gap-4">
-        <Erro erro={reenviar.error ?? erroDaCopia ? mensagemDoErro(reenviar.error ?? erroDaCopia) : null} />
+        <Erro erro={reenviar.error ?? conferir.error ?? erroDaCopia ? mensagemDoErro(reenviar.error ?? conferir.error ?? erroDaCopia) : null} />
+        {conferir.isSuccess && conferir.data?.situacao === 'AguardandoAssinatura' && <Alert><AlertDescription>Ainda sem assinatura na D4Sign.</AlertDescription></Alert>}
         {reenviar.isSuccess && <Alert><AlertDescription>E-mail de assinatura reenviado para {c?.signatarioEmail}.</AlertDescription></Alert>}
         {!contrato.isPending && !c && <p className="text-sm text-muted-foreground">O contrato sai depois que o e-mail da conta é confirmado.</p>}
         {c && (
@@ -102,6 +111,7 @@ function ContratoDeRevenda() {
         )}
         {c && (
           <div className="flex flex-wrap gap-2">
+            {c.podeReenviar && <Button variant="outline" disabled={conferir.isPending} onClick={() => conferir.mutate()}><RefreshCw aria-hidden />Conferir assinatura</Button>}
             {c.podeReenviar && <Button variant="outline" disabled={reenviar.isPending} onClick={() => reenviar.mutate()}><Send aria-hidden />Reenviar e-mail de assinatura</Button>}
             <Button variant="outline" onClick={() => void baixar()}><Download aria-hidden />Baixar cópia</Button>
           </div>

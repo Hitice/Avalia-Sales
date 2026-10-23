@@ -35,7 +35,15 @@ public sealed class FichaDaPlaca(IBancoDeDados banco, IUsuarioAtual usuario, ICo
             .OrderBy(l => l.Dia).Select(l => new LeituraDto(l.Dia, l.Total)).ToListAsync(ct);
 
         VendaDaFicha? venda = null;
-        if (placa.VendaId is { } vendaId)
+        if (placa is { TransferidaEm: not null, ClienteDaTransferenciaId: { } transferido, VendaId: { } vendaAntiga })
+        {
+            // A venda ficou com a revenda encerrada; aqui só o cliente e o valor que a transferência gravou.
+            var cliente = await banco.Clientes.AsNoTracking().Where(c => c.Id == transferido)
+                .Select(c => new { c.Nome, c.Responsavel, c.Telefone }).SingleAsync(ct);
+            venda = new VendaDaFicha(vendaAntiga, cliente.Nome, cliente.Responsavel, cliente.Telefone, "Placa transferida no encerramento de outra revenda",
+                "Revenda anterior", placa.ValorDaVendaCents ?? 0, 0, null, placa.VendidaEm ?? placa.TransferidaEm.Value);
+        }
+        else if (placa.VendaId is { } vendaId)
         {
             var linha = await (
                 from v in banco.Vendas.AsNoTracking().Where(v => v.Id == vendaId)

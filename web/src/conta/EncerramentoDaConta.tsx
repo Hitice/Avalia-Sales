@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Download, Send } from 'lucide-react'
+import { Download, RefreshCw, Send } from 'lucide-react'
 import { useState } from 'react'
 import { chamarApi, enviarJson, mensagemDoErro } from '@/api/cliente'
 import { formatarData, ROTULO_DO_CONTRATO } from '@/api/rotulos'
@@ -29,11 +29,16 @@ export function EncerramentoDaConta() {
   const pedir = useMutation({ mutationFn: () => chamarApi<EstadoDoEncerramento>('/revenda/encerramento', enviarJson('POST', {})), onSuccess: atualizar })
   const desistir = useMutation({ mutationFn: () => chamarApi<EstadoDoEncerramento>('/revenda/encerramento', { method: 'DELETE' }), onSuccess: atualizar })
   const reenviar = useMutation({ mutationFn: () => chamarApi('/revenda/encerramento/reenvio', enviarJson('POST', {})) })
+  // Confere na D4Sign se o distrato já foi assinado; assinado, a conta encerra na hora.
+  const conferir = useMutation({
+    mutationFn: () => chamarApi('/revenda/encerramento/conferencia', enviarJson('POST', {})),
+    onSuccess: () => consultas.invalidateQueries({ queryKey: ['revenda'] }),
+  })
   const [confirmar, setConfirmar] = useState<'pedir' | 'desistir' | null>(null)
   const [erroDoArquivo, setErroDoArquivo] = useState<unknown>(null)
   const e = estado.data
   const distrato = e?.distrato
-  const erro = pedir.error ?? desistir.error ?? reenviar.error ?? erroDoArquivo
+  const erro = pedir.error ?? desistir.error ?? reenviar.error ?? conferir.error ?? erroDoArquivo
 
   async function baixar(caminho: string, nome: string) {
     setErroDoArquivo(null)
@@ -77,7 +82,10 @@ export function EncerramentoDaConta() {
             </p>
             <div className="flex flex-wrap gap-2">
               {distrato?.podeReenviar && (
-                <Button type="button" variant="outline" disabled={reenviar.isPending} onClick={() => reenviar.mutate()}><Send aria-hidden />Reenviar e-mail de assinatura</Button>
+                <>
+                  <Button type="button" variant="outline" disabled={conferir.isPending} onClick={() => conferir.mutate()}><RefreshCw aria-hidden />Conferir assinatura</Button>
+                  <Button type="button" variant="outline" disabled={reenviar.isPending} onClick={() => reenviar.mutate()}><Send aria-hidden />Reenviar e-mail de assinatura</Button>
+                </>
               )}
               {distrato && <Button type="button" variant="outline" onClick={() => void baixar('/revenda/encerramento/pdf', 'distrato.pdf')}><Download aria-hidden />Baixar cópia</Button>}
               <Button type="button" variant="ghost" onClick={() => setConfirmar('desistir')}>Desistir</Button>

@@ -2196,6 +2196,25 @@
         }
       }
     },
+    "/revenda/contrato/conferencia": {
+      "post": {
+        "tags": [
+          "Revenda"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeuContrato"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/revenda/contrato/pdf": {
       "get": {
         "tags": [
@@ -2269,6 +2288,25 @@
         "responses": {
           "200": {
             "description": "OK"
+          }
+        }
+      }
+    },
+    "/revenda/encerramento/conferencia": {
+      "post": {
+        "tags": [
+          "Revenda"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeuContrato"
+                }
+              }
+            }
           }
         }
       }

@@ -284,8 +284,12 @@ Todas no mesmo app, liberadas pelo papel do usuário.
 
 - O contrato do revendedor e o termo do cliente são assinados na D4Sign.
 - Em Configurações, o dono vê a situação do contrato, reenvia o e-mail de
-  assinatura quando não chegou (um pedido por minuto, como a D4Sign aceita) e
+  assinatura quando não chegou (um pedido por minuto, como a D4Sign aceita),
+  confere na D4Sign se já assinou (Conferir assinatura, uma vez por minuto) e
   baixa uma cópia em PDF - a original antes de assinar, a assinada depois.
+- Aviso da D4Sign perdido não deixa o contrato parado - a Plataforma reconsulta
+  sozinha quem espera assinatura há mais de 30 minutos. Assinado, o dono recebe
+  o aviso no sino; o mesmo vale para o distrato (conta encerrada ou distrato cancelado).
 - A Plataforma gera a versão 2 do contrato preenchida com o cadastro - razão
   social, CNPJ, endereço, e-mail e o dono como representante; local e data da
   emissão. A Avalia sai aceita na emissão (representante e cargo da
@@ -487,6 +491,7 @@ O que está pronto no código e só fecha com a conta de verdade:
 | Data | Mudança |
 | --- | --- |
 | 22/10/2026 | Migração do Sales - conversor do backup diário para o arquivo de placas, venda no produto do catálogo pela chave, comissão devida trazida como saldo do vendedor. Os dois sócios entram como vendedores com 50% cada, em vez de divisão entre sócios. |
+| 23/10/2026 | Conferir assinatura do contrato e do distrato, reconsulta automática a cada 30 minutos e aviso ao dono no sino. Meus dados - o endereço passa a ser gravado, o aviso de salvo não some e revenda sem celular salva o endereço. |
 | 22/10/2026 | Texto revisado - a cláusula 5.4 do contrato perde a nota de confirmar a taxa antes da assinatura; a 1.2 do distrato passa a citar a cláusula 3.3 (exportação). Prazos confirmados pela Avalia - exportação em 30 dias e saldo em 10 dias da data efetiva. |
 | 22/10/2026 | Contrato versão 2 gerado com os dados do cadastro, com a Avalia aceita na emissão e sem testemunhas. Endereço no cadastro e em Meus dados, preenchido pelo CNPJ e pelo CEP. Encerramento da conta pelo distrato - gerado e enviado à D4Sign, desistência, baixa do estoque, equipe desligada, clientes ativos para a revenda da Avalia e 30 dias para exportar. |
 | 22/10/2026 | Contrato de revenda versão 2 e distrato formatados em `docs/contrato`, fora da Plataforma até os campos variáveis serem preenchidos por ela. |

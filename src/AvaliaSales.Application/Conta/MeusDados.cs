@@ -65,7 +65,12 @@ public sealed class MeusDados(IBancoDeDados banco, IUsuarioAtual usuario, IReven
         var revendedor = await banco.Revendedores.SingleAsync(r => r.Id == atual.RevendedorId, ct);
         var antes = $"{revendedor.Nome}, celular {revendedor.Celular ?? "-"}, {revendedor.Endereco?.EmUmaLinha() ?? "sem endereço"}";
         revendedor.Renomear(comando.Nome);
-        revendedor.DefinirCelular(comando.Celular);
+        // Revenda antiga sem celular salva o endereço sem ele; o sino continua pedindo o celular.
+        if (!string.IsNullOrWhiteSpace(comando.Celular) || revendedor.Celular is not null)
+        {
+            revendedor.DefinirCelular(comando.Celular);
+        }
+
         if (comando.Endereco is { } endereco)
         {
             revendedor.DefinirEndereco(endereco.ParaDominio());

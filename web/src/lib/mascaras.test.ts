@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { digitos, mascaraCnpj, mascaraCodigo, mascaraDocumento, mascaraTelefone } from './mascaras'
+import { digitos, mascaraCep, mascaraCnpj, mascaraCodigo, mascaraDocumento, mascaraTelefone } from './mascaras'
 
 describe('máscaras', () => {
+  it('CEP aceita só dígitos, até 8, com o hífen', () => {
+    expect(mascaraCep('38400192')).toBe('38400-192')
+    expect(mascaraCep('38400-192 9')).toBe('38400-192')
+    expect(mascaraCep('384')).toBe('384')
+  })
+
   it('CNPJ aceita só dígitos, até 14, com a pontuação', () => {
     expect(mascaraCnpj('11222333000181')).toBe('11.222.333/0001-81')
     expect(mascaraCnpj('11.222.333/0001-81 extra 99')).toBe('11.222.333/0001-81')

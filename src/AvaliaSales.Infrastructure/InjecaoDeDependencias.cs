@@ -151,6 +151,7 @@ public static class InjecaoDeDependencias
         });
         servicos.AddSingleton<IDocumentos, DocumentosEmPdf>();
 
+        servicos.AddScoped<IConferenciaDeAssinatura, ConferenciaDeAssinatura>();
         servicos.AddScoped<Cobrancas>();
         servicos.AddScoped<Contratos>();
         return servicos;

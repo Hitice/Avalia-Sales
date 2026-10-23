@@ -432,6 +432,10 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("assinado_em");
 
+                    b.Property<DateTimeOffset?>("ConferidoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("conferido_em");
+
                     b.Property<DateTimeOffset>("CriadoEm")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("criado_em");

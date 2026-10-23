@@ -32,6 +32,12 @@ public sealed partial class Retomadas(IServiceScopeFactory escopos, BancoDeDados
     /// <summary>Tempo para a criação normal terminar antes de a rotina mexer.</summary>
     public static readonly TimeSpan Carencia = TimeSpan.FromMinutes(2);
 
+    /// <summary>
+    /// Contrato esperando assinatura há mais que isso, sem nova conferência, é
+    /// reconsultado na D4Sign: o webhook pode se perder ou ser recusado.
+    /// </summary>
+    public static readonly TimeSpan IntervaloDeConferencia = TimeSpan.FromMinutes(30);
+
     /// <summary>Sem pedido no Pagar.me depois disso, a cobrança falhou.</summary>
     public static readonly TimeSpan PrazoDoPedido = TimeSpan.FromMinutes(15);
 
@@ -98,6 +104,13 @@ public sealed partial class Retomadas(IServiceScopeFactory escopos, BancoDeDados
                 await Gerar(() => documentos.GerarContrato(revendedorId, ct));
             }
 
+            // Distrato gerado na mesma hora em que o dono desistiu fica sem uso: cancela antes de ir à D4Sign.
+            if (pedido is null)
+            {
+                await doRevendedor.Contratos.Where(c => c.Tipo == TipoDeContrato.Distrato && c.Situacao == SituacaoDoContrato.Rascunho)
+                    .ExecuteUpdateAsync(s => s.SetProperty(c => c.Situacao, SituacaoDoContrato.Cancelado), ct);
+            }
+
             if (pedido is not null && !await doRevendedor.Contratos.AnyAsync(c => c.Tipo == TipoDeContrato.Distrato
                     && (c.Situacao == SituacaoDoContrato.Rascunho || c.Situacao == SituacaoDoContrato.AguardandoAssinatura), ct))
             {
@@ -121,6 +134,28 @@ public sealed partial class Retomadas(IServiceScopeFactory escopos, BancoDeDados
                 retomados += resultado.Etapa == EtapaDoEnvio.Enviado ? 1 : 0;
                 contratosRestantes--;
             }
+
+            var limite = agora - IntervaloDeConferencia;
+            var esperando = await doRevendedor.Contratos.AsNoTracking()
+                .Where(c => c.Situacao == SituacaoDoContrato.AguardandoAssinatura && c.DocumentoNaAssinatura != null && (c.ConferidoEm ?? c.CriadoEm) < limite)
+                .OrderBy(c => c.ConferidoEm ?? c.CriadoEm)
+                .Select(c => c.Id)
+                .Take(Math.Max(contratosRestantes, 0))
+                .ToListAsync(ct);
+            var conferencia = escopo.ServiceProvider.GetRequiredService<IConferenciaDeAssinatura>();
+            foreach (var id in esperando)
+            {
+                try
+                {
+                    retomados += await conferencia.Conferir(id, pedidoDoDono: false, ct) ? 1 : 0;
+                }
+                catch (IntegracaoException erro)
+                {
+                    LogConferencia(log, id, erro.Message);
+                }
+
+                contratosRestantes--;
+            }
         }
 
         return retomados;
@@ -138,6 +173,9 @@ public sealed partial class Retomadas(IServiceScopeFactory escopos, BancoDeDados
             LogGeracao(log, erro.Message);
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Reconsulta do contrato {Contrato} na D4Sign falhou e volta depois do intervalo: {Motivo}")]
+    private static partial void LogConferencia(ILogger log, Guid contrato, string motivo);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Documento da revenda não foi gerado e volta na próxima rodada: {Motivo}")]
     private static partial void LogGeracao(ILogger log, string motivo);

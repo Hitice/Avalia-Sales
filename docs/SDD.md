@@ -297,6 +297,15 @@ Conferido na referência oficial em 21/10/2026.
   cobre só o UUID; o Worker reconsulta a situação. A chave do evento é
   `uuid:type_post:email`.
 
+- Reconsulta - `contratos.conferido_em` (migration ConferenciaDaAssinatura). O
+  Worker reconsulta em `Retomadas` quem espera assinatura há mais de 30 minutos
+  sem conferência, dentro do mesmo limite de contratos por volta; o dono pede
+  pelo botão (`POST /revenda/contrato/conferencia` e
+  `/revenda/encerramento/conferencia`), uma vez por minuto. Webhook, Worker e
+  botão travam a linha do contrato (`select ... for update`) e aplicam os
+  efeitos por `EfeitosDaAssinatura`, um caminho só. Falha da D4Sign também grava
+  `conferido_em`, para a reconsulta não gastar a cota em sequência.
+- Distrato gerado depois de o dono desistir é cancelado pelo Worker antes de ir à D4Sign.
 - Cancelamento - `POST /documents/{uuid}/cancel` com `comment`, quando o dono
   desiste do distrato. A resposta documentada não é confiável: se a chamada for
   recusada e o documento já estiver cancelado, conta como cancelado.
@@ -680,13 +689,14 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
   chave na demonstração; a busca responde pedindo o link colado.
 - Rodar o compose de produção pela primeira vez num VPS (não há Docker nesta
   máquina) e o ensaio de restauração do backup.
-- Histórico de destino da placa (o Sales guarda a linha do tempo) e auditoria
-  das ações do dono e da operadora.
+- Auditoria das ações da operadora (as do dono já vão para a auditoria, e a
+  ficha da placa mostra o histórico de destino).
 
 ## 13. Registro de mudanças
 
 | Data | Mudança |
 | --- | --- |
+| 23/10/2026 | Versão 1.7.3. Reconsulta da assinatura (Worker a cada 30 minutos e botão do dono), `EfeitosDaAssinatura` comum ao webhook e à reconsulta, com trava da linha do contrato; aviso ao dono no sino. `PUT /conta/dados/empresa` aceita endereço sem celular quando a revenda não tem um. Ficha da placa transferida monta a venda com o cliente e o valor gravados na transferência (a venda ficou na revenda antiga). Conta encerrada ainda marca notificação como lida. Teste de ponta a ponta do encerramento; história do endereço no Storybook. 253 testes na API. |
 | 22/10/2026 | Versão 1.7.2. Representante e cargo da Avalia vêm das variáveis do ambiente `producao` no GitHub, pelo job do Deploy, e não do `.env` do VPS. |
 | 22/10/2026 | Versão 1.7.0. Migration EncerramentoDeConta (endereço e encerramento em `revendedores`; transferência em `placas`; políticas e função de transferência). Contrato versão 2 e distrato gerados no Worker pelo Gotenberg (serviço `gotenberg` no Compose, `Pdf:UrlDoConversor`); PDF fixo da versão 1 removido do assembly. BrasilAPI no cadastro. Rotas do encerramento e da exportação, middleware `ContaEncerrada`, `IAssinaturaEletronica.Cancelar`. `RevendedorDto` com `temEndereco`, `encerramentoPedidoEm` e `encerradaEm`. 250 testes na API. |
 | 22/10/2026 | `infra/migracao/converter_do_sales.py` (só biblioteca padrão; backup em SQLite na memória). Importador com `produto` (chave do catálogo), `produto_preco_cents` e `comissao_devida_cents` (lançamento ComissaoDevida com a data da venda). |
