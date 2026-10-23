@@ -99,6 +99,17 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
             r.Property(x => x.NomeExibido).HasMaxLength(Revendedor.NomeExibidoMaximo);
             r.Property(x => x.CorPrimaria).HasMaxLength(7).IsFixedLength();
             r.Property(x => x.CorDestaque).HasMaxLength(7).IsFixedLength();
+            r.Ignore(x => x.ExportacaoAte);
+            r.OwnsOne(x => x.Endereco, e =>
+            {
+                e.Property(x => x.Logradouro).HasColumnName("endereco_logradouro").HasMaxLength(120);
+                e.Property(x => x.Numero).HasColumnName("endereco_numero").HasMaxLength(20);
+                e.Property(x => x.Complemento).HasColumnName("endereco_complemento").HasMaxLength(60);
+                e.Property(x => x.Bairro).HasColumnName("endereco_bairro").HasMaxLength(80);
+                e.Property(x => x.Cidade).HasColumnName("endereco_cidade").HasMaxLength(80);
+                e.Property(x => x.Uf).HasColumnName("endereco_uf").HasMaxLength(2).IsFixedLength();
+                e.Property(x => x.Cep).HasColumnName("endereco_cep").HasMaxLength(8).IsFixedLength();
+            });
             r.HasIndex(x => x.Cnpj).IsUnique();
         });
 

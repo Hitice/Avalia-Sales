@@ -461,6 +461,7 @@ O que está pronto no código e só fecha com a conta de verdade:
 
 | Data | Mudança |
 | --- | --- |
+| 22/10/2026 | Migração do Sales - conversor do backup diário para o arquivo de placas, venda no produto do catálogo pela chave, comissão devida trazida como saldo do vendedor. Os dois sócios entram como vendedores com 50% cada, em vez de divisão entre sócios. |
 | 22/10/2026 | Contrato de revenda versão 2 e distrato formatados em `docs/contrato`, fora da Plataforma até os campos variáveis serem preenchidos por ela. |
 | 22/10/2026 | Serviços em quatro abas - Link (endereço colado), NFC, Maps (busca do negócio no Google) e Status (ordens de serviço). A busca no Google não recarrega mais a página. |
 | 22/10/2026 | Contrato em Configurações com reenviar o e-mail de assinatura e baixar a cópia. Na Nova venda, a barra de baixo aparece, com o botão da venda acima dela. |

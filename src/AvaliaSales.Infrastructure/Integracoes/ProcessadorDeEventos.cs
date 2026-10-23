@@ -1,5 +1,6 @@
 using System.Text.Json;
 using AvaliaSales.Application.Contratos;
+using AvaliaSales.Application.Revendedores;
 using AvaliaSales.Application.Pagamentos;
 using AvaliaSales.Domain.Contratos;
 using AvaliaSales.Domain.Integracoes;
@@ -103,11 +104,23 @@ public sealed partial class ProcessadorDeEventos(
             var contrato = await doRevendedor.Contratos.SingleOrDefaultAsync(c => c.DocumentoNaAssinatura == chave, ct);
             mudou = contrato is not null && contrato.Atualizar(situacao.Value, relogio.GetUtcNow());
 
-            // O contrato de revenda assinado libera o primeiro pedido de placas.
-            if (mudou && contrato!.Tipo == TipoDeContrato.ContratoDoRevendedor && contrato.Situacao == SituacaoDoContrato.Assinado)
+            // O contrato de revenda assinado libera o primeiro pedido de placas; o distrato assinado
+            // encerra a conta, e o cancelado na D4Sign desfaz o pedido de encerramento.
+            if (mudou)
             {
                 var revendedor = await doRevendedor.Revendedores.SingleAsync(r => r.Id == vinculo.RevendedorId, ct);
-                revendedor.RegistrarContratoAssinado(contrato.AssinadoEm!.Value);
+                switch (contrato!.Tipo, contrato.Situacao)
+                {
+                    case (TipoDeContrato.ContratoDoRevendedor, SituacaoDoContrato.Assinado):
+                        revendedor.RegistrarContratoAssinado(contrato.AssinadoEm!.Value);
+                        break;
+                    case (TipoDeContrato.Distrato, SituacaoDoContrato.Assinado):
+                        await escopo.ServiceProvider.GetRequiredService<EfeitosDoEncerramento>().Aplicar(revendedor, contrato.AssinadoEm!.Value, ct);
+                        break;
+                    case (TipoDeContrato.Distrato, SituacaoDoContrato.Cancelado) when revendedor.EncerradaEm is null:
+                        revendedor.DesistirDoEncerramento();
+                        break;
+                }
             }
         }
 

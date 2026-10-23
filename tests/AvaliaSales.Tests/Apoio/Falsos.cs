@@ -95,6 +95,12 @@ public sealed class AssinaturaFalsa : IAssinaturaEletronica
 
     public Task ReenviarAssinatura(string documento, string email, CancellationToken ct) => Contar(nameof(ReenviarAssinatura));
 
+    public Task Cancelar(string documento, string motivo, CancellationToken ct)
+    {
+        Situacoes[documento] = SituacaoDoContrato.Cancelado;
+        return Contar(nameof(Cancelar));
+    }
+
     /// <summary>O "assinado" do falso é um PDF mínimo, para a cópia ter o que baixar.</summary>
     public Task<byte[]> Baixar(string documento, CancellationToken ct)
     {

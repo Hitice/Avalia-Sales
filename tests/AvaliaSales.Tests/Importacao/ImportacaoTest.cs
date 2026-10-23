@@ -126,6 +126,50 @@ public sealed class ImportacaoTest(ApiDeTeste api)
         Assert.Equal([emitido.Trim()], primeira.JaEmitidos);
         Assert.Equal((0, 1), (segunda.Reservados, segunda.JaReservados));
     }
+
+    [Fact]
+    public async Task Venda_entra_no_produto_pelo_nome_e_a_comissao_devida_vira_saldo_do_vendedor()
+    {
+        var (revendedorId, email) = await api.CriarRevendedor("Revenda da Comissão Antiga");
+        var dono = await api.ClienteLogado(email);
+        var vendedorEmail = $"vendedor-{Guid.NewGuid():N}@teste.com.br";
+        var vendedorId = (await dono.Postar("/equipe", new { nome = "Vendedor do sistema anterior", email = vendedorEmail, senha = ApiDeTeste.Senha, comissaoBps = 5_000 }, HttpStatusCode.Created)).GetProperty("id").GetGuid();
+        await Cenarios.ProdutoDoCatalogo(dono, "placa-avaliacao-google", 14_990L);
+        var vendida = DateTimeOffset.UtcNow.AddMonths(-1);
+        var linhas = new[]
+        {
+            Linha(2, Codigo(), "ativa", vendida, 14_990, "https://padaria.com.br") with { VendedorEmail = vendedorEmail, Produto = "PLACA-AVALIACAO-GOOGLE", ComissaoDevidaCents = 3_748 },
+            Linha(3, Codigo(), "ativa", vendida, 49_990, "https://padaria.com.br") with { VendedorEmail = vendedorEmail, Produto = "perfil-google-placa", ProdutoPrecoCents = 49_990 },
+            Linha(4, Codigo(), "ativa", vendida, 14_990, "https://padaria.com.br") with { Produto = "placa-avaliacao-google" },
+        };
+
+        var resultado = await Importar(revendedorId, linhas, ensaio: false);
+
+        Assert.True(resultado.Gravada, string.Join("; ", resultado.Recusas));
+        Assert.Equal((3_748L, 1), (resultado.ComissaoDevidaCents, resultado.ProdutosCriados));
+        var perfil = (await dono.Pegar("/catalogo")).EnumerateArray().Single(p => p.GetProperty("chave").GetString() == "perfil-google-placa");
+        Assert.Equal(49_990, perfil.GetProperty("precoCents").GetInt64());
+        await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
+        Assert.Equal(2, await banco.Contar($"select count(distinct produto_id) from vendas where revendedor_id = '{revendedorId}'"));
+        var saldo = (await dono.Pegar("/comissoes")).EnumerateArray().Single(s => s.GetProperty("vendedorId").GetGuid() == vendedorId);
+        Assert.Equal(3_748, saldo.GetProperty("abertaCents").GetInt64());
+
+        // O repasse paga a comissão trazida como qualquer outra.
+        var repasse = await dono.Postar("/repasses", new { vendedorId, comprovante = "pix" }, HttpStatusCode.Created);
+        Assert.Equal(3_748, repasse.GetProperty("valorCents").GetInt64());
+    }
+
+    [Fact]
+    public async Task Comissao_devida_sem_vendedor_da_equipe_recusa_o_arquivo()
+    {
+        var (revendedorId, email) = await api.CriarRevendedor("Revenda da Comissão Sem Dono");
+        var linha = Linha(2, Codigo(), "ativa", DateTimeOffset.UtcNow.AddMonths(-1), 14_990, "https://padaria.com.br") with { VendedorEmail = email, ComissaoDevidaCents = 3_748 };
+
+        var resultado = await Importar(revendedorId, [linha], ensaio: false);
+
+        Assert.False(resultado.Gravada);
+        Assert.Contains("comissão devida sem vendedor da equipe", Assert.Single(resultado.Recusas));
+    }
 }
 
 public sealed class LeituraDoArquivoTest

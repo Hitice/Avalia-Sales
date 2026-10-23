@@ -102,6 +102,8 @@ internal static class Importar
               valor vendido         {r.ValorVendidoCents / 100m:N2}
               custo das placas      {r.CustoCents / 100m:N2}
               vendas sem vendedor   {r.VendedorNaoIdentificado} (ficam com o dono)
+              comissão devida       {r.ComissaoDevidaCents / 100m:N2}
+              produtos criados      {r.ProdutosCriados}
               reservas liberadas    {r.ReservasLiberadas}
             """);
         foreach (var recusa in r.Recusas)
@@ -147,7 +149,10 @@ internal static class Importar
             Campo(l.Valores, "cliente_telefone"),
             Campo(l.Valores, "cliente_documento"),
             Campo(l.Valores, "vendedor_email"),
-            Centavos(Campo(l.Valores, "total_leituras"), l.Numero) ?? 0)).ToList();
+            Centavos(Campo(l.Valores, "total_leituras"), l.Numero) ?? 0,
+            Campo(l.Valores, "produto"),
+            Centavos(Campo(l.Valores, "produto_preco_cents"), l.Numero),
+            Centavos(Campo(l.Valores, "comissao_devida_cents"), l.Numero))).ToList();
     }
 
     /// <summary>CSV com aspas e vírgula dentro do campo, pelo leitor do próprio .NET.</summary>

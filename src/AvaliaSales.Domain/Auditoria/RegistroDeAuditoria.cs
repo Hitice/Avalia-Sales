@@ -26,6 +26,9 @@ public enum AcaoAuditada
     SegundoFatorLigado,
     SegundoFatorDesligado,
     EmpresaAlterada,
+    EncerramentoPedido,
+    EncerramentoDesistido,
+    ContaEncerrada,
 }
 
 /// <summary>

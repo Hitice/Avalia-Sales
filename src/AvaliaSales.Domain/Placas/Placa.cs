@@ -52,6 +52,16 @@ public sealed class Placa : IDoRevendedor
     public DateTimeOffset? UltimaLeituraEm { get; private set; }
     public DateTimeOffset EntrouEm { get; private set; }
 
+    /// <summary>
+    /// Quando a placa no ar passou para a revenda da Avalia, no encerramento da
+    /// revenda que a vendeu. A venda fica com a revenda antiga, e estes dois
+    /// campos guardam o que a renovação precisa dela.
+    /// </summary>
+    public DateTimeOffset? TransferidaEm { get; private set; }
+
+    public Guid? ClienteDaTransferenciaId { get; private set; }
+    public long? ValorDaVendaCents { get; private set; }
+
     private Placa() => Codigo = string.Empty;
 
     public Placa(PlacaEmitida emitida, long custoCents, DateTimeOffset agora)

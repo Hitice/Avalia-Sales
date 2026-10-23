@@ -43,7 +43,7 @@ public static class InjecaoDeDependencias
         servicos.AddScoped<IBancoDeDados>(sp => sp.GetRequiredService<BancoDeDados>());
         servicos.AddScoped<CaixaDeEntrada>();
         servicos.AddOptions<OpcoesDaPlataforma>().BindConfiguration(OpcoesDaPlataforma.Secao).ValidateDataAnnotations().ValidateOnStart();
-        servicos.AddSingleton<IModeloDeContrato, ModeloDeContrato>();
+        servicos.AddScoped<ITransferenciaDeClientes, TransferenciaDeClientes>();
         servicos.AdicionarCasosDeUso();
 
         servicos
@@ -127,7 +127,12 @@ public static class InjecaoDeDependencias
             http.BaseAddress = new Uri(sp.GetRequiredService<IOptions<OpcoesGoogle>>().Value.UrlDoPlaces);
             http.DefaultRequestHeaders.UserAgent.ParseAdd("AvaliaSales/1.0");
         });
-        foreach (var cliente in new[] { resend, places, protheus })
+        var brasilApi = servicos.AddHttpClient<IConsultaDeEndereco, Integracoes.BrasilApi.ClienteBrasilApi>(http =>
+        {
+            http.BaseAddress = new Uri("https://brasilapi.com.br/api/");
+            http.DefaultRequestHeaders.UserAgent.ParseAdd("AvaliaSales/1.0");
+        });
+        foreach (var cliente in new[] { resend, places, protheus, brasilApi })
         {
             if (manipuladorDeTeste is not null)
             {
@@ -136,6 +141,15 @@ public static class InjecaoDeDependencias
 
             cliente.AddStandardResilienceHandler(o => o.Retry.DisableForUnsafeHttpMethods());
         }
+
+        // O PDF do contrato e do distrato: o Gotenberg na rede interna, sem retentativa (a próxima volta do Worker tenta de novo).
+        servicos.AddOptions<OpcoesDoConversor>().BindConfiguration(OpcoesDoConversor.Secao).ValidateDataAnnotations().ValidateOnStart();
+        servicos.AddHttpClient<IConversorDePdf, ConversorGotenberg>((sp, http) =>
+        {
+            http.BaseAddress = new Uri(sp.GetRequiredService<IOptions<OpcoesDoConversor>>().Value.UrlDoConversor.TrimEnd('/') + "/");
+            http.Timeout = TimeSpan.FromSeconds(60);
+        });
+        servicos.AddSingleton<IDocumentos, DocumentosEmPdf>();
 
         servicos.AddScoped<Cobrancas>();
         servicos.AddScoped<Contratos>();
@@ -156,6 +170,23 @@ public static class InjecaoDeDependencias
         }
 
         servicos.AddSingleton<IGatewayDePagamento, GatewaySimulado>();
+        return servicos;
+    }
+
+    /// <summary>Troca o Gotenberg pelo PDF mínimo quando Pdf:Simulado está ligado (só Development).</summary>
+    public static IServiceCollection UsarConversorSimuladoSeLigado(this IServiceCollection servicos, IConfiguration configuracao, bool desenvolvimento)
+    {
+        if (!configuracao.GetValue<bool>($"{OpcoesDoConversor.Secao}:{nameof(OpcoesDoConversor.Simulado)}"))
+        {
+            return servicos;
+        }
+
+        if (!desenvolvimento)
+        {
+            throw new InvalidOperationException("Pdf:Simulado só pode ser ligado em Development.");
+        }
+
+        servicos.AddSingleton<IConversorDePdf, ConversorSimulado>();
         return servicos;
     }
 

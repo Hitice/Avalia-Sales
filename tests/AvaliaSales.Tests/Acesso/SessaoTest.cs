@@ -76,17 +76,20 @@ public sealed class SessaoTest(ApiDeTeste api)
         var email = $"novo-{Guid.NewGuid():N}@teste.com.br";
 
         var resposta = await cliente.PostAsJsonAsync("/cadastro",
-            new { empresa = "Revenda Nova", cnpj = "13.186.091/0001-43", celular = "(11) 98765-4321", nome = "Maria Dona", email, senha = ApiDeTeste.Senha }, ct);
+            new { empresa = "Revenda Nova", cnpj = "13.186.091/0001-43", celular = "(11) 98765-4321", endereco = ApiDeTeste.Endereco, nome = "Maria Dona", email, senha = ApiDeTeste.Senha }, ct);
         var repetido = await cliente.PostAsJsonAsync("/cadastro",
-            new { empresa = "Outra", cnpj = "13186091000143", celular = "(11) 98765-4321", nome = "Outra", email = "x" + email, senha = ApiDeTeste.Senha }, ct);
+            new { empresa = "Outra", cnpj = "13186091000143", celular = "(11) 98765-4321", endereco = ApiDeTeste.Endereco, nome = "Outra", email = "x" + email, senha = ApiDeTeste.Senha }, ct);
         var semCelular = await cliente.PostAsJsonAsync("/cadastro",
-            new { empresa = "Sem Celular", cnpj = "45.723.174/0001-10", nome = "Outra", email = "y" + email, senha = ApiDeTeste.Senha }, ct);
+            new { empresa = "Sem Celular", cnpj = "45.723.174/0001-10", endereco = ApiDeTeste.Endereco, nome = "Outra", email = "y" + email, senha = ApiDeTeste.Senha }, ct);
+        var semEndereco = await cliente.PostAsJsonAsync("/cadastro",
+            new { empresa = "Sem Endereço", cnpj = "45.723.174/0001-10", celular = "(11) 98765-4321", nome = "Outra", email = "z" + email, senha = ApiDeTeste.Senha }, ct);
 
         Assert.Equal(HttpStatusCode.OK, resposta.StatusCode);
         var token = await resposta.Content.ReadFromJsonAsync<ApiDeTeste.TokenLido>(ct);
         Assert.Equal("Revenda Nova", token!.Perfil.Revendedor);
         Assert.Equal(HttpStatusCode.UnprocessableEntity, repetido.StatusCode);
         Assert.Equal(HttpStatusCode.UnprocessableEntity, semCelular.StatusCode);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, semEndereco.StatusCode);
     }
 
     [Fact]

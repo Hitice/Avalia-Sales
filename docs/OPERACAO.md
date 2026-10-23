@@ -130,11 +130,37 @@ colunas em qualquer ordem; só `codigo` e `situacao` são obrigatórias):
 | `custo_cents` | Custo da placa, em centavos |
 | `cliente_nome`, `cliente_responsavel`, `cliente_telefone`, `cliente_documento` | O cliente; um por documento, senão por telefone, senão por nome |
 | `vendedor_email` | Login do vendedor na plataforma; sem ele, a venda fica com o dono |
+| `produto` | Chave do produto no catálogo da Avalia (`placa-avaliacao-google`); sem ela, a venda vai para o produto genérico "Placa importada" |
+| `produto_preco_cents` | Preço da revenda para o produto, se ela ainda não o tinha |
+| `comissao_devida_cents` | Comissão de venda paga ainda não repassada; vira saldo do vendedor, que precisa ser da equipe |
 | `total_leituras` | Leituras acumuladas |
 
 A placa importada entra num lote próprio, já ativado no revendedor; a venda
 importada mantém o valor de origem, fica sem cobrança e sem comissão (já
 acertada lá), e o código importado deixa de ser reserva.
+
+### Do Sales da Avalia
+
+O backup diário do Sales (`avalia:exportar`, que chega por e-mail) é a origem.
+O conversor só lê o arquivo, sem tocar no Sales:
+
+```sh
+python3 -I infra/migracao/converter_do_sales.py avalia-AAAA-MM-DD-HHMM.sql.gz --saida placas.csv \
+  --socio <e-mail do sócio 1 no Sales> --socio <e-mail do sócio 2 no Sales> \
+  --vendedor <e-mail do sócio 1 no Sales>=<login dele na plataforma> \
+  --vendedor <e-mail do sócio 2 no Sales>=<login dele na plataforma>
+```
+
+Ele imprime os totais (placas por situação, valor vendido, vendas não pagas,
+comissão devida por vendedor) para conferir com as telas do Sales. As regras
+de lá - comissão de 25% sobre o valor, só de venda paga, nunca de sócio; venda
+paga é a com `pix_pago_em` ou anterior a 11/10/2026; datas em UTC. Venda sem
+placa (a da Lia) fica de fora. Cada vendedor do Sales com comissão devida
+precisa de login na equipe antes do `--importar-placas`, com o e-mail do Sales
+ou o do `--vendedor`.
+
+Até a virada, só `--ensaio`: o Sales segue vendendo, e as placas impressas
+leem pelo `avaliaone.com.br/q/`, que nada daqui alcança.
 
 ## Logs e erros
 

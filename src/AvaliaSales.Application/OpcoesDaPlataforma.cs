@@ -19,6 +19,17 @@ public sealed class OpcoesDaPlataforma
     [Required, EmailAddress]
     public string EmailDaOperadora { get; set; } = string.Empty;
 
+    /// <summary>
+    /// CNPJ da revenda da Avalia, que recebe os clientes ativos de quem encerra a
+    /// conta (distrato, cláusula 2). Sem ela cadastrada, o encerramento não transfere.
+    /// </summary>
+    public string CnpjDaRevendaDaAvalia { get; set; } = "68715987000164";
+
+    /// <summary>Quem assina pela Avalia: o nome sai impresso no contrato e no distrato, já aceitos na emissão.</summary>
+    public string? RepresentanteDaAvalia { get; set; }
+
+    public string? CargoDoRepresentante { get; set; }
+
     public string HostPublico => new Uri(UrlPublica).Host;
 
     /// <summary>O endereço gravado no QR e no NFC, em maiúsculas para o modo alfanumérico do QR.</summary>
