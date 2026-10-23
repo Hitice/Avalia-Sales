@@ -972,6 +972,10 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .HasColumnType("character varying(120)")
                         .HasColumnName("titulo");
 
+                    b.Property<Guid?>("UsuarioId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("usuario_id");
+
                     b.HasKey("Id")
                         .HasName("pk_notificacoes");
 

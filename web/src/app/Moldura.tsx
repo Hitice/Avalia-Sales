@@ -119,6 +119,7 @@ export function Moldura() {
   const itens = grupos.flatMap((g) => g.itens)
   const principais = perfil ? PRINCIPAIS[perfil.papel] : []
   const outros = itens.filter((i) => !principais.some((p) => p.para === i.para))
+  const inicio = principais[0]?.para ?? itens[0]?.para ?? '/'
   const [mais, setMais] = useState(false)
   // A Nova venda tem o botão dela no pé, logo acima da barra de baixo.
   const caminho = useLocation().pathname
@@ -141,15 +142,18 @@ export function Moldura() {
       <div role="progressbar" aria-label="Carregando" aria-hidden={!carregando} className={cn('barra-de-carregando fixed inset-x-0 top-0 z-30 h-1 transition-opacity', carregando ? 'opacity-100 delay-300' : 'opacity-0 delay-0')} />
       <header className="sticky top-0 z-10 bg-card">
         <div className="mx-auto flex h-14 max-w-7xl items-center gap-3 px-4">
-          {logo
-            ? <img src={logo} alt={marca?.nomeExibido ?? perfil?.revendedor ?? 'Logo'} className="h-8 w-auto max-w-32 object-contain" />
-            : marca?.nomeExibido
-              ? <span className="font-heading text-lg font-semibold whitespace-nowrap">{marca.nomeExibido}</span>
-              : <img src="/marca/gauge.svg" alt="Avalia Sales" width={61} height={32} className="h-8 w-auto" />}
+          {/* O logo leva à tela inicial do papel, como nos sites. */}
+          <NavLink to={inicio} aria-label={!logo && marca?.nomeExibido ? `${marca.nomeExibido}, início` : 'Início'} className="flex shrink-0 items-center rounded-md">
+            {logo
+              ? <img src={logo} alt="" className="h-8 w-auto max-w-32 object-contain" />
+              : marca?.nomeExibido
+                ? <span className="font-heading text-lg font-semibold whitespace-nowrap">{marca.nomeExibido}</span>
+                : <img src="/marca/gauge.svg" alt="" width={61} height={32} className="h-8 w-auto" />}
+          </NavLink>
           {perfil?.revendedor && !marca?.nomeExibido && <span className="hidden truncate text-sm text-muted-foreground sm:inline">{perfil.revendedor}</span>}
           {perfil?.papel === 'Operadora' && <span className="hidden text-sm text-muted-foreground sm:inline">Operação</span>}
           <div className="ml-auto flex items-center gap-1">
-            {perfil?.papel !== 'Vendedor' && !travado && <Sino />}
+            {!travado && <Sino />}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="gap-2 px-2">

@@ -7,8 +7,9 @@ import { Cabecalho, Erro } from '@/componentes/Tela'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Field, FieldLabel } from '@/components/ui/field'
+import { Field, FieldDescription, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { useEspera } from '@/lib/espera'
 
 type Chave = components['schemas']['ChaveDoAutenticador']
 type Situacao = components['schemas']['SituacaoDoSegundoFator']
@@ -23,9 +24,18 @@ export function TelaDeSeguranca() {
     mutationFn: (codigo: string) => chamarApi<string[]>(pedirCodigo.isSuccess ? '/conta/segundo-fator/email' : '/conta/segundo-fator', enviarJson('POST', { codigo })),
     onSuccess: () => cliente.invalidateQueries({ queryKey: ['segundo-fator'] }),
   })
+  const espera = useEspera()
+  // Desativar começa pelo botão: um código novo vai para o e-mail cadastrado.
+  const codigoParaDesligar = useMutation({
+    mutationFn: () => chamarApi('/conta/segundo-fator/desligar/codigo', enviarJson('POST')),
+    onSuccess: () => espera.iniciar(),
+  })
   const desligar = useMutation({
     mutationFn: (codigo: string) => chamarApi('/conta/segundo-fator/desligar', enviarJson('POST', { codigo })),
-    onSuccess: () => cliente.invalidateQueries({ queryKey: ['segundo-fator'] }),
+    onSuccess: () => {
+      codigoParaDesligar.reset()
+      return cliente.invalidateQueries({ queryKey: ['segundo-fator'] })
+    },
   })
   const [codigo, setCodigo] = useState('')
   const [qr, setQr] = useState<string | null>(null)
@@ -33,7 +43,7 @@ export function TelaDeSeguranca() {
   useEffect(() => {
     if (chave) QRCode.toDataURL(chave.uri, { errorCorrectionLevel: 'M', width: 220, margin: 1 }).then(setQr, () => setQr(null))
   }, [chave])
-  const erro = preparar.error ?? pedirCodigo.error ?? ligar.error ?? desligar.error
+  const erro = preparar.error ?? pedirCodigo.error ?? ligar.error ?? codigoParaDesligar.error ?? desligar.error
   const ligado = situacao.data?.ligado === true
 
   return (
@@ -84,14 +94,20 @@ export function TelaDeSeguranca() {
               <Button type="submit" disabled={codigo.replace(/\D/g, '').length !== 6 || ligar.isPending}>Confirmar e ativar</Button>
             </form>
           )}
-          {ligado && (
+          {ligado && !codigoParaDesligar.isSuccess && (
+            <Button variant="outline" className="justify-self-start" disabled={codigoParaDesligar.isPending} onClick={() => codigoParaDesligar.mutate()}>Desativar</Button>
+          )}
+          {ligado && codigoParaDesligar.isSuccess && (
             <form className="grid gap-4" onSubmit={(e) => { e.preventDefault(); desligar.mutate(codigo, { onSuccess: () => setCodigo('') }) }}>
-              {situacao.data?.meio === 'Email' && <Button type="button" variant="ghost" onClick={() => pedirCodigo.mutate()}>Enviar por e-mail</Button>}
               <Field>
-                <FieldLabel htmlFor="codigo-desligar">{situacao.data?.meio === 'Email' ? 'Código do e-mail ou de recuperação' : 'Código do app ou de recuperação'}</FieldLabel>
+                <FieldLabel htmlFor="codigo-desligar">Código enviado para o seu e-mail</FieldLabel>
                 <Input id="codigo-desligar" autoComplete="one-time-code" value={codigo} onChange={(e) => setCodigo(e.target.value)} />
+                <FieldDescription>Também vale o código do app ou um de recuperação.</FieldDescription>
               </Field>
-              <Button type="submit" variant="outline" disabled={codigo.trim().length < 6 || desligar.isPending}>Desativar</Button>
+              <Button type="submit" variant="outline" disabled={codigo.trim().length < 6 || desligar.isPending}>Confirmar desativação</Button>
+              <Button type="button" variant="ghost" disabled={espera.esperando || codigoParaDesligar.isPending} onClick={() => codigoParaDesligar.mutate()}>
+                {espera.esperando ? `Enviar outro código em ${espera.restante} s` : 'Enviar outro código'}
+              </Button>
             </form>
           )}
         </CardContent>

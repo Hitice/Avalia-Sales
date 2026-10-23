@@ -209,7 +209,7 @@ aponta para a venda.
 | `vendas` (mudança) | `placa_id` opcional - a venda de serviço não leva placa | - |
 | `pedidos_placas` (coluna nova) | `producao_em` e a situação EmProducao | - |
 | `ordens_de_servico` | Número (identidade), revendedor, venda (única), produto do catálogo, produto e cliente gravados, situação (AFazer, EmAndamento, Entregue, Cancelada), observação, criada, iniciada e entregue em | RLS com a operadora |
-| `notificacoes` | Revendedor, para a operadora ou para o dono, título, texto, link, criada e lida em | RLS com a operadora |
+| `notificacoes` | Revendedor, para a operadora ou para o dono, destinatário (`usuario_id`, para o vendedor), título, texto, link, criada e lida em | RLS com a operadora |
 | `chamados` | Número (identidade do banco), revendedor, aberto por, assunto, situação (AguardandoAvalia, AguardandoRevenda, Resolvido), aberto em, prazo em, primeira resposta em, resolvido em, última mensagem em | RLS com a operadora |
 | `logos` | Logo do revendedor (PNG ou WebP, até 512 KB) | RLS; tabela própria para o revendedor, lido em toda cobrança, não carregar a imagem |
 | `revendedores` (colunas novas) | Nome exibido, cor primária, cor de destaque, marca alterada em | - |
@@ -695,6 +695,7 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
 
 | Data | Mudança |
 | --- | --- |
+| 23/10/2026 | Versão 1.8.1. `POST /conta/segundo-fator/desligar/codigo` manda código novo ao e-mail cadastrado (`GestorDeSegundoFator.PrepararDesligamento`); `desligar` aceita esse código, o do app ou um de recuperação. `notificacoes.usuario_id` (migration NotificacaoParaUsuario) e `Notificacoes.ParaVendedor`; o sino (`/notificacoes`, política `Todos`) separa operadora, dono (sem destinatário ou ele) e vendedor (só ele). |
 | 23/10/2026 | Versão 1.8.0. Auditoria da operadora - middleware `AuditoriaDaOperadoraNaRota` no grupo `/operadora` grava cada escrita com resposta abaixo de 400 (corpo JSON com buffer; arquivo não), migration AuditoriaDaOperadora, rotas `GET /operadora/auditoria` e `/operadora/auditoria/exportar`, tela da operadora. `components/ui/toggle-group.tsx` (ToggleGroup do Radix com a cara das abas) no lugar de abas sem painel, que o axe recusava (`aria-valid-attr-value`). Teste de acessibilidade cobre as telas da operadora. |
 | 23/10/2026 | Versão 1.7.3. Reconsulta da assinatura (Worker a cada 30 minutos e botão do dono), `EfeitosDaAssinatura` comum ao webhook e à reconsulta, com trava da linha do contrato; aviso ao dono no sino. `PUT /conta/dados/empresa` aceita endereço sem celular quando a revenda não tem um. Ficha da placa transferida monta a venda com o cliente e o valor gravados na transferência (a venda ficou na revenda antiga). Conta encerrada ainda marca notificação como lida. Teste de ponta a ponta do encerramento; história do endereço no Storybook. 253 testes na API. |
 | 22/10/2026 | Versão 1.7.2. Representante e cargo da Avalia vêm das variáveis do ambiente `producao` no GitHub, pelo job do Deploy, e não do `.env` do VPS. |

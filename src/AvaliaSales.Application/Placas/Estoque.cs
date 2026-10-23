@@ -17,7 +17,7 @@ public sealed record FiltroDePlacas(EstadoDaPlaca? Estado, Guid? ConsignadaA, st
 /// O estoque do revendedor e a consignação ao vendedor. A consignação é só
 /// dentro do revendedor: a Avalia não consigna, o pacote é pago antes.
 /// </summary>
-public sealed class Estoque(IBancoDeDados banco, IUsuarioAtual usuario, TimeProvider relogio)
+public sealed class Estoque(IBancoDeDados banco, IUsuarioAtual usuario, Notificacoes.Notificacoes notificacoes, TimeProvider relogio)
 {
     /// <summary>De uma vez, no máximo isto: o vendedor leva o que cabe na pasta.</summary>
     public const int ConsignacaoMaxima = 20;
@@ -129,6 +129,8 @@ public sealed class Estoque(IBancoDeDados banco, IUsuarioAtual usuario, TimeProv
             placa.Consignar(vendedorId);
         }
 
+        notificacoes.ParaVendedor(vendedor.RevendedorId, vendedorId, "Placas com você",
+            $"{placas.Count} {(placas.Count == 1 ? "placa ficou" : "placas ficaram")} com você para vender.", "/vendedor/inicio");
         await banco.SaveChangesAsync(ct);
         await transacao.CommitAsync(ct);
         return placas.Count;

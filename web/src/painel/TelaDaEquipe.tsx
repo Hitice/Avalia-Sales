@@ -1,3 +1,4 @@
+import { Trash2 } from 'lucide-react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
@@ -119,17 +120,21 @@ export function TelaDaEquipe() {
                       <TableRow key={v.id}>
                         <TableCell>
                           <p className="font-medium">{v.nome}</p>
-                          <p className="text-xs text-muted-foreground">{v.email}</p>
+                          <p className="text-xs break-all text-muted-foreground">{v.email}</p>
                         </TableCell>
                         <TableCell className="text-right tabular-nums">{formatarBps(v.comissaoEfetivaBps)}{v.comissaoBps === null && <span className="text-muted-foreground"> (padrão)</span>}</TableCell>
                         <TableCell className="text-right tabular-nums">{v.vendas}</TableCell>
                         <TableCell><Badge variant={v.ativo && !v.convitePendente ? 'default' : 'outline'}>{!v.ativo ? 'Desativado' : v.convitePendente ? 'Convidado' : 'Ativo'}</Badge></TableCell>
                         <TableCell>
-                          <div className="flex justify-end gap-2">
+                          <div className="flex items-center justify-end gap-2">
                             {v.ativo && v.convitePendente && <Button variant="outline" disabled={convidar.isPending} onClick={() => convidar.mutate(v.id, { onSuccess: setConvite })}>Convidar de novo</Button>}
                             <Button variant="outline" onClick={() => editar(v)}>Editar</Button>
                             <Button variant="outline" onClick={() => ativar.mutate({ id: v.id, ativo: !v.ativo })}>{v.ativo ? 'Desativar' : 'Reativar'}</Button>
-                            {v.vendas === 0 && <Button variant="ghost" onClick={() => excluir.mutate(v.id)}>Excluir</Button>}
+                            {v.vendas === 0 && (
+                              <Button variant="ghost" size="icon" className="text-destructive" aria-label={`Excluir ${v.nome}`} title="Excluir" onClick={() => excluir.mutate(v.id)}>
+                                <Trash2 aria-hidden />
+                              </Button>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>

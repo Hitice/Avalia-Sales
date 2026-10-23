@@ -90,10 +90,32 @@ public sealed class GestorDeSegundoFator(BancoDeDados banco, UserManager<Usuario
         return await Ativar(usuario, porEmail: true);
     }
 
+    /// <summary>
+    /// Desligar começa pelo botão: um código novo vai para o e-mail cadastrado,
+    /// tenha o fator sido ligado pelo app ou pelo e-mail. Quem tem só a sessão
+    /// aberta, sem a caixa de e-mail, não desliga.
+    /// </summary>
+    public async Task PrepararDesligamento(Guid usuarioId, CancellationToken ct)
+    {
+        var usuario = await Achar(usuarioId);
+        if (!usuario.TwoFactorEnabled)
+        {
+            throw new RegraDeNegocioException("A autenticação de dois fatores já está desativada.");
+        }
+
+        if (!usuario.EmailConfirmed || usuario.Email is null)
+        {
+            throw new RegraDeNegocioException("Confirme o e-mail para receber o código.");
+        }
+
+        await MandarCodigo(usuario, $"desligar:{Guid.CreateVersion7():N}", ct);
+    }
+
+    /// <summary>Com o código do e-mail; o do app e os de recuperação também valem.</summary>
     public async Task Desligar(Guid usuarioId, string? codigo)
     {
         var usuario = await Achar(usuarioId);
-        if (!usuario.TwoFactorEnabled || !await Confere(usuario, codigo))
+        if (!usuario.TwoFactorEnabled || !(usuario.EmailConfirmed && await CodigoDoEmail(usuario, codigo) || await Confere(usuario, codigo)))
         {
             throw new RegraDeNegocioException("Código não confere.");
         }

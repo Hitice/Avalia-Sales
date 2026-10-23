@@ -69,7 +69,7 @@ public static class RotasDeAcesso
             return Results.NoContent();
         });
 
-        // Segundo fator do dono e da operadora. Ligar exige o primeiro código do app; desligar, um código válido.
+        // Segundo fator do dono e da operadora. Ligar exige o primeiro código do app; desligar, o código novo do e-mail (ou o do app).
         var fator = rotas.MapGroup("/conta/segundo-fator").RequireAuthorization().RequireRateLimiting(LimiteDeEntrada);
         fator.MapGet("/", async (IUsuarioAtual atual, UserManager<Usuario> usuarios) =>
             await usuarios.FindByIdAsync(Atual(atual)) is { } u
@@ -84,6 +84,11 @@ public static class RotasDeAcesso
         });
         fator.MapPost("/email", (CodigoDoAutenticador pedido, IUsuarioAtual atual, GestorDeSegundoFator fatores) =>
             fatores.LigarPorEmail(Guid.Parse(Atual(atual)), pedido.Codigo));
+        fator.MapPost("/desligar/codigo", async (IUsuarioAtual atual, GestorDeSegundoFator fatores, CancellationToken ct) =>
+        {
+            await fatores.PrepararDesligamento(Guid.Parse(Atual(atual)), ct);
+            return Results.NoContent();
+        });
         fator.MapPost("/desligar", async (CodigoDoAutenticador pedido, IUsuarioAtual atual, GestorDeSegundoFator fatores) =>
         {
             await fatores.Desligar(Guid.Parse(Atual(atual)), pedido.Codigo);

@@ -100,6 +100,11 @@ public sealed class EfeitosDaCobranca(IBancoDeDados banco, FilaDeEmails avisos, 
         var vendedor = (await contas.Nomes([venda.VendedorId], ct)).GetValueOrDefault(venda.VendedorId, "A equipe");
         var valor = $"R$ {venda.ValorCents / 100},{venda.ValorCents % 100:00}";
         notificacoes.ParaDono(venda.RevendedorId, "Venda paga", $"{vendedor} vendeu {produto.Nome} para {cliente}, {valor}.", "/painel/vendas");
+        if (await banco.Vendedores.AnyAsync(v => v.Id == venda.VendedorId, ct))
+        {
+            var comissao = venda.ComissaoCents > 0 ? $" Comissão de R$ {venda.ComissaoCents / 100},{venda.ComissaoCents % 100:00}." : string.Empty;
+            notificacoes.ParaVendedor(venda.RevendedorId, venda.VendedorId, "Venda paga", $"{cliente} pagou {valor}.{comissao}", "/vendedor/inicio");
+        }
 
         // Serviço que a Avalia executa: a venda paga vira ordem para a operadora, uma por venda.
         var doCatalogo = produto.ProdutoDaPlataformaId is { } catalogoId

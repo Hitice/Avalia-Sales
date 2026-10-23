@@ -18,7 +18,7 @@ public sealed record NovoRepasse(Guid VendedorId, DateTimeOffset? Ate, string? C
 /// do razão: comissão devida das vendas pagas, menos estornos, menos o já
 /// repassado. A comissão só existe quando o cliente paga.
 /// </summary>
-public sealed class Comissoes(IBancoDeDados banco, IUsuarioAtual usuario, IContas contas, Auditoria.Auditoria auditoria, TimeProvider relogio)
+public sealed class Comissoes(IBancoDeDados banco, IUsuarioAtual usuario, IContas contas, Auditoria.Auditoria auditoria, Notificacoes.Notificacoes notificacoes, TimeProvider relogio)
 {
     public async Task<IReadOnlyList<SaldoDeComissao>> Saldos(CancellationToken ct)
     {
@@ -87,6 +87,8 @@ public sealed class Comissoes(IBancoDeDados banco, IUsuarioAtual usuario, IConta
             $"{valor} centavos, {vendas.Count} vendas, comprovante {pedido.Comprovante ?? "-"}");
         banco.AvisarAoVivo("comissao", vendedor.RevendedorId);
         banco.Lancamentos.Add(new Lancamento(TipoDeLancamento.ComissaoPaga, repasse.Id, -valor, $"Comissão repassada a {vendedor.Nome}", agora, vendedorId: vendedor.Id));
+        notificacoes.ParaVendedor(vendedor.RevendedorId, vendedor.Id, "Comissão paga",
+            $"A revenda repassou R$ {valor / 100},{valor % 100:00} de {vendas.Count} {(vendas.Count == 1 ? "venda" : "vendas")}.", "/vendedor/inicio");
         await banco.SaveChangesAsync(ct);
         await transacao.CommitAsync(ct);
         return new RepasseDto(repasse.Id, vendedor.Id, vendedor.Nome, valor, vendas.Count, ate, agora, repasse.Comprovante);

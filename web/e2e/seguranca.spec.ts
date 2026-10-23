@@ -57,7 +57,9 @@ test('o dono liga o segundo fator, a entrada pede o código e ele desliga', asyn
   await expect(page.getByRole('heading', { name: 'Início' })).toBeVisible()
 
   await page.goto('/conta/seguranca')
-  await page.getByLabel('Código do app ou de recuperação').fill(codigoTotp(chave))
   await page.getByRole('button', { name: 'Desativar' }).click()
+  // O código vai para o e-mail; o do app também vale, e é o que o teste tem.
+  await page.getByLabel('Código enviado para o seu e-mail').fill(codigoTotp(chave))
+  await page.getByRole('button', { name: 'Confirmar desativação' }).click()
   await expect(page.getByText('Desativada')).toBeVisible()
 })

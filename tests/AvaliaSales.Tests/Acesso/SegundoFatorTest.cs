@@ -44,6 +44,24 @@ public sealed partial class SegundoFatorTest(ApiDeTeste api)
         Assert.Equal(HttpStatusCode.OK, entrada.StatusCode);
     }
 
+    /// <summary>Ligado pelo app, desligar manda um código novo ao e-mail cadastrado, e ele basta.</summary>
+    [Fact]
+    public async Task Desativar_manda_codigo_novo_ao_email_e_ele_desliga()
+    {
+        var (_, email) = await api.CriarRevendedor("Revenda 2FA Desativar Email");
+        var dono = await api.ClienteLogado(email);
+        await Ligar(dono);
+
+        await dono.Postar("/conta/segundo-fator/desligar/codigo", new { }, HttpStatusCode.NoContent);
+        await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
+        var assunto = await banco.Texto($"select assunto from emails where para = '{email}' and assunto like 'Código de acesso%' order by criado_em desc limit 1");
+        var codigo = System.Text.RegularExpressions.Regex.Match(assunto, @"\d{6}").Value;
+
+        await dono.Postar("/conta/segundo-fator/desligar", new { codigo }, HttpStatusCode.NoContent);
+        Assert.False((await dono.Pegar("/conta/segundo-fator")).GetProperty("ligado").GetBoolean());
+        await dono.Postar("/conta/segundo-fator/desligar/codigo", new { }, HttpStatusCode.UnprocessableEntity);
+    }
+
     [Fact]
     public async Task Link_de_troca_de_senha_nao_pula_o_segundo_fator()
     {

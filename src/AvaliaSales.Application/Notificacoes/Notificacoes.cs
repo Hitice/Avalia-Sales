@@ -12,13 +12,20 @@ public sealed record CaixaDeNotificacoes(IReadOnlyList<NotificacaoDto> Notificac
 /// transação dela (o SaveChanges é de quem chama) e o aviso ao vivo refaz o
 /// sino aberto. O dono lê as da revenda dele; a operadora, as que são para ela.
 /// </summary>
-public sealed class Notificacoes(IBancoDeDados banco, IRevendedorAtual atual, TimeProvider relogio)
+public sealed class Notificacoes(IBancoDeDados banco, IRevendedorAtual atual, IUsuarioAtual usuario, TimeProvider relogio)
 {
     public const int NaCaixa = 30;
 
     public void ParaDono(Guid revendedor, string titulo, string texto, string? link)
     {
         banco.Notificacoes.Add(new Notificacao(false, titulo, texto, link, relogio.GetUtcNow(), revendedor));
+        banco.AvisarAoVivo("notificacao", revendedor);
+    }
+
+    /// <summary>Para uma pessoa da equipe; o aviso ao vivo vai para a revenda, e cada sino filtra o dele.</summary>
+    public void ParaVendedor(Guid revendedor, Guid vendedor, string titulo, string texto, string? link)
+    {
+        banco.Notificacoes.Add(Notificacao.ParaUsuario(revendedor, vendedor, titulo, texto, link, relogio.GetUtcNow()));
         banco.AvisarAoVivo("notificacao", revendedor);
     }
 
@@ -53,10 +60,17 @@ public sealed class Notificacoes(IBancoDeDados banco, IRevendedorAtual atual, Ti
         await alvo.ExecuteUpdateAsync(s => s.SetProperty(n => n.LidaEm, agora), ct);
     }
 
-    /// <summary>O filtro do banco já limita o dono à revenda dele; aqui separa o que é para quem.</summary>
+    /// <summary>O filtro do banco já limita a revenda; aqui separa o que é para quem.</summary>
     private IQueryable<Notificacao> Minhas()
     {
-        var paraOperadora = atual.Operadora;
-        return banco.Notificacoes.Where(n => n.ParaOperadora == paraOperadora);
+        if (atual.Operadora)
+        {
+            return banco.Notificacoes.Where(n => n.ParaOperadora);
+        }
+
+        var eu = usuario.UsuarioId;
+        return usuario.Papel == Domain.Acesso.Papel.Vendedor
+            ? banco.Notificacoes.Where(n => !n.ParaOperadora && n.UsuarioId == eu)
+            : banco.Notificacoes.Where(n => !n.ParaOperadora && (n.UsuarioId == null || n.UsuarioId == eu));
     }
 }

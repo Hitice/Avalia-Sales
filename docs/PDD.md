@@ -105,7 +105,7 @@ Todas no mesmo app, liberadas pelo papel do usuário.
 | Auditoria | Revendedor | Computador | Quem mudou o quê, em tabela com antes e depois, busca pelo código, filtro pela ação, 20 por página e exportação em JSON |
 | Auditoria da operadora | Operadora | Computador | O que a operadora mudou na plataforma (pacote, cupom, lote, pedido, catálogo, recebedor, contrato em papel, serviço, chamado), com o que foi enviado, busca, 20 por página e exportação em JSON |
 | Meus dados | Todos | Celular e computador | No menu da conta (junto do Sair) - nome de todos; nome da empresa, celular e endereço do dono (o CNPJ não muda); telefone e chave Pix do vendedor. O e-mail muda pelo Suporte. O dono encerra a conta aqui (Encerrar conta) |
-| Segurança | Dono e operadora | Celular e computador | Ligar e desligar o segundo fator (app autenticador), com códigos de recuperação |
+| Segurança | Dono e operadora | Celular e computador | Ativar o segundo fator (app autenticador ou código no e-mail), com códigos de recuperação. Desativar manda um código novo ao e-mail cadastrado; o do app e os de recuperação também valem |
 | Mapa | Revendedor | Computador | Lugares vendidos, no Google Maps |
 | Painel do vendedor | Vendedor | Celular | Vendas do mês, comissão a receber, esperando pagamento e recebida, placas com ele |
 | Nova venda | Vendedor | Celular | Negócio no Google, QR da placa, cliente, cobrança, gravação do NFC |
@@ -495,6 +495,7 @@ O que está pronto no código e só fecha com a conta de verdade:
 | Data | Mudança |
 | --- | --- |
 | 22/10/2026 | Migração do Sales - conversor do backup diário para o arquivo de placas, venda no produto do catálogo pela chave, comissão devida trazida como saldo do vendedor. Os dois sócios entram como vendedores com 50% cada, em vez de divisão entre sócios. |
+| 23/10/2026 | Desativar o segundo fator pede o código novo enviado ao e-mail cadastrado. Sino também para o vendedor - venda paga, comissão repassada e placas consignadas a ele. O logo do cabeçalho leva ao início. Equipe com as ações numa linha (excluir em ícone). |
 | 23/10/2026 | Auditoria da operadora, com tela própria. Seletores de tipo de cupom, forma de pagamento e formato do logo passam de abas para escolha de opção (leitor de tela). |
 | 23/10/2026 | Conferir assinatura do contrato e do distrato, reconsulta automática a cada 30 minutos e aviso ao dono no sino. Meus dados - o endereço passa a ser gravado, o aviso de salvo não some e revenda sem celular salva o endereço. |
 | 22/10/2026 | Texto revisado - a cláusula 5.4 do contrato perde a nota de confirmar a taxa antes da assinatura; a 1.2 do distrato passa a citar a cláusula 3.3 (exportação). Prazos confirmados pela Avalia - exportação em 30 dias e saldo em 10 dias da data efetiva. |

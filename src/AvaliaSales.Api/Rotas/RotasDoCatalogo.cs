@@ -66,7 +66,7 @@ public static class RotasDoCatalogo
         });
 
         // Dono e operadora: o sino de cada um.
-        var notificacoes = rotas.MapGroup("/notificacoes").RequireAuthorization(Politicas.DonoOuOperadora).WithTags("Notificações");
+        var notificacoes = rotas.MapGroup("/notificacoes").RequireAuthorization(Politicas.Todos).WithTags("Notificações");
         notificacoes.MapGet("/", (Notificacoes n, CancellationToken ct) => n.Caixa(ct));
         notificacoes.MapPost("/lidas", async (Notificacoes n, CancellationToken ct) => { await n.MarcarLidas(null, ct); return Results.NoContent(); });
         notificacoes.MapPost("/{id:guid}/lida", async (Guid id, Notificacoes n, CancellationToken ct) => { await n.MarcarLidas(id, ct); return Results.NoContent(); });

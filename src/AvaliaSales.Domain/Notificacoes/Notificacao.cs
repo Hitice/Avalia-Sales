@@ -2,8 +2,9 @@ namespace AvaliaSales.Domain.Notificacoes;
 
 /// <summary>
 /// Aviso dentro da plataforma, no sino do cabeçalho. Sempre de um revendedor:
-/// a do dono (ParaOperadora falso) ou a que a operadora recebe sobre ele. A
-/// operadora lê todas as dela (IAtendidoPelaOperadora); o dono, só as da revenda.
+/// a do dono (ParaOperadora falso), a de uma pessoa da equipe (UsuarioId) ou a
+/// que a operadora recebe sobre ele. A operadora lê todas as dela
+/// (IAtendidoPelaOperadora); o dono, as da revenda e as dele; o vendedor, só as dele.
 /// </summary>
 public sealed class Notificacao : IAtendidoPelaOperadora
 {
@@ -13,6 +14,9 @@ public sealed class Notificacao : IAtendidoPelaOperadora
     public Guid Id { get; private set; } = Guid.CreateVersion7();
     public Guid RevendedorId { get; private set; }
     public bool ParaOperadora { get; private set; }
+
+    /// <summary>Para uma pessoa da revenda, como o vendedor. Nulo é para o dono.</summary>
+    public Guid? UsuarioId { get; private set; }
     public string Titulo { get; private set; }
     public string Texto { get; private set; }
 
@@ -37,6 +41,9 @@ public sealed class Notificacao : IAtendidoPelaOperadora
             RevendedorId = r;
         }
     }
+
+    public static Notificacao ParaUsuario(Guid revendedor, Guid usuario, string titulo, string texto, string? link, DateTimeOffset agora) =>
+        new(false, titulo, texto, link, agora, revendedor) { UsuarioId = usuario };
 
     public void MarcarLida(DateTimeOffset agora) => LidaEm ??= agora;
 
