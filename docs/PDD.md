@@ -466,7 +466,6 @@ Estimativa em semanas de cerca de 20 horas.
 | Nome e domínio | Subdomínio de avaliaone.com.br ou domínio próprio | A definir |
 | Recebedor da revendedora Avalia | Mesmo da conta do marketplace ou separado | Confirmar com o Pagar.me |
 | Texto do termo do cliente | Rascunho ou revisão jurídica | Revisão antes do fim da Fase 1. O contrato de revenda foi aprovado (versão 1, 22/10/2026) |
-| Contrato versão 2 e distrato | Revisão do texto | A cláusula 5.4 do contrato ainda diz que as Partes devem confirmar a taxa antes de assinar; a 1.2 do distrato cita a cláusula 6 para a exportação, que está na 3.3. Prazos que a Plataforma preenche - exportação em 30 dias e saldo em 10 dias da data efetiva |
 | Repositório | Público ou privado | Público, com dados fictícios |
 
 ### Fase das APIs (com as contas e chaves)
@@ -488,6 +487,7 @@ O que está pronto no código e só fecha com a conta de verdade:
 | Data | Mudança |
 | --- | --- |
 | 22/10/2026 | Migração do Sales - conversor do backup diário para o arquivo de placas, venda no produto do catálogo pela chave, comissão devida trazida como saldo do vendedor. Os dois sócios entram como vendedores com 50% cada, em vez de divisão entre sócios. |
+| 22/10/2026 | Texto revisado - a cláusula 5.4 do contrato perde a nota de confirmar a taxa antes da assinatura; a 1.2 do distrato passa a citar a cláusula 3.3 (exportação). Prazos confirmados pela Avalia - exportação em 30 dias e saldo em 10 dias da data efetiva. |
 | 22/10/2026 | Contrato versão 2 gerado com os dados do cadastro, com a Avalia aceita na emissão e sem testemunhas. Endereço no cadastro e em Meus dados, preenchido pelo CNPJ e pelo CEP. Encerramento da conta pelo distrato - gerado e enviado à D4Sign, desistência, baixa do estoque, equipe desligada, clientes ativos para a revenda da Avalia e 30 dias para exportar. |
 | 22/10/2026 | Contrato de revenda versão 2 e distrato formatados em `docs/contrato`, fora da Plataforma até os campos variáveis serem preenchidos por ela. |
 | 22/10/2026 | Serviços em quatro abas - Link (endereço colado), NFC, Maps (busca do negócio no Google) e Status (ordens de serviço). A busca no Google não recarrega mais a página. |
