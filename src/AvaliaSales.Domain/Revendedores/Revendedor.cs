@@ -38,6 +38,23 @@ public sealed class Revendedor
     /// <summary>Quando o contrato de revenda foi assinado. Sem ele, não há pedido de placas.</summary>
     public DateTimeOffset? ContratoAssinadoEm { get; private set; }
 
+    /// <summary>Vai no contrato e no distrato. Nulo no revendedor cadastrado antes de a tela pedir.</summary>
+    public Endereco? Endereco { get; private set; }
+
+    /// <summary>O dono pediu o encerramento: o distrato está sendo gerado ou espera assinatura.</summary>
+    public DateTimeOffset? EncerramentoPedidoEm { get; private set; }
+
+    /// <summary>
+    /// Data efetiva do encerramento, a da assinatura do distrato. Daí em diante
+    /// não há venda nem pedido, e o dono só consulta e exporta até <see cref="ExportacaoAte"/>.
+    /// </summary>
+    public DateTimeOffset? EncerradaEm { get; private set; }
+
+    /// <summary>Prazo para o dono exportar os dados depois do encerramento (cláusula 3.3 do distrato).</summary>
+    public const int DiasParaExportar = 30;
+
+    public DateTimeOffset? ExportacaoAte => EncerradaEm?.AddDays(DiasParaExportar);
+
     public DateTimeOffset CriadoEm { get; private set; } = DateTimeOffset.UtcNow;
 
     private Revendedor() => Nome = string.Empty;
@@ -131,4 +148,43 @@ public sealed class Revendedor
 
     /// <summary>Pela D4Sign, ou pela operadora quando o contrato foi assinado em papel.</summary>
     public void RegistrarContratoAssinado(DateTimeOffset quando) => ContratoAssinadoEm ??= quando;
+
+    public void DefinirEndereco(Endereco endereco) => Endereco = endereco;
+
+    public void PedirEncerramento(DateTimeOffset agora)
+    {
+        if (EncerradaEm is not null)
+        {
+            throw new RegraDeNegocioException("A conta já está encerrada.");
+        }
+
+        if (EncerramentoPedidoEm is not null)
+        {
+            throw new RegraDeNegocioException("O encerramento já foi pedido. Assine o distrato pelo e-mail da D4Sign.");
+        }
+
+        if (Endereco is null)
+        {
+            throw new RegraDeNegocioException("Complete o endereço da empresa em Meus dados antes de encerrar a conta.");
+        }
+
+        EncerramentoPedidoEm = agora;
+    }
+
+    public void DesistirDoEncerramento()
+    {
+        if (EncerradaEm is not null)
+        {
+            throw new RegraDeNegocioException("A conta já está encerrada.");
+        }
+
+        EncerramentoPedidoEm = null;
+    }
+
+    /// <summary>Com o distrato assinado. Encerrar de novo não muda a data.</summary>
+    public void Encerrar(DateTimeOffset quando)
+    {
+        EncerramentoPedidoEm ??= quando;
+        EncerradaEm ??= quando;
+    }
 }

@@ -1,5 +1,7 @@
 using AvaliaSales.Application.Contratos;
 using AvaliaSales.Application.Equipe;
+using AvaliaSales.Domain.Acesso;
+using AvaliaSales.Application;
 using AvaliaSales.Application.Revendedores;
 using AvaliaSales.Application.Pagamentos;
 using AvaliaSales.Domain.Contratos;
@@ -7,16 +9,19 @@ using AvaliaSales.Domain.Pagamentos;
 using AvaliaSales.Infrastructure.Banco;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace AvaliaSales.Infrastructure.Integracoes;
 
 /// <summary>
 /// O que ficou pela metade quando uma chamada externa caiu: cobrança sem
-/// pedido e contrato com envio incompleto. Também cria o contrato de revenda
-/// de quem se cadastrou e ainda não tem. Roda revendedor por revendedor,
-/// porque o RLS só mostra as linhas do revendedor da sessão.
+/// pedido e contrato com envio incompleto. Também gera o contrato de revenda
+/// de quem se cadastrou e ainda não tem, o distrato de quem pediu o
+/// encerramento, e desliga o dono quando acaba o prazo de exportação. Roda
+/// revendedor por revendedor, porque o RLS só mostra as linhas do revendedor da sessão.
 /// </summary>
-public sealed class Retomadas(IServiceScopeFactory escopos, BancoDeDados banco, TimeProvider relogio, Microsoft.Extensions.Options.IOptions<Pagarme.OpcoesPagarme> pagarme)
+public sealed partial class Retomadas(IServiceScopeFactory escopos, BancoDeDados banco, TimeProvider relogio, Microsoft.Extensions.Options.IOptions<Pagarme.OpcoesPagarme> pagarme,
+    ILogger<Retomadas> log)
 {
     /// <summary>Cobrança pendente mais velha que isso não é reconsultada: o Pix já expirou há muito.</summary>
     public static readonly TimeSpan JanelaDeConferencia = TimeSpan.FromDays(2);
@@ -33,11 +38,12 @@ public sealed class Retomadas(IServiceScopeFactory escopos, BancoDeDados banco, 
     public async Task<int> Executar(int contratosPorRodada, CancellationToken ct)
     {
         var agora = relogio.GetUtcNow();
-        var revendedores = await banco.Revendedores.AsNoTracking().Select(r => new { r.Id, r.Nome, r.ContratoAssinadoEm }).ToListAsync(ct);
+        var revendedores = await banco.Revendedores.AsNoTracking()
+            .Select(r => new { r.Id, r.ContratoAssinadoEm, r.EncerramentoPedidoEm, r.EncerradaEm }).ToListAsync(ct);
         var retomados = 0;
         var contratosRestantes = contratosPorRodada;
 
-        foreach (var (revendedorId, nome, assinado) in revendedores.Select(r => (r.Id, r.Nome, r.ContratoAssinadoEm)))
+        foreach (var (revendedorId, assinado, pedido, encerrada) in revendedores.Select(r => (r.Id, r.ContratoAssinadoEm, r.EncerramentoPedidoEm, r.EncerradaEm)))
         {
             using var escopo = escopos.CreateScope();
             escopo.ServiceProvider.GetRequiredService<RevendedorDaExecucao>().RevendedorId = revendedorId;
@@ -75,22 +81,35 @@ public sealed class Retomadas(IServiceScopeFactory escopos, BancoDeDados banco, 
                 continue;
             }
 
-            if (assinado is null && !await doRevendedor.Contratos.AnyAsync(c => c.Tipo == TipoDeContrato.ContratoDoRevendedor, ct))
+            if (encerrada is { } dataEfetiva)
             {
-                var donos = await escopo.ServiceProvider.GetRequiredService<IContas>().EmailsDosDonos(revendedorId, ct);
-                if (donos.Count > 0 && donos[0] is var dono)
+                // Passado o prazo de exportação do distrato (cláusula 3.3), o dono deixa de entrar.
+                if (dataEfetiva.AddDays(Domain.Revendedores.Revendedor.DiasParaExportar) < agora)
                 {
-                    await escopo.ServiceProvider.GetRequiredService<Contratos>().Registrar(new CriarContrato(
-                        TipoDeContrato.ContratoDoRevendedor, $"Contrato de revenda - {nome}", nome, dono,
-                        escopo.ServiceProvider.GetRequiredService<IModeloDeContrato>().ContratoDeRevenda()), ct);
+                    await escopo.ServiceProvider.GetRequiredService<IContas>().DesativarLogins(revendedorId, Papel.Dono, ct);
                 }
+
+                continue;
+            }
+
+            var documentos = escopo.ServiceProvider.GetRequiredService<DocumentosDaRevenda>();
+            if (assinado is null && pedido is null && !await doRevendedor.Contratos.AnyAsync(c => c.Tipo == TipoDeContrato.ContratoDoRevendedor, ct))
+            {
+                await Gerar(() => documentos.GerarContrato(revendedorId, ct));
+            }
+
+            if (pedido is not null && !await doRevendedor.Contratos.AnyAsync(c => c.Tipo == TipoDeContrato.Distrato
+                    && (c.Situacao == SituacaoDoContrato.Rascunho || c.Situacao == SituacaoDoContrato.AguardandoAssinatura), ct))
+            {
+                await Gerar(() => documentos.GerarDistrato(revendedorId, ct));
             }
 
             // A conta padrão da D4Sign aceita 10 requisições por hora: poucos contratos por rodada.
             var contratos = await doRevendedor.Contratos.AsNoTracking()
-                .Where(c => c.Etapa < EtapaDoEnvio.Enviado && c.Situacao == SituacaoDoContrato.Rascunho
+                // Distrato de quem já desistiu não sai, mesmo que tenha sido gerado na mesma hora.
+                .Where(c => c.Etapa < EtapaDoEnvio.Enviado && c.Situacao == SituacaoDoContrato.Rascunho && (c.Tipo != TipoDeContrato.Distrato || pedido != null)
                     && c.TentativasDeEnvio < Contratos.TentativasMaximas
-                    && (c.CriadoEm < agora - Carencia || c.Tipo == TipoDeContrato.ContratoDoRevendedor && c.Etapa == EtapaDoEnvio.Criado && c.TentativasDeEnvio == 0))
+                    && (c.CriadoEm < agora - Carencia || c.Tipo != TipoDeContrato.TermoDoCliente && c.Etapa == EtapaDoEnvio.Criado && c.TentativasDeEnvio == 0))
                 .OrderBy(c => c.CriadoEm)
                 .Select(c => c.Id)
                 .Take(contratosRestantes)
@@ -106,4 +125,20 @@ public sealed class Retomadas(IServiceScopeFactory escopos, BancoDeDados banco, 
 
         return retomados;
     }
+
+    /// <summary>O conversor de PDF fora do ar não para a rotina: a próxima volta gera de novo.</summary>
+    private async Task Gerar(Func<Task<bool>> geracao)
+    {
+        try
+        {
+            await geracao();
+        }
+        catch (IntegracaoException erro)
+        {
+            LogGeracao(log, erro.Message);
+        }
+    }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Documento da revenda não foi gerado e volta na próxima rodada: {Motivo}")]
+    private static partial void LogGeracao(ILogger log, string motivo);
 }

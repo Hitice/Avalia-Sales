@@ -78,17 +78,36 @@ public static class RotasDaRevenda
         });
         // O contrato de revenda: situação, reenvio do e-mail de assinatura e cópia em PDF.
         dono.MapGet("/revenda/contrato", async (Application.Contratos.ContratoDaRevenda contrato, CancellationToken ct) =>
-            await contrato.Ler(ct) is { } meu ? Results.Ok(meu) : Results.NoContent()).Produces<Application.Contratos.MeuContrato>();
+            await contrato.Ler(Domain.Contratos.TipoDeContrato.ContratoDoRevendedor, ct) is { } meu ? Results.Ok(meu) : Results.NoContent()).Produces<Application.Contratos.MeuContrato>();
         dono.MapPost("/revenda/contrato/reenvio", async (Application.Contratos.ContratoDaRevenda contrato, CancellationToken ct) =>
         {
-            await contrato.Reenviar(ct);
+            await contrato.Reenviar(Domain.Contratos.TipoDeContrato.ContratoDoRevendedor, ct);
             return Results.NoContent();
         });
         dono.MapGet("/revenda/contrato/pdf", async (Application.Contratos.ContratoDaRevenda contrato, CancellationToken ct) =>
         {
-            var (pdf, nome) = await contrato.Copia(ct);
+            var (pdf, nome) = await contrato.Copia(Domain.Contratos.TipoDeContrato.ContratoDoRevendedor, ct);
             return Results.File(pdf, "application/pdf", nome);
         });
+        // Encerramento da conta pelo distrato: pedir, desistir antes de assinar, reenviar, cópia e exportação dos dados.
+        dono.MapGet("/revenda/encerramento", (Encerramento encerramento, CancellationToken ct) => encerramento.Ler(ct));
+        dono.MapPost("/revenda/encerramento", (Encerramento encerramento, CancellationToken ct) => encerramento.Pedir(ct));
+        dono.MapDelete("/revenda/encerramento", (Encerramento encerramento, CancellationToken ct) => encerramento.Desistir(ct));
+        dono.MapPost("/revenda/encerramento/reenvio", async (Application.Contratos.ContratoDaRevenda contrato, CancellationToken ct) =>
+        {
+            await contrato.Reenviar(Domain.Contratos.TipoDeContrato.Distrato, ct);
+            return Results.NoContent();
+        });
+        dono.MapGet("/revenda/encerramento/pdf", async (Application.Contratos.ContratoDaRevenda contrato, CancellationToken ct) =>
+        {
+            var (pdf, nome) = await contrato.Copia(Domain.Contratos.TipoDeContrato.Distrato, ct);
+            return Results.File(pdf, "application/pdf", nome);
+        });
+        dono.MapGet("/revenda/exportacao", async (Application.Revendedores.Exportacao exportacao, CancellationToken ct) =>
+        {
+            var json = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(await exportacao.Gerar(ct), Exportacao);
+            return Results.File(json, "application/json", $"dados-da-revenda-{DateTime.UtcNow:yyyy-MM-dd}.json");
+        }).Produces<DadosExportados>();
         dono.MapGet("/repasses", (Comissoes comissoes, CancellationToken ct) => comissoes.Repasses(ct));
         dono.MapPost("/repasses", async (NovoRepasse pedido, Comissoes comissoes, CancellationToken ct) =>
             Results.Created("/repasses", await comissoes.Repassar(pedido, ct)));

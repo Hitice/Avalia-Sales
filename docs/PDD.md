@@ -62,7 +62,9 @@ revendedor é a Avalia.
 
 ## 4. Jornada do revendedor
 
-1. Cadastro - pela tela, com empresa, CNPJ, celular e o login do dono. A conta para
+1. Cadastro - pela tela, com CNPJ, empresa, celular, endereço e o login do dono.
+   O CNPJ válido preenche a razão social e o endereço (BrasilAPI, com os dados da
+   Receita), e o CEP preenche rua, bairro, cidade e UF; o dono só confere. A conta para
    receber no Pagar.me é informada pela operadora até o cadastro de recebedor
    pela API entrar.
 2. Contrato - criado sozinho depois do cadastro e enviado pela D4Sign ao e-mail
@@ -101,7 +103,7 @@ Todas no mesmo app, liberadas pelo papel do usuário.
 | Painel | Revendedor | Computador | Início com os números do mês e gráficos - vendas por dia nos últimos 30 dias, recebido por mês nos últimos 6 e vendas do mês por vendedor; pendências (contrato, conta de recebimento, celular) no sino |
 | Configurações | Dono | Computador e celular | Comissão padrão e preço da renovação, que valem para venda nova |
 | Auditoria | Revendedor | Computador | Quem mudou o quê, em tabela com antes e depois, busca pelo código, filtro pela ação, 20 por página e exportação em JSON |
-| Meus dados | Todos | Celular e computador | No menu da conta (junto do Sair) - nome de todos; nome da empresa e celular do dono (o CNPJ não muda); telefone e chave Pix do vendedor. O e-mail muda pelo Suporte |
+| Meus dados | Todos | Celular e computador | No menu da conta (junto do Sair) - nome de todos; nome da empresa, celular e endereço do dono (o CNPJ não muda); telefone e chave Pix do vendedor. O e-mail muda pelo Suporte. O dono encerra a conta aqui (Encerrar conta) |
 | Segurança | Dono e operadora | Celular e computador | Ligar e desligar o segundo fator (app autenticador), com códigos de recuperação |
 | Mapa | Revendedor | Computador | Lugares vendidos, no Google Maps |
 | Painel do vendedor | Vendedor | Celular | Vendas do mês, comissão a receber, esperando pagamento e recebida, placas com ele |
@@ -284,14 +286,14 @@ Todas no mesmo app, liberadas pelo papel do usuário.
 - Em Configurações, o dono vê a situação do contrato, reenvia o e-mail de
   assinatura quando não chegou (um pedido por minuto, como a D4Sign aceita) e
   baixa uma cópia em PDF - a original antes de assinar, a assinada depois.
-- A Plataforma envia a versão 1 do contrato (aprovada pela Avalia em 22/10/2026),
-  embutida na API. É um contrato de adesão: os dados do revendedor vêm do cadastro e
-  do registro da D4Sign.
-- Versão 2 do contrato e o distrato - texto revisado em `docs/contrato`
-  (`contrato-de-revenda.html` e `distrato.html`, PDF com `node docs/contrato/gerar.mjs`).
-  Têm campos a preencher (dados do revendedor, testemunhas, data efetiva, saldos,
-  estoque e Anexo I dos clientes ativos), por isso ainda não substituem a versão 1 na
-  Plataforma.
+- A Plataforma gera a versão 2 do contrato preenchida com o cadastro - razão
+  social, CNPJ, endereço, e-mail e o dono como representante; local e data da
+  emissão. A Avalia sai aceita na emissão (representante e cargo da
+  configuração) e só a revenda assina na D4Sign, sem testemunhas (assinatura
+  eletrônica por provedor, art. 784, § 4º, do CPC). Revenda sem endereço espera
+  o endereço para o contrato sair. Quem já recebeu a versão 1 segue com ela.
+- Texto em `src/AvaliaSales.Infrastructure/Impressao/Modelos`;
+  `node docs/contrato/gerar.mjs` imprime um exemplo para revisão.
 - O PDF original e o hash SHA-256 dele ficam guardados, para provar qual texto
   foi assinado.
 - Contrato só anda para a frente - aguardando assinatura vira assinado ou
@@ -304,6 +306,29 @@ Todas no mesmo app, liberadas pelo papel do usuário.
   operadora já nasce confirmada. O vendedor não passa por essa trava.
 - Entrada de aparelho novo na conta gera um e-mail ao dono da conta, com
   navegador, sistema, horário e IP, e o link para trocar a senha.
+
+### Encerramento da conta (distrato)
+
+- O dono pede em Meus dados (Encerrar conta). A Plataforma gera o distrato com
+  os dados dela e manda à D4Sign, como o contrato. Até assinar, ele reenvia o
+  e-mail, baixa a cópia ou desiste (o distrato é cancelado na D4Sign).
+- Preenchido pela Plataforma - data do contrato; data efetiva igual à da
+  assinatura do distrato; exportação por 30 dias depois dela; saldo devido à
+  Avalia igual à taxa das vendas e renovações recebidas por fora, com
+  vencimento em 10 dias da data efetiva; saldo devido pela Avalia zero (o split
+  paga a revenda direto); estoque e lotes; Anexo I com os clientes ativos e
+  Anexo II com a conciliação, na posição da emissão.
+- Estoque - comprado é da revenda, sem devolução: as placas em estoque têm baixa
+  na data efetiva (opção "manterá as placas, mas não poderá ativá-las").
+- Assinado o distrato - vendas, pedidos e qualquer escrita param; a equipe perde
+  o acesso; as placas no ar (dentro da carência), os clientes delas e os links
+  curtos desses clientes passam para a revenda da Avalia (a do CNPJ da Avalia),
+  que renova pelo valor da venda antiga. O QR continua respondendo. A venda e o
+  razão ficam com a revenda antiga.
+- O dono entra só para consultar, exportar os dados (arquivo JSON com clientes,
+  vendas, placas e razão) e baixar o distrato, por 30 dias; depois o login é
+  desligado. Os registros que a lei exige continuam guardados.
+- Revenda que nunca assinou o contrato não tem o que distratar: encerra na hora.
 
 ### E-mail
 
@@ -441,6 +466,7 @@ Estimativa em semanas de cerca de 20 horas.
 | Nome e domínio | Subdomínio de avaliaone.com.br ou domínio próprio | A definir |
 | Recebedor da revendedora Avalia | Mesmo da conta do marketplace ou separado | Confirmar com o Pagar.me |
 | Texto do termo do cliente | Rascunho ou revisão jurídica | Revisão antes do fim da Fase 1. O contrato de revenda foi aprovado (versão 1, 22/10/2026) |
+| Contrato versão 2 e distrato | Revisão do texto | A cláusula 5.4 do contrato ainda diz que as Partes devem confirmar a taxa antes de assinar; a 1.2 do distrato cita a cláusula 6 para a exportação, que está na 3.3. Prazos que a Plataforma preenche - exportação em 30 dias e saldo em 10 dias da data efetiva |
 | Repositório | Público ou privado | Público, com dados fictícios |
 
 ### Fase das APIs (com as contas e chaves)
@@ -462,6 +488,7 @@ O que está pronto no código e só fecha com a conta de verdade:
 | Data | Mudança |
 | --- | --- |
 | 22/10/2026 | Migração do Sales - conversor do backup diário para o arquivo de placas, venda no produto do catálogo pela chave, comissão devida trazida como saldo do vendedor. Os dois sócios entram como vendedores com 50% cada, em vez de divisão entre sócios. |
+| 22/10/2026 | Contrato versão 2 gerado com os dados do cadastro, com a Avalia aceita na emissão e sem testemunhas. Endereço no cadastro e em Meus dados, preenchido pelo CNPJ e pelo CEP. Encerramento da conta pelo distrato - gerado e enviado à D4Sign, desistência, baixa do estoque, equipe desligada, clientes ativos para a revenda da Avalia e 30 dias para exportar. |
 | 22/10/2026 | Contrato de revenda versão 2 e distrato formatados em `docs/contrato`, fora da Plataforma até os campos variáveis serem preenchidos por ela. |
 | 22/10/2026 | Serviços em quatro abas - Link (endereço colado), NFC, Maps (busca do negócio no Google) e Status (ordens de serviço). A busca no Google não recarrega mais a página. |
 | 22/10/2026 | Contrato em Configurações com reenviar o e-mail de assinatura e baixar a cópia. Na Nova venda, a barra de baixo aparece, com o botão da venda acima dela. |

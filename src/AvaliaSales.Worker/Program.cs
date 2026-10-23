@@ -20,6 +20,7 @@ builder.Services.AdicionarIntegracoes();
 builder.Services.AdicionarProcessamento();
 builder.Services.UsarPagarmeSimuladoSeLigado(builder.Configuration, builder.Environment.IsDevelopment());
 builder.Services.UsarProtheusSimuladoSeLigado(builder.Configuration, builder.Environment.IsDevelopment());
+builder.Services.UsarConversorSimuladoSeLigado(builder.Configuration, builder.Environment.IsDevelopment());
 builder.Services.AddHostedService<Rotinas>();
 
 builder.Build().Run();

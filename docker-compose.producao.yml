@@ -22,6 +22,9 @@ x-integracoes: &integracoes
   Plataforma__UrlPublica: https://${DOMINIO}
   Plataforma__UrlDoPainel: https://${DOMINIO}
   Plataforma__EmailDaOperadora: ${PLATAFORMA_EMAIL_DA_OPERADORA:?defina PLATAFORMA_EMAIL_DA_OPERADORA}
+  Plataforma__RepresentanteDaAvalia: ${AVALIA_REPRESENTANTE:-}
+  Plataforma__CargoDoRepresentante: ${AVALIA_CARGO_DO_REPRESENTANTE:-}
+  Pdf__UrlDoConversor: http://gotenberg:3000
   Resend__ChaveApi: ${RESEND_CHAVE_API:-}
   Resend__Remetente: ${RESEND_REMETENTE:-}
   Resend__ResponderPara: ${RESEND_RESPONDER_PARA:-}
@@ -91,6 +94,19 @@ services:
     depends_on:
       migrar:
         condition: service_completed_successfully
+      gotenberg:
+        condition: service_started
+    restart: unless-stopped
+
+  gotenberg:
+    # O PDF do contrato e do distrato (Chromium). Sem porta publicada e sem saída
+    # para a rede: o documento só usa os arquivos que o Worker manda junto.
+    image: gotenberg/gotenberg:8.38.1-chromium
+    environment:
+      CHROMIUM_DENY_PRIVATE_IPS: "true"
+      CHROMIUM_DENY_PUBLIC_IPS: "true"
+      CHROMIUM_DISABLE_JAVASCRIPT: "true"
+      API_TIMEOUT: 60s
     restart: unless-stopped
 
   nginx:

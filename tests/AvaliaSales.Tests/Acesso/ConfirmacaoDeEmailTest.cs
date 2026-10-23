@@ -17,7 +17,7 @@ public sealed partial class ConfirmacaoDeEmailTest(ApiDeTeste api)
         var email = $"dono-{Guid.NewGuid():N}@teste.com.br";
         var cliente = api.Fabrica.CreateClient();
         var resposta = await cliente.PostAsJsonAsync("/cadastro",
-            new { empresa = "Revenda Confirma", cnpj = Cnpj(), celular = "(11) 98765-4321", nome = "Ana", email, senha = ApiDeTeste.Senha }, Ct);
+            new { empresa = "Revenda Confirma", cnpj = Cnpj(), celular = "(11) 98765-4321", endereco = ApiDeTeste.Endereco, nome = "Ana", email, senha = ApiDeTeste.Senha }, Ct);
         var entrou = await resposta.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>(Ct);
 
         Assert.Equal(HttpStatusCode.OK, resposta.StatusCode);
@@ -41,7 +41,7 @@ public sealed partial class ConfirmacaoDeEmailTest(ApiDeTeste api)
     {
         var email = $"dono-{Guid.NewGuid():N}@teste.com.br";
         var cliente = api.Fabrica.CreateClient();
-        var entrou = await cliente.Postar("/cadastro", new { empresa = "Revenda Trancada", cnpj = Cnpj(), celular = "(11) 98765-4321", nome = "Bia", email, senha = ApiDeTeste.Senha });
+        var entrou = await cliente.Postar("/cadastro", new { empresa = "Revenda Trancada", cnpj = Cnpj(), celular = "(11) 98765-4321", endereco = ApiDeTeste.Endereco, nome = "Bia", email, senha = ApiDeTeste.Senha });
         cliente.DefaultRequestHeaders.Authorization = new("Bearer", entrou.GetProperty("token").GetString());
 
         Assert.Equal(HttpStatusCode.Forbidden, (await cliente.GetAsync("/revenda", Ct)).StatusCode);
@@ -62,7 +62,7 @@ public sealed partial class ConfirmacaoDeEmailTest(ApiDeTeste api)
     {
         var email = $"dono-{Guid.NewGuid():N}@teste.com.br";
         var cliente = api.Fabrica.CreateClient();
-        var entrou = await cliente.Postar("/cadastro", new { empresa = "Revenda Reenvio Email", cnpj = Cnpj(), celular = "(11) 98765-4321", nome = "Rui", email, senha = ApiDeTeste.Senha });
+        var entrou = await cliente.Postar("/cadastro", new { empresa = "Revenda Reenvio Email", cnpj = Cnpj(), celular = "(11) 98765-4321", endereco = ApiDeTeste.Endereco, nome = "Rui", email, senha = ApiDeTeste.Senha });
         cliente.DefaultRequestHeaders.Authorization = new("Bearer", entrou.GetProperty("token").GetString());
         await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
         var primeiro = Token(await banco.Texto($"select texto from emails where para = '{email}' order by criado_em desc limit 1"));
@@ -82,7 +82,7 @@ public sealed partial class ConfirmacaoDeEmailTest(ApiDeTeste api)
     {
         var email = $"dono-{Guid.NewGuid():N}@teste.com.br";
         var cliente = api.Fabrica.CreateClient();
-        var entrou = await cliente.Postar("/cadastro", new { empresa = "Revenda Codigo", cnpj = Cnpj(), celular = "(11) 98765-4321", nome = "Lia", email, senha = ApiDeTeste.Senha });
+        var entrou = await cliente.Postar("/cadastro", new { empresa = "Revenda Codigo", cnpj = Cnpj(), celular = "(11) 98765-4321", endereco = ApiDeTeste.Endereco, nome = "Lia", email, senha = ApiDeTeste.Senha });
         cliente.DefaultRequestHeaders.Authorization = new("Bearer", entrou.GetProperty("token").GetString());
         await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
         var codigo = Codigo(await banco.Texto($"select assunto from emails where para = '{email}' order by criado_em desc limit 1"));
@@ -98,7 +98,7 @@ public sealed partial class ConfirmacaoDeEmailTest(ApiDeTeste api)
         Assert.True(renovado.GetProperty("perfil").GetProperty("emailConfirmado").GetBoolean());
 
         var outro = $"dono-{Guid.NewGuid():N}@teste.com.br";
-        var segundo = await cliente.Postar("/cadastro", new { empresa = "Revenda Codigo Errado", cnpj = Cnpj(), celular = "(11) 98765-4321", nome = "Leo", email = outro, senha = ApiDeTeste.Senha });
+        var segundo = await cliente.Postar("/cadastro", new { empresa = "Revenda Codigo Errado", cnpj = Cnpj(), celular = "(11) 98765-4321", endereco = ApiDeTeste.Endereco, nome = "Leo", email = outro, senha = ApiDeTeste.Senha });
         cliente.DefaultRequestHeaders.Authorization = new("Bearer", segundo.GetProperty("token").GetString());
         var certo = Codigo(await banco.Texto($"select assunto from emails where para = '{outro}' order by criado_em desc limit 1"));
         var invalido = certo == "000000" ? "111111" : "000000";

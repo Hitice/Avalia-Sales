@@ -23,3 +23,18 @@ export const senhaOpcional = z.string().refine((t) => !t || t.length >= SENHA_MI
 
 export const reais = z.string().refine((t) => paraCentavos(t) !== null, 'Digite o valor, como 149,90.')
 export const percentualOpcional = z.string().refine((t) => !t.trim() || paraBps(t) !== null, 'Digite em %, como 20 ou 22,5.')
+
+/** O endereço da empresa, que vai no contrato e no distrato. A API confere as mesmas regras (Domain/Revendedores/Endereco). */
+export const endereco = z.object({
+  cep: z.string().refine((t) => t.replace(/\D/g, '').length === 8, 'CEP com 8 números.'),
+  logradouro: texto('a rua ou avenida'),
+  numero: texto('o número, ou S/N', 20),
+  complemento: z.string().trim().max(60, 'Use até 60 caracteres.'),
+  bairro: texto('o bairro', 80),
+  cidade: texto('a cidade', 80),
+  uf: z.string().trim().regex(/^[A-Za-z]{2}$/, 'UF com 2 letras.'),
+})
+
+export type EnderecoDoFormulario = z.infer<typeof endereco>
+
+export const ENDERECO_VAZIO: EnderecoDoFormulario = { cep: '', logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', uf: '' }

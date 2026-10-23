@@ -14,7 +14,7 @@ Cada seção diz o que já está no código e o que ainda é plano.
 | Jobs | Worker Service | .NET 10 LTS | No código |
 | Banco | PostgreSQL com EF Core e Npgsql | Postgres 17, EF Core 10.0.13, Npgsql 10.0.3 | No código |
 | Acesso | ASP.NET Identity e JWT (HMAC-SHA256) | 10.0.13 | No código |
-| Integrações | Pagar.me v5, D4Sign v1, Resend, Google Places (New) | - | No código |
+| Integrações | Pagar.me v5, D4Sign v1, Resend, Google Places (New), BrasilAPI (CNPJ e CEP), Gotenberg 8 (PDF) | - | No código |
 | QR da impressão | QRCoder (MIT), SVG e PNG sem System.Drawing | 1.8.0 | No código |
 | Resiliência | Microsoft.Extensions.Http.Resilience (Polly) | 10.11.0 | No código |
 | Tempo real | SignalR, com o LISTEN/NOTIFY do Postgres levando os avisos do Worker à API | ASP.NET Core 10, `@microsoft/signalr` 10.0.11 | No código |
@@ -216,6 +216,9 @@ aponta para a venda.
 | `revendedores` (coluna nova) | Celular de contato (`celular`, só dígitos com DDD), obrigatório no cadastro pela tela e trocado pelo dono em `PUT /revenda/celular` | - |
 | `vendas` (coluna nova) | Cortesia | - |
 | `envios_ao_erp` | Pedido pago a caminho do Protheus: cliente, CNPJ, quantidade, valor, situação, número no ERP, tentativas, erro | Sem RLS (fila da operadora); um por pedido |
+| `revendedores` (colunas novas) | Endereço (`endereco_logradouro`, `_numero`, `_complemento`, `_bairro`, `_cidade`, `_uf`, `_cep`, tipo próprio do EF), `encerramento_pedido_em` e `encerrada_em` (data efetiva do distrato) | - |
+| `placas` (colunas novas) | `transferida_em`, `cliente_da_transferencia_id` e `valor_da_venda_cents`: o que a renovação precisa da venda que ficou na revenda antiga | Políticas `transferencia_no_encerramento` (UPDATE) e `_leitura` (SELECT), também em `clientes` e `links`, valendo só com `app.transferencia` (ADR 0019) |
+| `contratos` (tipo novo) | `Distrato` | - |
 
 ### Planejado
 
@@ -293,6 +296,49 @@ Conferido na referência oficial em 21/10/2026.
   documento com a secret key MAC da conta, comparado em tempo constante. O HMAC
   cobre só o UUID; o Worker reconsulta a situação. A chave do evento é
   `uuid:type_post:email`.
+
+- Cancelamento - `POST /documents/{uuid}/cancel` com `comment`, quando o dono
+  desiste do distrato. A resposta documentada não é confiável: se a chamada for
+  recusada e o documento já estiver cancelado, conta como cancelado.
+
+### Documentos em PDF (Gotenberg)
+
+- Contrato versão 2 e distrato saem dos modelos HTML em
+  `Infrastructure/Impressao/Modelos`, preenchidos por `DocumentosEmPdf`
+  (`{{campo}}` escapado, `{{{campo}}}` HTML montado no código; campo sem valor
+  é erro) e convertidos pelo Gotenberg 8.38.1 (`POST /forms/chromium/convert/html`,
+  conferido em 22/10/2026), com o rodapé em `footer.html`, o CSS, o logo e a
+  Charis SIL (OFL). ADR 0018.
+- Só o Worker gera, em `Retomadas`: contrato de quem não tem, com endereço e
+  dono confirmado; distrato de quem pediu encerramento e não tem um em
+  andamento. Falha do conversor fica no log e volta na próxima rodada.
+- Configuração - `Pdf:UrlDoConversor` (obrigatória; `http://gotenberg:3000` no
+  Compose) e `Pdf:Simulado` (só Development: PDF mínimo, sem o contêiner).
+  `Plataforma:RepresentanteDaAvalia` e `Plataforma:CargoDoRepresentante` saem
+  no bloco de assinatura da Avalia; `Plataforma:CnpjDaRevendaDaAvalia` (padrão
+  68715987000164) diz para qual revenda vão os clientes de quem encerra.
+
+### BrasilAPI (no código)
+
+- `GET cnpj/v1/{cnpj}` e `GET cep/v2/{cep}` em `https://brasilapi.com.br/api/`,
+  conferidos em 22/10/2026, pelas rotas anônimas `/cadastro/cnpj/{cnpj}` e
+  `/cadastro/cep/{cep}` (limite da entrada). O CNPJ traz o município em
+  maiúsculas sem acento; a cidade, a rua e o bairro do CEP valem mais quando vêm.
+  Qualquer falha responde 404 e a tela pede o campo digitado.
+
+### Encerramento da conta (no código)
+
+- Rotas do dono - `GET/POST/DELETE /revenda/encerramento`,
+  `POST /revenda/encerramento/reenvio`, `GET /revenda/encerramento/pdf` e
+  `GET /revenda/exportacao` (JSON com clientes, vendas, placas e razão).
+- Distrato assinado (webhook e reconsulta, como o contrato) aplica
+  `EfeitosDoEncerramento` na transação do evento: `encerrada_em`, baixa do
+  estoque, vendedores e logins de vendedor desligados e
+  `transferir_clientes_da_revenda` para a revenda da Avalia. Distrato cancelado
+  na D4Sign desfaz o pedido.
+- O middleware `ContaEncerrada` recusa com 409 toda escrita da revenda
+  encerrada (fora `/auth` e o aviso ao vivo). Passados 30 dias, o Worker
+  desliga o login do dono.
 
 ### Checkout do Pagar.me (no código)
 
@@ -612,6 +658,8 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
 | 21/10/2026 | Marca só nas variáveis do tema, contraste conferido nas duas pontas | Componente nenhum muda; a API não confia na tela |
 | 21/10/2026 | Swagger UI sobre o OpenAPI nativo do ASP.NET Core | O documento é o do framework; o Swashbuckle entra só como página |
 | 21/10/2026 | `@hookform/resolvers` 5.9 e não 6.0 | A 6.0.0 declara versões conflitantes de uma dependência opcional e não instala sem forçar |
+| 22/10/2026 | Contrato e distrato em PDF pelo Gotenberg, a partir de HTML | O layout aprovado é HTML; o Chromium fica isolado, sem rede (ADR 0018) |
+| 22/10/2026 | Transferência de clientes por função e política de RLS próprias | Mudar o revendedor de uma linha só dentro da função, sem depender de superusuário (ADR 0019) |
 | 21/10/2026 | Nenhuma biblioteca de idempotência pronta | A mais citada tinha 329 estrelas e nenhum commit desde 11/2024; o Postgres já garante unicidade |
 
 ## 12. Pendências técnicas
@@ -639,6 +687,7 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
 
 | Data | Mudança |
 | --- | --- |
+| 22/10/2026 | Versão 1.7.0. Migration EncerramentoDeConta (endereço e encerramento em `revendedores`; transferência em `placas`; políticas e função de transferência). Contrato versão 2 e distrato gerados no Worker pelo Gotenberg (serviço `gotenberg` no Compose, `Pdf:UrlDoConversor`); PDF fixo da versão 1 removido do assembly. BrasilAPI no cadastro. Rotas do encerramento e da exportação, middleware `ContaEncerrada`, `IAssinaturaEletronica.Cancelar`. `RevendedorDto` com `temEndereco`, `encerramentoPedidoEm` e `encerradaEm`. 250 testes na API. |
 | 22/10/2026 | `infra/migracao/converter_do_sales.py` (só biblioteca padrão; backup em SQLite na memória). Importador com `produto` (chave do catálogo), `produto_preco_cents` e `comissao_devida_cents` (lançamento ComissaoDevida com a data da venda). |
 | 22/10/2026 | `docs/contrato` - estilo comum em `documento.css` (serifada, campos em branco, assinaturas e testemunhas) e `gerar.mjs` gera o PDF de cada HTML ao lado dele, sem tocar no PDF embutido em `Recursos`, que segue na versão 1. |
 | 22/10/2026 | Versão 1.6.2. Busca do Google (`BuscaNoGoogle`) sem `<form>` próprio: dentro do formulário do link, o envio nativo do navegador recarregava a página antes de chamar `/lugares`; o Enter no campo busca. Serviços em `/links?aba=link|nfc|maps|status`; `encurtador` e `acompanhar` ainda abrem a aba certa (notificações gravadas). Notificações de ordem de serviço apontam para `/links?aba=status`. |

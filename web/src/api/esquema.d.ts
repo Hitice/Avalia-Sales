@@ -113,6 +113,80 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/cadastro/cnpj/{cnpj}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    cnpj: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EmpresaConsultada"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/cadastro/cep/{cep}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    cep: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EnderecoConsultado"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/servicos": {
         parameters: {
             query?: never;
@@ -2955,6 +3029,180 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/revenda/encerramento": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EstadoDoEncerramento"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EstadoDoEncerramento"];
+                    };
+                };
+            };
+        };
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EstadoDoEncerramento"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/revenda/encerramento/reenvio": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/revenda/encerramento/pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/revenda/exportacao": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DadosExportados"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/repasses": {
         parameters: {
             query?: never;
@@ -4635,7 +4883,7 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /** @enum {unknown} */
-        AcaoAuditada: "DestinoDefinido" | "DestinoTrocado" | "PlacaSuspensa" | "PlacaNoAr" | "PlacaTrocada" | "VendaCancelada" | "VendaEmCortesia" | "RecebidoPorFora" | "RecebimentoDesfeito" | "VendedorCadastrado" | "VendedorAlterado" | "VendedorDesativado" | "VendedorReativado" | "VendedorExcluido" | "ComissaoPadraoAlterada" | "ProdutoAlterado" | "RepasseRegistrado" | "ClienteAnonimizado" | "MarcaAlterada" | "LinkAlterado" | "LinkExcluido" | "SegundoFatorLigado" | "SegundoFatorDesligado" | "EmpresaAlterada";
+        AcaoAuditada: "DestinoDefinido" | "DestinoTrocado" | "PlacaSuspensa" | "PlacaNoAr" | "PlacaTrocada" | "VendaCancelada" | "VendaEmCortesia" | "RecebidoPorFora" | "RecebimentoDesfeito" | "VendedorCadastrado" | "VendedorAlterado" | "VendedorDesativado" | "VendedorReativado" | "VendedorExcluido" | "ComissaoPadraoAlterada" | "ProdutoAlterado" | "RepasseRegistrado" | "ClienteAnonimizado" | "MarcaAlterada" | "LinkAlterado" | "LinkExcluido" | "SegundoFatorLigado" | "SegundoFatorDesligado" | "EmpresaAlterada" | "EncerramentoPedido" | "EncerramentoDesistido" | "ContaEncerrada";
         AjustarProduto: {
             /** Format: int64 */
             precoCents: number;
@@ -4645,9 +4893,11 @@ export interface components {
         AlterarAtivo: {
             ativo: boolean;
         };
+        /** @description Sem endereço, fica o que está gravado. */
         AlterarEmpresa: {
             nome: string;
             celular: null | string;
+            endereco: null | components["schemas"]["EnderecoInformado"];
         };
         AlterarMeusDados: {
             nome: string;
@@ -4727,6 +4977,13 @@ export interface components {
             criadoEm: string;
             anonimizado: boolean;
         };
+        ClienteExportado: {
+            nome: string;
+            responsavel: string;
+            telefone: string;
+            documento: null | string;
+            email: null | string;
+        };
         CobrancaDto: {
             /** Format: uuid */
             id: string;
@@ -4794,10 +5051,21 @@ export interface components {
             nome: string;
             cnpj: null | string;
             celular: null | string;
+            endereco: null | components["schemas"]["EnderecoInformado"];
         };
         DadosDeRecebimento: {
             telefone: null | string;
             chavePix: null | string;
+        };
+        DadosExportados: {
+            /** Format: date-time */
+            geradoEm: string;
+            revenda: string;
+            cnpj: null | string;
+            clientes: components["schemas"]["ClienteExportado"][];
+            vendas: components["schemas"]["VendaExportada"][];
+            placas: components["schemas"]["PlacaExportada"][];
+            razao: components["schemas"]["LancamentoExportado"][];
         };
         DefinirComissao: {
             /** Format: int32 */
@@ -4833,6 +5101,30 @@ export interface components {
             /** Format: uuid */
             vendedorId: string;
         };
+        EmpresaConsultada: {
+            razaoSocial: string;
+            ativa: boolean;
+            endereco: components["schemas"]["EnderecoConsultado"];
+        };
+        EnderecoConsultado: {
+            logradouro: null | string;
+            numero: null | string;
+            complemento: null | string;
+            bairro: null | string;
+            cidade: null | string;
+            uf: null | string;
+            cep: null | string;
+        };
+        /** @description O endereço como vem da tela e volta para ela; a regra de cada campo é a do domínio. */
+        EnderecoInformado: {
+            logradouro: string;
+            numero: string;
+            complemento: null | string;
+            bairro: string;
+            cidade: string;
+            uf: string;
+            cep: string;
+        };
         EnvioDto: {
             /** Format: uuid */
             pedidoId: string;
@@ -4854,6 +5146,15 @@ export interface components {
          * @enum {unknown}
          */
         EstadoDaPlaca: "EmEstoque" | "Ativa" | "Carencia" | "Vencida" | "Suspensa" | "Baixada";
+        EstadoDoEncerramento: {
+            /** Format: date-time */
+            pedidoEm: null | string;
+            /** Format: date-time */
+            encerradaEm: null | string;
+            /** Format: date-time */
+            exportacaoAte: null | string;
+            distrato: null | components["schemas"]["MeuContrato"];
+        };
         FichaDto: {
             codigo: string;
             endereco: string;
@@ -4950,6 +5251,14 @@ export interface components {
             ocorridoEm: string;
             competencia: string;
             estorno: boolean;
+        };
+        LancamentoExportado: {
+            /** Format: date-time */
+            ocorridoEm: string;
+            tipo: components["schemas"]["TipoDeLancamento"];
+            /** Format: int64 */
+            valorCents: number;
+            descricao: string;
         };
         LeituraDto: {
             /** Format: date */
@@ -5088,6 +5397,7 @@ export interface components {
             empresa: string;
             cnpj: string;
             celular: string;
+            endereco: null | components["schemas"]["EnderecoInformado"];
             nome: string;
             email: string;
             senha: string;
@@ -5237,6 +5547,15 @@ export interface components {
             /** Format: date-time */
             ultimaLeituraEm: null | string;
         };
+        PlacaExportada: {
+            codigo: string;
+            situacao: components["schemas"]["SituacaoDaPlaca"];
+            /** Format: date-time */
+            vendidaEm: null | string;
+            /** Format: date-time */
+            venceEm: null | string;
+            destino: null | string;
+        };
         ProdutoDaPlataformaDto: {
             /** Format: uuid */
             id: string;
@@ -5323,6 +5642,11 @@ export interface components {
             /** Format: int32 */
             renovacaoBps: number;
             celular: null | string;
+            temEndereco: boolean;
+            /** Format: date-time */
+            encerramentoPedidoEm: null | string;
+            /** Format: date-time */
+            encerradaEm: null | string;
         };
         SaldoDeComissao: {
             /** Format: uuid */
@@ -5342,6 +5666,8 @@ export interface components {
         SituacaoDaCobranca: "Pendente" | "Paga" | "Cancelada" | "Falhou" | "Estornada" | null;
         /** @enum {unknown} */
         SituacaoDaOrdem: "AFazer" | "EmAndamento" | "Entregue" | "Cancelada";
+        /** @enum {unknown} */
+        SituacaoDaPlaca: "EmEstoque" | "Ativa" | "Suspensa" | "Baixada";
         /** @enum {unknown} */
         SituacaoDaVenda: "Registrada" | "Cancelada";
         /** @enum {unknown} */
@@ -5415,6 +5741,16 @@ export interface components {
             situacao: components["schemas"]["SituacaoDaVenda"];
             cortesia: boolean;
             pagoPor: null | components["schemas"]["MeioDePagamento"];
+        };
+        VendaExportada: {
+            /** Format: date-time */
+            vendidaEm: string;
+            cliente: string;
+            placa: null | string;
+            /** Format: int64 */
+            valorCents: number;
+            meio: string;
+            situacao: components["schemas"]["SituacaoDaVenda"];
         };
         /** @description LinkCurto - o /L/ do negócio, quando o destino é a avaliação no Google. */
         VendaRegistrada: {

@@ -1,4 +1,5 @@
 using AvaliaSales.Application.Equipe;
+using AvaliaSales.Application.Revendedores;
 using AvaliaSales.Domain;
 using AvaliaSales.Domain.Acesso;
 using AvaliaSales.Domain.Auditoria;
@@ -6,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AvaliaSales.Application.Conta;
 
-public sealed record DadosDaEmpresa(string Nome, string? Cnpj, string? Celular);
+public sealed record DadosDaEmpresa(string Nome, string? Cnpj, string? Celular, EnderecoInformado? Endereco);
 
 public sealed record DadosDeRecebimento(string? Telefone, string? ChavePix);
 
@@ -15,7 +16,8 @@ public sealed record DadosDaConta(string Nome, string Email, Papel Papel, DadosD
 
 public sealed record AlterarMeusDados(string Nome);
 
-public sealed record AlterarEmpresa(string Nome, string? Celular);
+/// <summary>Sem endereço, fica o que está gravado.</summary>
+public sealed record AlterarEmpresa(string Nome, string? Celular, EnderecoInformado? Endereco);
 
 public sealed record AlterarRecebimento(string? Telefone, string? ChavePix);
 
@@ -31,10 +33,13 @@ public sealed class MeusDados(IBancoDeDados banco, IUsuarioAtual usuario, IReven
         var id = Logado();
         var (nome, email) = await contas.Ler(id, ct);
         var papel = usuario.Papel ?? throw new InvalidOperationException("Login sem papel.");
-        var empresa = papel == Papel.Dono
-            ? await banco.Revendedores.AsNoTracking().Where(r => r.Id == atual.RevendedorId)
-                .Select(r => new DadosDaEmpresa(r.Nome, r.Cnpj, r.Celular)).SingleAsync(ct)
-            : null;
+        DadosDaEmpresa? empresa = null;
+        if (papel == Papel.Dono)
+        {
+            var revendedor = await banco.Revendedores.AsNoTracking().SingleAsync(r => r.Id == atual.RevendedorId, ct);
+            empresa = new DadosDaEmpresa(revendedor.Nome, revendedor.Cnpj, revendedor.Celular, EnderecoInformado.De(revendedor.Endereco));
+        }
+
         var recebimento = papel == Papel.Vendedor
             ? await banco.Vendedores.AsNoTracking().Where(v => v.Id == id).Select(v => new DadosDeRecebimento(v.Telefone, v.ChavePix)).SingleOrDefaultAsync(ct)
             : null;
@@ -58,10 +63,15 @@ public sealed class MeusDados(IBancoDeDados banco, IUsuarioAtual usuario, IReven
     public async Task<DadosDaConta> AlterarEmpresa(AlterarEmpresa comando, CancellationToken ct)
     {
         var revendedor = await banco.Revendedores.SingleAsync(r => r.Id == atual.RevendedorId, ct);
-        var antes = $"{revendedor.Nome}, celular {revendedor.Celular ?? "-"}";
+        var antes = $"{revendedor.Nome}, celular {revendedor.Celular ?? "-"}, {revendedor.Endereco?.EmUmaLinha() ?? "sem endereço"}";
         revendedor.Renomear(comando.Nome);
         revendedor.DefinirCelular(comando.Celular);
-        var depois = $"{revendedor.Nome}, celular {revendedor.Celular}";
+        if (comando.Endereco is { } endereco)
+        {
+            revendedor.DefinirEndereco(endereco.ParaDominio());
+        }
+
+        var depois = $"{revendedor.Nome}, celular {revendedor.Celular}, {revendedor.Endereco?.EmUmaLinha() ?? "sem endereço"}";
         if (depois != antes)
         {
             auditoria.Registrar(AcaoAuditada.EmpresaAlterada, "Dados da empresa", revendedor.Id.ToString(), antes, depois);

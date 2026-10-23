@@ -47,9 +47,13 @@ export function TelaDeRevendedores() {
                       <TableCell className="tabular-nums">{r.celular ? mascaraTelefone(r.celular) : '-'}</TableCell>
                       <TableCell className="text-right tabular-nums">{formatarBps(r.taxaAvaliaBps)}</TableCell>
                       <TableCell>
-                        {r.contratoAssinadoEm
-                          ? <Badge>Assinado em {formatarData(r.contratoAssinadoEm)}</Badge>
-                          : <Button variant="outline" onClick={() => contrato.mutate(r.id)}>Registrar assinado</Button>}
+                        {r.encerradaEm
+                          ? <Badge variant="outline">Encerrada em {formatarData(r.encerradaEm)}</Badge>
+                          : r.encerramentoPedidoEm
+                            ? <Badge variant="secondary">Distrato em assinatura</Badge>
+                            : r.contratoAssinadoEm
+                              ? <Badge>Assinado em {formatarData(r.contratoAssinadoEm)}</Badge>
+                              : <Button variant="outline" onClick={() => contrato.mutate(r.id)}>Registrar assinado</Button>}
                       </TableCell>
                       <TableCell>
                         <form

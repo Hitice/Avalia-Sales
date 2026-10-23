@@ -26,7 +26,10 @@ function usePendencias(): Pendencia[] {
   const r = revenda.data?.revendedor
   if (!dono || !r) return []
   const lista: Pendencia[] = []
+  if (r.encerradaEm) return [{ texto: 'Conta encerrada. Exporte os dados em Meus dados.', link: '/conta/dados' }]
+  if (r.encerramentoPedidoEm) lista.push({ texto: 'Assine o distrato que chegou no seu e-mail.', link: '/conta/dados' })
   if (!r.contratoAssinadoEm) lista.push({ texto: CONTRATO[revenda.data?.contrato ?? 'Rascunho'] ?? CONTRATO.Rascunho!, link: null })
+  if (!r.temEndereco) lista.push({ texto: 'Informe o endereço da empresa em Meus dados.', link: '/conta/dados' })
   if (!r.recebedorPagarme) lista.push({ texto: 'Conta de recebimento no Pagar.me pendente.', link: '/painel/suporte' })
   if (!r.celular) lista.push({ texto: 'Informe o celular da revenda em Meus dados.', link: '/conta/dados' })
   return lista

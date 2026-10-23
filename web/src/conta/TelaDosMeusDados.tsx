@@ -1,5 +1,8 @@
+import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { z } from 'zod'
 import { chamarApi, enviarJson, mensagemDoErro } from '@/api/cliente'
 import type { components } from '@/api/esquema'
 import { Cabecalho, CarregandoTela, Erro } from '@/componentes/Tela'
@@ -8,12 +11,18 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field, FieldDescription, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { CamposDeEndereco } from '@/componentes/CamposDeEndereco'
+import { doEnderecoInformado, paraEnderecoInformado } from '@/lib/endereco'
+import { ENDERECO_VAZIO, endereco } from '@/lib/esquemas'
 import { digitos, mascaraCnpj, mascaraTelefone } from '@/lib/mascaras'
 import { useSessao } from '@/acesso/sessao'
+import { EncerramentoDaConta } from './EncerramentoDaConta'
 
 type DadosDaConta = components['schemas']['DadosDaConta']
 
 const chave = ['conta', 'dados'] as const
+
+const esquemaDoEndereco = z.object({ endereco })
 
 /** Os dados de quem está logado: o nome de todos, a empresa do dono e o recebimento do vendedor. */
 export function TelaDosMeusDados() {
@@ -45,6 +54,11 @@ function Formularios({ dados }: { dados: DadosDaConta }) {
   const gravarNome = useGravar('/conta/dados')
   const gravarEmpresa = useGravar('/conta/dados/empresa')
   const gravarRecebimento = useGravar('/conta/dados/recebimento')
+  const formularioDoEndereco = useForm<z.infer<typeof esquemaDoEndereco>>({
+    resolver: zodResolver(esquemaDoEndereco),
+    mode: 'onChange',
+    defaultValues: { endereco: doEnderecoInformado(dados.empresa?.endereco) ?? ENDERECO_VAZIO },
+  })
   const [salvo, setSalvo] = useState(false)
   const salvando = gravarNome.isPending || gravarEmpresa.isPending || gravarRecebimento.isPending
   const erro = gravarNome.error ?? gravarEmpresa.error ?? gravarRecebimento.error
@@ -56,8 +70,15 @@ function Formularios({ dados }: { dados: DadosDaConta }) {
     setSalvo(false)
     try {
       if (nome.trim() !== dados.nome) renomear((await gravarNome.mutateAsync({ nome })).nome)
-      if (dados.empresa && digitos(celular).length > 0 && digitos(celular) !== (dados.empresa.celular ?? '')) {
-        await gravarEmpresa.mutateAsync({ nome: dados.empresa.nome, celular: digitos(celular) })
+      const enderecoMudou = formularioDoEndereco.formState.isDirty
+      if (enderecoMudou && !(await formularioDoEndereco.trigger())) return
+      const celularMudou = digitos(celular).length > 0 && digitos(celular) !== (dados.empresa?.celular ?? '')
+      if (dados.empresa && (celularMudou || enderecoMudou)) {
+        await gravarEmpresa.mutateAsync({
+          nome: dados.empresa.nome,
+          celular: digitos(celular) || dados.empresa.celular,
+          endereco: enderecoMudou ? paraEnderecoInformado(formularioDoEndereco.getValues('endereco')) : null,
+        })
       }
       if (dados.recebimento && (digitos(telefone) !== (dados.recebimento.telefone ?? '') || chavePix.trim() !== (dados.recebimento.chavePix ?? ''))) {
         await gravarRecebimento.mutateAsync({ telefone: digitos(telefone) || null, chavePix: chavePix.trim() || null })
@@ -69,7 +90,8 @@ function Formularios({ dados }: { dados: DadosDaConta }) {
   }
 
   return (
-    <form className="grid max-w-2xl gap-4" onSubmit={(e) => { e.preventDefault(); void salvar() }}>
+    <div className="grid max-w-2xl gap-4">
+    <form className="grid gap-4" onSubmit={(e) => { e.preventDefault(); void salvar() }}>
       <Cabecalho titulo="Meus dados" />
       <Erro erro={erro ? mensagemDoErro(erro) : null} />
       {salvo && !erro && <Alert><AlertDescription>Dados salvos.</AlertDescription></Alert>}
@@ -101,6 +123,7 @@ function Formularios({ dados }: { dados: DadosDaConta }) {
               <FieldLabel htmlFor="celular">Celular com DDD</FieldLabel>
               <Input id="celular" type="tel" inputMode="numeric" autoComplete="tel" value={celular} onChange={(e) => setCelular(mascaraTelefone(e.target.value))} />
             </Field>
+            <CamposDeEndereco formulario={formularioDoEndereco} />
           </CardContent>
         </Card>
       )}
@@ -123,5 +146,7 @@ function Formularios({ dados }: { dados: DadosDaConta }) {
 
       <Button type="submit" className="justify-self-start" disabled={!nome.trim() || !celularValido || salvando}>{salvando ? 'Salvando...' : 'Salvar'}</Button>
     </form>
+    {dados.empresa && <EncerramentoDaConta />}
+    </div>
   )
 }

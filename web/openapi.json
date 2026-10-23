@@ -68,6 +68,64 @@
         }
       }
     },
+    "/cadastro/cnpj/{cnpj}": {
+      "get": {
+        "tags": [
+          "AvaliaSales.Api"
+        ],
+        "parameters": [
+          {
+            "name": "cnpj",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmpresaConsultada"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cadastro/cep/{cep}": {
+      "get": {
+        "tags": [
+          "AvaliaSales.Api"
+        ],
+        "parameters": [
+          {
+            "name": "cep",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnderecoConsultado"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/servicos": {
       "get": {
         "tags": [
@@ -2150,6 +2208,102 @@
         }
       }
     },
+    "/revenda/encerramento": {
+      "get": {
+        "tags": [
+          "Revenda"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EstadoDoEncerramento"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Revenda"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EstadoDoEncerramento"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Revenda"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EstadoDoEncerramento"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/revenda/encerramento/reenvio": {
+      "post": {
+        "tags": [
+          "Revenda"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/revenda/encerramento/pdf": {
+      "get": {
+        "tags": [
+          "Revenda"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/revenda/exportacao": {
+      "get": {
+        "tags": [
+          "Revenda"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DadosExportados"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/repasses": {
       "get": {
         "tags": [
@@ -3427,7 +3581,10 @@
           "LinkExcluido",
           "SegundoFatorLigado",
           "SegundoFatorDesligado",
-          "EmpresaAlterada"
+          "EmpresaAlterada",
+          "EncerramentoPedido",
+          "EncerramentoDesistido",
+          "ContaEncerrada"
         ]
       },
       "AjustarProduto": {
@@ -3464,7 +3621,8 @@
       "AlterarEmpresa": {
         "required": [
           "nome",
-          "celular"
+          "celular",
+          "endereco"
         ],
         "type": "object",
         "properties": {
@@ -3476,8 +3634,19 @@
               "null",
               "string"
             ]
+          },
+          "endereco": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/EnderecoInformado"
+              }
+            ]
           }
-        }
+        },
+        "description": "Sem endere\u00E7o, fica o que est\u00E1 gravado."
       },
       "AlterarMeusDados": {
         "required": [
@@ -3782,6 +3951,39 @@
           }
         }
       },
+      "ClienteExportado": {
+        "required": [
+          "nome",
+          "responsavel",
+          "telefone",
+          "documento",
+          "email"
+        ],
+        "type": "object",
+        "properties": {
+          "nome": {
+            "type": "string"
+          },
+          "responsavel": {
+            "type": "string"
+          },
+          "telefone": {
+            "type": "string"
+          },
+          "documento": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "CobrancaDto": {
         "required": [
           "id",
@@ -4046,7 +4248,8 @@
         "required": [
           "nome",
           "cnpj",
-          "celular"
+          "celular",
+          "endereco"
         ],
         "type": "object",
         "properties": {
@@ -4063,6 +4266,16 @@
             "type": [
               "null",
               "string"
+            ]
+          },
+          "endereco": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/EnderecoInformado"
+              }
             ]
           }
         }
@@ -4085,6 +4298,57 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "DadosExportados": {
+        "required": [
+          "geradoEm",
+          "revenda",
+          "cnpj",
+          "clientes",
+          "vendas",
+          "placas",
+          "razao"
+        ],
+        "type": "object",
+        "properties": {
+          "geradoEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "revenda": {
+            "type": "string"
+          },
+          "cnpj": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "clientes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ClienteExportado"
+            }
+          },
+          "vendas": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VendaExportada"
+            }
+          },
+          "placas": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlacaExportada"
+            }
+          },
+          "razao": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LancamentoExportado"
+            }
           }
         }
       },
@@ -4207,6 +4471,120 @@
           }
         }
       },
+      "EmpresaConsultada": {
+        "required": [
+          "razaoSocial",
+          "ativa",
+          "endereco"
+        ],
+        "type": "object",
+        "properties": {
+          "razaoSocial": {
+            "type": "string"
+          },
+          "ativa": {
+            "type": "boolean"
+          },
+          "endereco": {
+            "$ref": "#/components/schemas/EnderecoConsultado"
+          }
+        }
+      },
+      "EnderecoConsultado": {
+        "required": [
+          "logradouro",
+          "numero",
+          "complemento",
+          "bairro",
+          "cidade",
+          "uf",
+          "cep"
+        ],
+        "type": "object",
+        "properties": {
+          "logradouro": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "numero": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "complemento": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "bairro": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "cidade": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "uf": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "cep": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "EnderecoInformado": {
+        "required": [
+          "logradouro",
+          "numero",
+          "complemento",
+          "bairro",
+          "cidade",
+          "uf",
+          "cep"
+        ],
+        "type": "object",
+        "properties": {
+          "logradouro": {
+            "type": "string"
+          },
+          "numero": {
+            "type": "string"
+          },
+          "complemento": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "bairro": {
+            "type": "string"
+          },
+          "cidade": {
+            "type": "string"
+          },
+          "uf": {
+            "type": "string"
+          },
+          "cep": {
+            "type": "string"
+          }
+        },
+        "description": "O endere\u00E7o como vem da tela e volta para ela; a regra de cada campo \u00E9 a do dom\u00EDnio."
+      },
       "EnvioDto": {
         "required": [
           "pedidoId",
@@ -4271,6 +4649,48 @@
           "Baixada"
         ],
         "description": "A situa\u00E7\u00E3o gravada mais o prazo: car\u00EAncia e vencida saem da data, n\u00E3o de coluna."
+      },
+      "EstadoDoEncerramento": {
+        "required": [
+          "pedidoEm",
+          "encerradaEm",
+          "exportacaoAte",
+          "distrato"
+        ],
+        "type": "object",
+        "properties": {
+          "pedidoEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "encerradaEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "exportacaoAte": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "distrato": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/MeuContrato"
+              }
+            ]
+          }
+        }
       },
       "FichaDto": {
         "required": [
@@ -4612,6 +5032,31 @@
           },
           "estorno": {
             "type": "boolean"
+          }
+        }
+      },
+      "LancamentoExportado": {
+        "required": [
+          "ocorridoEm",
+          "tipo",
+          "valorCents",
+          "descricao"
+        ],
+        "type": "object",
+        "properties": {
+          "ocorridoEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "tipo": {
+            "$ref": "#/components/schemas/TipoDeLancamento"
+          },
+          "valorCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "descricao": {
+            "type": "string"
           }
         }
       },
@@ -5114,6 +5559,7 @@
           "empresa",
           "cnpj",
           "celular",
+          "endereco",
           "nome",
           "email",
           "senha"
@@ -5128,6 +5574,16 @@
           },
           "celular": {
             "type": "string"
+          },
+          "endereco": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/EnderecoInformado"
+              }
+            ]
           },
           "nome": {
             "type": "string"
@@ -5667,6 +6123,44 @@
           }
         }
       },
+      "PlacaExportada": {
+        "required": [
+          "codigo",
+          "situacao",
+          "vendidaEm",
+          "venceEm",
+          "destino"
+        ],
+        "type": "object",
+        "properties": {
+          "codigo": {
+            "type": "string"
+          },
+          "situacao": {
+            "$ref": "#/components/schemas/SituacaoDaPlaca"
+          },
+          "vendidaEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "venceEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "destino": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "ProdutoDaPlataformaDto": {
         "required": [
           "id",
@@ -5922,7 +6416,10 @@
           "contratoAssinadoEm",
           "criadoEm",
           "renovacaoBps",
-          "celular"
+          "celular",
+          "temEndereco",
+          "encerramentoPedidoEm",
+          "encerradaEm"
         ],
         "type": "object",
         "properties": {
@@ -5973,6 +6470,23 @@
               "null",
               "string"
             ]
+          },
+          "temEndereco": {
+            "type": "boolean"
+          },
+          "encerramentoPedidoEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "encerradaEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         }
       },
@@ -6038,6 +6552,14 @@
           "EmAndamento",
           "Entregue",
           "Cancelada"
+        ]
+      },
+      "SituacaoDaPlaca": {
+        "enum": [
+          "EmEstoque",
+          "Ativa",
+          "Suspensa",
+          "Baixada"
         ]
       },
       "SituacaoDaVenda": {
@@ -6310,6 +6832,42 @@
                 "$ref": "#/components/schemas/MeioDePagamento"
               }
             ]
+          }
+        }
+      },
+      "VendaExportada": {
+        "required": [
+          "vendidaEm",
+          "cliente",
+          "placa",
+          "valorCents",
+          "meio",
+          "situacao"
+        ],
+        "type": "object",
+        "properties": {
+          "vendidaEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "cliente": {
+            "type": "string"
+          },
+          "placa": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "valorCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "meio": {
+            "type": "string"
+          },
+          "situacao": {
+            "$ref": "#/components/schemas/SituacaoDaVenda"
           }
         }
       },

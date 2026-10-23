@@ -23,3 +23,5 @@ apagada, ganha a situação Substituída e o número da que a substitui.
 | [0015](0015-operadora-grava-so-nas-tabelas-que-atende.md) | Operadora grava só nas tabelas que atende | Aceita |
 | [0016](0016-producao-em-compose-com-nginx.md) | Produção em Docker Compose com Nginx na frente | Aceita |
 | [0017](0017-segundo-fator-por-totp-com-desafio.md) | Segundo fator por app autenticador, com desafio de uso único | Aceita |
+| [0018](0018-documentos-em-pdf-pelo-gotenberg.md) | Contrato e distrato em PDF pelo Gotenberg, a partir de HTML | Aceita |
+| [0019](0019-transferencia-de-clientes-no-encerramento.md) | Transferência dos clientes no encerramento por uma função e uma política próprias | Aceita |

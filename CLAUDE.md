@@ -25,8 +25,9 @@ código e o documento discordarem, perguntar qual vale e atualizar o outro.
   componentes no modelo do shadcn/ui. White label por variáveis CSS (skill
   `design-system`).
 - Integrações: Pagar.me v5 (checkout, split e cupom; marketplace na conta da
-  Avalia), D4Sign, Resend, Google Maps JavaScript + Places (New), Protheus por
-  simulador.
+  Avalia), D4Sign, Resend, Google Maps JavaScript + Places (New), BrasilAPI
+  (CNPJ e CEP no cadastro), Gotenberg (PDF do contrato e do distrato), Protheus
+  por simulador.
 - Infra: VPS Linux, Docker Compose, Nginx, Let's Encrypt; GitHub Actions com
   self-hosted runner, SonarCloud, Sentry.
 

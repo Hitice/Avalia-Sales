@@ -130,6 +130,7 @@ internal static class Demonstracao
         var revendedor = new Revendedor(nome, cnpj);
         revendedor.DefinirRecebedorPagarme(recebedor);
         revendedor.RegistrarContratoAssinado(DateTimeOffset.UtcNow.AddDays(-60));
+        revendedor.DefinirEndereco(new Endereco("Avenida Rondon Pacheco", "1000", null, "Tabajaras", "Uberlândia", "MG", "38400242"));
         banco.Revendedores.Add(revendedor);
         await banco.SaveChangesAsync(ct);
         await Login(escopo.ServiceProvider, $"Dono {nome}", email, Papel.Dono, revendedor.Id);

@@ -102,6 +102,26 @@ public sealed class ClienteD4Sign(HttpClient http, IOptions<OpcoesD4Sign> opcoes
             : throw new Application.IntegracaoException(Sistema, (int)arquivo.StatusCode, "download do arquivo recusado");
     }
 
+    /// <summary>
+    /// POST documents/{uuid}/cancel com comment, conferido em docapi.d4sign.com.br em 22/10/2026.
+    /// A documentação não garante o corpo da resposta: se a chamada for recusada, vale o que a
+    /// situação do documento disser, e o já cancelado conta como cancelado.
+    /// </summary>
+    public async Task Cancelar(string documento, string motivo, CancellationToken ct)
+    {
+        try
+        {
+            await Post($"documents/{documento}/cancel", new { comment = motivo }, ct);
+        }
+        catch (Application.IntegracaoException)
+        {
+            if (await LerSituacao(documento, ct) != SituacaoDoContrato.Cancelado)
+            {
+                throw;
+            }
+        }
+    }
+
     /// <summary>A lista vem como um objeto em "list" num documento com um signatário; com vários, pode vir em array.</summary>
     private static List<JsonElement> Signatarios(JsonElement resposta)
     {

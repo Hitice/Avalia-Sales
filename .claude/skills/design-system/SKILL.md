@@ -108,7 +108,7 @@ Até lá, um arquivo CSS basta.
   da marca no foco e mantém o verde e o vermelho por cima dele). Documento,
   telefone e código usam `mascara` (`lib/mascaras.ts`): só dígitos, com a
   pontuação, e a API recebe só os dígitos. As regras de campo (e-mail, telefone, CPF ou CNPJ, dinheiro,
-  percentual, senha) moram em `lib/esquemas.ts`, iguais às da API. Filtro,
+  percentual, senha) moram em `lib/esquemas.ts`, iguais às da API. Endereço usa `componentes/CamposDeEndereco.tsx` (o CEP completo busca rua, bairro, cidade e UF; a consulta só preenche campo vazio). Filtro,
   busca e campo único dentro da linha ficam em estado simples.
 
 ## A cara da Avalia sob o white label
