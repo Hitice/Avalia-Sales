@@ -55,7 +55,7 @@ internal static class ConferirPagarme
 
         if (revendas.Count == 0)
         {
-            Console.WriteLine("Nenhuma revenda tem recebedor ainda: a operadora informa o rp_ em Revendedores.");
+            Console.WriteLine("Nenhuma revenda tem recebedor ainda: a operadora informa o recebedor (rp_ ou re_) em Revendedores.");
         }
 
         return todosAtivos ? 0 : 1;

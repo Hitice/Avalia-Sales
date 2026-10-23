@@ -17,7 +17,7 @@ public sealed class Revendedor
     /// </summary>
     public int TaxaAvaliaBps { get; private set; }
 
-    /// <summary>Recebedor do revendedor no Pagar.me (rp_...). Sem ele, não há cobrança.</summary>
+    /// <summary>Recebedor do revendedor no Pagar.me (rp_... ou re_...). Sem ele, não há cobrança.</summary>
     public string? RecebedorPagarme { get; private set; }
 
     /// <summary>CNPJ, só dígitos. Nulo no revendedor criado antes do cadastro pela tela.</summary>
@@ -100,9 +100,10 @@ public sealed class Revendedor
     public void DefinirRecebedorPagarme(string recebedor)
     {
         recebedor = (recebedor ?? string.Empty).Trim();
-        RecebedorPagarme = recebedor.StartsWith("rp_", StringComparison.Ordinal) && recebedor.Length <= 64
+        RecebedorPagarme = (recebedor.StartsWith("rp_", StringComparison.Ordinal) || recebedor.StartsWith("re_", StringComparison.Ordinal))
+            && recebedor.Length is > 3 and <= 64 && recebedor[3..].All(char.IsAsciiLetterOrDigit)
             ? recebedor
-            : throw new RegraDeNegocioException("O recebedor do Pagar.me começa com rp_.");
+            : throw new RegraDeNegocioException("O recebedor do Pagar.me começa com rp_ ou re_.");
     }
 
     public void DefinirCelular(string? celular) =>

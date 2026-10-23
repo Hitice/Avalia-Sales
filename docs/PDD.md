@@ -522,13 +522,14 @@ porque está impresso nas placas vendidas.
 | BrasilAPI | Em produção, sem chave | - |
 | Gotenberg | Em produção, contêiner sem rede | `Pdf__UrlDoConversor` |
 | Pagar.me | Espera a conta da Avalia. Ensaiar no ambiente de testes - Pix, cartão (formato do `/tokens` com a chave pública), split e webhook; confirmar a conta com split | `Pagarme__ChaveSecreta`, `Pagarme__ChavePublica`, `Pagarme__RecebedorAvalia`, `Pagarme__SegredoDoWebhook` |
-| Recebedor do revendedor | Criar pela API (`POST /recipients` com `register_information` e KYC). A referência de 2026 se contradiz no prefixo do id (`re_` ou `rp_`), nos tipos (texto ou número) e no formato da data; escrever com o ambiente de testes. Enquanto isso, a operadora informa o `rp_` à mão | - |
+| Recebedor do revendedor | Criar pela API (`POST /recipients` com `register_information` e KYC). A referência de 2026 se contradiz no prefixo do id (`re_` ou `rp_`), nos tipos (texto ou número) e no formato da data; escrever com o ambiente de testes. Enquanto isso, a operadora informa o recebedor à mão; a plataforma aceita `rp_` e `re_` (a conta da Avalia usa `re_`) | - |
 | Sentry e SonarCloud | Ligam com o DSN e o token; o token do SonarCloud não está configurado | `Sentry__Dsn`, `SONAR_TOKEN` e as variáveis do projeto |
 
 ## 12. Registro de mudanças
 
 | Data | Mudança |
 | --- | --- |
+| 23/10/2026 | Recebedor do Pagar.me aceito com `rp_` ou `re_`, na revenda e no recebedor da Avalia: a conta da Avalia gera `re_`. A revenda Avalia usa o mesmo recebedor da operadora, e o pedido de placas dela tem o pagamento registrado pela operadora, sem passar pelo Pagar.me. |
 | 23/10/2026 | Parcelado de 2x a 12x com o custo do cartão por conta do cliente, com a parcela e o total na Nova venda. No Pix e à vista, a Avalia recebe a parte dela sem a fatia dela na tarifa. Perfil no Google com placa passa a 20% de desconto da revenda, como os outros serviços. |
 | 23/10/2026 | Comissão do serviço sobre o que fica com a revenda (valor menos a parte da Avalia), para a comissão não comer a margem. Na placa, segue sobre o valor bruto. |
 | 23/10/2026 | Parte da Avalia no serviço - a revenda tem 20% de desconto sobre o sugerido em todos os serviços e 15% no Perfil no Google com placa; o resto vai para a Avalia pelo split. O custo que a revenda vê no catálogo já inclui a parte da Avalia; recebido por fora, a parte fica a acertar no razão. |

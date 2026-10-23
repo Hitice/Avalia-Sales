@@ -75,7 +75,7 @@ export function TelaDeRevendedores() {
                           <Input
                             aria-label={`Recebedor de ${r.nome}`}
                             className="w-40"
-                            placeholder="rp_..."
+                            placeholder="rp_... ou re_..."
                             defaultValue={r.recebedorPagarme ?? ''}
                             onChange={(e) => setDigitado({ ...digitado, [r.id]: e.target.value })}
                           />

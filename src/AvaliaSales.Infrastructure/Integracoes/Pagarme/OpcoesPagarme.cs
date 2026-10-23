@@ -12,7 +12,8 @@ public sealed class OpcoesPagarme
     /// <summary>sk_test_ em teste, sk_ em produção. Vem do ambiente.</summary>
     [Required] public string ChaveSecreta { get; init; } = string.Empty;
 
-    [Required, RegularExpression("^rp_[A-Za-z0-9]+$")] public string RecebedorAvalia { get; init; } = string.Empty;
+    /// <summary>O id do recebedor vem como rp_ ou re_: a referência mostra os dois, e a conta da Avalia usa re_.</summary>
+    [Required, RegularExpression("^r[pe]_[A-Za-z0-9]+$")] public string RecebedorAvalia { get; init; } = string.Empty;
 
     /// <summary>
     /// pk_test_ ou pk_, a chave pública: o navegador manda o cartão direto ao

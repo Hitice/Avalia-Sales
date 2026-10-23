@@ -77,7 +77,8 @@ Arquitetura e decisões no [SDD](SDD.md); cada decisão estrutural em
 
 1. No `/srv/avalia-sales/.env`: `PAGARME_CHAVE_SECRETA` (`sk_`),
    `PAGARME_CHAVE_PUBLICA` (`pk_`, liga o cartão na Nova venda),
-   `PAGARME_RECEBEDOR_AVALIA` (o `rp_` da conta da Avalia, que fica com a taxa)
+   `PAGARME_RECEBEDOR_AVALIA` (o recebedor principal da conta da Avalia, `rp_` ou
+   `re_`, que fica com a parte da Avalia)
    e `PAGARME_SEGREDO_DO_WEBHOOK` (já existe: o Compose não sobe sem ele). A chave não vai
    para o GitHub nem para o chat.
 2. Recriar API e Worker com o `.env` novo, na pasta do checkout:
@@ -100,8 +101,10 @@ Arquitetura e decisões no [SDD](SDD.md); cada decisão estrutural em
    eventos de pedido e de cobrança (`order.*` e `charge.*`). O Worker
    reconsulta o pedido em todo evento, então assinar a mais não muda nada.
 5. Cada revenda precisa de um recebedor próprio, criado no painel do
-   Pagar.me; a operadora cola o `rp_` em Revendedores. A revenda Avalia
-   também, separado do recebedor da taxa. Transferência automática semanal
+   Pagar.me; a operadora cola o id (`rp_` ou `re_`) em Revendedores. A
+   revenda Avalia usa o mesmo recebedor principal da Avalia: a cobrança vai
+   numa regra só e há um saque só. O pedido de placas da revenda Avalia não
+   passa pelo Pagar.me: a operadora registra o pagamento em Pedidos. Transferência automática semanal
    (ou mensal) em cada recebedor: cada saque custa R$ 3,67, e a diária cobra
    isso todo dia.
 6. Primeira venda real de valor baixo no Pix, para ver o split no extrato e
