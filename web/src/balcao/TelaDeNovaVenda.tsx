@@ -17,7 +17,7 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { formatarCentavos, paraCentavos } from '@/dinheiro/dinheiro'
-import { type ConfiguracaoDoCartao, cartaoValido, tokenizarCartao, validadeValida } from '@/lib/cartao'
+import { type ConfiguracaoDoCartao, cartaoValido, tokenizarCartao, totalParcelado, validadeValida } from '@/lib/cartao'
 import { documentoOpcional, emailOpcional, telefone, texto } from '@/lib/esquemas'
 import { digitos, mascaraDocumento, mascaraTelefone } from '@/lib/mascaras'
 import { z } from 'zod'
@@ -326,6 +326,12 @@ function PassoDaCobranca({ produtoId, aoEscolher, fixo, valor, aoDigitarValor, e
   // No balcão com placa, só o que leva placa e está à venda.
   const ativos = (catalogo.data ?? []).filter((p) => p.ativo && p.situacao === 'Disponivel' && usaPlaca(p))
   const escolhido = fixo ?? ativos.find((p) => p.id === produtoId)
+  const base = (valor.trim() ? paraCentavos(valor) : null) ?? escolhido?.precoCents ?? 0
+  const opcao = (n: number) => {
+    if (n === 1) return `À vista, ${formatarCentavos(base)}`
+    const total = totalParcelado(base, n, cartao?.custoDasParcelasBps ?? [])
+    return `${n}x de ${formatarCentavos(Math.ceil(total / n))} (total ${formatarCentavos(total)})`
+  }
 
   return (
     <Card>
@@ -366,7 +372,7 @@ function PassoDaCobranca({ produtoId, aoEscolher, fixo, valor, aoDigitarValor, e
               <Select value={formularioDoCartao.watch('parcelas')} onValueChange={(v) => formularioDoCartao.setValue('parcelas', v)}>
                 <SelectTrigger id="parcelas" className="w-full"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {Array.from({ length: cartao.parcelasMaximas }, (_, i) => i + 1).map((n) => <SelectItem key={n} value={String(n)}>{n === 1 ? 'À vista' : `${n} vezes`}</SelectItem>)}
+                  {Array.from({ length: cartao.parcelasMaximas }, (_, i) => i + 1).map((n) => <SelectItem key={n} value={String(n)}>{base > 0 ? opcao(n) : n === 1 ? 'À vista' : `${n} vezes`}</SelectItem>)}
                 </SelectContent>
               </Select>
             </Field>

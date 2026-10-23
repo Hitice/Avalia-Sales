@@ -101,7 +101,9 @@ Arquitetura e decisões no [SDD](SDD.md); cada decisão estrutural em
    reconsulta o pedido em todo evento, então assinar a mais não muda nada.
 5. Cada revenda precisa de um recebedor próprio, criado no painel do
    Pagar.me; a operadora cola o `rp_` em Revendedores. A revenda Avalia
-   também, separado do recebedor da taxa.
+   também, separado do recebedor da taxa. Transferência automática semanal
+   (ou mensal) em cada recebedor: cada saque custa R$ 3,67, e a diária cobra
+   isso todo dia.
 6. Primeira venda real de valor baixo no Pix, para ver o split no extrato e
    o pedido pago no painel.
 

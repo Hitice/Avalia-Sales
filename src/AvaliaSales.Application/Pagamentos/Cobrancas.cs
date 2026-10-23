@@ -28,7 +28,7 @@ public sealed record CobrancaDto(
 
 public sealed class Cobrancas(IBancoDeDados banco, IGatewayDePagamento gateway, IRevendedorAtual atual, EfeitosDaCobranca efeitos, TimeProvider relogio)
 {
-    public const int ParcelasMaximas = 12;
+    public const int ParcelasMaximas = Parcelamento.Maximo;
 
     /// <summary>O link do pedido de placas vale três dias; depois disso, sem pagamento, a cobrança é cancelada e outra pode sair.</summary>
     public static readonly TimeSpan ValidadeDoLink = TimeSpan.FromDays(3);
@@ -67,7 +67,10 @@ public sealed class Cobrancas(IBancoDeDados banco, IGatewayDePagamento gateway, 
             throw new RegraDeNegocioException($"O parcelamento vai de 1 a {ParcelasMaximas} vezes.");
         }
 
-        var cobranca = new Cobranca(comando.Origem, comando.OrigemId, comando.Meio, comando.ValorCents, revendedor.TaxaAvaliaBps, comando.ParteDaAvaliaCents);
+        // Parcelado, o cliente paga o custo do cartão; no Pix e à vista, a Avalia paga a fatia dela no custo.
+        var total = Parcelamento.Total(comando.ValorCents, comando.Meio, comando.Parcelas);
+        var parte = Parcelamento.ParteLiquida(comando.ParteDaAvaliaCents, comando.Meio, comando.Parcelas);
+        var cobranca = new Cobranca(comando.Origem, comando.OrigemId, comando.Meio, total, revendedor.TaxaAvaliaBps, parte);
         banco.Cobrancas.Add(cobranca);
         banco.Vinculos.Add(new VinculoExterno(VinculoExterno.Pagarme, cobranca.Codigo, revendedorId));
         await banco.SaveChangesAsync(ct);

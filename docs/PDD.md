@@ -42,7 +42,7 @@ revendedor é a Avalia.
 | Comissão | Revendedor | Vendedor, por Pix, registrado no painel | Quando o revendedor repassa |
 
 - Parte da Avalia no serviço - a revenda compra o serviço com desconto sobre
-  o preço sugerido (20% em todos; 15% no Perfil no Google com placa), e a Avalia
+  o preço sugerido (20% em todos), e a Avalia
   recebe o resto do sugerido pelo split, gravado na venda. Exemplo - landing
   page sugerida a R$ 899,00: R$ 719,20 para a Avalia; a revenda que vende a
   R$ 899,00 fica com R$ 179,80. A operadora muda o desconto por produto no
@@ -67,7 +67,14 @@ revendedor é a Avalia.
   landing page, sistema, kit mesa, QR dinâmico) vira ordem de serviço para a
   Avalia executar, com a situação a fazer, em andamento, entregue ou
   cancelada, que o revendedor acompanha.
-- Taxa do Pagar.me - paga pelo revendedor.
+- Tarifa do Pagar.me - nas condições acordadas: Pix 1,09%; cartão pelo custo
+  efetivo com recebimento em 2 dias (5,11% à vista, 8,17% em 2x, até 22,09% em
+  12x); R$ 0,55 de gateway e R$ 0,44 de antifraude por transação; R$ 3,67 por
+  saque. A revenda paga a tarifa no split. No Pix e no cartão à vista, a Avalia
+  recebe a parte dela já sem a fatia dela na tarifa (landing page no Pix -
+  R$ 711,36 em vez de R$ 719,20). Parcelado de 2x a 12x, o cliente paga o
+  custo do parcelamento: landing page de R$ 899,00 em 12x sai por R$ 1.153,90,
+  e a revenda e a Avalia recebem como à vista.
 - Exemplo - venda de R$ 100,00 com comissão de 20%: R$ 100,00 para o
   revendedor (de onde sai a taxa do Pagar.me), e R$ 20,00 lançados como
   devidos ao vendedor.
@@ -162,7 +169,9 @@ Todas no mesmo app, liberadas pelo papel do usuário.
 
 ### Cobrança
 
-- No balcão, Pix (QR na tela) ou cartão de crédito em até 12 vezes. O cartão
+- No balcão, Pix (QR na tela) ou cartão de crédito em até 12 vezes, com o
+  custo do parcelamento por conta do cliente a partir de 2x; a tela mostra a
+  parcela e o total de cada opção antes de cobrar. O cartão
   vai do celular direto ao Pagar.me; a plataforma não vê número nem código.
 - Uma cobrança só anda para a frente - pendente vira paga, cancelada ou
   falha; paga só vira estornada. Aviso atrasado não desfaz pagamento.
@@ -520,6 +529,7 @@ porque está impresso nas placas vendidas.
 
 | Data | Mudança |
 | --- | --- |
+| 23/10/2026 | Parcelado de 2x a 12x com o custo do cartão por conta do cliente, com a parcela e o total na Nova venda. No Pix e à vista, a Avalia recebe a parte dela sem a fatia dela na tarifa. Perfil no Google com placa passa a 20% de desconto da revenda, como os outros serviços. |
 | 23/10/2026 | Comissão do serviço sobre o que fica com a revenda (valor menos a parte da Avalia), para a comissão não comer a margem. Na placa, segue sobre o valor bruto. |
 | 23/10/2026 | Parte da Avalia no serviço - a revenda tem 20% de desconto sobre o sugerido em todos os serviços e 15% no Perfil no Google com placa; o resto vai para a Avalia pelo split. O custo que a revenda vê no catálogo já inclui a parte da Avalia; recebido por fora, a parte fica a acertar no razão. |
 | 23/10/2026 | Taxa da Avalia zerada - a venda e a renovação vão inteiras para a revenda pelo split, que paga a tarifa do Pagar.me; a Avalia ganha nas placas e nos serviços. Venda já feita guarda a taxa dela. O razão e as Configurações só mostram a taxa quando ela existe. |

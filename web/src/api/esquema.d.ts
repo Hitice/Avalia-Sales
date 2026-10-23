@@ -5318,13 +5318,18 @@ export interface components {
         CodigoDoAutenticador: {
             codigo: null | string;
         };
-        /** @description Simulado: o front gera um token de mentira, sem chamar o Pagar.me. */
+        /**
+         * @description Simulado: o front gera um token de mentira, sem chamar o Pagar.me.
+         *     CustoDasParcelasBps vai de 1x a 12x; de 2x em diante o cliente paga o custo,
+         *     e o front mostra o total de cada opção (a API calcula o valor cobrado).
+         */
         ConfiguracaoDoCartao: {
             disponivel: boolean;
             chavePublica: null | string;
             simulado: boolean;
             /** Format: int32 */
             parcelasMaximas: number;
+            custoDasParcelasBps: number[];
         };
         Consignar: {
             /** Format: uuid */

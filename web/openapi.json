@@ -4312,7 +4312,8 @@
           "disponivel",
           "chavePublica",
           "simulado",
-          "parcelasMaximas"
+          "parcelasMaximas",
+          "custoDasParcelasBps"
         ],
         "type": "object",
         "properties": {
@@ -4331,9 +4332,16 @@
           "parcelasMaximas": {
             "type": "integer",
             "format": "int32"
+          },
+          "custoDasParcelasBps": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
           }
         },
-        "description": "Simulado: o front gera um token de mentira, sem chamar o Pagar.me."
+        "description": "Simulado: o front gera um token de mentira, sem chamar o Pagar.me.\nCustoDasParcelasBps vai de 1x a 12x; de 2x em diante o cliente paga o custo,\ne o front mostra o total de cada op\u00E7\u00E3o (a API calcula o valor cobrado)."
       },
       "Consignar": {
         "required": [

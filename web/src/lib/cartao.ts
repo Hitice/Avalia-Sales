@@ -48,3 +48,13 @@ export async function tokenizarCartao(config: ConfiguracaoDoCartao, dados: Dados
   if (!resposta?.ok || !corpo?.id) throw new Error('O Pagar.me recusou os dados do cartão. Confira número, validade e código.')
   return corpo.id
 }
+
+/**
+ * Total no cartão em n vezes, igual ao da API (Parcelamento.Total): de 2x em
+ * diante o cliente paga o custo do parcelamento; à vista, o valor.
+ */
+export function totalParcelado(valorCents: number, parcelas: number, custoDasParcelasBps: number[]): number {
+  const custo = custoDasParcelasBps[parcelas - 1]
+  if (parcelas <= 1 || custo === undefined) return valorCents
+  return Math.ceil((valorCents * 10_000) / (10_000 - custo))
+}

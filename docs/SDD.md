@@ -264,7 +264,14 @@ Conferido na referência oficial em 21/10/2026.
   (`Pagarme__ChavePublica`, pk_test_ ou pk_) e recebe um token de uso único; a
   API recebe só o token e cria o pedido com `credit_card.card_token`, parcelas
   e o mesmo split. `GET /pagamento/cartao` diz ao front se o cartão está
-  disponível. Sem chave pública, a venda é só no Pix. No simulador, o front
+  disponível e o custo de cada parcela (`custoDasParcelasBps`).
+- Parcelamento - `Domain/Pagamentos/Parcelamento` guarda as condições do
+  contrato com o Pagar.me (Pix 109 bps; cartão pelo custo efetivo de 1x a 12x).
+  De 2x em diante a cobrança sai por `valor / (1 - custo)`, arredondado para
+  cima, e o front mostra o mesmo cálculo (`lib/cartao.ts`). No Pix e à vista, a
+  parte da Avalia sai do split já sem a fatia dela no custo
+  (`Parcelamento.ParteLiquida`). Condição nova do Pagar.me muda a tabela no
+  código. Sem chave pública, a venda é só no Pix. No simulador, o front
   gera um token de mentira e o cartão aprova na hora (final 0002 recusa). O
   formato do `/tokens` segue a referência e ainda precisa ser conferido com a
   chave de sandbox.
@@ -698,6 +705,7 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
 
 | Data | Mudança |
 | --- | --- |
+| 23/10/2026 | `Parcelamento` (custo do Pix e do cartão de 1x a 12x); total do parcelado com o custo para o cliente e parte da Avalia líquida da tarifa no Pix e à vista; `custoDasParcelasBps` em `GET /pagamento/cartao`. Migration `PerfilDoGoogleComVintePorCento`. |
 | 23/10/2026 | Parte da Avalia no serviço - `produtos_da_plataforma.desconto_da_revenda_bps` (2000; 1500 no `perfil-google-placa`) e `vendas.parte_da_avalia_cents` (migration `ParteDaAvaliaNosServicos`). A cobrança soma a parte à taxa em `taxa_avalia_cents`, que vai na regra da Avalia no split e no razão (por fora, a acertar); o piso do preço da revenda soma a parte. |
 | 23/10/2026 | `revendedores.taxa_avalia_bps` passa a 0 em todas as revendas e no padrão da coluna (migration `TaxaDaAvaliaZerada`); com taxa zero o split leva uma regra só, da revenda. `Revendedor.DefinirTaxaAvalia` para a edição futura pela operadora. |
 | 23/10/2026 | `pedidos_placas.retirada` (boolean, padrão falso) e `retirada` no corpo do despacho. Split com uma regra só quando o recebedor da revenda é o da Avalia. Comando `--conferir-pagarme` (`GET /recipients/{id}`). Logos das integrações em `web/public/parceiros`, mostrados como máscara na cor do texto. |

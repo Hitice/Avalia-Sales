@@ -51,7 +51,8 @@ public static class RotasDaEquipe
                 pagarme.Value.Simulado || pagarme.Value.ChavePublica.Length > 0,
                 pagarme.Value.Simulado || pagarme.Value.ChavePublica.Length == 0 ? null : pagarme.Value.ChavePublica,
                 pagarme.Value.Simulado,
-                Application.Pagamentos.Cobrancas.ParcelasMaximas));
+                Application.Pagamentos.Cobrancas.ParcelasMaximas,
+                Domain.Pagamentos.Parcelamento.CustoDoCartaoBps));
 
         // A chave do Google fica no servidor; o front pede por aqui.
         equipe.MapGet("/lugares", async (string? texto, ILugares lugares, CancellationToken ct) =>
@@ -70,5 +71,9 @@ public static class RotasDaEquipe
 
 public sealed record ReceberPorFora(Domain.Pagamentos.MeioDePagamento Meio);
 
-/// <summary>Simulado: o front gera um token de mentira, sem chamar o Pagar.me.</summary>
-public sealed record ConfiguracaoDoCartao(bool Disponivel, string? ChavePublica, bool Simulado, int ParcelasMaximas);
+/// <summary>
+/// Simulado: o front gera um token de mentira, sem chamar o Pagar.me.
+/// CustoDasParcelasBps vai de 1x a 12x; de 2x em diante o cliente paga o custo,
+/// e o front mostra o total de cada opção (a API calcula o valor cobrado).
+/// </summary>
+public sealed record ConfiguracaoDoCartao(bool Disponivel, string? ChavePublica, bool Simulado, int ParcelasMaximas, IReadOnlyList<int> CustoDasParcelasBps);
