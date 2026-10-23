@@ -28,8 +28,10 @@ Arquitetura e decisões no [SDD](SDD.md); cada decisão estrutural em
    ela, o workflow Deploy não roda, para não ficar na fila sem runner).
 4. No VPS, `/srv/avalia-sales/.env` a partir do `.env.example`, com
    `chmod 600`. Gere os segredos com `openssl rand -base64 48`.
-   `AVALIA_REPRESENTANTE` e `AVALIA_CARGO_DO_REPRESENTANTE` (opcionais) saem
-   impressos no contrato e no distrato. O PDF é feito pelo serviço `gotenberg`
+   `AVALIA_REPRESENTANTE` e `AVALIA_CARGO_DO_REPRESENTANTE` saem impressos no
+   contrato e no distrato; ficam nas variáveis do ambiente `producao` do GitHub
+   (`gh variable set AVALIA_REPRESENTANTE --env producao --body "..."`), que o
+   Deploy entrega ao Compose e valem mais que o `.env`. O PDF é feito pelo serviço `gotenberg`
    do Compose, sem porta e sem saída para a rede; a primeira subida baixa a imagem.
 5. Primeira subida (rode o workflow Deploy, ou à mão na pasta do checkout):
 

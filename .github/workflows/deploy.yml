@@ -31,6 +31,10 @@ jobs:
     env:
       VERSAO: ${{ github.event.inputs.versao || github.event.workflow_run.head_sha || github.sha }}
       ENV_FILE: /srv/avalia-sales/.env
+      # Quem assina pela Avalia, das variáveis do ambiente producao: o Compose lê do
+      # ambiente antes do .env, e o nome não precisa ficar no servidor nem no repositório.
+      AVALIA_REPRESENTANTE: ${{ vars.AVALIA_REPRESENTANTE }}
+      AVALIA_CARGO_DO_REPRESENTANTE: ${{ vars.AVALIA_CARGO_DO_REPRESENTANTE }}
     steps:
       - uses: actions/checkout@v7
         with:

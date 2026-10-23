@@ -687,6 +687,7 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
 
 | Data | Mudança |
 | --- | --- |
+| 22/10/2026 | Versão 1.7.2. Representante e cargo da Avalia vêm das variáveis do ambiente `producao` no GitHub, pelo job do Deploy, e não do `.env` do VPS. |
 | 22/10/2026 | Versão 1.7.0. Migration EncerramentoDeConta (endereço e encerramento em `revendedores`; transferência em `placas`; políticas e função de transferência). Contrato versão 2 e distrato gerados no Worker pelo Gotenberg (serviço `gotenberg` no Compose, `Pdf:UrlDoConversor`); PDF fixo da versão 1 removido do assembly. BrasilAPI no cadastro. Rotas do encerramento e da exportação, middleware `ContaEncerrada`, `IAssinaturaEletronica.Cancelar`. `RevendedorDto` com `temEndereco`, `encerramentoPedidoEm` e `encerradaEm`. 250 testes na API. |
 | 22/10/2026 | `infra/migracao/converter_do_sales.py` (só biblioteca padrão; backup em SQLite na memória). Importador com `produto` (chave do catálogo), `produto_preco_cents` e `comissao_devida_cents` (lançamento ComissaoDevida com a data da venda). |
 | 22/10/2026 | `docs/contrato` - estilo comum em `documento.css` (serifada, campos em branco, assinaturas e testemunhas) e `gerar.mjs` gera o PDF de cada HTML ao lado dele, sem tocar no PDF embutido em `Recursos`, que segue na versão 1. |
