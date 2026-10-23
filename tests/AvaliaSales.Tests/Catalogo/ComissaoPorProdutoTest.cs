@@ -1,4 +1,5 @@
 using System.Net;
+using AvaliaSales.Domain.Equipe;
 using AvaliaSales.Tests.Apoio;
 
 namespace AvaliaSales.Tests.Catalogo;
@@ -11,6 +12,9 @@ public sealed class ComissaoPorProdutoTest(ApiDeTeste api)
     {
         var revenda = await api.RevendaComEstoque("Revenda Comissão por Produto");
         var premium = await Cenarios.ProdutoDoCatalogo(revenda.Dono, "perfil-google-placa", 50_000L, 3_000);
+        var operadora = await api.ClienteLogado(await api.CriarOperadora());
+        var parte = (await operadora.Pegar("/operadora/catalogo")).EnumerateArray()
+            .Single(p => p.GetProperty("chave").GetString() == "perfil-google-placa").GetProperty("parteDaAvaliaCents").GetInt64();
         var semExcecao = $"vendedor-{Guid.NewGuid():N}@teste.com.br";
         var comExcecao = $"vendedor-{Guid.NewGuid():N}@teste.com.br";
         await revenda.Dono.Postar("/equipe", new { nome = "Ana", email = semExcecao, senha = ApiDeTeste.Senha }, HttpStatusCode.Created);
@@ -21,10 +25,10 @@ public sealed class ComissaoPorProdutoTest(ApiDeTeste api)
         await (await api.ClienteLogado(comExcecao)).Postar("/vendas", Cenarios.Venda(revenda.Codigos[2], premium, "11955550003"), HttpStatusCode.Created);
 
         var vendas = (await revenda.Dono.Pegar("/vendas")).EnumerateArray().ToDictionary(v => v.GetProperty("codigo").GetString()!, v => v.GetProperty("comissaoCents").GetInt64());
-        // No Perfil no Google com placa, a comissão é sobre o que fica com a revenda: R$ 500,00 menos R$ 424,15 da Avalia.
-        Assert.Equal(2_276, vendas[revenda.Codigos[0]]); // 30% do produto
+        // No Perfil no Google com placa, a comissão é sobre o que fica com a revenda: R$ 500,00 menos a parte da Avalia.
+        Assert.Equal(Comissao.Calcular(50_000 - parte, 3_000), vendas[revenda.Codigos[0]]); // 30% do produto
         Assert.Equal(2_998, vendas[revenda.Codigos[1]]); // 20% padrão sobre R$ 149,90
-        Assert.Equal(759, vendas[revenda.Codigos[2]]); // 10% do vendedor vence o do produto
+        Assert.Equal(Comissao.Calcular(50_000 - parte, 1_000), vendas[revenda.Codigos[2]]); // 10% do vendedor vence o do produto
     }
 
     [Fact]
