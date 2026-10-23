@@ -91,6 +91,13 @@ public sealed class ClientePagarme(HttpClient http, IOptions<OpcoesPagarme> opco
         return null;
     }
 
+    /// <summary>GET /recipients/{id}: com a chave errada, o Pagar.me responde 401; com o id errado, 404.</summary>
+    public async Task<RecebedorDoGateway> BuscarRecebedor(string id, CancellationToken ct)
+    {
+        var resposta = await ChamadaExterna.Json(Sistema, () => http.GetAsync($"recipients/{Uri.EscapeDataString(id)}", ct), ct);
+        return new RecebedorDoGateway(resposta.Texto("id") ?? id, resposta.Texto("name") ?? string.Empty, resposta.Texto("status") ?? string.Empty);
+    }
+
     /// <summary>
     /// O split vai em centavos (flat): o tipo percentage não aceita 1,99%. O
     /// revendedor é o responsável pelo chargeback, pelas taxas e pelo resto.

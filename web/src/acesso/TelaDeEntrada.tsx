@@ -52,7 +52,7 @@ export function TelaDeEntrada() {
   }
 
   return (
-    <main className="flex min-h-svh flex-col items-center justify-center gap-6 p-4">
+    <main className="flex min-h-svh flex-col items-center justify-center gap-6 p-4 pb-24">
       <MarcaAvalia />
       <Card className="relative w-full max-w-sm">
         <span aria-hidden className="traco absolute inset-x-0 top-0 h-1" />

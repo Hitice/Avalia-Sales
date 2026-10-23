@@ -73,6 +73,38 @@ Arquitetura e decisões no [SDD](SDD.md); cada decisão estrutural em
 8. Webhooks - no Pagar.me, `https://DOMINIO/webhooks/pagarme/<PAGARME_SEGREDO_DO_WEBHOOK>`;
    na D4Sign, o endereço vai sozinho em cada envio.
 
+## Pagar.me em produção
+
+1. No `/srv/avalia-sales/.env`: `PAGARME_CHAVE_SECRETA` (`sk_`),
+   `PAGARME_CHAVE_PUBLICA` (`pk_`, liga o cartão na Nova venda),
+   `PAGARME_RECEBEDOR_AVALIA` (o `rp_` da conta da Avalia, que fica com a taxa)
+   e `PAGARME_SEGREDO_DO_WEBHOOK` (já existe: o Compose não sobe sem ele). A chave não vai
+   para o GitHub nem para o chat.
+2. Recriar API e Worker com o `.env` novo, na pasta do checkout:
+
+   ```bash
+   docker compose -f docker-compose.producao.yml --env-file /srv/avalia-sales/.env up -d api worker
+   ```
+
+3. Conferir a chave e os recebedores, sem cobrar ninguém:
+
+   ```bash
+   docker compose -f docker-compose.producao.yml --env-file /srv/avalia-sales/.env run --rm api --conferir-pagarme
+   ```
+
+   Mostra se a chave é de teste ou de produção, se o cartão está ligado e a
+   situação de cada recebedor (`active` recebe). Sai com erro se a chave for
+   recusada ou se algum recebedor não estiver ativo.
+4. No painel do Pagar.me, webhook para
+   `https://DOMINIO/webhooks/pagarme/<PAGARME_SEGREDO_DO_WEBHOOK>` com os
+   eventos de pedido e de cobrança (`order.*` e `charge.*`). O Worker
+   reconsulta o pedido em todo evento, então assinar a mais não muda nada.
+5. Cada revenda precisa de um recebedor próprio, criado no painel do
+   Pagar.me; a operadora cola o `rp_` em Revendedores. A revenda Avalia
+   também, separado do recebedor da taxa.
+6. Primeira venda real de valor baixo no Pix, para ver o split no extrato e
+   o pedido pago no painel.
+
 ## Publicar
 
 Merge no `main` com o CI verde dispara o workflow Deploy, que espera a

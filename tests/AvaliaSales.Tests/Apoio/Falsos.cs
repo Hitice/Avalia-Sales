@@ -57,6 +57,9 @@ public sealed class GatewayFalso : IGatewayDePagamento
         return Task.FromResult(PorCodigo.GetValueOrDefault(codigo));
     }
 
+    public Task<RecebedorDoGateway> BuscarRecebedor(string id, CancellationToken ct) =>
+        Task.FromResult(new RecebedorDoGateway(id, "Recebedor de teste", "active"));
+
     public void Mudar(string codigo, SituacaoDaCobranca situacao) =>
         PorCodigo[codigo] = PorCodigo[codigo] with { Situacao = situacao, PagoEm = situacao == SituacaoDaCobranca.Paga ? DateTimeOffset.UtcNow : null };
 }

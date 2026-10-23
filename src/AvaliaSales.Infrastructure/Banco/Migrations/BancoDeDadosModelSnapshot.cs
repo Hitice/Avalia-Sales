@@ -1209,6 +1209,10 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("quantidade");
 
+                    b.Property<bool>("Retirada")
+                        .HasColumnType("boolean")
+                        .HasColumnName("retirada");
+
                     b.Property<Guid>("RevendedorId")
                         .HasColumnType("uuid")
                         .HasColumnName("revendedor_id");

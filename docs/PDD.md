@@ -77,8 +77,9 @@ revendedor é a Avalia.
    fora. Situação do pedido - aguardando pagamento, pago, em produção,
    enviado, entregue (ou cancelado).
 4. Envio - a Avalia recebe o pedido por e-mail, no sino e na fila, marca em
-   produção e despacha um lote da mesma quantidade; o dono recebe o e-mail e a
-   notificação com o número do lote.
+   produção e despacha um lote da mesma quantidade, pelo envio ou para retirada
+   na Avalia; o dono recebe o e-mail e a notificação com o número do lote
+   (placas enviadas ou prontas para retirada).
 5. Ativação - o revendedor digita o número do lote (LT-0001, lt 1 ou 1); as
    placas entram no estoque dele com o custo do pacote, e o pedido fica entregue.
 6. Equipe - cadastro dos vendedores e da comissão de cada um.
@@ -96,7 +97,7 @@ Todas no mesmo app, liberadas pelo papel do usuário.
 
 | Tela | Quem usa | Pensada para | O que faz |
 | --- | --- | --- | --- |
-| Entrada, cadastro e senha | Todos | Celular e computador | Entrar, cadastrar a revenda (CNPJ preenche razão social e endereço), confirmar o e-mail, criar e trocar a senha |
+| Entrada, cadastro e senha | Todos | Celular e computador | Entrar, cadastrar a revenda (CNPJ preenche razão social e endereço), confirmar o e-mail, criar e trocar a senha; no pé da entrada, os logos das integrações (Pagar.me, D4Sign, Google Maps, Resend) em cinza |
 | Início | Dono | Computador | Números do mês e gráficos - vendas por dia nos últimos 30 dias, recebido por mês nos últimos 6 e vendas do mês por vendedor |
 | Vendas | Dono | Computador | Lista das vendas, cobrança de novo, cancelamento, cortesia, recebido por fora |
 | Clientes | Dono | Computador | Clientes da revenda, exportação dos dados e anonimização (LGPD) |
@@ -104,7 +105,7 @@ Todas no mesmo app, liberadas pelo papel do usuário.
 | Mapa | Dono | Computador | Lugares vendidos, no Google Maps |
 | Catálogo | Dono e vendedor | Computador e celular | Produtos da Avalia com foto, preço sugerido e o preço da revenda; o dono ajusta o preço e pede placas; a equipe vende daqui (serviço abre a venda sem placa) |
 | Estoque | Dono | Computador | Placas por situação, consignação ao vendedor e ativação de lote |
-| Pedidos | Dono | Computador | Pedidos de placas com a situação (aguardando pagamento, pago, em produção, enviado, entregue) e o link de pagamento |
+| Pedidos | Dono | Computador | Pedidos de placas com a situação (aguardando pagamento, pago, em produção, enviado ou pronto para retirada, entregue) e o link de pagamento |
 | Equipe | Dono | Computador | Criar, editar, desativar e excluir vendedor, comissão própria, convite |
 | Comissões e Razão | Dono | Computador | Saldo de cada vendedor, repasse com comprovante; razão do mês |
 | Configurações | Dono | Computador e celular | Comissão padrão, preço da renovação e o contrato de revenda (reenviar, conferir assinatura, baixar cópia) |
@@ -117,7 +118,7 @@ Todas no mesmo app, liberadas pelo papel do usuário.
 | Painel do vendedor | Vendedor | Celular | Vendas do mês, comissão a receber, esperando pagamento e recebida, placas com ele |
 | Nova venda | Dono e vendedor | Celular | Negócio no Google, QR da placa, cliente, cobrança, gravação do NFC; ou venda de serviço, sem placa |
 | Ficha da placa | Dono e vendedor | Celular | Destino, vencimento, leituras, histórico, troca, renovação |
-| Pedidos, Lotes, Pacotes e Cupons | Operadora | Computador | Fila de pedidos (produção, despacho do lote), geração e impressão de lotes, pacotes e cupons |
+| Pedidos, Lotes, Pacotes e Cupons | Operadora | Computador | Fila de pedidos (produção, despacho do lote pelo envio ou para retirada), geração e impressão de lotes, pacotes e cupons |
 | Catálogo da Avalia | Operadora | Computador | Cadastrar e editar produto, foto com recorte, preço sugerido, ordem e situação |
 | Serviços da operadora | Operadora | Computador | A fila de ordens de serviço - iniciar, entregar, cancelar |
 | Revendedores | Operadora | Computador | Revendas, recebedor no Pagar.me, contrato em papel, situação do encerramento |
@@ -487,7 +488,7 @@ porque está impresso nas placas vendidas.
 | --- | --- | --- |
 | Taxa da Avalia nas vendas recebidas por fora | Cobrar a taxa ou não | O distrato já cobra o saldo a acertar; falta a regra durante o contrato (cláusula 5.6) |
 | Renovação de venda dada em cortesia | 60% de zero (R$ 0,01) ou 60% da tabela gravada na venda | A definir |
-| Recebedor da revendedora Avalia | Mesmo da conta do marketplace ou separado | Confirmar com o Pagar.me |
+| Recebedor da revendedora Avalia | Mesmo da conta do marketplace ou separado | Separado, para o extrato da revenda não se misturar com a taxa; se for o mesmo, a cobrança vai numa regra só |
 | Texto do termo do cliente | Rascunho ou revisão jurídica | Revisão jurídica |
 | Política de privacidade | Texto | Revisão jurídica |
 
@@ -509,6 +510,7 @@ porque está impresso nas placas vendidas.
 
 | Data | Mudança |
 | --- | --- |
+| 23/10/2026 | Pedido de placas pode sair para retirada na Avalia - a operadora escolhe "Pronto para retirada" em vez de Despachar, o dono recebe o aviso de que a caixa está pronta e ativa o lote igual. Revenda com o mesmo recebedor da Avalia é cobrada numa regra só do split. Logos das integrações no pé da tela de entrada. |
 | 23/10/2026 | Tabelas cabem no cartão - com mais de uma ação, a linha mostra a principal (Editar) e as outras no botão "⋯" (Equipe, Pacotes, Cupons); o formulário lateral (Novo vendedor, Novo cupom e outros) fica ao lado só a partir de 1280 px; tabela mais larga que a tela mostra sombra na borda que rola. |
 | 23/10/2026 | A plataforma tem uma operadora só, que cuida da operação inteira; a Avalia vende como revenda comum. Sai o cadastro temporário de operadora da tela de entrada. |
 | 23/10/2026 | Troca de senha logado, em Meus dados, para todos os papéis - pede a senha atual, derruba os outros aparelhos e avisa por e-mail. Vale também com a conta encerrada. |

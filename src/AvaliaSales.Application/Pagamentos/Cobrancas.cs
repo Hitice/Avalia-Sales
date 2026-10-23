@@ -72,8 +72,14 @@ public sealed class Cobrancas(IBancoDeDados banco, IGatewayDePagamento gateway, 
         await banco.SaveChangesAsync(ct);
 
         var divisao = cobranca.Divisao;
-        var regras = new List<RegraDeDivisao> { new(revendedor.RecebedorPagarme, divisao.RevendedorCents, AssumeTaxasERisco: true) };
-        if (divisao.AvaliaCents > 0)
+
+        // A revenda que recebe na conta da própria Avalia tem uma regra só: o Pagar.me não aceita o mesmo recebedor duas vezes no split.
+        var mesmoRecebedor = revendedor.RecebedorPagarme == gateway.RecebedorDaAvalia;
+        var regras = new List<RegraDeDivisao>
+        {
+            new(revendedor.RecebedorPagarme, mesmoRecebedor ? cobranca.ValorCents : divisao.RevendedorCents, AssumeTaxasERisco: true),
+        };
+        if (divisao.AvaliaCents > 0 && !mesmoRecebedor)
         {
             regras.Add(new RegraDeDivisao(gateway.RecebedorDaAvalia, divisao.AvaliaCents, AssumeTaxasERisco: false));
         }

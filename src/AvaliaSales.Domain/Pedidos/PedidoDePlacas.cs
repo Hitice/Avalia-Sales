@@ -34,6 +34,9 @@ public sealed class PedidoDePlacas : IAtendidoPelaOperadora
     public Guid? LoteId { get; private set; }
     public DateTimeOffset? ProducaoEm { get; private set; }
     public DateTimeOffset? DespachadoEm { get; private set; }
+
+    /// <summary>A revenda busca a caixa na Avalia, em vez de receber pelo envio.</summary>
+    public bool Retirada { get; private set; }
     public DateTimeOffset? AtivadoEm { get; private set; }
 
     private PedidoDePlacas()
@@ -76,7 +79,7 @@ public sealed class PedidoDePlacas : IAtendidoPelaOperadora
         ProducaoEm = agora;
     }
 
-    public void Despachar(Guid loteId, DateTimeOffset agora)
+    public void Despachar(Guid loteId, DateTimeOffset agora, bool retirada = false)
     {
         if (Situacao is not (SituacaoDoPedido.Pago or SituacaoDoPedido.EmProducao))
         {
@@ -86,6 +89,7 @@ public sealed class PedidoDePlacas : IAtendidoPelaOperadora
         Situacao = SituacaoDoPedido.Despachado;
         LoteId = loteId;
         DespachadoEm = agora;
+        Retirada = retirada;
     }
 
     public void Ativar(DateTimeOffset agora)

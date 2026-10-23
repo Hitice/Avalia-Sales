@@ -12,7 +12,7 @@ namespace AvaliaSales.Application.Pedidos;
 public sealed record PedidoDto(
     Guid Id, Guid RevendedorId, string Revendedor, int Quantidade, long ValorCents, SituacaoDoPedido Situacao,
     DateTimeOffset CriadoEm, DateTimeOffset? PagoEm, string? Lote, DateTimeOffset? DespachadoEm, DateTimeOffset? AtivadoEm, DateTimeOffset? ProducaoEm,
-    long PrecoDoPacoteCents, string? Cupom, long DescontoCents, string? UrlDePagamento);
+    long PrecoDoPacoteCents, string? Cupom, long DescontoCents, string? UrlDePagamento, bool Retirada);
 
 public sealed record AtivacaoDto(string Lote, int Placas, string PrimeiroCodigo, string UltimoCodigo);
 
@@ -53,7 +53,7 @@ public sealed class PedidosDePlacas(
         return pedidos.Select(p => new PedidoDto(
             p.Id, p.RevendedorId, revendedores.GetValueOrDefault(p.RevendedorId, ""), p.Quantidade, p.ValorCents, p.Situacao,
             p.CriadoEm, p.PagoEm, p.LoteId is { } l && lotes.TryGetValue(l, out var n) ? Lote.Rotular(n) : null,
-            p.DespachadoEm, p.AtivadoEm, p.ProducaoEm, p.PrecoDoPacoteCents, p.Cupom, p.DescontoCents, linkDe.GetValueOrDefault(p.Id))).ToList();
+            p.DespachadoEm, p.AtivadoEm, p.ProducaoEm, p.PrecoDoPacoteCents, p.Cupom, p.DescontoCents, linkDe.GetValueOrDefault(p.Id), p.Retirada)).ToList();
     }
 
     /// <summary>Sem contrato de revenda assinado, não há pedido. O cupom é conferido e gasto aqui.</summary>
@@ -166,8 +166,11 @@ public sealed class PedidosDePlacas(
         await banco.SaveChangesAsync(ct);
     }
 
-    /// <summary>Operadora: liga um lote livre da mesma quantidade ao pedido e avisa o dono.</summary>
-    public async Task Despachar(Guid id, int numeroDoLote, CancellationToken ct)
+    /// <summary>
+    /// Operadora: liga um lote livre da mesma quantidade ao pedido e avisa o
+    /// dono, que recebe pelo envio ou retira a caixa na Avalia.
+    /// </summary>
+    public async Task Despachar(Guid id, int numeroDoLote, bool retirada, CancellationToken ct)
     {
         var pedido = await Achar(id, ct);
         var lote = await banco.Lotes.SingleOrDefaultAsync(l => l.Numero == numeroDoLote, ct)
@@ -176,16 +179,21 @@ public sealed class PedidosDePlacas(
 
         await using var transacao = await banco.Database.BeginTransactionAsync(ct);
         lote.Despachar(pedido.Id, pedido.RevendedorId, pedido.Quantidade, agora);
-        pedido.Despachar(lote.Id, agora);
+        pedido.Despachar(lote.Id, agora, retirada);
         banco.AvisarAoVivo("pedido", pedido.RevendedorId, operadora: true);
-        notificacoes.ParaDono(pedido.RevendedorId, "Placas enviadas", $"O lote {lote.Rotulo} com {pedido.Quantidade} placas saiu. Ative pelo número da caixa.", "/painel/estoque");
+        var (titulo, texto, assunto, corpo) = retirada
+            ? ("Placas prontas para retirada", $"O lote {lote.Rotulo} com {pedido.Quantidade} placas está pronto para retirada na Avalia. Ative pelo número da caixa.",
+                $"Suas {pedido.Quantidade} placas estão prontas para retirada - lote {lote.Rotulo}",
+                $"O lote {lote.Rotulo} com {pedido.Quantidade} placas está pronto para retirada na Avalia.\n\nAo retirar a caixa, ative o lote pelo número impresso nela.")
+            : ("Placas enviadas", $"O lote {lote.Rotulo} com {pedido.Quantidade} placas saiu. Ative pelo número da caixa.",
+                $"Suas {pedido.Quantidade} placas saíram - lote {lote.Rotulo}",
+                $"O lote {lote.Rotulo} com {pedido.Quantidade} placas foi despachado.\n\nQuando a caixa chegar, ative o lote pelo número impresso nela.");
+        notificacoes.ParaDono(pedido.RevendedorId, titulo, texto, "/painel/estoque");
         foreach (var dono in await contas.EmailsDosDonos(pedido.RevendedorId, ct))
         {
-            avisos.Enfileirar($"pedido:{pedido.Id:N}:despachado:{dono}", dono, $"Suas {pedido.Quantidade} placas saíram - lote {lote.Rotulo}",
+            avisos.Enfileirar($"pedido:{pedido.Id:N}:despachado:{dono}", dono, assunto,
                 $"""
-                O lote {lote.Rotulo} com {pedido.Quantidade} placas foi despachado.
-
-                Quando a caixa chegar, ative o lote pelo número impresso nela.
+                {corpo}
 
                 Ativar o lote: {plataforma.Value.UrlDoPainel.TrimEnd('/')}/painel/estoque
                 """);

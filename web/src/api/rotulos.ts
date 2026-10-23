@@ -1,4 +1,4 @@
-import type { AcaoAuditada, EstadoDaPlaca, SituacaoDaCobranca, SituacaoDaOrdem, SituacaoDoContrato, SituacaoDoPedido, SituacaoDoProduto, TipoDeProduto } from './tipos'
+import type { AcaoAuditada, EstadoDaPlaca, Pedido, SituacaoDaCobranca, SituacaoDaOrdem, SituacaoDoContrato, SituacaoDoPedido, SituacaoDoProduto, TipoDeProduto } from './tipos'
 
 /** Os nomes que a tela mostra para cada situação da API. */
 export const ROTULO_DO_ESTADO: Record<EstadoDaPlaca, string> = {
@@ -18,6 +18,10 @@ export const ROTULO_DO_PEDIDO: Record<SituacaoDoPedido, string> = {
   Ativado: 'Entregue',
   Cancelado: 'Cancelado',
 }
+
+/** O pedido despachado para retirada espera a revenda buscar a caixa na Avalia. */
+export const rotuloDoPedido = (p: Pick<Pedido, 'situacao' | 'retirada'>) =>
+  p.situacao === 'Despachado' && p.retirada ? 'Pronto para retirada' : ROTULO_DO_PEDIDO[p.situacao]
 
 export const ROTULO_DA_ORDEM: Record<SituacaoDaOrdem, string> = {
   AFazer: 'A fazer',

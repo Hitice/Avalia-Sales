@@ -175,7 +175,7 @@ Dinheiro em centavos (`bigint`, colunas `_cents`), taxa em pontos base
 | `lotes` | Número, quantidade, pedido e revendedor do despacho, ativação | Sem RLS; número e pedido únicos |
 | `placas_emitidas` | Código (chave), sequência da plataforma, lote, revendedor depois da ativação | Sem RLS; só identificadores |
 | `codigos_reservados` | Código que existe fora da plataforma | Sem RLS; o sorteio pula |
-| `pedidos_placas` | Pacote copiado (quantidade e valor), situação, pagamento, lote, despacho, ativação | RLS com a operadora |
+| `pedidos_placas` | Pacote copiado (quantidade e valor), situação, pagamento, lote, despacho (envio ou retirada), ativação | RLS com a operadora |
 | `placas` | Placa no estoque do revendedor: custo congelado, situação, consignação, destino, venda, vencimento, leituras | RLS; código único |
 | `leituras` | Leituras por placa e dia | RLS; chave (placa, dia), soma por `on conflict` |
 | `vendedores` | Equipe, com o mesmo id do login; comissão própria | RLS |
@@ -240,7 +240,12 @@ Conferido na referência oficial em 21/10/2026.
 - Split - duas regras `flat` em centavos: revendedor e Avalia. O tipo
   `percentage` não aceita 1,99. O revendedor tem `liable`,
   `charge_processing_fee` e `charge_remainder_fee`. Regra de valor zero não é
-  enviada. Split só existe para conta PSP.
+  enviada. Split só existe para conta PSP. Revenda com o recebedor igual ao da
+  Avalia vai numa regra só, com o valor inteiro (o split não repete
+  recebedor); a taxa continua gravada na cobrança e no razão.
+- Recebedor - `GET /recipients/{id}`, usado só pelo comando
+  `--conferir-pagarme` (`docs/OPERACAO.md`), que confere a chave e os
+  recebedores sem cobrar.
 - Sem cabeçalho de idempotência - a referência não documenta nenhum. A
   cobrança é gravada antes da chamada, e quando a chamada cai o pedido é
   procurado por `GET /orders?code=` antes de qualquer nova tentativa.
@@ -693,6 +698,7 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
 
 | Data | Mudança |
 | --- | --- |
+| 23/10/2026 | `pedidos_placas.retirada` (boolean, padrão falso) e `retirada` no corpo do despacho. Split com uma regra só quando o recebedor da revenda é o da Avalia. Comando `--conferir-pagarme` (`GET /recipients/{id}`). Logos das integrações em `web/public/parceiros`, mostrados como máscara na cor do texto. |
 | 23/10/2026 | Front - `componentes/AcoesDaLinha` (ação principal e menu no computador, fileira de botões no celular), `sombra-de-rolagem` no contêiner da tabela, botões da célula quebram linha, layout com coluna lateral a partir de `xl`. Faixas de quantidade de pacote dos testes separadas das dos pacotes semeados (20, 50 e 100). |
 | 23/10/2026 | Cadastro temporário de operadora removido (rotas `/cadastro/operadora`, `CadastroDeOperadora`, a opção `Plataforma:CadastroDeOperadoraAberto` e a variável do Deploy). A operadora é uma só e nasce pelo `--nova-operadora`. |
 | 23/10/2026 | `POST /conta/senha` (`GestorDeSenhas.Trocar`), com limite da entrada e liberada na conta encerrada, como `/conta/segundo-fator`. |

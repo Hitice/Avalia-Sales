@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { formatarDataHora, ROTULO_DO_PEDIDO } from '@/api/rotulos'
+import { formatarDataHora, rotuloDoPedido } from '@/api/rotulos'
 import type { Pedido } from '@/api/tipos'
+import { AcoesDaLinha } from '@/componentes/AcoesDaLinha'
 import { Cabecalho, Erro, EstadoDaConsulta, Rolagem } from '@/componentes/Tela'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -48,7 +49,7 @@ export function TelaDePedidos() {
                       <TableCell className="text-right tabular-nums">{pedido.quantidade}</TableCell>
                       <TableCell className="text-right tabular-nums">{formatarCentavos(pedido.valorCents)}</TableCell>
                       <TableCell>{formatarDataHora(pedido.criadoEm)}</TableCell>
-                      <TableCell><Badge variant={pedido.situacao === 'Ativado' ? 'default' : 'secondary'}>{ROTULO_DO_PEDIDO[pedido.situacao]}</Badge></TableCell>
+                      <TableCell><Badge variant={pedido.situacao === 'Ativado' ? 'default' : 'secondary'}>{rotuloDoPedido(pedido)}</Badge></TableCell>
                       <TableCell>{pedido.lote ?? '-'}</TableCell>
                       <TableCell className="text-right">
                         {pedido.situacao === 'AguardandoPagamento' && (
@@ -64,19 +65,28 @@ export function TelaDePedidos() {
                               )
                             : (
                                 <div className="flex justify-end gap-2">
-                                  {pedido.situacao === 'Pago' && <Button variant="outline" disabled={producao.isPending} onClick={() => producao.mutate(pedido.id)}>Iniciar produção</Button>}
                                   <Select value={loteEscolhido[pedido.id] ?? ''} onValueChange={(v) => setLoteEscolhido({ ...loteEscolhido, [pedido.id]: v })}>
                                     <SelectTrigger aria-label="Lote" className="w-32"><SelectValue placeholder="Lote" /></SelectTrigger>
                                     <SelectContent>
                                       {livres(pedido).map((l) => <SelectItem key={l.id} value={String(l.numero)}>{l.rotulo}</SelectItem>)}
                                     </SelectContent>
                                   </Select>
-                                  <Button
-                                    disabled={!loteEscolhido[pedido.id] || despachar.isPending}
-                                    onClick={() => despachar.mutate({ id: pedido.id, lote: Number(loteEscolhido[pedido.id]) })}
-                                  >
-                                    Despachar
-                                  </Button>
+                                  <AcoesDaLinha
+                                    nome={`pedido de ${pedido.revendedor}`}
+                                    principal={{
+                                      rotulo: 'Despachar',
+                                      desabilitada: !loteEscolhido[pedido.id] || despachar.isPending,
+                                      aoClicar: () => despachar.mutate({ id: pedido.id, lote: Number(loteEscolhido[pedido.id]), retirada: false }),
+                                    }}
+                                    outras={[
+                                      {
+                                        rotulo: 'Pronto para retirada',
+                                        desabilitada: !loteEscolhido[pedido.id] || despachar.isPending,
+                                        aoClicar: () => despachar.mutate({ id: pedido.id, lote: Number(loteEscolhido[pedido.id]), retirada: true }),
+                                      },
+                                      pedido.situacao === 'Pago' && { rotulo: 'Iniciar produção', desabilitada: producao.isPending, aoClicar: () => producao.mutate(pedido.id) },
+                                    ]}
+                                  />
                                 </div>
                               )
                         )}

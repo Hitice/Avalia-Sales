@@ -74,6 +74,21 @@ public sealed class FluxoDePagamentoTest(ApiDeTeste api)
     }
 
     [Fact]
+    public async Task Revenda_que_recebe_na_conta_da_avalia_vai_numa_regra_so_com_a_taxa_registrada()
+    {
+        var (revendedor, _) = await api.CriarRevendedor("Revenda Na Conta Da Avalia");
+        await api.DefinirRecebedor(revendedor, "rp_avaliaDeTeste");
+        var gateway = new GatewayFalso();
+        await using var worker = api.AmbienteDoWorker(gateway, new AssinaturaFalsa());
+
+        var cobranca = await Cobrar(worker, revendedor);
+
+        var regra = Assert.Single(Assert.Single(gateway.Criados).Divisao);
+        Assert.Equal(("rp_avaliaDeTeste", 14_990L, true), (regra.Recebedor, regra.ValorCents, regra.AssumeTaxasERisco));
+        Assert.Equal(298, cobranca.TaxaAvaliaCents);
+    }
+
+    [Fact]
     public async Task Revendedor_sem_recebedor_nao_cobra()
     {
         var (revendedor, _) = await api.CriarRevendedor("Revenda Sem Conta");

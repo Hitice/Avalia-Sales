@@ -35,6 +35,9 @@ public sealed record LinkNoGateway(string Codigo, string Descricao, long ValorCe
 
 public sealed record LinkDoGateway(string Id, string Url);
 
+/// <summary>Recebedor como o Pagar.me o vê: nome e situação (active quando pode receber).</summary>
+public sealed record RecebedorDoGateway(string Id, string Nome, string Situacao);
+
 public interface IGatewayDePagamento
 {
     /// <summary>Recebedor da Avalia, que fica com a taxa de cada venda.</summary>
@@ -46,4 +49,7 @@ public interface IGatewayDePagamento
 
     /// <summary>Busca pelo nosso código. Nulo quando o pedido não chegou a ser criado.</summary>
     Task<PedidoDoGateway?> BuscarPorCodigo(string codigo, CancellationToken ct);
+
+    /// <summary>Lê um recebedor; confere a chave e o id antes da primeira cobrança.</summary>
+    Task<RecebedorDoGateway> BuscarRecebedor(string id, CancellationToken ct);
 }

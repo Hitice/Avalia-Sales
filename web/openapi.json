@@ -4650,8 +4650,13 @@
           "lote": {
             "type": "integer",
             "format": "int32"
+          },
+          "retirada": {
+            "type": "boolean",
+            "default": false
           }
-        }
+        },
+        "description": "Retirada: a revenda busca a caixa na Avalia, sem envio."
       },
       "DestinoInformado": {
         "required": [
@@ -6183,7 +6188,8 @@
           "precoDoPacoteCents",
           "cupom",
           "descontoCents",
-          "urlDePagamento"
+          "urlDePagamento",
+          "retirada"
         ],
         "type": "object",
         "properties": {
@@ -6266,6 +6272,9 @@
               "null",
               "string"
             ]
+          },
+          "retirada": {
+            "type": "boolean"
           }
         }
       },

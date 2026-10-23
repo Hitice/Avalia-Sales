@@ -10,7 +10,8 @@ namespace AvaliaSales.Api.Rotas;
 
 public sealed record GerarLote(int Quantidade);
 
-public sealed record DespacharPedido(int Lote);
+/// <summary>Retirada: a revenda busca a caixa na Avalia, sem envio.</summary>
+public sealed record DespacharPedido(int Lote, bool Retirada = false);
 
 public sealed record DefinirRecebedor(string Recebedor);
 
@@ -77,7 +78,7 @@ public static class RotasDaOperadora
         });
         operadora.MapPost("/pedidos/{id:guid}/despacho", async (Guid id, DespacharPedido pedido, PedidosDePlacas pedidos, CancellationToken ct) =>
         {
-            await pedidos.Despachar(id, pedido.Lote, ct);
+            await pedidos.Despachar(id, pedido.Lote, pedido.Retirada, ct);
             return Results.NoContent();
         });
 

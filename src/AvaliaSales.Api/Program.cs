@@ -174,6 +174,12 @@ if (args.Contains("--nova-operadora"))
     return;
 }
 
+if (args.Contains("--conferir-pagarme"))
+{
+    Environment.ExitCode = await ConferirPagarme.Conferir(app.Services);
+    return;
+}
+
 if (args.Contains("--reservar-codigos"))
 {
     Environment.ExitCode = await Importar.ReservarCodigos(app.Services, args);

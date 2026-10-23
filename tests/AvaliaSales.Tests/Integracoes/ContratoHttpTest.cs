@@ -127,6 +127,18 @@ public sealed class ContratoHttpTest
     }
 
     [Fact]
+    public async Task Recebedor_e_lido_pelo_id()
+    {
+        var http = new HttpFalso((HttpStatusCode.OK, """{"id":"rp_abc","name":"Avalia","status":"active"}"""));
+        await using var servicos = Servicos(http);
+
+        var recebedor = await servicos.GetRequiredService<IGatewayDePagamento>().BuscarRecebedor("rp_abc", Ct);
+
+        Assert.Equal("https://api.pagar.me/core/v5/recipients/rp_abc", http.Pedidos[0].Uri.ToString());
+        Assert.Equal(new RecebedorDoGateway("rp_abc", "Avalia", "active"), recebedor);
+    }
+
+    [Fact]
     public async Task Envio_a_d4sign_segue_as_rotas_com_token_e_cryptkey_na_url()
     {
         var http = new HttpFalso(

@@ -40,6 +40,28 @@ public sealed class FluxoDoLoteTest(ApiDeTeste api)
     }
 
     [Fact]
+    public async Task Pedido_para_retirada_avisa_que_a_caixa_esta_pronta_e_ativa_igual()
+    {
+        var operadora = await api.ClienteLogado(await api.CriarOperadora());
+        var (_, email) = await api.CriarRevendedor("Revenda Que Retira");
+        var dono = await api.ClienteLogado(email);
+        var quantidade = Random.Shared.Next(400, 450);
+        var pacote = await operadora.Postar("/operadora/pacotes", new { quantidade, precoCents = quantidade * 1_400L }, HttpStatusCode.Created);
+        var lote = await operadora.Postar("/operadora/lotes", new { quantidade }, HttpStatusCode.Created);
+        var pedidoId = (await dono.Postar("/pedidos", new { pacoteId = pacote.GetProperty("id").GetGuid() }, HttpStatusCode.Created)).GetProperty("id").GetGuid();
+        await operadora.Postar($"/operadora/pedidos/{pedidoId}/pagamento", new { }, HttpStatusCode.NoContent);
+
+        await operadora.Postar($"/operadora/pedidos/{pedidoId}/despacho", new { lote = lote.GetProperty("numero").GetInt32(), retirada = true }, HttpStatusCode.NoContent);
+
+        var pedido = (await dono.Pegar("/pedidos")).EnumerateArray().Single(p => p.GetProperty("id").GetGuid() == pedidoId);
+        Assert.True(pedido.GetProperty("retirada").GetBoolean());
+        Assert.Equal("Despachado", pedido.GetProperty("situacao").GetString());
+        await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
+        Assert.Contains("prontas para retirada", await banco.Texto($"select assunto from emails where chave like 'pedido:{pedidoId:N}:despachado:%'"));
+        Assert.Equal(quantidade, (await dono.Postar("/lotes/ativacao", new { numero = lote.GetProperty("rotulo").GetString() })).GetProperty("placas").GetInt32());
+    }
+
+    [Fact]
     public async Task Sem_contrato_assinado_nao_ha_pedido()
     {
         var operadora = await api.ClienteLogado(await api.CriarOperadora());

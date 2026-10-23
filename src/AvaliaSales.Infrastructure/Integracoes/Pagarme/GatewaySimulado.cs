@@ -43,6 +43,9 @@ public sealed class GatewaySimulado(IOptions<OpcoesPagarme> opcoes, IOptions<App
 
     public Task<PedidoDoGateway?> BuscarPorCodigo(string codigo, CancellationToken ct) => Task.FromResult(Ler(codigo));
 
+    public Task<RecebedorDoGateway> BuscarRecebedor(string id, CancellationToken ct) =>
+        Task.FromResult(new RecebedorDoGateway(id, "Recebedor simulado", "active"));
+
     private PedidoDoGateway? Ler(string codigo)
     {
         if (!Guid.TryParseExact(codigo, "N", out var id) || id.Version != 7)

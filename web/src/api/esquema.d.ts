@@ -5397,9 +5397,12 @@ export interface components {
             meio: components["schemas"]["MeioDoSegundoFator"];
             destino: null | string;
         };
+        /** @description Retirada: a revenda busca a caixa na Avalia, sem envio. */
         DespacharPedido: {
             /** Format: int32 */
             lote: number;
+            /** @default false */
+            retirada: boolean;
         };
         /** @description O destino como vem da tela. O link colado vence a busca: foi a pessoa que o trouxe do perfil. */
         DestinoInformado: {
@@ -5836,6 +5839,7 @@ export interface components {
             /** Format: int64 */
             descontoCents: number;
             urlDePagamento: null | string;
+            retirada: boolean;
         };
         /** @description Com o e-mail sem confirmar, o painel pede a confirmação; contrato e avisos esperam por ela. */
         Perfil: {
