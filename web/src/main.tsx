@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client'
 import { RouterProvider } from 'react-router'
 import { iniciarSessao } from '@/acesso/renovacao'
 import { rotas } from '@/app/rotas'
+import { recarregarParaVersaoNova } from '@/lib/recarga'
 import './index.css'
 
 const consultas = new QueryClient({
@@ -18,6 +19,11 @@ if (import.meta.env.VITE_SENTRY_DSN) {
 
 // A sessão do cookie é tentada logo: recarregar a página não pede login de novo.
 void iniciarSessao()
+
+// O Vite avisa quando um arquivo pré-carregado sumiu (publicação nova com a aba aberta): recarrega uma vez.
+window.addEventListener('vite:preloadError', (evento) => {
+  if (recarregarParaVersaoNova()) evento.preventDefault()
+})
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

@@ -3,17 +3,28 @@ import { Navigate, createBrowserRouter } from 'react-router'
 import { Protegida } from '@/acesso/Protegida'
 import { TelaDeEntrada } from '@/acesso/TelaDeEntrada'
 import { CarregandoTela } from '@/componentes/Tela'
+import { ehFalhaDeCarregamento, recarregarParaVersaoNova } from '@/lib/recarga'
+import { ErroDaTela } from './ErroDaTela'
 
 /**
  * Cada tela carrega o próprio código só quando abre: o vendedor no celular
  * não baixa a área da operadora nem a do dono.
  */
-const tela = <M,>(carregar: () => Promise<M>, nome: keyof M) => async () => ({ Component: (await carregar())[nome] as ComponentType })
+const tela = <M,>(carregar: () => Promise<M>, nome: keyof M) => async () => {
+  try {
+    return { Component: (await carregar())[nome] as ComponentType }
+  } catch (erro) {
+    // Aba de antes da publicação: recarrega e espera a página nova, sem mostrar erro.
+    if (ehFalhaDeCarregamento(erro) && recarregarParaVersaoNova()) return new Promise<never>(() => {})
+    throw erro
+  }
+}
 
 /** Um app só; cada área abre para o papel dela (Protegida). */
 export const rotas = createBrowserRouter([{
   // Mostrado enquanto o código da primeira tela chega.
   hydrateFallbackElement: <CarregandoTela />,
+  errorElement: <ErroDaTela />,
   children: [
   { path: '/entrar', element: <TelaDeEntrada /> },
   { path: '/cadastro', lazy: tela(() => import('@/acesso/TelaDeCadastro'), 'TelaDeCadastro') },
