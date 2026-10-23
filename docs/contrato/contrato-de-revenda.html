@@ -2,153 +2,131 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<title>Contrato de Revenda - Avalia Sales</title>
-<style>
-  @page { size: A4; margin: 22mm 20mm 24mm; }
-  :root { --tinta: #120C2B; --cinza: #5b5870; --linha: #e4e2ec; }
-  * { box-sizing: border-box; }
-  body { font-family: "Inter", "Helvetica Neue", Arial, sans-serif; color: var(--tinta); font-size: 10.2pt; line-height: 1.5; margin: 0; }
-  header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 10pt; border-bottom: 2pt solid transparent;
-    border-image: linear-gradient(90deg, #E8457C, #7B3FE4, #2F7BF5) 1; margin-bottom: 18pt; }
-  header img { width: 120pt; height: auto; }
-  header .minuta { font-size: 8pt; letter-spacing: .08em; text-transform: uppercase; color: var(--cinza); text-align: right; }
-  h1 { font-size: 16pt; margin: 0 0 4pt; letter-spacing: -.01em; }
-  .sub { color: var(--cinza); margin: 0 0 16pt; }
-  h2 { font-size: 10.6pt; text-transform: uppercase; letter-spacing: .04em; margin: 16pt 0 6pt; break-after: avoid; }
-  p { margin: 0 0 6pt; text-align: justify; hyphens: auto; }
-  ol { margin: 0 0 6pt; padding-left: 0; list-style: none; counter-reset: item; }
-  ol > li { counter-increment: item; margin: 0 0 5pt; text-align: justify; hyphens: auto; padding-left: 26pt; position: relative; }
-  ol > li::before { content: attr(data-n); position: absolute; left: 0; font-weight: 600; }
-  .partes { border: 1pt solid var(--linha); border-radius: 6pt; padding: 10pt 12pt; margin-bottom: 8pt; }
-  .partes p:last-child { margin-bottom: 0; }
-  .tabela { width: 100%; border-collapse: collapse; margin: 4pt 0 8pt; font-size: 9.6pt; }
-  .tabela th, .tabela td { border-bottom: 1pt solid var(--linha); padding: 4pt 6pt; text-align: left; vertical-align: top; }
-  .tabela th { color: var(--cinza); font-weight: 600; }
-  .assinaturas { margin-top: 22pt; display: grid; grid-template-columns: 1fr 1fr; gap: 24pt; break-inside: avoid; }
-  .assinaturas div { border-top: 1pt solid var(--tinta); padding-top: 4pt; font-size: 9.4pt; }
-  .nota { font-size: 9pt; color: var(--cinza); margin-top: 14pt; break-inside: avoid; }
-</style>
+<title>Contrato de Revenda e Uso da Plataforma Avalia - Versão 2</title>
+<link rel="stylesheet" href="documento.css">
 </head>
 <body>
 
-<header>
+<div class="topo">
   <img src="avaliaone.png" alt="Avalia">
-  <div class="minuta">Versão 1 - 22/10/2026</div>
-</header>
-
-<h1>Contrato de Revenda de Placas e Uso da Plataforma Avalia Sales</h1>
-<p class="sub">Contrato de adesão. Os dados da Revendedora vêm do cadastro na Plataforma e do registro da assinatura eletrônica.</p>
-
-<h2>1. Partes</h2>
-<div class="partes">
-  <p><strong>AVALIA ONE NEGÓCIOS CORPORATIVOS LTDA</strong>, nome fantasia Avalia 360, CNPJ 68.715.987/0001-64, com sede na Av. Princesa Isabel, 1331, Casa 1, Tabajaras, Uberlândia/MG, CEP 38400-192, e-mail comercial@avaliaone.com.br, doravante <strong>AVALIA</strong>.</p>
-  <p><strong>REVENDEDORA</strong>: a pessoa jurídica identificada pela razão social, CNPJ, endereço e representante legal informados no cadastro da Plataforma, que assina este contrato pela D4Sign. O cadastro e o registro da assinatura fazem parte deste contrato.</p>
+  <div class="versao">Contrato de revenda<br>Versão 2</div>
 </div>
 
-<h2>2. Definições</h2>
-<table class="tabela">
-  <tr><th>Termo</th><th>Significado</th></tr>
-  <tr><td>Plataforma</td><td>O sistema Avalia Sales, acessado pela internet, em que a Revendedora faz pedidos, gerencia a equipe e registra as vendas.</td></tr>
-  <tr><td>Placa</td><td>Peça física com QR Code e etiqueta NFC, identificada por um código único, que leva quem a lê a um destino na internet.</td></tr>
-  <tr><td>Destino</td><td>O endereço aberto pela leitura da Placa, em geral a página de avaliação do negócio no Google ou um link indicado pelo Cliente Final.</td></tr>
-  <tr><td>Lote</td><td>Conjunto numerado de Placas despachado para um pedido da Revendedora.</td></tr>
-  <tr><td>Cliente Final</td><td>Quem compra a Placa da Revendedora para usar no próprio negócio.</td></tr>
-  <tr><td>Vendedor</td><td>Pessoa da equipe da Revendedora com acesso à Plataforma para vender.</td></tr>
-  <tr><td>Taxa de Serviço</td><td>O valor devido à AVALIA sobre cada venda e renovação paga, descrito na cláusula 6.</td></tr>
-</table>
+<h1>Contrato de Revenda e Uso<br>da Plataforma Avalia</h1>
 
-<h2>3. Objeto</h2>
-<ol>
-  <li data-n="3.1">Este contrato regula a compra de Placas pela Revendedora, a revenda delas a Clientes Finais e o uso da Plataforma.</li>
-  <li data-n="3.2">A revenda não é exclusiva. A AVALIA pode ter outras revendedoras, inclusive na mesma região, e vender diretamente.</li>
-  <li data-n="3.3">Este contrato não cria vínculo societário, de emprego, de representação comercial ou de franquia entre as partes.</li>
-</ol>
+<div class="preambulo">
+  <p>Pelo presente instrumento, de um lado:</p>
+  <p><strong>AVALIA ONE NEGÓCIOS CORPORATIVOS LTDA.</strong>, inscrita no CNPJ sob o nº 68.715.987/0001-64, com sede na Avenida Princesa Isabel, 1331, Casa 1, Tabajaras, Uberlândia/MG, CEP 38400-192, e-mail comercial@avaliaone.com.br, doravante denominada “<strong>AVALIA</strong>”;</p>
+  <p>e, de outro lado:</p>
+  <p><strong>REVENDEDOR(A)</strong>: <span class="campo longo"><i>nome empresarial ou nome completo</i></span>, inscrito(a) no <span class="campo curto"><i>CNPJ/CPF</i></span> sob o nº <span class="campo"></span>, com endereço em <span class="campo longo"></span>, e-mail <span class="campo"></span>, neste ato representado(a) por <span class="campo longo"></span>, doravante denominado(a) “<strong>REVENDEDOR</strong>”;</p>
+  <p>AVALIA e REVENDEDOR, em conjunto, “Partes”, resolvem celebrar este Contrato, conforme as cláusulas abaixo.</p>
+</div>
 
-<h2>4. Pedido e entrega das Placas</h2>
-<ol>
-  <li data-n="4.1">A Revendedora compra Placas em pacotes, pelos preços e quantidades publicados na Plataforma no momento do pedido. Cupom de desconto vale nas condições informadas nele.</li>
-  <li data-n="4.2">O pedido é pago antes do envio, pelos meios oferecidos no checkout. A AVALIA despacha o Lote depois da confirmação do pagamento e informa o número do Lote por e-mail.</li>
-  <li data-n="4.3">A Revendedora ativa o Lote na Plataforma ao recebê-lo. Com a ativação, as Placas passam a ser da Revendedora e ela responde pela guarda delas.</li>
-  <li data-n="4.4">Placa com defeito de fabricação informado em até 7 dias da ativação é trocada pela AVALIA sem custo.</li>
-  <li data-n="4.5">A AVALIA não entrega Placas em consignação à Revendedora. A Revendedora pode consignar Placas aos próprios Vendedores pela Plataforma, sob responsabilidade dela.</li>
-</ol>
+<h2>1. Definições</h2>
+<div class="clausula"><span class="n">1.1.</span><div><p>Plataforma: sistema digital da Avalia utilizado para cadastrar, ativar, administrar e acompanhar placas e os respectivos destinos digitais.</p></div></div>
+<div class="clausula"><span class="n">1.2.</span><div><p>Placa: produto físico identificado por código ou QR Code que direciona a pessoa que o acessa ao destino digital configurado na Plataforma.</p></div></div>
+<div class="clausula"><span class="n">1.3.</span><div><p>Lote: conjunto de placas adquirido pelo Revendedor da Avalia em um pedido.</p></div></div>
+<div class="clausula"><span class="n">1.4.</span><div><p>Cliente Final: pessoa física ou jurídica que compra uma placa do Revendedor. O Cliente Final não é parte deste Contrato.</p></div></div>
+<div class="clausula"><span class="n">1.5.</span><div><p>Vendedor: pessoa contratada, indicada ou autorizada pelo Revendedor para comercializar placas. O Vendedor não se torna, por isso, empregado, representante ou agente da Avalia.</p></div></div>
+<div class="clausula"><span class="n">1.6.</span><div><p>Taxa de Serviço: valor devido à Avalia pela utilização da Plataforma e pelos serviços associados a uma venda ou renovação, conforme informado antes da transação.</p></div></div>
 
-<h2>5. Venda ao Cliente Final</h2>
-<ol>
-  <li data-n="5.1">A Revendedora define a própria tabela de preços na Plataforma. A Plataforma não registra venda abaixo da tabela.</li>
-  <li data-n="5.2">A Placa vendida fica ativa por 12 meses contados da venda, com mais 30 dias de carência. A renovação estende a validade por mais 12 meses, pelo valor definido pela Revendedora dentro dos limites da Plataforma.</li>
-  <li data-n="5.3">A Revendedora informa ao Cliente Final o prazo de validade, a renovação e o Destino escolhido, e cadastra os dados do Cliente Final corretamente.</li>
-  <li data-n="5.4">A Revendedora orienta o Cliente Final a não oferecer desconto, brinde ou outra vantagem em troca de avaliação, nem pedir avaliação falsa, conforme as políticas do Google. A AVALIA pode suspender a Placa usada em desacordo com essas políticas ou com a lei.</li>
-  <li data-n="5.5">É proibido apontar a Placa para Destino ilegal, enganoso, ofensivo, que imite outra empresa ou que colete dados de forma indevida.</li>
-</ol>
+<h2>2. Objeto e relação entre as Partes</h2>
+<div class="clausula"><span class="n">2.1.</span><div><p>Este Contrato disciplina: (a) a compra, pelo Revendedor, de lotes de placas da Avalia; (b) o uso da Plataforma pelo Revendedor; e (c) as condições para o Revendedor comercializar placas a Clientes Finais.</p></div></div>
+<div class="clausula"><span class="n">2.2.</span><div><p>A relação é comercial e não cria sociedade, franquia, vínculo empregatício, mandato, representação comercial ou exclusividade entre as Partes. Cada Parte atua por conta própria e responde por suas obrigações.</p></div></div>
+<div class="clausula"><span class="n">2.3.</span><div><p>O Revendedor não está autorizado a assumir obrigações em nome da Avalia, alterar seus termos ou apresentar-se como seu representante, salvo autorização expressa e escrita.</p></div></div>
 
-<h2>6. Recebimento e Taxa de Serviço</h2>
-<ol>
-  <li data-n="6.1">O pagamento do Cliente Final é recebido pelo Pagar.me, com divisão automática do valor (split) entre a AVALIA e a Revendedora. A Revendedora mantém conta de recebedor no Pagar.me e aceita os termos dele.</li>
-  <li data-n="6.2">A Taxa de Serviço é de 1,99% (um vírgula noventa e nove por cento) do valor bruto de cada venda e renovação paga, retida no split no momento do pagamento.</li>
-  <li data-n="6.3">As tarifas do Pagar.me sobre a transação são pagas pela Revendedora.</li>
-  <li data-n="6.4">Na venda ou renovação recebida fora do Pagar.me e registrada na Plataforma, a Taxa de Serviço continua devida e é paga pela Revendedora na forma e prazo informados pela AVALIA.</li>
-  <li data-n="6.5">Estorno ou cancelamento de pagamento feito pelo Pagar.me desfaz a Taxa de Serviço daquela transação.</li>
-  <li data-n="6.6">A AVALIA pode alterar preços de pacotes e a Taxa de Serviço com aviso de 30 dias pela Plataforma ou por e-mail. A alteração não atinge pedidos pagos nem vendas feitas antes dela.</li>
-</ol>
+<h2>3. Pedidos, pagamento e envio dos lotes</h2>
+<div class="clausula"><span class="n">3.1.</span><div><p>O Revendedor compra as placas diretamente da Avalia, em lotes, pelos preços e condições apresentados no pedido ou em proposta comercial aceita pelas Partes.</p></div></div>
+<div class="clausula"><span class="n">3.2.</span><div><p>O pagamento do pedido é de responsabilidade do Revendedor e deve ser realizado antes do envio, salvo condição diferente aceita por escrito pela Avalia.</p></div></div>
+<div class="clausula"><span class="n">3.3.</span><div><p>Após a confirmação do pagamento, a Avalia prepara e envia o lote ao endereço indicado pelo Revendedor. O pedido informará o custo de envio, quando aplicável, e a previsão de despacho ou entrega disponível no momento da compra.</p></div></div>
+<div class="clausula"><span class="n">3.4.</span><div><p>O Revendedor deve conferir o lote no recebimento e comunicar à Avalia divergências de quantidade, avarias ou defeitos assim que identificados, apresentando as informações necessárias para a análise. Confirmado defeito de fabricação, a Avalia providenciará a substituição da placa ou outra solução acordada, sem prejuízo dos direitos previstos em lei.</p></div></div>
+<div class="clausula"><span class="n">3.5.</span><div><p>A compra do lote pelo Revendedor é distinta da venda posterior da placa ao Cliente Final. A Avalia não atua como vendedora da placa na relação entre Revendedor e Cliente Final.</p></div></div>
 
-<h2>7. Equipe e comissões</h2>
-<ol>
-  <li data-n="7.1">Os Vendedores são da Revendedora. A Revendedora cadastra, orienta e responde por eles, inclusive pelos atos praticados com o acesso à Plataforma.</li>
-  <li data-n="7.2">A comissão dos Vendedores é definida e paga pela Revendedora. A Plataforma calcula e registra os valores, mas a AVALIA não paga comissão nem responde por ela.</li>
-  <li data-n="7.3">Nada neste contrato cria vínculo entre a AVALIA e os Vendedores.</li>
-</ol>
+<h2>4. Venda ao Cliente Final e deveres do Revendedor</h2>
+<div class="clausula"><span class="n">4.1.</span><div><p>O Revendedor define sua estratégia comercial e o preço cobrado do Cliente Final, observadas as condições técnicas e comerciais informadas pela Avalia para uso da Plataforma.</p></div></div>
+<div class="clausula"><span class="n">4.2.</span><div><p>Antes da compra, o Revendedor deve informar ao Cliente Final, de forma clara, o preço total, o que está incluído, o prazo de validade, as condições e o preço de eventual renovação, as regras de cancelamento aplicáveis e o canal de atendimento. Deve também explicar como a placa e o destino digital funcionam.</p></div></div>
+<div class="clausula"><span class="n">4.3.</span><div><p>O Revendedor é responsável por:</p>
+  <ol class="alineas">
+    <li><span>a)</span><span>emitir os documentos fiscais de suas vendas, quando exigidos;</span></li>
+    <li><span>b)</span><span>cumprir as obrigações legais e regulatórias aplicáveis à sua atividade e à oferta feita ao Cliente Final;</span></li>
+    <li><span>c)</span><span>cadastrar informações corretas e manter atualizados os dados inseridos na Plataforma;</span></li>
+    <li><span>d)</span><span>obter as autorizações necessárias para usar nomes, marcas, imagens, conteúdos e destinos digitais cadastrados;</span></li>
+    <li><span>e)</span><span>selecionar destinos lícitos e verdadeiros, sem conteúdo enganoso, fraudulento ou que viole direitos de terceiros;</span></li>
+    <li><span>f)</span><span>atender o Cliente Final em questões relacionadas à oferta, preço, pagamento, entrega, cancelamento, reembolso e demais obrigações próprias da venda;</span></li>
+    <li><span>g)</span><span>orientar e supervisionar seus Vendedores e proteger suas credenciais de acesso;</span></li>
+    <li><span>h)</span><span>não prometer funcionalidades ou resultados que a Avalia não tenha confirmado por escrito;</span></li>
+    <li><span>i)</span><span>informar ao Cliente Final como seus dados serão utilizados e disponibilizar os avisos e condições próprios da relação de venda.</span></li>
+  </ol>
+</div></div>
+<div class="clausula"><span class="n">4.4.</span><div><p>O Revendedor deve manter termos próprios para a venda ao Cliente Final. Este Contrato regula somente a relação entre Avalia e Revendedor e não substitui o contrato, os termos de venda ou os avisos de privacidade que o Revendedor deve apresentar ao Cliente Final.</p></div></div>
+<div class="clausula"><span class="n">4.5.</span><div><p>É vedado utilizar a Plataforma para finalidade ilícita, manipular avaliações ou depoimentos, publicar informações falsas ou violar políticas de terceiros. A Avalia poderá restringir ou suspender acessos quando necessário para interromper risco concreto, violação legal ou uso indevido. Sempre que viável, informará o motivo e permitirá a correção antes da suspensão; em situações urgentes, poderá agir imediatamente e comunicar a medida em seguida.</p></div></div>
 
-<h2>8. Plataforma</h2>
-<ol>
-  <li data-n="8.1">A AVALIA concede à Revendedora, durante este contrato, o direito de uso da Plataforma, pessoal e intransferível.</li>
-  <li data-n="8.2">A Revendedora mantém a senha dos usuários em sigilo e avisa a AVALIA sobre acesso indevido assim que souber. Recomenda-se ligar o segundo fator de acesso.</li>
-  <li data-n="8.3">A AVALIA mantém a Plataforma no ar com esforço razoável e pode fazer manutenção programada, avisada com antecedência sempre que possível. A leitura das Placas vendidas é tratada como prioridade.</li>
-  <li data-n="8.4">A Revendedora pode exibir a própria marca na Plataforma. A Plataforma, o código, o desenho das Placas e as marcas da AVALIA continuam da AVALIA. A Revendedora pode usar a marca AVALIA só para divulgar as Placas, nos termos que a AVALIA indicar.</li>
-  <li data-n="8.5">O atendimento à Revendedora é feito pelo chat da Plataforma e pelo e-mail comercial@avaliaone.com.br.</li>
-</ol>
+<h2>5. Prazo, renovações e cobranças</h2>
+<div class="clausula"><span class="n">5.1.</span><div><p>Salvo condição diferente apresentada ao Cliente Final antes da compra, a placa permanecerá ativa por 12 (doze) meses a partir da ativação, acrescidos de 30 (trinta) dias de tolerância operacional. A renovação, quando contratada, será por novo período de 12 (doze) meses.</p></div></div>
+<div class="clausula"><span class="n">5.2.</span><div><p>O Revendedor deve informar previamente o preço e as condições da renovação. Os limites ou opções disponíveis na Plataforma não substituem o dever de informação do Revendedor.</p></div></div>
+<div class="clausula"><span class="n">5.3.</span><div><p>Nas transações processadas pela solução de pagamento integrada à Plataforma, os valores serão distribuídos conforme a configuração apresentada antes da confirmação da transação. A Taxa de Serviço vigente e eventuais tarifas do meio de pagamento devem ser exibidas ou informadas antes da transação.</p></div></div>
+<div class="clausula"><span class="n">5.4.</span><div><p>A Taxa de Serviço atualmente indicada é de 1,99% (um vírgula noventa e nove por cento) do valor bruto da venda ou renovação processada. As Partes devem confirmar expressamente esse percentual e a base de cálculo antes da assinatura. Tarifas cobradas pelo provedor de pagamento serão tratadas conforme as condições desse provedor e a configuração apresentada no checkout.</p></div></div>
+<div class="clausula"><span class="n">5.5.</span><div><p>Cancelamentos, estornos, reembolsos e contestações de pagamento serão tratados conforme as regras do provedor de pagamento e a legislação aplicável. As Partes cooperarão para corrigir repasses e taxas relativos a transações canceladas ou revertidas.</p></div></div>
+<div class="clausula"><span class="n">5.6.</span><div><p>Se houver venda ou recebimento fora da solução integrada, o tratamento da Taxa de Serviço deve ser definido previamente por escrito, incluindo evento gerador, base de cálculo, forma de comprovação e prazo de pagamento. Nenhuma cobrança fora da Plataforma será devida sem essas condições previamente informadas e aceitas.</p></div></div>
+<div class="clausula"><span class="n">5.7.</span><div><p>Alterações de preços de lotes ou de taxas aplicáveis a novas transações serão comunicadas ao Revendedor com antecedência mínima de 30 (trinta) dias. A alteração não modifica valores de transações já concluídas.</p></div></div>
 
-<h2>9. Dados pessoais</h2>
-<ol>
-  <li data-n="9.1">Nos termos da Lei 13.709/2018 (LGPD), a Revendedora é controladora dos dados pessoais dos Clientes Finais e da própria equipe. A AVALIA é operadora desses dados e os trata só para prestar o serviço da Plataforma e cumprir obrigação legal.</li>
-  <li data-n="9.2">A AVALIA é controladora dos dados da Revendedora e dos representantes dela, usados para cadastro, contrato, pedidos e cobrança.</li>
-  <li data-n="9.3">A Revendedora coleta só os dados necessários, informa o Cliente Final sobre o tratamento e atende os pedidos dos titulares. A Plataforma oferece exportação e anonimização dos dados do Cliente Final.</li>
-  <li data-n="9.4">A AVALIA adota medidas de segurança adequadas e comunica à Revendedora, em prazo razoável, incidente de segurança que afete os dados que ela controla.</li>
-  <li data-n="9.5">Os dados podem ser compartilhados com fornecedores necessários ao serviço, como hospedagem, envio de e-mail, pagamento e assinatura eletrônica.</li>
-  <li data-n="9.6">Ao fim do contrato, a AVALIA guarda os dados pelo prazo exigido em lei e, depois, elimina ou anonimiza o que não precisar manter.</li>
-</ol>
+<h2>6. Vendedores e comissões</h2>
+<div class="clausula"><span class="n">6.1.</span><div><p>O Revendedor é exclusivamente responsável por selecionar, contratar, remunerar e supervisionar seus Vendedores, bem como por recolher tributos e cumprir obrigações trabalhistas, previdenciárias e fiscais relacionadas a eles.</p></div></div>
+<div class="clausula"><span class="n">6.2.</span><div><p>A Avalia não participa da relação entre Revendedor e Vendedor e não é responsável por comissões ou outros valores acordados entre eles.</p></div></div>
 
-<h2>10. Responsabilidade</h2>
-<ol>
-  <li data-n="10.1">Cada parte responde pelos danos que causar à outra por descumprimento deste contrato.</li>
-  <li data-n="10.2">A AVALIA não responde por falha de serviços de terceiros que ela não controla, como Google, operadoras de telefonia, Pagar.me e o aparelho de quem lê a Placa, nem pelo conteúdo do Destino escolhido.</li>
-  <li data-n="10.3">A Revendedora responde perante o Cliente Final pela venda que fizer, inclusive nos termos do Código de Defesa do Consumidor quando aplicável.</li>
-  <li data-n="10.4">A responsabilidade da AVALIA por perdas diretas fica limitada ao valor pago pela Revendedora em pedidos de Placas nos 12 meses anteriores ao fato, salvo dolo ou culpa grave.</li>
-</ol>
+<h2>7. Acesso e uso da Plataforma</h2>
+<div class="clausula"><span class="n">7.1.</span><div><p>Durante a vigência deste Contrato, a Avalia concede ao Revendedor uma licença limitada, revogável, não exclusiva e intransferível para acessar e usar a Plataforma nas operações autorizadas por este Contrato.</p></div></div>
+<div class="clausula"><span class="n">7.2.</span><div><p>O Revendedor deve limitar os acessos às pessoas autorizadas, manter credenciais seguras e comunicar prontamente suspeita de uso indevido. O Revendedor responde pelas ações realizadas por meio de seus usuários, ressalvadas falhas atribuíveis à Avalia.</p></div></div>
+<div class="clausula"><span class="n">7.3.</span><div><p>A Avalia manterá esforços comercialmente razoáveis para disponibilizar a Plataforma e prestar suporte pelos canais informados. Indisponibilidades de terceiros, manutenção, falhas de conectividade ou eventos fora do controle razoável da Avalia poderão afetar o serviço. A Avalia comunicará interrupções relevantes quando possível.</p></div></div>
+<div class="clausula"><span class="n">7.4.</span><div><p>O Revendedor poderá utilizar materiais de marca ou apresentação fornecidos pela Avalia somente nos limites das orientações recebidas. O uso de marca não transfere sua titularidade.</p></div></div>
 
-<h2>11. Vigência e encerramento</h2>
-<ol>
-  <li data-n="11.1">Este contrato vale por prazo indeterminado, a partir da assinatura.</li>
-  <li data-n="11.2">Qualquer parte pode encerrá-lo sem multa, com aviso de 30 dias por escrito.</li>
-  <li data-n="11.3">A parte inocente pode encerrá-lo na hora se a outra descumprir obrigação deste contrato e não corrigir em 10 dias do aviso, ou em caso de fraude, uso ilícito da Plataforma ou falência.</li>
-  <li data-n="11.4">Encerrado o contrato, as Placas já vendidas continuam funcionando até o fim da validade, e as obrigações de pagamento pendentes continuam devidas. A Revendedora deixa de fazer pedidos e vendas novas.</li>
-</ol>
+<h2>8. Proteção de dados pessoais</h2>
+<div class="clausula"><span class="n">8.1.</span><div><p>As Partes tratarão dados pessoais conforme a Lei nº 13.709/2018 (LGPD) e as demais normas aplicáveis, usando-os para finalidades legítimas e compatíveis com este Contrato.</p></div></div>
+<div class="clausula"><span class="n">8.2.</span><div><p>Em relação aos dados de Clientes Finais e Vendedores inseridos na Plataforma para viabilizar as vendas do Revendedor, o Revendedor atua, em regra, como controlador e a Avalia como operadora, tratando os dados segundo as instruções documentadas do Revendedor e para as finalidades necessárias à prestação dos serviços.</p></div></div>
+<div class="clausula"><span class="n">8.3.</span><div><p>Para dados de representantes, contatos comerciais, cadastro do Revendedor, pedidos, faturamento, prevenção a fraude e cumprimento de obrigações legais próprias, cada Parte poderá atuar como controladora independente, conforme a finalidade de cada tratamento.</p></div></div>
+<div class="clausula"><span class="n">8.4.</span><div><p>A Plataforma possui controles implementados para proteção dos dados, incluindo autenticação, gestão de acesso por perfil, separação de dados por conta, registros de auditoria e recursos de exportação e anonimização. Esses controles não substituem as obrigações legais de cada Parte nem representam garantia de risco zero.</p></div></div>
+<div class="clausula"><span class="n">8.5.</span><div><p>O Revendedor deve inserir apenas os dados necessários, possuir base legal para compartilhá-los com a Avalia, fornecer os avisos de privacidade aplicáveis e encaminhar à Avalia, sem demora indevida, solicitações de titulares relacionadas a tratamentos realizados pela Avalia em seu nome.</p></div></div>
+<div class="clausula"><span class="n">8.6.</span><div><p>A Avalia prestará cooperação razoável para atender solicitações de titulares, cumprir instruções lícitas do Revendedor e demonstrar os tratamentos realizados em seu papel de operadora, respeitados os limites legais e técnicos.</p></div></div>
+<div class="clausula"><span class="n">8.7.</span><div><p>A Avalia poderá utilizar fornecedores que apoiem a hospedagem, operação, segurança e processamento de pagamentos, exigindo deles salvaguardas compatíveis com os serviços contratados e a legislação aplicável.</p></div></div>
+<div class="clausula"><span class="n">8.8.</span><div><p>Cada Parte manterá medidas técnicas e administrativas adequadas ao risco e notificará a outra Parte, sem demora injustificada, sobre incidente de segurança que possa afetar dados tratados no contexto deste Contrato, fornecendo as informações disponíveis para avaliação e resposta. A comunicação entre as Partes não substitui eventual comunicação à ANPD ou aos titulares que seja legalmente exigida pelo controlador responsável.</p></div></div>
+<div class="clausula"><span class="n">8.9.</span><div><p>Encerrado o Contrato, os dados serão eliminados, devolvidos ou mantidos conforme instruções aplicáveis, funcionalidades disponíveis e obrigações legais de retenção. A Avalia poderá manter registros estritamente necessários para cumprir a lei, exercer direitos ou prevenir fraude, com acesso e uso limitados a essas finalidades.</p></div></div>
+
+<h2>9. Responsabilidades e limites</h2>
+<div class="clausula"><span class="n">9.1.</span><div><p>Cada Parte responde pelos danos diretos decorrentes de seus próprios atos, omissões e descumprimentos, conforme a legislação aplicável.</p></div></div>
+<div class="clausula"><span class="n">9.2.</span><div><p>O Revendedor responde pela oferta e venda que realizar ao Cliente Final, pelas informações e conteúdos que cadastrar, pelos atos de seus Vendedores e pelo cumprimento das obrigações que lhe cabem perante o Cliente Final.</p></div></div>
+<div class="clausula"><span class="n">9.3.</span><div><p>A Avalia não responde por serviços de terceiros escolhidos ou contratados diretamente pelo Revendedor, nem por conteúdo ou destino digital fornecido pelo Revendedor ou pelo Cliente Final, exceto quando o dano decorrer de falha imputável à Avalia.</p></div></div>
+<div class="clausula"><span class="n">9.4.</span><div><p>Exceto nos casos em que a lei não permita limitação, e ressalvados dolo, culpa grave, violação de confidencialidade ou obrigações de proteção de dados atribuíveis à Parte responsável, a responsabilidade total da Avalia por danos diretos relacionados a este Contrato fica limitada ao total pago pelo Revendedor à Avalia pela aquisição de placas nos 12 (doze) meses anteriores ao evento que originou a reclamação.</p></div></div>
+
+<h2>10. Vigência e encerramento</h2>
+<div class="clausula"><span class="n">10.1.</span><div><p>Este Contrato entra em vigor na data de sua assinatura e permanece vigente por prazo indeterminado.</p></div></div>
+<div class="clausula"><span class="n">10.2.</span><div><p>Qualquer Parte poderá encerrá-lo mediante aviso escrito com 30 (trinta) dias de antecedência.</p></div></div>
+<div class="clausula"><span class="n">10.3.</span><div><p>Em caso de descumprimento contratual, a Parte prejudicada poderá notificar a outra para sanar a falha em até 10 (dez) dias. Se a falha não for sanada, poderá encerrar o Contrato. A resolução poderá ser imediata em caso de fraude, uso ilícito, risco relevante à segurança ou impossibilidade legal de continuidade, mediante comunicação fundamentada.</p></div></div>
+<div class="clausula"><span class="n">10.4.</span><div><p>No encerramento, as Partes apurarão valores vencidos, transações concluídas, estornos pendentes, pedidos pagos e obrigações ainda em aberto. O encerramento não elimina direitos ou obrigações constituídos antes da data efetiva.</p></div></div>
+<div class="clausula"><span class="n">10.5.</span><div><p>O tratamento de Clientes Finais ativos em caso de encerramento por distrato será definido em instrumento próprio de distrato. Se as Partes acordarem que a Avalia assumirá a gestão desses clientes, o distrato identificará os clientes abrangidos, a data efetiva da transição, o tratamento dos dados e o destino das renovações futuras. Salvo ajuste escrito diverso no distrato, não haverá comissão, participação ou receita recorrente ao Revendedor por renovações realizadas a partir da data efetiva da transição. Valores devidos por transações concluídas até essa data serão apurados separadamente.</p></div></div>
+<div class="clausula"><span class="n">10.6.</span><div><p>A destinação de placas não vendidas, o acesso do Revendedor à Plataforma após o encerramento e eventual exportação de dados serão definidos no instrumento de encerramento ou conforme as regras operacionais e legais aplicáveis.</p></div></div>
+
+<h2>11. Confidencialidade</h2>
+<div class="clausula"><span class="n">11.1.</span><div><p>As Partes manterão em sigilo informações comerciais, técnicas e operacionais recebidas da outra Parte que não sejam públicas, usando-as somente para executar este Contrato. Essa obrigação não se aplica a informações que devam ser divulgadas por lei ou ordem competente, hipótese em que a Parte divulgará apenas o necessário e, quando permitido, avisará a outra Parte.</p></div></div>
 
 <h2>12. Disposições gerais</h2>
-<ol>
-  <li data-n="12.1">As partes aceitam a assinatura eletrônica pela D4Sign como válida, nos termos do art. 10, § 2º, da Medida Provisória 2.200-2/2001.</li>
-  <li data-n="12.2">Avisos entre as partes são feitos pelo e-mail cadastrado na Plataforma ou pelo chat dela.</li>
-  <li data-n="12.3">A Revendedora não pode ceder este contrato sem concordância por escrito da AVALIA.</li>
-  <li data-n="12.4">Tolerância com descumprimento não altera o contrato. Cláusula inválida não afeta as demais.</li>
-  <li data-n="12.5">Fica eleito o foro da comarca de Uberlândia/MG para resolver questões deste contrato.</li>
-</ol>
+<div class="clausula"><span class="n">12.1.</span><div><p>Comunicações contratuais serão enviadas aos e-mails informados no preâmbulo, cabendo a cada Parte mantê-los atualizados.</p></div></div>
+<div class="clausula"><span class="n">12.2.</span><div><p>O Revendedor não poderá transferir este Contrato sem autorização prévia e escrita da Avalia. A Avalia poderá transferi-lo a empresa sucessora ou integrante de seu grupo econômico, desde que preserve as obrigações aqui previstas e comunique o Revendedor.</p></div></div>
+<div class="clausula"><span class="n">12.3.</span><div><p>A tolerância de uma Parte não representa renúncia de direito. Se alguma disposição for considerada inválida, as demais permanecerão em vigor.</p></div></div>
+<div class="clausula"><span class="n">12.4.</span><div><p>Este Contrato e seus anexos constituem o acordo entre as Partes sobre seu objeto. Alterações deverão ser feitas por escrito e aceitas por ambas.</p></div></div>
+<div class="clausula"><span class="n">12.5.</span><div><p>As Partes aceitam assinatura eletrônica por plataforma que permita verificar autoria e integridade do documento, nos termos da legislação aplicável.</p></div></div>
+<div class="clausula"><span class="n">12.6.</span><div><p>Fica eleito o foro da Comarca de Uberlândia, Estado de Minas Gerais, ressalvadas as hipóteses de competência legal obrigatória.</p></div></div>
 
-<div class="assinaturas">
-  <div><strong>AVALIA ONE NEGÓCIOS CORPORATIVOS LTDA</strong><br>Representante legal</div>
-  <div><strong>REVENDEDORA</strong><br>Representante legal, conforme o cadastro</div>
+<div class="fecho">
+  <p>E, por estarem de acordo, as Partes assinam este instrumento.</p>
+  <p class="local"><span class="campo"><i>cidade</i></span>, <span class="campo"><i>data</i></span>.</p>
+
+  <div class="assinaturas">
+    <div><strong>AVALIA ONE NEGÓCIOS CORPORATIVOS LTDA.</strong><span class="linha">Representante: </span><span class="linha">Cargo: </span></div>
+    <div><strong>REVENDEDOR(A)</strong><span class="linha">Representante: </span><span class="linha">Cargo: </span></div>
+    <div><strong>Testemunha 1</strong><span class="linha">Nome: </span><span class="linha">CPF: </span></div>
+    <div><strong>Testemunha 2</strong><span class="linha">Nome: </span><span class="linha">CPF: </span></div>
+  </div>
 </div>
-
-<p class="nota">Assinado eletronicamente pela D4Sign. O registro com data, hora, IP e identificação de cada signatário é anexado pela D4Sign ao final deste documento.</p>
 
 </body>
 </html>

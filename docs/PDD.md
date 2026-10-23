@@ -284,10 +284,14 @@ Todas no mesmo app, liberadas pelo papel do usuário.
 - Em Configurações, o dono vê a situação do contrato, reenvia o e-mail de
   assinatura quando não chegou (um pedido por minuto, como a D4Sign aceita) e
   baixa uma cópia em PDF - a original antes de assinar, a assinada depois.
-- O texto do contrato fica em `docs/contrato/contrato-de-revenda.html` e vira o PDF
-  embutido na API com `node docs/contrato/gerar.mjs`. É um contrato de adesão: os dados
-  do revendedor vêm do cadastro e do registro da D4Sign. A versão 1 foi aprovada pela
-  Avalia em 22/10/2026.
+- A Plataforma envia a versão 1 do contrato (aprovada pela Avalia em 22/10/2026),
+  embutida na API. É um contrato de adesão: os dados do revendedor vêm do cadastro e
+  do registro da D4Sign.
+- Versão 2 do contrato e o distrato - texto revisado em `docs/contrato`
+  (`contrato-de-revenda.html` e `distrato.html`, PDF com `node docs/contrato/gerar.mjs`).
+  Têm campos a preencher (dados do revendedor, testemunhas, data efetiva, saldos,
+  estoque e Anexo I dos clientes ativos), por isso ainda não substituem a versão 1 na
+  Plataforma.
 - O PDF original e o hash SHA-256 dele ficam guardados, para provar qual texto
   foi assinado.
 - Contrato só anda para a frente - aguardando assinatura vira assinado ou
@@ -457,6 +461,7 @@ O que está pronto no código e só fecha com a conta de verdade:
 
 | Data | Mudança |
 | --- | --- |
+| 22/10/2026 | Contrato de revenda versão 2 e distrato formatados em `docs/contrato`, fora da Plataforma até os campos variáveis serem preenchidos por ela. |
 | 22/10/2026 | Serviços em quatro abas - Link (endereço colado), NFC, Maps (busca do negócio no Google) e Status (ordens de serviço). A busca no Google não recarrega mais a página. |
 | 22/10/2026 | Contrato em Configurações com reenviar o e-mail de assinatura e baixar a cópia. Na Nova venda, a barra de baixo aparece, com o botão da venda acima dela. |
 | 22/10/2026 | Configurações com a comissão padrão e a renovação; gráficos no Início; pendências da revenda no sino; Links vira Serviços com a aba Acompanhar; convite do vendedor vale 24 horas; Meus dados com um Salvar só; chamado se fecha (Fechar); auditoria abre o antes e o depois num modal; Catálogo na barra de baixo do celular; foto do QR Code Dinâmico Pro. |

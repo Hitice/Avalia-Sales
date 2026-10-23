@@ -4,8 +4,9 @@ using Microsoft.Extensions.Configuration;
 namespace AvaliaSales.Infrastructure.Impressao;
 
 /// <summary>
-/// O PDF do contrato de revenda: o embutido, gerado de docs/contrato (versão 1,
-/// aprovada em 22/10/2026), ou outro arquivo em Contratos:ModeloDoRevendedor.
+/// O PDF do contrato de revenda: o embutido (versão 1, aprovada em 22/10/2026; o
+/// HTML dela está no histórico de docs/contrato), ou outro arquivo em
+/// Contratos:ModeloDoRevendedor.
 /// </summary>
 public sealed class ModeloDeContrato(IConfiguration configuracao) : IModeloDeContrato
 {
