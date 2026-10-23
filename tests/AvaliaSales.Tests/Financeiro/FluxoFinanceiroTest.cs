@@ -85,7 +85,7 @@ public sealed class FluxoFinanceiroTest(ApiDeTeste api)
     [Fact]
     public async Task Venda_paga_vai_ao_razao_o_repasse_paga_o_saldo_e_o_estorno_desconta_no_proximo()
     {
-        var revenda = await api.RevendaComEstoque("Revenda do Razão");
+        var revenda = await api.RevendaComEstoque("Revenda do Razão", taxaAvaliaBps: 199);
         var email = $"vendedor-{Guid.NewGuid():N}@teste.com.br";
         var vendedor = (await revenda.Dono.Postar("/equipe", new { nome = "Lia", email, senha = ApiDeTeste.Senha, comissaoBps = 2_000 }, HttpStatusCode.Created)).GetProperty("id").GetGuid();
         var lia = await api.ClienteLogado(email);

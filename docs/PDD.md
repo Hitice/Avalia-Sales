@@ -22,7 +22,7 @@ própria equipe, recebe pelo Pagar.me e acompanha as vendas num painel.
 
 | Papel | Quem é | O que faz |
 | --- | --- | --- |
-| Operadora | A Avalia | Vende placas aos revendedores, recebe a taxa de cada venda, produz e despacha lotes, executa os serviços vendidos, atende os chamados |
+| Operadora | A Avalia | Vende placas aos revendedores, produz e despacha lotes, executa os serviços vendidos, atende os chamados |
 | Revendedor (dono) | Empresa que revende | Compra placas, convida vendedores, define preço e comissão, acompanha painel e mapa |
 | Vendedor | Equipe do revendedor | Vende no balcão pelo celular: lê o QR e grava o NFC |
 | Cliente final | Quem compra a placa | Paga por Pix ou cartão e usa a placa no negócio |
@@ -36,16 +36,18 @@ revendedor é a Avalia.
 | Dinheiro | Quem paga | Quem recebe | Quando |
 | --- | --- | --- | --- |
 | Pedido de placas | Revendedor | Avalia | Antes do envio do lote |
-| Venda da placa | Cliente final | Avalia a taxa e o revendedor o resto, pelo split do Pagar.me | No pagamento |
-| Renovação | Cliente final | Avalia a taxa e o revendedor o resto, sem comissão | No pagamento |
+| Venda da placa | Cliente final | O revendedor, pelo split do Pagar.me | No pagamento |
+| Renovação | Cliente final | O revendedor, sem comissão | No pagamento |
 | Comissão | Revendedor | Vendedor, por Pix, registrado no painel | Quando o revendedor repassa |
 
-- Taxa da Avalia - 1,99% do valor bruto de cada venda e renovação paga,
-  gravada na cobrança no momento dela (contrato, cláusula 5.4).
+- Taxa da Avalia - zero. A Avalia ganha nas placas e nos serviços, e a
+  revenda paga a tarifa do Pagar.me. A taxa continua um campo por revenda,
+  gravado na cobrança no momento dela, para voltar a ser cobrada sem mudar o
+  sistema (contrato, cláusulas 5.4 e 5.7).
 - Pacotes de placas - configuráveis pela operadora - 20, 50 e 100 placas a
   R$ 23,90, R$ 16,90 e R$ 13,90 a placa (R$ 478,00, R$ 845,00 e R$ 1.390,00),
   e um de 10 para o teste da revendedora Avalia. O preço do pacote já cobre a
-  produção e a margem da Avalia; na venda, a Avalia fica só com a taxa.
+  produção e a margem da Avalia.
 - Catálogo - a Avalia cadastra os produtos (placa, placa com serviço e
   serviço) com foto, preço sugerido e situação (disponível, esgotado, fora de
   linha). O revendedor não cria produto: define o preço dele, livre, nunca
@@ -55,11 +57,11 @@ revendedor é a Avalia.
 - Serviço vendido - a venda paga de serviço (Perfil no Google, cardápio,
   landing page, sistema, kit mesa, QR dinâmico) vira ordem de serviço para a
   Avalia executar, com a situação a fazer, em andamento, entregue ou
-  cancelada, que o revendedor acompanha. A Avalia recebe a taxa da venda.
+  cancelada, que o revendedor acompanha.
 - Taxa do Pagar.me - paga pelo revendedor.
-- Exemplo - venda de R$ 100,00 com comissão de 20%: R$ 1,99 para a Avalia,
-  R$ 98,01 para o revendedor (de onde sai a taxa do Pagar.me), e R$ 20,00
-  lançados como devidos ao vendedor.
+- Exemplo - venda de R$ 100,00 com comissão de 20%: R$ 100,00 para o
+  revendedor (de onde sai a taxa do Pagar.me), e R$ 20,00 lançados como
+  devidos ao vendedor.
 
 ## 4. Jornada do revendedor
 
@@ -405,7 +407,7 @@ porta o negócio e troca a tecnologia onde a stack pede.
   comissão. A renovação também se confirma por fora, na ficha da placa.
 - Renovação em aberto segura o cancelamento e a troca: paga depois, ela
   estenderia uma placa fora da venda.
-- A definir - como a Avalia cobra a taxa das vendas recebidas por fora.
+- Com a taxa zero, a venda recebida por fora não deixa nada a acertar.
 
 ## 6b. Dados pessoais (LGPD)
 
@@ -486,7 +488,6 @@ porque está impresso nas placas vendidas.
 
 | Decisão | Opções | Recomendação |
 | --- | --- | --- |
-| Taxa da Avalia nas vendas recebidas por fora | Cobrar a taxa ou não | O distrato já cobra o saldo a acertar; falta a regra durante o contrato (cláusula 5.6) |
 | Renovação de venda dada em cortesia | 60% de zero (R$ 0,01) ou 60% da tabela gravada na venda | A definir |
 | Recebedor da revendedora Avalia | Mesmo da conta do marketplace ou separado | Separado, para o extrato da revenda não se misturar com a taxa; se for o mesmo, a cobrança vai numa regra só |
 | Texto do termo do cliente | Rascunho ou revisão jurídica | Revisão jurídica |
@@ -510,6 +511,7 @@ porque está impresso nas placas vendidas.
 
 | Data | Mudança |
 | --- | --- |
+| 23/10/2026 | Taxa da Avalia zerada - a venda e a renovação vão inteiras para a revenda pelo split, que paga a tarifa do Pagar.me; a Avalia ganha nas placas e nos serviços. Venda já feita guarda a taxa dela. O razão e as Configurações só mostram a taxa quando ela existe. |
 | 23/10/2026 | Pedido de placas pode sair para retirada na Avalia - a operadora escolhe "Pronto para retirada" em vez de Despachar, o dono recebe o aviso de que a caixa está pronta e ativa o lote igual. Revenda com o mesmo recebedor da Avalia é cobrada numa regra só do split. Logos das integrações no pé da tela de entrada. |
 | 23/10/2026 | Tabelas cabem no cartão - com mais de uma ação, a linha mostra a principal (Editar) e as outras no botão "⋯" (Equipe, Pacotes, Cupons); o formulário lateral (Novo vendedor, Novo cupom e outros) fica ao lado só a partir de 1280 px; tabela mais larga que a tela mostra sombra na borda que rola. |
 | 23/10/2026 | A plataforma tem uma operadora só, que cuida da operação inteira; a Avalia vende como revenda comum. Sai o cadastro temporário de operadora da tela de entrada. |

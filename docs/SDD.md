@@ -162,7 +162,7 @@ Dinheiro em centavos (`bigint`, colunas `_cents`), taxa em pontos base
 
 | Tabela | Guarda | Regra |
 | --- | --- | --- |
-| `revendedores` | Nome, taxa da Avalia (`taxa_avalia_bps`, padrão 199), recebedor no Pagar.me | Sem RLS: é a lista que o Worker percorre |
+| `revendedores` | Nome, taxa da Avalia (`taxa_avalia_bps`, padrão 0), recebedor no Pagar.me | Sem RLS: é a lista que o Worker percorre |
 | `usuarios`, `papeis` e demais do Identity | Login, com o revendedor do usuário | E-mail único na plataforma |
 | `produtos` | Tabela de preço do revendedor | RLS |
 | `cobrancas` | Cobrança ao cliente final: origem, meio, valor, taxa da Avalia, situação, pedido no Pagar.me, Pix | RLS; `pedido_no_gateway` único; taxa copiada na criação |
@@ -237,7 +237,7 @@ Conferido na referência oficial em 21/10/2026.
   caracteres), um item, o cliente, e o pagamento em Pix (`expires_in` em
   segundos) ou cartão (`card_token` gerado no navegador; o número do cartão
   nunca passa pela API).
-- Split - duas regras `flat` em centavos: revendedor e Avalia. O tipo
+- Split - regras `flat` em centavos: revendedor e, com taxa, Avalia. O tipo
   `percentage` não aceita 1,99. O revendedor tem `liable`,
   `charge_processing_fee` e `charge_remainder_fee`. Regra de valor zero não é
   enviada. Split só existe para conta PSP. Revenda com o recebedor igual ao da
@@ -698,6 +698,7 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
 
 | Data | Mudança |
 | --- | --- |
+| 23/10/2026 | `revendedores.taxa_avalia_bps` passa a 0 em todas as revendas e no padrão da coluna (migration `TaxaDaAvaliaZerada`); com taxa zero o split leva uma regra só, da revenda. `Revendedor.DefinirTaxaAvalia` para a edição futura pela operadora. |
 | 23/10/2026 | `pedidos_placas.retirada` (boolean, padrão falso) e `retirada` no corpo do despacho. Split com uma regra só quando o recebedor da revenda é o da Avalia. Comando `--conferir-pagarme` (`GET /recipients/{id}`). Logos das integrações em `web/public/parceiros`, mostrados como máscara na cor do texto. |
 | 23/10/2026 | Front - `componentes/AcoesDaLinha` (ação principal e menu no computador, fileira de botões no celular), `sombra-de-rolagem` no contêiner da tabela, botões da célula quebram linha, layout com coluna lateral a partir de `xl`. Faixas de quantidade de pacote dos testes separadas das dos pacotes semeados (20, 50 e 100). |
 | 23/10/2026 | Cadastro temporário de operadora removido (rotas `/cadastro/operadora`, `CadastroDeOperadora`, a opção `Plataforma:CadastroDeOperadoraAberto` e a variável do Deploy). A operadora é uma só e nasce pelo `--nova-operadora`. |

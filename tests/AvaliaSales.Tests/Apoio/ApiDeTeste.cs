@@ -146,11 +146,12 @@ public sealed class ApiDeTeste : IAsyncLifetime
     }
 
     /// <summary>Revendedor com o dono já cadastrado e, por padrão, contrato assinado.</summary>
-    public async Task<(Guid RevendedorId, string Email)> CriarRevendedor(string nome, bool contratoAssinado = true)
+    public async Task<(Guid RevendedorId, string Email)> CriarRevendedor(string nome, bool contratoAssinado = true, int taxaAvaliaBps = 0)
     {
         using var escopo = Fabrica.Services.CreateScope();
         var banco = escopo.ServiceProvider.GetRequiredService<BancoDeDados>();
         var revendedor = new Revendedor(nome);
+        revendedor.DefinirTaxaAvalia(taxaAvaliaBps);
         if (contratoAssinado)
         {
             revendedor.RegistrarContratoAssinado(DateTimeOffset.UtcNow);

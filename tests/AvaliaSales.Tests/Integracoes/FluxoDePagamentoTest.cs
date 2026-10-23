@@ -20,9 +20,9 @@ public sealed class FluxoDePagamentoTest(ApiDeTeste api)
 
     private static readonly Pagador Maria = new("Maria Lima", "maria@cliente.com.br", "12345678909", "11987654321");
 
-    private async Task<Guid> RevendedorComRecebedor(string nome)
+    private async Task<Guid> RevendedorComRecebedor(string nome, int taxaAvaliaBps = 0)
     {
-        var (id, _) = await api.CriarRevendedor(nome);
+        var (id, _) = await api.CriarRevendedor(nome, taxaAvaliaBps: taxaAvaliaBps);
         await api.DefinirRecebedor(id, "rp_" + Guid.NewGuid().ToString("N")[..16]);
         return id;
     }
@@ -57,7 +57,7 @@ public sealed class FluxoDePagamentoTest(ApiDeTeste api)
     [Fact]
     public async Task Cobranca_divide_o_valor_entre_revendedor_e_avalia_e_devolve_o_pix()
     {
-        var revendedor = await RevendedorComRecebedor("Revenda Pix");
+        var revendedor = await RevendedorComRecebedor("Revenda Pix", taxaAvaliaBps: 199);
         var gateway = new GatewayFalso();
         await using var worker = api.AmbienteDoWorker(gateway, new AssinaturaFalsa());
 
@@ -76,7 +76,7 @@ public sealed class FluxoDePagamentoTest(ApiDeTeste api)
     [Fact]
     public async Task Revenda_que_recebe_na_conta_da_avalia_vai_numa_regra_so_com_a_taxa_registrada()
     {
-        var (revendedor, _) = await api.CriarRevendedor("Revenda Na Conta Da Avalia");
+        var (revendedor, _) = await api.CriarRevendedor("Revenda Na Conta Da Avalia", taxaAvaliaBps: 199);
         await api.DefinirRecebedor(revendedor, "rp_avaliaDeTeste");
         var gateway = new GatewayFalso();
         await using var worker = api.AmbienteDoWorker(gateway, new AssinaturaFalsa());
@@ -86,6 +86,21 @@ public sealed class FluxoDePagamentoTest(ApiDeTeste api)
         var regra = Assert.Single(Assert.Single(gateway.Criados).Divisao);
         Assert.Equal(("rp_avaliaDeTeste", 14_990L, true), (regra.Recebedor, regra.ValorCents, regra.AssumeTaxasERisco));
         Assert.Equal(298, cobranca.TaxaAvaliaCents);
+    }
+
+    [Fact]
+    public async Task Sem_taxa_da_avalia_a_cobranca_vai_inteira_para_a_revenda_numa_regra_so()
+    {
+        var revendedor = await RevendedorComRecebedor("Revenda Sem Taxa");
+        var gateway = new GatewayFalso();
+        await using var worker = api.AmbienteDoWorker(gateway, new AssinaturaFalsa());
+
+        var cobranca = await Cobrar(worker, revendedor);
+
+        var regra = Assert.Single(Assert.Single(gateway.Criados).Divisao);
+        Assert.Equal((14_990L, true), (regra.ValorCents, regra.AssumeTaxasERisco));
+        Assert.NotEqual(gateway.RecebedorDaAvalia, regra.Recebedor);
+        Assert.Equal(0, cobranca.TaxaAvaliaCents);
     }
 
     [Fact]

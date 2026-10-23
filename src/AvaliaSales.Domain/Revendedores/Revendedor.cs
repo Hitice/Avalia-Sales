@@ -10,8 +10,12 @@ public sealed class Revendedor
     public Guid Id { get; private set; } = Guid.CreateVersion7();
     public string Nome { get; private set; }
 
-    /// <summary>Taxa da Avalia em pontos base. Cada cobrança copia o valor do momento.</summary>
-    public int TaxaAvaliaBps { get; private set; } = 199;
+    /// <summary>
+    /// Taxa da Avalia em pontos base. Cada cobrança copia o valor do momento.
+    /// Zero por padrão: a revenda paga a tarifa do Pagar.me e a Avalia ganha
+    /// nas placas e nos serviços.
+    /// </summary>
+    public int TaxaAvaliaBps { get; private set; }
 
     /// <summary>Recebedor do revendedor no Pagar.me (rp_...). Sem ele, não há cobrança.</summary>
     public string? RecebedorPagarme { get; private set; }
@@ -86,6 +90,12 @@ public sealed class Revendedor
             ? nome
             : throw new RegraDeNegocioException($"O nome da empresa precisa ter de 1 a {NomeMaximo} caracteres.");
     }
+
+    /// <summary>Vale para as cobranças novas; a venda já feita guarda a taxa dela.</summary>
+    public void DefinirTaxaAvalia(int bps) =>
+        TaxaAvaliaBps = bps is >= 0 and < Pagamentos.DivisaoDaCobranca.Base
+            ? bps
+            : throw new RegraDeNegocioException("A taxa da Avalia vai de 0% a 99,99%.");
 
     public void DefinirRecebedorPagarme(string recebedor)
     {

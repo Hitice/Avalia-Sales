@@ -58,7 +58,7 @@ function Formulario({ comissaoBps, renovacaoBps, taxaBps }: { comissaoBps: numbe
               <Input id="renovacao" inputMode="decimal" className="max-w-40" value={textoDaRenovacao} onChange={(e) => setTextoDaRenovacao(e.target.value)} />
               <FieldDescription>Preço de mais um ano da placa. Renovação não paga comissão.</FieldDescription>
             </Field>
-            <p className="text-sm text-muted-foreground">Taxa da plataforma por venda paga: {formatarBps(taxaBps)}.</p>
+            {taxaBps > 0 && <p className="text-sm text-muted-foreground">Taxa da plataforma por venda paga: {formatarBps(taxaBps)}.</p>}
             <Button type="submit" className="justify-self-start" disabled={novaComissao === null || novaRenovacao === null || comissao.isPending || renovacao.isPending}>Salvar</Button>
           </form>
         </CardContent>

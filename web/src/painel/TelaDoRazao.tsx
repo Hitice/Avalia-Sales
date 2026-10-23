@@ -28,9 +28,10 @@ export function TelaDoRazao() {
   const [competencia, setCompetencia] = useState<string | undefined>()
   const razao = useRazao(competencia)
   const r = razao.data
+  // Sem taxa da plataforma no mês, o cartão dela não aparece.
   const totais = r ? [
     { rotulo: 'Receita', valor: r.receitaCents },
-    { rotulo: 'Taxa da plataforma', valor: -r.taxaAvaliaCents },
+    ...(r.taxaAvaliaCents ? [{ rotulo: 'Taxa da plataforma', valor: -r.taxaAvaliaCents }] : []),
     { rotulo: 'Comissão', valor: -r.comissaoCents },
     { rotulo: 'Líquido', valor: r.liquidoCents },
   ] : []

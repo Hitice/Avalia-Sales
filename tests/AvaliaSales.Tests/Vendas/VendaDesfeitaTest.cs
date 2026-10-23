@@ -99,7 +99,7 @@ public sealed class VendaDesfeitaTest(ApiDeTeste api)
     [Fact]
     public async Task Recebido_por_fora_vai_ao_razao_com_a_taxa_a_acertar_e_o_dono_desfaz()
     {
-        var revenda = await api.RevendaComEstoque("Revenda do Balcão");
+        var revenda = await api.RevendaComEstoque("Revenda do Balcão", taxaAvaliaBps: 199);
         var email = $"vendedor-{Guid.NewGuid():N}@teste.com.br";
         await revenda.Dono.Postar("/equipe", new { nome = "Caio", email, senha = ApiDeTeste.Senha, comissaoBps = 2_000 }, HttpStatusCode.Created);
         var caio = await api.ClienteLogado(email);
@@ -133,7 +133,7 @@ public sealed class VendaDesfeitaTest(ApiDeTeste api)
     [Fact]
     public async Task Renovacao_recebida_por_fora_estende_a_placa_depois_do_Pix_vencer()
     {
-        var revenda = await api.RevendaComEstoque("Revenda da Renovação no Balcão");
+        var revenda = await api.RevendaComEstoque("Revenda da Renovação no Balcão", taxaAvaliaBps: 199);
         var codigo = revenda.Codigos[6];
         await revenda.Dono.Postar("/vendas", Cenarios.Venda(codigo, revenda.ProdutoId, "11977770008"), HttpStatusCode.Created);
         await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
