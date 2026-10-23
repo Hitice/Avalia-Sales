@@ -107,6 +107,7 @@ public static class RotasDaRevenda
             var (pdf, nome) = await contrato.Copia(Domain.Contratos.TipoDeContrato.Distrato, ct);
             return Results.File(pdf, "application/pdf", nome);
         });
+        dono.MapPost("/revenda/reabertura", (PedidoDeReabertura pedido, Encerramento encerramento, CancellationToken ct) => encerramento.PedirReabertura(pedido, ct));
         dono.MapGet("/revenda/exportacao", async (Application.Revendedores.Exportacao exportacao, CancellationToken ct) =>
         {
             var json = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(await exportacao.Gerar(ct), Exportacao);

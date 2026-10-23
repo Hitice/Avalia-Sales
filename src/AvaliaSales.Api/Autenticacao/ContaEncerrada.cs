@@ -8,8 +8,9 @@ namespace AvaliaSales.Api.Autenticacao;
 /// <summary>
 /// Depois do distrato assinado, a conta só consulta e exporta (distrato, cláusula
 /// 1): toda escrita da revenda encerrada é recusada aqui, numa regra só, em vez
-/// de em cada caso de uso. Sair, renovar a sessão, o aviso ao vivo e marcar
-/// notificação como lida continuam.
+/// de em cada caso de uso, e a busca no Google também. Continuam sair, renovar a
+/// sessão, o aviso ao vivo, marcar notificação como lida, o suporte (chamados) e
+/// o pedido de reabertura.
 /// </summary>
 public sealed class ContaEncerrada(RequestDelegate proximo)
 {
@@ -17,8 +18,12 @@ public sealed class ContaEncerrada(RequestDelegate proximo)
     {
         var metodo = http.Request.Method;
         var caminho = http.Request.Path;
-        if (HttpMethods.IsGet(metodo) || HttpMethods.IsHead(metodo) || HttpMethods.IsOptions(metodo)
+        var leitura = HttpMethods.IsGet(metodo) || HttpMethods.IsHead(metodo) || HttpMethods.IsOptions(metodo);
+        // A busca no Google é leitura, mas usa a cota da Avalia e só serve para vender.
+        var buscaNoGoogle = caminho.StartsWithSegments("/lugares");
+        if ((leitura && !buscaNoGoogle)
             || caminho.StartsWithSegments("/auth") || caminho.StartsWithSegments(HubDeAvisos.Rota) || caminho.StartsWithSegments("/notificacoes")
+            || caminho.StartsWithSegments("/revenda/reabertura") || caminho.StartsWithSegments("/chamados")
             || atual.RevendedorId is not { } revendedor)
         {
             await proximo(http);

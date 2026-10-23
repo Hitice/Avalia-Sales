@@ -20,7 +20,10 @@ public interface ITransferenciaDeClientes
     Task<int> Transferir(Guid origem, Guid destino, DateTimeOffset quando, CancellationToken ct);
 }
 
-public sealed record EstadoDoEncerramento(DateTimeOffset? PedidoEm, DateTimeOffset? EncerradaEm, DateTimeOffset? ExportacaoAte, MeuContrato? Distrato);
+public sealed record EstadoDoEncerramento(DateTimeOffset? PedidoEm, DateTimeOffset? EncerradaEm, DateTimeOffset? ExportacaoAte, MeuContrato? Distrato,
+    DateTimeOffset? ReaberturaPedidaEm);
+
+public sealed record PedidoDeReabertura(string? Motivo);
 
 /// <summary>
 /// O dono encerra a conta pela tela. O Worker gera o distrato com os dados da
@@ -29,13 +32,13 @@ public sealed record EstadoDoEncerramento(DateTimeOffset? PedidoEm, DateTimeOffs
 /// tem o que distratar e encerra na hora.
 /// </summary>
 public sealed class Encerramento(IBancoDeDados banco, IRevendedorAtual atual, ContratoDaRevenda contratos, IAssinaturaEletronica assinatura,
-    EfeitosDoEncerramento efeitos, Notificacoes.Notificacoes notificacoes, Auditoria.Auditoria auditoria, TimeProvider relogio)
+    EfeitosDoEncerramento efeitos, Notificacoes.Notificacoes notificacoes, Auditoria.Auditoria auditoria, Atendimento.Chamados chamados, TimeProvider relogio)
 {
     public async Task<EstadoDoEncerramento> Ler(CancellationToken ct)
     {
         var revendedor = await Revendedor(ct);
         return new EstadoDoEncerramento(revendedor.EncerramentoPedidoEm, revendedor.EncerradaEm, revendedor.ExportacaoAte,
-            await contratos.Ler(TipoDeContrato.Distrato, ct));
+            await contratos.Ler(TipoDeContrato.Distrato, ct), revendedor.ReaberturaPedidaEm);
     }
 
     public async Task<EstadoDoEncerramento> Pedir(CancellationToken ct)
@@ -86,6 +89,21 @@ public sealed class Encerramento(IBancoDeDados banco, IRevendedorAtual atual, Co
         auditoria.Registrar(AcaoAuditada.EncerramentoDesistido, "Conta", revendedor.Id.ToString());
         notificacoes.ParaOperadora(revendedor.Id, "Encerramento desistido", $"{revendedor.Nome} desistiu de encerrar a conta.", "/operadora/revendedores");
         await banco.SaveChangesAsync(ct);
+        return await Ler(ct);
+    }
+
+    /// <summary>
+    /// A conta encerrada pede para voltar pelo suporte: abre um chamado, que a
+    /// equipe da Avalia responde, e a operadora aprova ou recusa em Revendedores.
+    /// </summary>
+    public async Task<EstadoDoEncerramento> PedirReabertura(PedidoDeReabertura pedido, CancellationToken ct)
+    {
+        var revendedor = await Revendedor(ct);
+        revendedor.PedirReabertura(relogio.GetUtcNow());
+        auditoria.Registrar(AcaoAuditada.ReaberturaPedida, "Conta", revendedor.Id.ToString(), null, pedido.Motivo);
+        notificacoes.ParaOperadora(revendedor.Id, "Reabertura pedida", $"{revendedor.Nome} pediu para reabrir a conta encerrada.", "/operadora/revendedores");
+        var motivo = string.IsNullOrWhiteSpace(pedido.Motivo) ? string.Empty : $"\n\nMotivo: {pedido.Motivo.Trim()}";
+        await chamados.Abrir("Reabertura da conta", $"Peço a reabertura da conta encerrada pelo distrato.{motivo}", ct);
         return await Ler(ct);
     }
 

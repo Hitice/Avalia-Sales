@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import { formatarCentavos } from '@/dinheiro/dinheiro'
+import { useContaEncerrada } from '@/app/contaEncerrada'
 import { usePlacas, useVendas } from './consultas'
 
 const DIA = 86_400_000
@@ -20,6 +21,7 @@ const configDoRecebido = { reais: { label: 'Recebido', color: 'var(--chart-1)' }
 
 /** O resumo do dono: os números do mês e três gráficos das vendas. Avisos e pendências ficam no sino. */
 export function TelaInicial() {
+  const encerrada = useContaEncerrada()
   const placas = usePlacas({ pagina: 1 })
   const vendas = useVendas()
   // Fixado na abertura da tela: o relógio não muda entre uma renderização e outra.
@@ -37,7 +39,7 @@ export function TelaInicial() {
   return (
     <>
       <Cabecalho titulo="Início">
-        <Button asChild><Link to="/vender">Nova venda</Link></Button>
+        {!encerrada && <Button asChild><Link to="/vender">Nova venda</Link></Button>}
       </Cabecalho>
       <Erro erro={vendas.error} />
       <Indicadores>{numeros.map((n) => <Indicador key={n.rotulo} rotulo={n.rotulo} valor={n.valor} />)}</Indicadores>

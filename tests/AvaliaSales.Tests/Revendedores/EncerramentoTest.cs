@@ -147,6 +147,57 @@ public sealed class EncerramentoTest(ApiDeTeste api)
         await revenda.Dono.Colocar("/revenda/renovacao", new { renovacaoBps = 5000 }, HttpStatusCode.NoContent);
     }
 
+    /// <summary>
+    /// Encerrada, a conta não busca no Google (usa a cota da Avalia) e pede a volta pelo
+    /// suporte; a operadora aprova, a conta grava de novo e espera um contrato novo.
+    /// </summary>
+    [Fact]
+    public async Task Conta_encerrada_pede_reabertura_pelo_suporte_e_a_operadora_aprova()
+    {
+        var (revendedor, email) = await api.CriarRevendedor("Revenda Que Volta", contratoAssinado: false);
+        var dono = await api.ClienteLogado(email);
+        await DefinirEndereco(dono, "Revenda Que Volta");
+        await dono.Postar("/revenda/encerramento", new { });
+        Assert.Equal(HttpStatusCode.Conflict, (await dono.GetAsync("/lugares?texto=padaria centro", Ct)).StatusCode);
+
+        var pedido = await dono.Postar("/revenda/reabertura", new { motivo = "Voltamos a vender" });
+        Assert.NotEqual(System.Text.Json.JsonValueKind.Null, pedido.GetProperty("reaberturaPedidaEm").ValueKind);
+        await dono.Postar("/revenda/reabertura", new { }, HttpStatusCode.UnprocessableEntity);
+        var chamado = Assert.Single((await dono.Pegar("/chamados")).EnumerateArray());
+        Assert.Equal("Reabertura da conta", chamado.GetProperty("assunto").GetString());
+
+        var operadora = await api.ClienteLogado(await api.CriarOperadora());
+        var lista = (await operadora.Pegar("/operadora/revendedores")).EnumerateArray().Single(r => r.GetProperty("id").GetGuid() == revendedor);
+        Assert.NotEqual(System.Text.Json.JsonValueKind.Null, lista.GetProperty("reaberturaPedidaEm").ValueKind);
+        await operadora.Postar($"/operadora/revendedores/{revendedor}/reabertura", new { }, HttpStatusCode.NoContent);
+
+        var estado = await dono.Pegar("/revenda/encerramento");
+        Assert.Equal(System.Text.Json.JsonValueKind.Null, estado.GetProperty("encerradaEm").ValueKind);
+        await dono.Colocar("/revenda/renovacao", new { renovacaoBps = 5000 }, HttpStatusCode.NoContent);
+        await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
+        Assert.Equal(1, await banco.Contar($"select count(*) from revendedores where id = '{revendedor}' and reaberta_em is not null and contrato_assinado_em is null"));
+        Assert.Equal(1, await banco.Contar($"select count(*) from notificacoes where revendedor_id = '{revendedor}' and titulo = 'Conta reaberta'"));
+    }
+
+    [Fact]
+    public async Task Operadora_recusa_a_reabertura_e_a_conta_segue_encerrada()
+    {
+        var (revendedor, email) = await api.CriarRevendedor("Revenda Que Não Volta", contratoAssinado: false);
+        var dono = await api.ClienteLogado(email);
+        await DefinirEndereco(dono, "Revenda Que Não Volta");
+        await dono.Postar("/revenda/encerramento", new { });
+        await dono.Postar("/revenda/reabertura", new { });
+        var operadora = await api.ClienteLogado(await api.CriarOperadora());
+
+        var recusa = await operadora.DeleteAsync($"/operadora/revendedores/{revendedor}/reabertura", Ct);
+
+        Assert.Equal(HttpStatusCode.NoContent, recusa.StatusCode);
+        var estado = await dono.Pegar("/revenda/encerramento");
+        Assert.NotEqual(System.Text.Json.JsonValueKind.Null, estado.GetProperty("encerradaEm").ValueKind);
+        Assert.Equal(System.Text.Json.JsonValueKind.Null, estado.GetProperty("reaberturaPedidaEm").ValueKind);
+        Assert.Equal(HttpStatusCode.Conflict, (await dono.PutAsJsonAsync("/revenda/renovacao", new { renovacaoBps = 5000 }, Ct)).StatusCode);
+    }
+
     /// <summary>A revenda da Avalia do banco de teste, criada uma vez com o CNPJ da Avalia.</summary>
     private async Task<Revenda> RevendaDaAvalia()
     {

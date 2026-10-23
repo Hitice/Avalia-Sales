@@ -77,6 +77,10 @@ public sealed class Contas(UserManager<Usuario> usuarios, BancoDeDados banco, Ge
         return dono is null ? null : (dono.Nome, dono.Email!);
     }
 
+    public Task AtivarLogins(Guid revendedorId, Papel papel, CancellationToken ct) =>
+        banco.Users.Where(u => u.RevendedorId == revendedorId && u.Papel == papel && !u.Ativo)
+            .ExecuteUpdateAsync(s => s.SetProperty(u => u.Ativo, true), ct);
+
     public async Task DesativarLogins(Guid revendedorId, Papel? papel, CancellationToken ct)
     {
         var ids = await banco.Users.Where(u => u.RevendedorId == revendedorId && u.Ativo && (papel == null || u.Papel == papel))

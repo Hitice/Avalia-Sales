@@ -100,6 +100,18 @@ public static class RotasDaOperadora
             return Results.NoContent();
         });
 
+        // Reabertura da revenda encerrada pelo distrato, pedida pelo dono no suporte.
+        operadora.MapPost("/revendedores/{id:guid}/reabertura", async (Guid id, Revendedores revendedores, CancellationToken ct) =>
+        {
+            await revendedores.AprovarReabertura(id, ct);
+            return Results.NoContent();
+        });
+        operadora.MapDelete("/revendedores/{id:guid}/reabertura", async (Guid id, Revendedores revendedores, CancellationToken ct) =>
+        {
+            await revendedores.RecusarReabertura(id, ct);
+            return Results.NoContent();
+        });
+
         // O que a operadora mudou na plataforma, registrado pelo middleware AuditoriaDaOperadoraNaRota.
         operadora.MapGet("/auditoria", (string? busca, int? pagina, Application.Auditoria.AuditoriaDaOperadora auditoria, CancellationToken ct) =>
             auditoria.Listar(busca, pagina ?? 1, ct));

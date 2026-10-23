@@ -31,6 +31,9 @@ public interface IContas
     /// <summary>O primeiro dono com e-mail confirmado, na ordem de <see cref="EmailsDosDonos"/>: quem assina pela revenda.</summary>
     Task<(string Nome, string Email)?> DonoQueAssina(Guid revendedorId, CancellationToken ct);
 
+    /// <summary>Religa os logins de um papel da revenda, como os donos na reabertura da conta.</summary>
+    Task AtivarLogins(Guid revendedorId, Papel papel, CancellationToken ct);
+
     /// <summary>Desliga os logins da revenda, só de um papel ou de todos, e encerra as sessões abertas.</summary>
     Task DesativarLogins(Guid revendedorId, Papel? papel, CancellationToken ct);
 

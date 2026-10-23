@@ -344,6 +344,15 @@ Todas no mesmo app, liberadas pelo papel do usuário.
   vendas, placas e razão) e baixar o distrato, por 30 dias; depois o login é
   desligado. Os registros que a lei exige continuam guardados.
 - Revenda que nunca assinou o contrato não tem o que distratar: encerra na hora.
+- Conta encerrada mostra a faixa "Conta encerrada" em toda tela e esconde o que
+  só serve para vender (Nova venda, Serviços, Catálogo, Marca e Mapa); a busca no
+  Google também é recusada.
+- Reabertura - o dono pede pela faixa de conta encerrada, com motivo opcional; o
+  pedido vira um chamado no suporte e aparece para a operadora em Revendedores,
+  que aprova ou recusa. Aprovada, a conta volta, o dono recebe aviso no sino e por
+  e-mail, assina um contrato novo antes do próximo pedido e religa a equipe pela
+  tela Equipe. O que o distrato fez fica: os clientes transferidos continuam com
+  a Avalia e o estoque baixado não volta.
 
 ### E-mail
 
@@ -502,6 +511,7 @@ porque está impresso nas placas vendidas.
 | --- | --- |
 | 23/10/2026 | Venda trazida do sistema anterior aparece como "Paga no sistema anterior" e não se cobra, cancela, vira cortesia nem recebe por fora. A comissão devida trazida entra no mês da importação, sem mudar mês fechado do razão. |
 | 22/10/2026 | Migração do Sales - conversor do backup diário para o arquivo de placas, venda no produto do catálogo pela chave, comissão devida trazida como saldo do vendedor. Os dois sócios entram como vendedores com 50% cada, em vez de divisão entre sócios. |
+| 23/10/2026 | Conta encerrada só consulta também na tela (sem Nova venda, Serviços, Catálogo, Marca e Mapa; sem busca no Google) e mostra a faixa de encerramento. Reabertura pedida ao suporte e aprovada ou recusada pela operadora, com contrato novo. |
 | 23/10/2026 | Documento revisado para a produção - situação, telas por área, fases, decisões e integrações atualizadas; repetições removidas. |
 | 23/10/2026 | Depois de uma publicação, a aba que já estava aberta recarrega sozinha ao abrir uma tela, em vez de mostrar erro; erro de tela mostra o que fazer, com Recarregar. |
 | 23/10/2026 | Desativar o segundo fator pede o código novo enviado ao e-mail cadastrado. Sino também para o vendedor - venda paga, comissão repassada e placas consignadas a ele. O logo do cabeçalho leva ao início. Equipe com as ações numa linha (excluir em ícone). |

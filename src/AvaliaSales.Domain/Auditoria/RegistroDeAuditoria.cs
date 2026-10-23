@@ -29,6 +29,7 @@ public enum AcaoAuditada
     EncerramentoPedido,
     EncerramentoDesistido,
     ContaEncerrada,
+    ReaberturaPedida,
 }
 
 /// <summary>

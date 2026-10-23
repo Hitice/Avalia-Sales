@@ -59,6 +59,15 @@ Arquitetura e decisões no [SDD](SDD.md); cada decisão estrutural em
      --nova-operadora --nome="Operação Avalia" --email=... --senha=...
    ```
 
+   Para dar a outro login um e-mail que já está em uso (por exemplo, o dono de
+   uma revenda passa a usar outro e-mail e o antigo fica para a operadora),
+   troque o e-mail antes, sem apagar nada:
+
+   ```bash
+   docker compose -f docker-compose.producao.yml --env-file /srv/avalia-sales/.env run --rm api \
+     --trocar-email --de=comercial@avaliaone.com.br --para=novo-dono@avaliaone.com.br
+   ```
+
 8. Webhooks - no Pagar.me, `https://DOMINIO/webhooks/pagarme/<PAGARME_SEGREDO_DO_WEBHOOK>`;
    na D4Sign, o endereço vai sozinho em cada envio.
 

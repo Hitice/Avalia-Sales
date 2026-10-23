@@ -31,6 +31,10 @@ export const useExcluirPacote = () => useGravar((id: string) => chamarApi(`/oper
 export const useDefinirRecebedor = () => useGravar(({ id, recebedor }: { id: string; recebedor: string }) => chamarApi(`/operadora/revendedores/${id}/recebedor`, enviarJson('PUT', { recebedor })))
 export const useContratoAssinado = () => useGravar((id: string) => chamarApi(`/operadora/revendedores/${id}/contrato-assinado`, enviarJson('POST', {})))
 
+/** Aprova ou recusa a reabertura da revenda encerrada pelo distrato. */
+export const useReabertura = () => useGravar(({ id, aprovar }: { id: string; aprovar: boolean }) =>
+  chamarApi(`/operadora/revendedores/${id}/reabertura`, aprovar ? enviarJson('POST', {}) : { method: 'DELETE' }))
+
 /** O ZIP da gráfica vem com o token, então é baixado pela chamada e entregue ao navegador como arquivo. */
 export async function baixarImpressao(lote: Lote) {
   const resposta = await chamarResposta(`/operadora/lotes/${lote.id}/impressao`)

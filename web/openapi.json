@@ -1809,6 +1809,50 @@
         }
       }
     },
+    "/operadora/revendedores/{id}/reabertura": {
+      "post": {
+        "tags": [
+          "Operadora"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Operadora"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/operadora/auditoria": {
       "get": {
         "tags": [
@@ -2398,6 +2442,35 @@
         "responses": {
           "200": {
             "description": "OK"
+          }
+        }
+      }
+    },
+    "/revenda/reabertura": {
+      "post": {
+        "tags": [
+          "Revenda"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PedidoDeReabertura"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EstadoDoEncerramento"
+                }
+              }
+            }
           }
         }
       }
@@ -3701,7 +3774,8 @@
           "EmpresaAlterada",
           "EncerramentoPedido",
           "EncerramentoDesistido",
-          "ContaEncerrada"
+          "ContaEncerrada",
+          "ReaberturaPedida"
         ]
       },
       "AjustarProduto": {
@@ -4772,7 +4846,8 @@
           "pedidoEm",
           "encerradaEm",
           "exportacaoAte",
-          "distrato"
+          "distrato",
+          "reaberturaPedidaEm"
         ],
         "type": "object",
         "properties": {
@@ -4806,6 +4881,13 @@
                 "$ref": "#/components/schemas/MeuContrato"
               }
             ]
+          },
+          "reaberturaPedidaEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         }
       },
@@ -6027,6 +6109,20 @@
           }
         }
       },
+      "PedidoDeReabertura": {
+        "required": [
+          "motivo"
+        ],
+        "type": "object",
+        "properties": {
+          "motivo": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "PedidoDeReenvio": {
         "required": [
           "desafio"
@@ -6594,7 +6690,8 @@
           "celular",
           "temEndereco",
           "encerramentoPedidoEm",
-          "encerradaEm"
+          "encerradaEm",
+          "reaberturaPedidaEm"
         ],
         "type": "object",
         "properties": {
@@ -6657,6 +6754,13 @@
             "format": "date-time"
           },
           "encerradaEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "reaberturaPedidaEm": {
             "type": [
               "null",
               "string"

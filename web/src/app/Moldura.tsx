@@ -4,7 +4,7 @@ import {
   ChevronDown, LogOut, Palette, Settings, PlusCircle, Receipt, Server, ShieldCheck, Store, TicketPercent, UserRound, Users, UsersRound, Wrench,
 } from 'lucide-react'
 import { useState } from 'react'
-import { NavLink, Outlet, useLocation, useNavigate, useNavigation } from 'react-router'
+import { NavLink, Navigate, Outlet, useLocation, useNavigate, useNavigation } from 'react-router'
 import { ConfirmeOEmail } from '@/acesso/ConfirmeOEmail'
 import { sairDaSessao } from '@/acesso/renovacao'
 import { type Papel, useSessao } from '@/acesso/sessao'
@@ -16,6 +16,8 @@ import {
 import { cn } from '@/lib/utils'
 import { useLogo, useMarca } from '@/marca/marca'
 import { useAvisosAoVivo } from './avisosAoVivo'
+import { AvisoDeContaEncerrada } from './AvisoDeContaEncerrada'
+import { soComAContaAtiva, useContaEncerrada } from './contaEncerrada'
 import { Sino } from './Sino'
 
 type Item = { para: string; rotulo: string; icone: LucideIcon }
@@ -115,9 +117,12 @@ export function Moldura() {
   const aviso = useAvisosAoVivo()
   const marca = useMarca()
   const logo = useLogo(marca)
-  const grupos = perfil ? MENU[perfil.papel] : []
+  // Conta encerrada pelo distrato só consulta: o que serve para vender sai do menu.
+  const encerrada = useContaEncerrada()
+  const permitido = (i: Item) => !encerrada || !soComAContaAtiva(i.para)
+  const grupos = (perfil ? MENU[perfil.papel] : []).map((g) => ({ ...g, itens: g.itens.filter(permitido) })).filter((g) => g.itens.length > 0)
   const itens = grupos.flatMap((g) => g.itens)
-  const principais = perfil ? PRINCIPAIS[perfil.papel] : []
+  const principais = (perfil ? PRINCIPAIS[perfil.papel] : []).filter(permitido)
   const outros = itens.filter((i) => !principais.some((p) => p.para === i.para))
   const inicio = principais[0]?.para ?? itens[0]?.para ?? '/'
   const [mais, setMais] = useState(false)
@@ -184,6 +189,7 @@ export function Moldura() {
         </nav>
         <div aria-hidden className="traco h-0.5" />
       </header>
+      <AvisoDeContaEncerrada />
       <div className={cn('mx-auto max-w-7xl lg:gap-8 lg:px-4', !travado && 'lg:grid lg:grid-cols-[14rem_minmax(0,1fr)]')}>
         <nav aria-label="Menu lateral" className={cn('sticky top-16 hidden max-h-[calc(100svh-4rem)] self-start overflow-y-auto py-4', !travado && 'lg:block')}>
           {grupos.map((grupo, i) => (
@@ -194,7 +200,7 @@ export function Moldura() {
           ))}
         </nav>
         <main className={cn('min-w-0 p-4 lg:px-0', naVenda ? 'pb-40 md:pb-24' : 'pb-24 md:pb-4')}>
-            {travado ? <ConfirmeOEmail email={perfil.email} /> : <Outlet />}
+            {travado ? <ConfirmeOEmail email={perfil.email} /> : encerrada && soComAContaAtiva(caminho) ? <Navigate to="/painel/inicio" replace /> : <Outlet />}
         </main>
       </div>
       {!travado && (

@@ -336,8 +336,20 @@ Conferido na referência oficial em 21/10/2026.
   `transferir_clientes_da_revenda` para a revenda da Avalia. Distrato cancelado
   na D4Sign desfaz o pedido.
 - O middleware `ContaEncerrada` recusa com 409 toda escrita da revenda
-  encerrada (fora `/auth` e o aviso ao vivo). Passados 30 dias, o Worker
-  desliga o login do dono.
+  encerrada e a busca no Google (`/lugares`); passam `/auth`, o aviso ao vivo,
+  `/notificacoes`, `/chamados` e `/revenda/reabertura`. O front esconde as telas
+  de venda (`app/contaEncerrada.ts`) e mostra `AvisoDeContaEncerrada`. Passados
+  30 dias, o Worker desliga o login do dono.
+- Reabertura - `POST /revenda/reabertura` (dono, motivo opcional) grava
+  `revendedores.reabertura_pedida_em` e abre o chamado "Reabertura da conta";
+  `POST` e `DELETE /operadora/revendedores/{id}/reabertura` aprovam ou recusam.
+  Aprovar limpa o encerramento, religa os logins de dono, zera
+  `contrato_assinado_em` e grava `reaberta_em`: o Worker gera o contrato novo,
+  porque só conta contrato criado depois de `reaberta_em` (migration
+  ReaberturaDaConta).
+- `--trocar-email --de= --para=` troca o e-mail de um login, com papel, revenda
+  e histórico, e encerra as sessões dele: libera um e-mail para outro login sem
+  apagar a revenda.
 
 ### Checkout do Pagar.me (no código)
 
@@ -682,6 +694,7 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
 | Data | Mudança |
 | --- | --- |
 | 23/10/2026 | Migration VendaDoSistemaAnterior (`vendas.do_sistema_anterior`), recusa em `Vendas` (cobrança, cancelamento, cortesia, recebido por fora). A comissão devida importada entra com a data da importação; a da venda vai na descrição. |
+| 23/10/2026 | Versão 1.9.0. Conta encerrada só consulta também no front e sem `/lugares`; reabertura pedida pelo dono e aprovada ou recusada pela operadora (`revendedores.reabertura_pedida_em` e `reaberta_em`, migration ReaberturaDaConta, contrato novo depois da reabertura); `IContas.AtivarLogins`; comando `--trocar-email`. |
 | 23/10/2026 | Documento revisado para a produção - stack, arquitetura, isolamento, front, modelo de dados numa tabela só, testes e pendências atualizados. |
 | 23/10/2026 | Versão 1.8.2. Aba aberta antes de uma publicação pedia o arquivo da tela com o hash antigo ("Importing a module script failed"): as rotas carregadas sob demanda e o `vite:preloadError` recarregam a página uma vez (`lib/recarga.ts`, trava de 1 minuto contra laço), e a raiz das rotas tem `ErroDaTela` no lugar da tela de erro do React Router. |
 | 23/10/2026 | Versão 1.8.1. `POST /conta/segundo-fator/desligar/codigo` manda código novo ao e-mail cadastrado (`GestorDeSegundoFator.PrepararDesligamento`); `desligar` aceita esse código, o do app ou um de recuperação. `notificacoes.usuario_id` (migration NotificacaoParaUsuario) e `Notificacoes.ParaVendedor`; o sino (`/notificacoes`, política `Todos`) separa operadora, dono (sem destinatário ou ele) e vendedor (só ele). |

@@ -162,6 +162,12 @@ if (args.Contains("--novo-revendedor"))
     return;
 }
 
+if (args.Contains("--trocar-email"))
+{
+    Environment.ExitCode = await NovoRevendedor.TrocarEmail(app.Services, args);
+    return;
+}
+
 if (args.Contains("--nova-operadora"))
 {
     Environment.ExitCode = await NovoRevendedor.CriarOperadora(app.Services, args);

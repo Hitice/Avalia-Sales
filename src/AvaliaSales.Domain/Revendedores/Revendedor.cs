@@ -55,6 +55,12 @@ public sealed class Revendedor
 
     public DateTimeOffset? ExportacaoAte => EncerradaEm?.AddDays(DiasParaExportar);
 
+    /// <summary>A revenda encerrada pediu para voltar; espera a aprovação da operadora.</summary>
+    public DateTimeOffset? ReaberturaPedidaEm { get; private set; }
+
+    /// <summary>A última reabertura aprovada. Contrato de antes dela não vale: a revenda assina outro.</summary>
+    public DateTimeOffset? ReabertaEm { get; private set; }
+
     public DateTimeOffset CriadoEm { get; private set; } = DateTimeOffset.UtcNow;
 
     private Revendedor() => Nome = string.Empty;
@@ -179,6 +185,50 @@ public sealed class Revendedor
         }
 
         EncerramentoPedidoEm = null;
+    }
+
+    public void PedirReabertura(DateTimeOffset agora)
+    {
+        if (EncerradaEm is null)
+        {
+            throw new RegraDeNegocioException("A conta não está encerrada.");
+        }
+
+        if (ReaberturaPedidaEm is not null)
+        {
+            throw new RegraDeNegocioException("A reabertura já foi pedida. O suporte da Avalia responde pelo chamado.");
+        }
+
+        ReaberturaPedidaEm = agora;
+    }
+
+    public void RecusarReabertura()
+    {
+        if (ReaberturaPedidaEm is null)
+        {
+            throw new RegraDeNegocioException("Não há pedido de reabertura.");
+        }
+
+        ReaberturaPedidaEm = null;
+    }
+
+    /// <summary>
+    /// Aprovada pela operadora: a conta volta a operar e assina um contrato novo
+    /// antes do próximo pedido de placas. O que o distrato fez fica: os clientes
+    /// transferidos continuam com a Avalia e o estoque baixado não volta.
+    /// </summary>
+    public void Reabrir(DateTimeOffset agora)
+    {
+        if (EncerradaEm is null)
+        {
+            throw new RegraDeNegocioException("A conta não está encerrada.");
+        }
+
+        EncerradaEm = null;
+        EncerramentoPedidoEm = null;
+        ReaberturaPedidaEm = null;
+        ContratoAssinadoEm = null;
+        ReabertaEm = agora;
     }
 
     /// <summary>Com o distrato assinado. Encerrar de novo não muda a data.</summary>

@@ -1,22 +1,24 @@
 using AvaliaSales.Domain;
 using AvaliaSales.Domain.Contratos;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace AvaliaSales.Application.Revendedores;
 
 public sealed record RevendedorDto(Guid Id, string Nome, string? Cnpj, int TaxaAvaliaBps, int ComissaoPadraoBps,
     string? RecebedorPagarme, DateTimeOffset? ContratoAssinadoEm, DateTimeOffset CriadoEm, int RenovacaoBps, string? Celular,
-    bool TemEndereco, DateTimeOffset? EncerramentoPedidoEm, DateTimeOffset? EncerradaEm);
+    bool TemEndereco, DateTimeOffset? EncerramentoPedidoEm, DateTimeOffset? EncerradaEm, DateTimeOffset? ReaberturaPedidaEm);
 
 public sealed record MinhaRevenda(RevendedorDto Revendedor, SituacaoDoContrato? Contrato);
 
 /// <summary>O cadastro dos revendedores visto pela operadora, e a própria revenda vista pelo dono.</summary>
-public sealed class Revendedores(IBancoDeDados banco, IRevendedorAtual atual, TimeProvider relogio)
+public sealed class Revendedores(IBancoDeDados banco, IRevendedorAtual atual, Equipe.IContas contas, Avisos.FilaDeEmails emails,
+    Notificacoes.Notificacoes notificacoes, IOptions<OpcoesDaPlataforma> plataforma, TimeProvider relogio)
 {
     public async Task<IReadOnlyList<RevendedorDto>> Listar(CancellationToken ct) =>
         await banco.Revendedores.AsNoTracking().OrderBy(r => r.Nome)
             .Select(r => new RevendedorDto(r.Id, r.Nome, r.Cnpj, r.TaxaAvaliaBps, r.ComissaoPadraoBps, r.RecebedorPagarme, r.ContratoAssinadoEm, r.CriadoEm, r.RenovacaoBps, r.Celular,
-                r.Endereco != null, r.EncerramentoPedidoEm, r.EncerradaEm))
+                r.Endereco != null, r.EncerramentoPedidoEm, r.EncerradaEm, r.ReaberturaPedidaEm))
             .ToListAsync(ct);
 
     public async Task<MinhaRevenda> DoUsuario(CancellationToken ct)
@@ -29,7 +31,7 @@ public sealed class Revendedores(IBancoDeDados banco, IRevendedorAtual atual, Ti
             .FirstOrDefaultAsync(ct);
         return new MinhaRevenda(
             new RevendedorDto(r.Id, r.Nome, r.Cnpj, r.TaxaAvaliaBps, r.ComissaoPadraoBps, r.RecebedorPagarme, r.ContratoAssinadoEm, r.CriadoEm, r.RenovacaoBps, r.Celular,
-                r.Endereco is not null, r.EncerramentoPedidoEm, r.EncerradaEm),
+                r.Endereco is not null, r.EncerramentoPedidoEm, r.EncerradaEm, r.ReaberturaPedidaEm),
             contrato);
     }
 
@@ -51,6 +53,46 @@ public sealed class Revendedores(IBancoDeDados banco, IRevendedorAtual atual, Ti
     {
         (await Achar(id, ct)).RegistrarContratoAssinado(relogio.GetUtcNow());
         await banco.SaveChangesAsync(ct);
+    }
+
+    /// <summary>
+    /// A operadora aprova a volta da revenda encerrada: o dono entra de novo, assina
+    /// um contrato novo (o Worker gera) e religa a equipe pela tela Equipe.
+    /// </summary>
+    public async Task AprovarReabertura(Guid id, CancellationToken ct)
+    {
+        var revendedor = await Achar(id, ct);
+        revendedor.Reabrir(relogio.GetUtcNow());
+        await contas.AtivarLogins(id, Domain.Acesso.Papel.Dono, ct);
+        await Avisar(revendedor, "Conta reaberta",
+            "A Avalia aprovou a reabertura da conta. O novo contrato de revenda chega por e-mail para assinar, e a equipe volta pela tela Equipe.", ct);
+        await banco.SaveChangesAsync(ct);
+    }
+
+    public async Task RecusarReabertura(Guid id, CancellationToken ct)
+    {
+        var revendedor = await Achar(id, ct);
+        revendedor.RecusarReabertura();
+        await Avisar(revendedor, "Reabertura recusada", "A Avalia não aprovou a reabertura da conta. Fale com o suporte para saber o motivo.", ct);
+        await banco.SaveChangesAsync(ct);
+    }
+
+    /// <summary>No sino e por e-mail: dono de conta encerrada nem sempre entra para ver.</summary>
+    private async Task Avisar(Domain.Revendedores.Revendedor revendedor, string titulo, string texto, CancellationToken ct)
+    {
+        notificacoes.ParaDono(revendedor.Id, titulo, texto, "/conta/dados");
+        var vez = relogio.GetUtcNow().ToUnixTimeSeconds();
+        foreach (var email in await contas.EmailsDosDonos(revendedor.Id, ct))
+        {
+            emails.Enfileirar($"reabertura:{revendedor.Id:N}:{vez}:{email}", email, titulo,
+                $"""
+                {titulo}.
+
+                {texto}
+
+                Entrar: {plataforma.Value.UrlDoPainel.TrimEnd('/')}/entrar
+                """);
+        }
     }
 
     private async Task<Domain.Revendedores.Revendedor> Achar(Guid id, CancellationToken ct) =>

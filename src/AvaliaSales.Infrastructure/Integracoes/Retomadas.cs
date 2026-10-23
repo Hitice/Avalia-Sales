@@ -45,11 +45,11 @@ public sealed partial class Retomadas(IServiceScopeFactory escopos, BancoDeDados
     {
         var agora = relogio.GetUtcNow();
         var revendedores = await banco.Revendedores.AsNoTracking()
-            .Select(r => new { r.Id, r.ContratoAssinadoEm, r.EncerramentoPedidoEm, r.EncerradaEm }).ToListAsync(ct);
+            .Select(r => new { r.Id, r.ContratoAssinadoEm, r.EncerramentoPedidoEm, r.EncerradaEm, r.ReabertaEm }).ToListAsync(ct);
         var retomados = 0;
         var contratosRestantes = contratosPorRodada;
 
-        foreach (var (revendedorId, assinado, pedido, encerrada) in revendedores.Select(r => (r.Id, r.ContratoAssinadoEm, r.EncerramentoPedidoEm, r.EncerradaEm)))
+        foreach (var (revendedorId, assinado, pedido, encerrada, reaberta) in revendedores.Select(r => (r.Id, r.ContratoAssinadoEm, r.EncerramentoPedidoEm, r.EncerradaEm, r.ReabertaEm)))
         {
             using var escopo = escopos.CreateScope();
             escopo.ServiceProvider.GetRequiredService<RevendedorDaExecucao>().RevendedorId = revendedorId;
@@ -99,7 +99,9 @@ public sealed partial class Retomadas(IServiceScopeFactory escopos, BancoDeDados
             }
 
             var documentos = escopo.ServiceProvider.GetRequiredService<DocumentosDaRevenda>();
-            if (assinado is null && pedido is null && !await doRevendedor.Contratos.AnyAsync(c => c.Tipo == TipoDeContrato.ContratoDoRevendedor, ct))
+            // Sem contrato assinado e sem um em andamento; depois de uma reabertura, só conta o contrato feito depois dela.
+            if (assinado is null && pedido is null && !await doRevendedor.Contratos.AnyAsync(c => c.Tipo == TipoDeContrato.ContratoDoRevendedor
+                    && (reaberta == null || c.CriadoEm > reaberta), ct))
             {
                 await Gerar(() => documentos.GerarContrato(revendedorId, ct));
             }

@@ -8,21 +8,22 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { mascaraTelefone } from '@/lib/mascaras'
-import { useContratoAssinado, useDefinirRecebedor, useRevendedores } from './consultas'
+import { useContratoAssinado, useDefinirRecebedor, useReabertura, useRevendedores } from './consultas'
 
 const formatarCnpj = (c: string | null) => c ? c.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5') : '-'
 
-/** Cadastro dos revendedores: conta de recebimento no Pagar.me e contrato assinado em papel. */
+/** Cadastro dos revendedores: conta de recebimento no Pagar.me, contrato assinado em papel e reabertura da conta encerrada. */
 export function TelaDeRevendedores() {
   const revendedores = useRevendedores()
   const recebedor = useDefinirRecebedor()
   const contrato = useContratoAssinado()
+  const reabertura = useReabertura()
   const [digitado, setDigitado] = useState<Record<string, string>>({})
 
   return (
     <>
       <Cabecalho titulo="Revendedores" />
-      <Erro erro={recebedor.error || contrato.error ? mensagemDoErro(recebedor.error ?? contrato.error) : null} />
+      <Erro erro={recebedor.error || contrato.error || reabertura.error ? mensagemDoErro(recebedor.error ?? contrato.error ?? reabertura.error) : null} />
       <Card className="mt-3">
         <CardContent>
           <EstadoDaConsulta carregando={revendedores.isPending} erro={revendedores.error} vazio={revendedores.data?.length === 0} textoVazio="Nenhum revendedor ainda." />
@@ -47,7 +48,15 @@ export function TelaDeRevendedores() {
                       <TableCell className="tabular-nums">{r.celular ? mascaraTelefone(r.celular) : '-'}</TableCell>
                       <TableCell className="text-right tabular-nums">{formatarBps(r.taxaAvaliaBps)}</TableCell>
                       <TableCell>
-                        {r.encerradaEm
+                        {r.encerradaEm && r.reaberturaPedidaEm
+                          ? (
+                              <div className="flex flex-wrap items-center gap-2">
+                                <Badge variant="secondary">Reabertura pedida em {formatarData(r.reaberturaPedidaEm)}</Badge>
+                                <Button variant="outline" size="sm" disabled={reabertura.isPending} onClick={() => reabertura.mutate({ id: r.id, aprovar: true })}>Aprovar</Button>
+                                <Button variant="ghost" size="sm" disabled={reabertura.isPending} onClick={() => reabertura.mutate({ id: r.id, aprovar: false })}>Recusar</Button>
+                              </div>
+                            )
+                          : r.encerradaEm
                           ? <Badge variant="outline">Encerrada em {formatarData(r.encerradaEm)}</Badge>
                           : r.encerramentoPedidoEm
                             ? <Badge variant="secondary">Distrato em assinatura</Badge>

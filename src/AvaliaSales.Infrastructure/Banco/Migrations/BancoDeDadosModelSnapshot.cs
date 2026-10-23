@@ -1613,6 +1613,14 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .HasColumnType("character varying(40)")
                         .HasColumnName("nome_exibido");
 
+                    b.Property<DateTimeOffset?>("ReabertaEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("reaberta_em");
+
+                    b.Property<DateTimeOffset?>("ReaberturaPedidaEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("reabertura_pedida_em");
+
                     b.Property<string>("RecebedorPagarme")
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)")
