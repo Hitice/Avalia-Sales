@@ -212,7 +212,8 @@ O conversor só lê o arquivo, sem tocar no Sales:
 python3 -I infra/migracao/converter_do_sales.py avalia-AAAA-MM-DD-HHMM.sql.gz --saida placas.csv \
   --socio <e-mail do sócio 1 no Sales> --socio <e-mail do sócio 2 no Sales> \
   --vendedor <e-mail do sócio 1 no Sales>=<login dele na plataforma> \
-  --vendedor <e-mail do sócio 2 no Sales>=<login dele na plataforma>
+  --vendedor <e-mail do sócio 2 no Sales>=<login dele na plataforma> \
+  --no-ar-sem-venda-a-zero --so-os-mapeados
 ```
 
 Ele imprime os totais (placas por situação, valor vendido, vendas não pagas,
@@ -222,6 +223,17 @@ paga é a com `pix_pago_em` ou anterior a 11/10/2026; datas em UTC. Venda sem
 placa (a da Lia) fica de fora. Cada vendedor do Sales com comissão devida
 precisa de login na equipe antes do `--importar-placas`, com o e-mail do Sales
 ou o do `--vendedor`.
+
+O Sales tem placa no ar sem venda, cadastrada antes de 01/10/2026, quando
+passou a registrar a venda. O importador recusa placa no ar sem data de venda;
+com `--no-ar-sem-venda-a-zero` ela entra como venda de R$ 0 na data do
+cadastro, com o dono e sem comissão, e segue lendo sem vencimento. O destino de
+toda placa passa como está no Sales.
+
+Com `--so-os-mapeados`, a venda de quem não está no `--vendedor` fica com o
+dono. Sem ele, o importador procura o e-mail do Sales entre os logins da
+plataforma, e um login que não é da equipe (o da operadora, por exemplo)
+ficaria como vendedor.
 
 Conta encerrada não recebe importação, nem em ensaio: a operadora aprova a
 reabertura em Revendedores antes.

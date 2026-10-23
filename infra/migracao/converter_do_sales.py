@@ -15,6 +15,10 @@ As regras do Sales que pesam aqui:
 - venda paga é a que tem `pix_pago_em`, ou que é anterior a 11/10/2026, quando
   o pagamento passou a ser registrado no sistema;
 - datas em UTC (o Laravel do Sales roda em UTC); `vence_em` é data.
+
+Placa no ar sem venda (cadastrada antes de o Sales registrar venda, em 01/10/2026)
+o importador recusa. Com `--no-ar-sem-venda-a-zero` ela entra como venda de R$ 0
+na data do cadastro, sem vendedor (fica com o dono) e sem comissão.
 """
 
 import argparse
@@ -101,7 +105,7 @@ def data_e_hora(valor):
     return None if not valor else str(valor).replace(" ", "T")[:19] + "+00:00"
 
 
-def converter(banco, mapa, socios):
+def converter(banco, mapa, socios, no_ar_a_zero=False, so_mapeados=False):
     staff = {s["id"]: s for s in banco.execute("SELECT * FROM staff")}
     negocios = {n["id"]: n for n in banco.execute("SELECT * FROM negocios")} if banco.execute("SELECT count(*) FROM negocios").fetchone()[0] else {}
     produtos = {p["chave"]: p for p in banco.execute("SELECT * FROM produtos")} if "chave" in [c[1] for c in banco.execute("PRAGMA table_info(produtos)")] else {}
@@ -116,20 +120,24 @@ def converter(banco, mapa, socios):
 
         situacao = e["situacao"]
         vendida = e["vendida_em"]
-        if situacao in ("ativa", "suspensa") and not vendida:
+        a_zero = situacao in ("ativa", "suspensa") and not vendida
+        if a_zero and not no_ar_a_zero:
             avisos.append(f"{e['codigo']}: {situacao} sem data de venda (o importador recusa)")
+        a_zero = a_zero and no_ar_a_zero
+        if a_zero:
+            vendida = e["created_at"]
 
-        vendedor = staff.get(e["vendedor_id"]) if e["vendedor_id"] is not None else None
+        vendedor = staff.get(e["vendedor_id"]) if e["vendedor_id"] is not None and not a_zero else None
         email_antigo = (vendedor["email"] or "").strip().lower() if vendedor else ""
         socio = email_antigo in socios
         paga = bool(coluna(e, "pix_pago_em")) or (vendida is not None and str(vendida) < PAGAMENTO_NO_SISTEMA_DESDE)
-        valor = int(e["valor_cents"] or 0)
+        valor = 0 if a_zero else int(e["valor_cents"] or 0)
         devida = comissao(valor) if vendida and paga and vendedor and not socio and not coluna(e, "comissao_paga_em") else 0
 
         chave = coluna(e, "produto") or PRODUTO_DA_PLACA
         produto = produtos.get(chave)
         negocio = negocios.get(coluna(e, "negocio_id"))
-        email = mapa.get(email_antigo, email_antigo) if vendedor else ""
+        email = mapa.get(email_antigo, "" if so_mapeados else email_antigo) if vendedor else ""
 
         linhas.append({
             "codigo": e["codigo"],
@@ -154,7 +162,8 @@ def converter(banco, mapa, socios):
         if vendida:
             totais["vendidas"] += 1
             totais["valor vendido (centavos)"] += valor
-            totais["vendidas não pagas"] += 0 if paga else 1
+            totais["vendidas não pagas"] += 0 if paga or a_zero else 1
+            totais["no ar sem venda, a R$ 0"] += 1 if a_zero else 0
         if devida:
             devida_por_vendedor[email] += devida
 
@@ -169,6 +178,10 @@ def main():
                             help="e-mail do Sales = login no app, uma vez por pessoa")
     argumentos.add_argument("--socio", action="append", required=True,
                             help="e-mail de sócio no Sales (ETIQUETAS_SOCIOS), uma vez por sócio; venda de sócio não comissiona")
+    argumentos.add_argument("--no-ar-sem-venda-a-zero", action="store_true",
+                            help="placa ativa ou suspensa sem venda entra como venda de R$ 0 na data do cadastro, sem vendedor")
+    argumentos.add_argument("--so-os-mapeados", action="store_true",
+                            help="venda de quem não está no --vendedor fica com o dono, em vez de ir pelo e-mail do Sales")
     opcoes = argumentos.parse_args()
 
     mapa = {}
@@ -179,7 +192,7 @@ def main():
         mapa[antigo.strip().lower()] = novo.strip().lower()
     socios = {s.strip().lower() for s in opcoes.socio}
 
-    linhas, totais, devidas, avisos = converter(carregar(opcoes.backup), mapa, socios)
+    linhas, totais, devidas, avisos = converter(carregar(opcoes.backup), mapa, socios, opcoes.no_ar_sem_venda_a_zero, opcoes.so_os_mapeados)
     with open(opcoes.saida, "w", newline="", encoding="utf-8") as arquivo:
         escritor = csv.DictWriter(arquivo, fieldnames=COLUNAS)
         escritor.writeheader()
