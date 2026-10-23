@@ -59,6 +59,16 @@ Arquitetura e decisões no [SDD](SDD.md); cada decisão estrutural em
      --nova-operadora --nome="Operação Avalia" --email=... --senha=...
    ```
 
+   Enquanto o cadastro temporário estiver no ar, a operadora também se cria
+   pela tela de entrada, em "Criar conta de operadora", com e-mail
+   @avaliaone.com.br e o código que chega no e-mail. Para fechar sem publicar
+   versão nova, acrescente ao `.env` e reinicie a API:
+
+   ```bash
+   echo 'CADASTRO_DE_OPERADORA_ABERTO=false' >> /srv/avalia-sales/.env
+   docker compose -f docker-compose.producao.yml --env-file /srv/avalia-sales/.env up -d api
+   ```
+
    Para dar a outro login um e-mail que já está em uso (por exemplo, o dono de
    uma revenda passa a usar outro e-mail e o antigo fica para a operadora),
    troque o e-mail antes, sem apagar nada:

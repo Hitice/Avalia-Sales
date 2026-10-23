@@ -597,6 +597,12 @@ Revisão pela skill `seguranca` (OWASP ASVS 5.0).
   pedidos em cada etapa, equipe, vendas pagas e pendentes e leituras, tudo
   simulado), `--novo-revendedor --nome= --email= --senha=` e `--nova-operadora
   --nome= --email= --senha=`. Passo a passo no README.
+- Cadastro temporário de operadora - a entrada mostra "Criar conta de operadora"
+  enquanto `Plataforma:CadastroDeOperadoraAberto` for verdadeiro. Só aceita
+  e-mail do domínio `Plataforma:DominioDaOperadora` (`avaliaone.com.br`); o
+  login nasce inativo e sem senha, recebe um código de 6 dígitos no e-mail e
+  só ativa com o código certo. Sai do código depois da criação das contas da
+  operação.
 - Desenvolvimento local - Postgres 17 do Homebrew; os testes criam e apagam
   o próprio banco. No VPS o banco nasce vazio e as mesmas migrations criam as
   tabelas: não há dado a migrar da máquina.
@@ -693,6 +699,7 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
 
 | Data | Mudança |
 | --- | --- |
+| 23/10/2026 | Cadastro temporário de operadora - `GET /cadastro/operadora`, `POST /cadastro/operadora/codigo` (limite por IP) e `POST /cadastro/operadora`. Só e-mail do domínio `Plataforma:DominioDaOperadora`, código do provedor de e-mail do Identity, bloqueio por tentativas erradas. Fecha com `Plataforma:CadastroDeOperadoraAberto=false`. |
 | 23/10/2026 | `Importacao.Importar` recusa revendedor com `encerrada_em`. |
 | 23/10/2026 | Migration VendaDoSistemaAnterior (`vendas.do_sistema_anterior`), recusa em `Vendas` (cobrança, cancelamento, cortesia, recebido por fora). A comissão devida importada entra com a data da importação; a da venda vai na descrição. |
 | 23/10/2026 | Versão 1.9.0. Conta encerrada só consulta também no front e sem `/lugares`; reabertura pedida pelo dono e aprovada ou recusada pela operadora (`revendedores.reabertura_pedida_em` e `reaberta_em`, migration ReaberturaDaConta, contrato novo depois da reabertura); `IContas.AtivarLogins`; comando `--trocar-email`. |

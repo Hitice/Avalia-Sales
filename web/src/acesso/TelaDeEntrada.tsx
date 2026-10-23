@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, Navigate, useNavigate } from 'react-router'
@@ -26,6 +27,12 @@ export function TelaDeEntrada() {
   const sessao = useSessao()
   const navegar = useNavigate()
   const formulario = useForm<Entrada>({ resolver: zodResolver(esquema), defaultValues: { email: '', senha: '' } })
+  // Temporário: o link do cadastro de operadora só aparece enquanto ele estiver aberto.
+  const cadastroDeOperadora = useQuery({
+    queryKey: ['cadastro-de-operadora'],
+    queryFn: () => chamarApi<{ aberto: boolean }>('/cadastro/operadora'),
+    retry: false,
+  })
   const { errors, isSubmitting } = formulario.formState
   const [desafio, setDesafio] = useState<SegundoFatorExigido | null>(null)
 
@@ -90,6 +97,9 @@ export function TelaDeEntrada() {
       <p className="text-sm text-muted-foreground">
         Novo por aqui? <Link to="/cadastro" className="font-medium text-foreground underline underline-offset-4">Seja um revendedor</Link>
       </p>
+      {cadastroDeOperadora.data?.aberto && (
+        <Link to="/cadastro/operadora" className="text-sm text-muted-foreground underline underline-offset-4">Criar conta de operadora</Link>
+      )}
       <Rodape />
     </main>
   )

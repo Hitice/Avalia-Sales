@@ -68,6 +68,74 @@
         }
       }
     },
+    "/cadastro/operadora": {
+      "get": {
+        "tags": [
+          "AvaliaSales.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SituacaoDoCadastroDeOperadora"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "AvaliaSales.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NovaOperadora"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenEmitido"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cadastro/operadora/codigo": {
+      "post": {
+        "tags": [
+          "AvaliaSales.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PedidoDeOperadora"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/cadastro/cnpj/{cnpj}": {
       "get": {
         "tags": [
@@ -5657,6 +5725,34 @@
           }
         }
       },
+      "NovaOperadora": {
+        "required": [
+          "email",
+          "codigo",
+          "senha"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "codigo": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "senha": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "NovaSenha": {
         "required": [
           "token",
@@ -6101,6 +6197,27 @@
         ],
         "type": "object",
         "properties": {
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "PedidoDeOperadora": {
+        "required": [
+          "nome",
+          "email"
+        ],
+        "type": "object",
+        "properties": {
+          "nome": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
           "email": {
             "type": [
               "null",
@@ -6846,6 +6963,22 @@
           "Registrada",
           "Cancelada"
         ]
+      },
+      "SituacaoDoCadastroDeOperadora": {
+        "required": [
+          "aberto",
+          "dominio"
+        ],
+        "type": "object",
+        "properties": {
+          "aberto": {
+            "type": "boolean"
+          },
+          "dominio": {
+            "type": "string"
+          }
+        },
+        "description": "Entrada, renova\u00E7\u00E3o e sa\u00EDda. O token de acesso vive 15 minutos e s\u00F3 em\nmem\u00F3ria no front; o refresh fica em cookie HttpOnly, que script nenhum l\u00EA,\ne \u00E9 o que mant\u00E9m a sess\u00E3o quando a p\u00E1gina recarrega."
       },
       "SituacaoDoChamado": {
         "enum": [

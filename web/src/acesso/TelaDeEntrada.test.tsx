@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createMemoryRouter, RouterProvider } from 'react-router'
@@ -10,12 +11,16 @@ function abrir() {
     [{ path: '/entrar', element: <TelaDeEntrada /> }, { path: '/painel', element: <p>Painel aberto</p> }],
     { initialEntries: ['/entrar'] },
   )
-  render(<RouterProvider router={roteador} />)
+  render(<QueryClientProvider client={new QueryClient()}><RouterProvider router={roteador} /></QueryClientProvider>)
   return userEvent.setup()
 }
 
 function respostaDaApi(status: number, corpo: unknown) {
-  return vi.fn().mockResolvedValue(new Response(JSON.stringify(corpo), { status, headers: { 'Content-Type': 'application/json' } }))
+  return vi.fn().mockImplementation(() => Promise.resolve(new Response(JSON.stringify(corpo), { status, headers: { 'Content-Type': 'application/json' } })))
+}
+
+function chamadasDoLogin(fetch: ReturnType<typeof vi.fn>) {
+  return fetch.mock.calls.filter(([caminho]) => caminho === '/api/auth/entrar') as [string, RequestInit][]
 }
 
 afterEach(() => {
@@ -35,7 +40,7 @@ describe('TelaDeEntrada', () => {
     expect(await screen.findByText('Digite um e-mail válido.')).toBeInTheDocument()
     expect(screen.getByText('Digite a senha.')).toBeInTheDocument()
     expect(screen.getByLabelText('E-mail')).toHaveAttribute('aria-invalid', 'true')
-    expect(fetch).not.toHaveBeenCalled()
+    expect(chamadasDoLogin(fetch)).toHaveLength(0)
   })
 
   it('senha errada mostra a mesma mensagem que e-mail inexistente', async () => {
@@ -60,8 +65,7 @@ describe('TelaDeEntrada', () => {
 
     expect(await screen.findByText('Painel aberto')).toBeInTheDocument()
     expect(useSessao.getState().token).toBe('token-de-teste')
-    const [caminho, opcoes] = fetch.mock.calls[0] as [string, RequestInit]
-    expect(caminho).toBe('/api/auth/entrar')
+    const [[, opcoes]] = chamadasDoLogin(fetch)
     expect(JSON.parse(opcoes.body as string)).toEqual({ email: 'cliente@a.dev', senha: 'demo-1234567' })
   })
 })

@@ -24,6 +24,7 @@ x-integracoes: &integracoes
   Plataforma__EmailDaOperadora: ${PLATAFORMA_EMAIL_DA_OPERADORA:?defina PLATAFORMA_EMAIL_DA_OPERADORA}
   Plataforma__RepresentanteDaAvalia: ${AVALIA_REPRESENTANTE:-}
   Plataforma__CargoDoRepresentante: ${AVALIA_CARGO_DO_REPRESENTANTE:-}
+  Plataforma__CadastroDeOperadoraAberto: ${CADASTRO_DE_OPERADORA_ABERTO:-true}
   Pdf__UrlDoConversor: http://gotenberg:3000
   Resend__ChaveApi: ${RESEND_CHAVE_API:-}
   Resend__Remetente: ${RESEND_REMETENTE:-}

@@ -113,6 +113,101 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/cadastro/operadora": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SituacaoDoCadastroDeOperadora"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["NovaOperadora"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TokenEmitido"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/cadastro/operadora/codigo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PedidoDeOperadora"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/cadastro/cnpj/{cnpj}": {
         parameters: {
             query?: never;
@@ -5642,6 +5737,11 @@ export interface components {
         NovaMensagem: {
             texto: string;
         };
+        NovaOperadora: {
+            email: null | string;
+            codigo: null | string;
+            senha: null | string;
+        };
         NovaSenha: {
             token: null | string;
             senha: null | string;
@@ -5761,6 +5861,10 @@ export interface components {
             senha: string;
         };
         PedidoDeLink: {
+            email: null | string;
+        };
+        PedidoDeOperadora: {
+            nome: null | string;
             email: null | string;
         };
         PedidoDeReabertura: {
@@ -5963,6 +6067,15 @@ export interface components {
         SituacaoDaPlaca: "EmEstoque" | "Ativa" | "Suspensa" | "Baixada";
         /** @enum {unknown} */
         SituacaoDaVenda: "Registrada" | "Cancelada";
+        /**
+         * @description Entrada, renovação e saída. O token de acesso vive 15 minutos e só em
+         *     memória no front; o refresh fica em cookie HttpOnly, que script nenhum lê,
+         *     e é o que mantém a sessão quando a página recarrega.
+         */
+        SituacaoDoCadastroDeOperadora: {
+            aberto: boolean;
+            dominio: string;
+        };
         /** @enum {unknown} */
         SituacaoDoChamado: "AguardandoAvalia" | "AguardandoRevenda" | "Resolvido";
         /** @enum {unknown} */
