@@ -10,8 +10,9 @@ Arquitetura e decisões no [SDD](SDD.md); cada decisão estrutural em
 | --- | --- | --- |
 | `nginx` | Front (React compilado), TLS, `/api/` (com WebSocket do hub), `/q/` e `/webhooks/` para a API | 80 e 443, as únicas publicadas |
 | `api` | API e hub de avisos | 8080, só na rede do compose |
-| `worker` | Webhooks, retomadas, conferência de cobrança, e-mails, ERP | - |
+| `worker` | Webhooks, retomadas, reconsulta de cobrança e de assinatura, contrato e distrato, e-mails, ERP | - |
 | `migrar` | Migrations como dono do banco; termina antes de `api` e `worker` | - |
+| `gotenberg` | PDF do contrato e do distrato, chamado só pelo Worker; sem saída para a rede | 3000, só na rede do compose |
 | `postgres` | PostgreSQL 17, papel `avalia_app` sem superusuário e sem BYPASSRLS | só na rede do compose |
 | `certbot` | Renova o certificado do Let's Encrypt duas vezes por dia | - |
 | `backup` | `pg_dump` diário, guarda `BACKUP_DIAS` dias | - |
@@ -41,7 +42,7 @@ Arquitetura e decisões no [SDD](SDD.md); cada decisão estrutural em
 
    O Nginx sobe com um certificado provisório, só para responder o desafio do
    Let's Encrypt.
-6. Certificado de verdade (uma vez; depois o `certbot` renova sozinho):
+6. Certificado definitivo do Let's Encrypt (uma vez; depois o `certbot` renova sozinho):
 
    ```bash
    set -a; . /srv/avalia-sales/.env; set +a

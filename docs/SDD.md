@@ -4,27 +4,28 @@ Como a plataforma é construída. O que ela faz e as regras de negócio estão n
 [PDD](PDD.md). Os dois são atualizados no mesmo commit da mudança que os
 afeta, com uma linha no registro de mudanças do fim.
 
-Cada seção diz o que já está no código e o que ainda é plano.
+Em produção em sales.avaliaone.com.br. Onde algo depende de conta ou chave
+externa, a seção diz.
 
 ## 1. Stack
 
 | Camada | Tecnologia | Versão | Situação |
 | --- | --- | --- | --- |
-| API | C#, ASP.NET Core Web API (minimal APIs) | .NET 10 LTS | No código |
-| Jobs | Worker Service | .NET 10 LTS | No código |
-| Banco | PostgreSQL com EF Core e Npgsql | Postgres 17, EF Core 10.0.13, Npgsql 10.0.3 | No código |
-| Acesso | ASP.NET Identity e JWT (HMAC-SHA256) | 10.0.13 | No código |
-| Integrações | Pagar.me v5, D4Sign v1, Resend, Google Places (New), BrasilAPI (CNPJ e CEP), Gotenberg 8 (PDF) | - | No código |
-| QR da impressão | QRCoder (MIT), SVG e PNG sem System.Drawing | 1.8.0 | No código |
-| Resiliência | Microsoft.Extensions.Http.Resilience (Polly) | 10.11.0 | No código |
-| Tempo real | SignalR, com o LISTEN/NOTIFY do Postgres levando os avisos do Worker à API | ASP.NET Core 10, `@microsoft/signalr` 10.0.11 | No código |
-| Front | React 19 + Vite, React Router, TanStack Query, Zustand, React Hook Form + Zod, Tailwind 4, shadcn/ui (Radix) | React 19.3, Vite 8.3, Router 8.5, Tailwind 4.3, Zod 4.6, TypeScript 6.0 | Telas da Fase 1 no código |
-| Leitura de QR e Pix no front | `BarcodeDetector` nativo; sem ele, o polyfill `barcode-detector` sobre o ZXing C++ em WebAssembly (`zxing-wasm`), servido pelo app; `qrcode` para o QR do Pix | barcode-detector 3.2.2, zxing-wasm 3.1.3, qrcode 1.5.4 | No código |
-| ERP | Protheus por contrato REST próprio, com simulador | - | No código |
-| Mapa | Google Maps JavaScript pelo `@googlemaps/js-api-loader`, marcador avançado | loader 2.1.3, tipos 3.66.5 | No código; sem chave, lista |
-| Documentação da API | OpenAPI do ASP.NET Core em `/openapi/v1.json` e Swagger UI em `/swagger`, só em Development | OpenApi 10.0.13, Swashbuckle.AspNetCore.SwaggerUI 10.3.0 | No código |
-| Infra | Linux, Docker Compose, Nginx, Let's Encrypt (certbot) | nginx 1.28, certbot 5.8.0, postgres 17 | Compose de produção no repositório; não rodado aqui (sem Docker na máquina) |
-| CI e CD | GitHub Actions, runner próprio no deploy, SonarCloud, Sentry | sonarscanner 11.3.0, Sentry 6.12.0 e 11.5.0 | No repositório; deploy e SonarCloud esperam o VPS e o token |
+| API | C#, ASP.NET Core Web API (minimal APIs) | .NET 10 LTS | Em produção |
+| Jobs | Worker Service | .NET 10 LTS | Em produção |
+| Banco | PostgreSQL com EF Core e Npgsql | Postgres 17, EF Core 10.0.13, Npgsql 10.0.3 | Em produção |
+| Acesso | ASP.NET Identity e JWT (HMAC-SHA256) | 10.0.13 | Em produção |
+| Integrações | Pagar.me v5, D4Sign v1, Resend, Google Places (New), BrasilAPI (CNPJ e CEP), Gotenberg 8 (PDF) | Gotenberg 8.38.1 | Em produção; o Pagar.me espera a conta da Avalia |
+| QR da impressão | QRCoder (MIT), SVG e PNG sem System.Drawing | 1.8.0 | Em produção |
+| Resiliência | Microsoft.Extensions.Http.Resilience (Polly) | 10.11.0 | Em produção |
+| Tempo real | SignalR, com o LISTEN/NOTIFY do Postgres levando os avisos do Worker à API | ASP.NET Core 10, `@microsoft/signalr` 10.0.11 | Em produção |
+| Front | React 19 + Vite, React Router, TanStack Query, Zustand, React Hook Form + Zod, Tailwind 4, shadcn/ui (Radix) | React 19.3, Vite 8.3, Router 8.5, Tailwind 4.3, Zod 4.6, TypeScript 6.0 | Em produção |
+| Leitura de QR e Pix no front | `BarcodeDetector` nativo; sem ele, o polyfill `barcode-detector` sobre o ZXing C++ em WebAssembly (`zxing-wasm`), servido pelo app; `qrcode` para o QR do Pix | barcode-detector 3.2.2, zxing-wasm 3.1.3, qrcode 1.5.4 | Em produção |
+| ERP | Protheus por contrato REST próprio, com simulador | - | Simulado; espera o serviço REST no Protheus |
+| Mapa | Google Maps JavaScript pelo `@googlemaps/js-api-loader`, marcador avançado | loader 2.1.3, tipos 3.66.5 | Em produção; sem a chave do navegador, mostra lista |
+| Documentação da API | OpenAPI do ASP.NET Core em `/openapi/v1.json` e Swagger UI em `/swagger` | OpenApi 10.0.13, Swashbuckle.AspNetCore.SwaggerUI 10.3.0 | Só em Development |
+| Infra | Linux, Docker Compose, Nginx, Let's Encrypt (certbot) | nginx 1.28, certbot 5.8.0, postgres 17 | Em produção no VPS |
+| CI e CD | GitHub Actions, runner próprio no deploy, SonarCloud, Sentry | sonarscanner 11.3.0, Sentry 6.12.0 e 11.5.0 | Em uso; o SonarCloud espera o token |
 
 A versão do .NET e a de cada pacote moram só em `Directory.Build.props` e
 `Directory.Packages.props`.
@@ -33,18 +34,18 @@ A versão do .NET e a de cada pacote moram só em `Directory.Build.props` e
 
 ```
 Front (React) ──┐
-Página do QR ───┼── Nginx ── Api ──┬── PostgreSQL
-                │                  ├── Pagar.me, D4Sign, Resend, Google
-Webhooks ───────┘   Worker ────────┘
+Página do QR ───┼── Nginx ── Api ──┬── PostgreSQL 17
+                │                  ├── Pagar.me, D4Sign, Resend, Google Places, BrasilAPI
+Webhooks ───────┘   Worker ────────┴── Gotenberg (PDF, rede interna)
 ```
 
 | Projeto | Responsabilidade | Não pode |
 | --- | --- | --- |
-| `AvaliaSales.Domain` | Entidades e regras: `Revendedor`, `Produto`, `Cobranca`, `Contrato`, `Pacote`, `PedidoDePlacas`, `Lote`, `PlacaEmitida`, `Placa`, `Vendedor`, `Cliente`, `Venda`, `EmailNaFila`, e as regras puras `CodigoDaPlaca`, `Destino`, `LinkDeAvaliacao`, `Comissao`, `Documentos`, `Telefones` | Depender de outro projeto ou pacote |
-| `AvaliaSales.Application` | Casos de uso (`Produtos`, `Pacotes`, `PedidosDePlacas`, `Lotes`, `Estoque`, `FichaDaPlaca`, `Leituras`, `Equipe`, `Vendas`, `Cadastro`, `Revendedores`, `Cobrancas`, `Contratos`, `FilaDeEmails`) e interfaces (`IBancoDeDados`, `IRevendedorAtual`, `IUsuarioAtual`, `IContas`, `IGatewayDePagamento`, `IAssinaturaEletronica`, `IEnvioDeEmail`, `ILugares`, `IModeloDeContrato`) | Conhecer HTTP, Npgsql, Identity ou escrever SQL |
-| `AvaliaSales.Infrastructure` | `BancoDeDados` (com as travas de linha em SQL), migrations, Identity e sessões, clientes do Pagar.me, D4Sign, Resend e Places, simulador do Pagar.me, impressão do lote, caixa de entrada, processador, retomadas, envio de e-mails | Ter regra de negócio |
-| `AvaliaSales.Api` | Rotas por área (acesso, operadora, revenda, balcão, catálogo, leitura do QR, webhooks), autenticação, políticas por papel, modos de linha de comando | Ter regra de negócio ou SQL |
-| `AvaliaSales.Worker` | Volta a cada 10 segundos: caixa de entrada, retomadas, conferência de cobrança pendente, contrato de quem se cadastrou e fila de e-mails | Ter regra de negócio |
+| `AvaliaSales.Domain` | Entidades e regras: revenda (`Revendedor`, `Endereco`, marca), catálogo, pedidos e pacotes, lote e placa, venda e cliente, cobrança, razão e repasse, contrato e distrato, chamados, ordens de serviço, notificações, auditoria; e as regras puras `CodigoDaPlaca`, `Destino`, `LinkDeAvaliacao`, `Comissao`, `Documentos`, `Telefones`, `HorarioDeAtendimento` | Depender de outro projeto ou pacote |
+| `AvaliaSales.Application` | Casos de uso por área (cadastro e conta, catálogo, pedidos, estoque e placa, vendas e cobrança, comissões e razão, contratos e encerramento, chamados, serviços, notificações, auditoria, importação) e as interfaces de fora (`IBancoDeDados`, `IRevendedorAtual`, `IUsuarioAtual`, `IContas`, `IGatewayDePagamento`, `IAssinaturaEletronica`, `IEnvioDeEmail`, `ILugares`, `IDocumentos`, `IConsultaDeEndereco`, `ITransferenciaDeClientes`, `IConferenciaDeAssinatura`, `IErp`) | Conhecer HTTP, Npgsql, Identity ou escrever SQL |
+| `AvaliaSales.Infrastructure` | `BancoDeDados` (com as travas de linha em SQL), migrations, Identity e sessões, clientes do Pagar.me, D4Sign, Resend, Places, BrasilAPI, Gotenberg e Protheus, simuladores de Development, modelos do contrato e do distrato, impressão do lote, caixa de entrada, processador, retomadas, envio de e-mails | Ter regra de negócio |
+| `AvaliaSales.Api` | Rotas por área (acesso, conta, operadora, revenda, equipe, catálogo, chamados, leitura do QR, webhooks), autenticação, políticas por papel, middlewares de conta encerrada e de auditoria da operadora, modos de linha de comando | Ter regra de negócio ou SQL |
+| `AvaliaSales.Worker` | Volta a cada 10 segundos: caixa de entrada dos webhooks, retomadas (cobrança sem pedido, contrato e distrato, reconsulta de assinatura, fim do prazo de exportação), conferência de cobrança pendente, fila de e-mails e envios ao ERP | Ter regra de negócio |
 | `web` | Front único em React: telas, sessão, chamadas à API | Calcular regra de negócio que a API já decide |
 
 Regra recusada sai do Domain como `RegraDeNegocioException` e a API responde
@@ -73,16 +74,19 @@ negócio e duas travas independentes:
   revendedor definido).
 - Operadora - não pertence a revendedor (`usuarios.revendedor_id` nulo, com
   check no banco). Vê e altera só as tabelas marcadas com
-  `IAtendidoPelaOperadora`, hoje `pedidos_placas`: o filtro do EF ganha
+  `IAtendidoPelaOperadora` (`pedidos_placas`, `chamados`, `mensagens`,
+  `notificacoes` e `ordens_de_servico`): o filtro do EF ganha
   `OR operadora` e a política de RLS lê `app.operadora = 'sim'`, gravado pela
   mesma conexão. As demais tabelas continuam fechadas a ela.
 - Tabelas sem RLS de propósito - `usuarios` e `sessoes` (o login lê antes de
   saber o revendedor), `vinculos_externos` (o webhook chega sem revendedor e é
   ela que diz de quem é), `eventos_externos` e `emails` (não têm revendedor), e
-  as tabelas da plataforma `pacotes`, `lotes`, `placas_emitidas` e
-  `codigos_reservados` (estoque da Avalia antes do despacho e o código de cada
-  placa; o `revendedor_id` de `lotes` e `placas_emitidas` é o destino do
-  despacho).
+  as tabelas da plataforma `pacotes`, `cupons`, `lotes`, `placas_emitidas`,
+  `codigos_reservados`, `codigos_de_link`, `produtos_da_plataforma`,
+  `envios_ao_erp` e `auditoria_da_operadora` (estoque da Avalia antes do
+  despacho, o código de cada placa e de cada link, o catálogo e as filas da
+  operadora; o `revendedor_id` de `lotes`, `placas_emitidas` e
+  `codigos_de_link` diz de quem é o código).
 - Testes que guardam - cada trava é testada sozinha, e um teste falha se uma
   tabela com `revendedor_id` nascer sem RLS. Desligar uma trava de propósito
   faz o teste dela falhar; isso foi conferido.
@@ -93,11 +97,10 @@ negócio e duas travas independentes:
   pelo `ContratoDaApiTest`; `npm run tipos` gera `src/api/esquema.d.ts` com o
   openapi-typescript, e `src/api/tipos.ts` só apelida os tipos gerados. O CI
   falha se o contrato ou os tipos ficarem para trás.
-- Rotas por papel - `/entrar` e `/cadastro` abertas; `/operadora/*`
-  (pedidos, lotes, pacotes, revendedores) só para a operadora; `/painel/*`
-  (início, vendas, estoque, pedidos de placas, equipe, catálogo) só para o
-  dono; `/vender`, `/placa/:codigo` e `/vendedor/*` para dono e vendedor. Papel
-  errado vai para a área do próprio papel. Cada tela carrega o próprio código
+- Rotas por papel - entrada, cadastro, senha e confirmação abertas;
+  `/operadora/*` só para a operadora; `/painel/*` só para o dono; `/vender`,
+  `/catalogo`, `/links`, `/placa/:codigo` e `/vendedor/*` para dono e vendedor;
+  `/conta/*` para todos. Papel errado vai para a área do próprio papel. Cada tela carrega o próprio código
   quando abre (`lazy` do React Router): o pacote inicial caiu de 695 kB para
   460 kB, e o vendedor não baixa a área da operadora.
 - Sessão - o token de acesso fica só em memória (Zustand), nunca em
@@ -107,8 +110,9 @@ negócio e duas travas independentes:
   antes de vencer e, num 401, renova uma vez e repete. Renovações simultâneas
   esperam a mesma, porque o refresh é rotativo.
 - Chamadas - todas por `chamarApi`, com o prefixo `/api`. Em desenvolvimento o
-  Vite repassa `/api` à API local sem o prefixo; em produção o Nginx fará o
-  mesmo. A mensagem de erro da tela vem do `detail` do ProblemDetails.
+  Vite repassa `/api` à API local sem o prefixo; em produção o Nginx faz o
+  mesmo. Aba aberta antes de uma publicação recarrega uma vez ao abrir uma tela
+  cujo arquivo mudou (`lib/recarga.ts`). A mensagem de erro da tela vem do `detail` do ProblemDetails.
 - Dados - TanStack Query para leitura e gravação, com a lista refeita depois de
   gravar. Formulários com React Hook Form e Zod; a API valida de novo.
 - Dinheiro - digitado em reais e convertido para centavos inteiros por texto,
@@ -135,27 +139,26 @@ negócio e duas travas independentes:
   grava o endereço da placa na tag (Web NFC, só Chrome do Android), no fim da
   venda e na ficha.
 - Ponta a ponta - Playwright (`web/e2e`, `npm run e2e`) contra o front
-  compilado (vite preview) e a API de verdade com a demonstração: entrada,
-  venda no balcão até o link curto, convite do vendedor até o painel dele e
-  todas as telas do dono, a 390 px e a 1440 px. Cada tela passa no axe
+  compilado (vite preview) e a API local com a demonstração: entrada, venda no
+  balcão até o link curto, cartão, convite do vendedor, jornada entre
+  operadora, revenda e vendedora, segundo fator, encerramento de conta e todas
+  as telas do dono e da operadora, a 390 px e a 1440 px. Cada tela passa no axe
   (WCAG 2.2 AA; violação séria ou crítica falha) e sem rolagem lateral. No
   CI, o job `e2e` sobe Postgres, migra, semeia e liga a API pelo
   `web/e2e/api.sh`. Roda com movimento reduzido, para o axe não medir botão
   no meio da transição.
 - Testes - Vitest e Testing Library: dinheiro, sessão, renovação (uma só para
   chamadas simultâneas), rota protegida por papel, código da placa, percentual,
-  CNPJ, telefone, contraste da marca e a tela de entrada. 36 testes em
-  21/10/2026. Fluxos
-  conferidos no navegador com os dados da demonstração - dono a 1440 px, Nova
-  venda e ficha a 390 px até o Pix pago pelo simulador, operadora despachando
-  lote.
+  máscaras, endereço, recarga depois de publicação, contraste da marca e a
+  tela de entrada; 59 testes em 23/10/2026. Storybook com as histórias dos
+  componentes, compilado no CI.
 
 ## 4. Modelo de dados
 
 Dinheiro em centavos (`bigint`, colunas `_cents`), taxa em pontos base
 (`_bps`). Datas em UTC (`timestamptz`). Situações gravadas como texto.
 
-### No banco hoje
+### Tabelas
 
 | Tabela | Guarda | Regra |
 | --- | --- | --- |
@@ -166,11 +169,6 @@ Dinheiro em centavos (`bigint`, colunas `_cents`), taxa em pontos base
 | `contratos` | PDF, hash SHA-256, signatário, documento na D4Sign, etapa do envio, situação | RLS; `documento_na_assinatura` único |
 | `vinculos_externos` | Código no Pagar.me ou documento na D4Sign, e o revendedor dono | Chave (origem, id_externo); só identificadores |
 | `eventos_externos` | Webhook cru, chave do vínculo, tentativas, último erro, processado em | Único (origem, id_externo) |
-
-### Fase 1, no banco
-
-| Tabela | Guarda | Regra |
-| --- | --- | --- |
 | `usuarios` (colunas novas) | `papel` (Operadora, Dono, Vendedor) e `ativo` | Check: operadora sem revendedor, os outros com |
 | `sessoes` | Refresh token pelo hash SHA-256, família do login, validade de 14 dias | Sem RLS; hash único |
 | `pacotes` | Quantidade e preço oferecidos pela operadora | Sem RLS; quantidade única |
@@ -186,15 +184,6 @@ Dinheiro em centavos (`bigint`, colunas `_cents`), taxa em pontos base
 | `emails` | Fila de e-mails com chave única, tentativas, próxima tentativa e id no Resend. A espera dobra a cada falha (1 minuto até 6 horas) e o envio desiste depois de 20, uns 3 dias | Sem RLS |
 | `revendedores` (colunas novas) | CNPJ (único), comissão padrão (2000 = 20%), contrato assinado em | - |
 | `cobrancas` (coluna nova) | `conferida_em`, para a reconsulta de pendente | Índice por origem |
-
-Se a venda está paga, quem diz é a cobrança mais recente com origem nela, e
-não uma coluna da venda: a cobrança gravada antes de o Pagar.me cair já
-aponta para a venda.
-
-### Fase 2, no banco
-
-| Tabela | Guarda | Regra |
-| --- | --- | --- |
 | `cupons` | Código, desconto (pontos base ou centavos), validade, limite e usos | Sem RLS; código único; travado na hora do uso |
 | `lancamentos` | Razão do revendedor: tipo, origem, venda, vendedor, valor com sinal, competência, linha estornada | RLS; só inserção; único (origem, tipo) na linha original e único `estorna_id` no estorno |
 | `repasses` | Comissão paga ao vendedor: valor, vendas, data de corte, comprovante | RLS; vendedor travado na gravação |
@@ -221,10 +210,9 @@ aponta para a venda.
 | `contratos` (tipo novo) | `Distrato` | - |
 | `auditoria_da_operadora` | Usuário, ação (método e rota com os parâmetros), referência (id ou código da rota), corpo enviado em JSON (até 2.000 caracteres), ocorrido em | Sem RLS: não é de revenda; só as rotas `/operadora/auditoria` leem |
 
-### Planejado
-
-`regras_comissao` por produto, `conversas`, `mensagens`, `auditoria`,
-histórico de destino da placa. Detalhe no PDD.
+Se a venda está paga, quem diz é a cobrança mais recente com origem nela, e
+não uma coluna da venda: a cobrança gravada antes de o Pagar.me cair já
+aponta para a venda.
 
 Migration só aditiva. Tabela nova com `revendedor_id` chama
 `IsolarPorRevendedor` no fim do `Up`.
@@ -288,7 +276,7 @@ Conferido na referência oficial em 21/10/2026.
   Cada passo é gravado ao terminar; a retomada continua do último, sem repetir
   o upload.
 - Limite - a conta padrão aceita 10 requisições por hora, e um envio gasta
-  quatro. O Worker retoma no máximo 2 contratos por volta. Para volume real,
+  quatro. O Worker retoma no máximo 2 contratos por volta. Para mais volume,
   pedir aumento à D4Sign.
 - Situação - `GET /documents/{uuid}`: `statusId` 4 é finalizado, 6 é
   cancelado; os demais são andamento.
@@ -494,8 +482,8 @@ Conferido na referência oficial em 21/10/2026.
   pública por natureza; restringir ao domínio e à Maps JavaScript API) e o Map
   ID (`Google:IdDoMapa`, `DEMO_MAP_ID` para teste) do marcador avançado. Sem
   chave, a tela mostra a lista com o link do Google Maps.
-- A conferir com a chave real - o desenho dos marcadores; sem ela, só a lista
-  foi vista rodando.
+- Com a chave do navegador, conferir o desenho dos marcadores; sem ela, a tela
+  mostra a lista.
 
 ### Chamados (no código)
 
@@ -518,8 +506,6 @@ Conferido na referência oficial em 21/10/2026.
   RLS barra o resto.
 - Mensagem nova manda o aviso `chat` ao outro lado; abrir a conversa marca as
   do outro lado como lidas.
-| SignalR | Chat e avisos | Hub com JWT, grupo por revendedor |
-| Protheus | Pedido de placas pago vira pedido de venda | Interface com simulador da API REST |
 
 ## 6. Ambientes de teste das integrações
 
@@ -530,7 +516,7 @@ Conferido nas páginas oficiais em 21/10/2026.
 | Pagar.me | Chaves `sk_test_` e `pk_test_` no mesmo endereço da produção | Pix simulado aprova até R$ 500,00 e falha acima; o simulador de Pix não funciona com split, então o teste de split usa cartão (`4000000000000010` aprova, `4000000000000028` recusa). Split exige conta PSP: confirmar com o comercial se a conta de teste tem split habilitado |
 | D4Sign | `sandbox.d4sign.com.br`, cadastro próprio | Sem validade jurídica; mesmo limite de 10 requisições por hora até a D4Sign aumentar |
 | Resend | Endereços de teste `delivered@resend.dev`, `bounced@resend.dev`, `complained@resend.dev` | Plano gratuito com 3.000 e-mails por mês e 100 por dia; o teste conta na cota |
-| Google Maps e Places | Sem sandbox: a chamada é real | Cota gratuita por SKU por mês (10.000 carregamentos de mapa dinâmico, 10.000 Place Details Essentials); exige conta de faturamento no Google Cloud |
+| Google Maps e Places | Sem ambiente de testes: toda chamada conta na cota | Cota gratuita por SKU por mês (10.000 carregamentos de mapa dinâmico, 10.000 Place Details Essentials); exige conta de faturamento no Google Cloud |
 | Protheus | Sem ambiente público | Simulador próprio em homologação, identificado como tal |
 | Sentry | Plano Developer gratuito | 1 usuário, 5 mil erros, 30 dias de histórico |
 | SonarCloud | Gratuito para repositório público | Privado: gratuito até 50 mil linhas |
@@ -567,13 +553,13 @@ tentativas.
 | Login desativado não entra e perde as sessões abertas | No código |
 | Convite do vendedor e "esqueci a senha" por link de uso único (`links_de_senha`, só o hash; convite 24 horas, redefinição 1 hora; link novo derruba o anterior). O token vai depois do `#`, fora de log e de Referer. Pedido de link responde igual com e sem conta. Senha trocada destrava o login e encerra as sessões abertas | No código |
 | Leitura do QR com limite de 300 por minuto por IP, sem cookie, robôs não contam | No código |
-| CSP no HTML do front (Nginx): só o próprio domínio, Pagar.me (token do cartão), Google Maps e Places, Sentry e `wasm-unsafe-eval` para o leitor de QR; `frame-ancestors 'none'` | No código; conferir com `curl -sI` no primeiro deploy |
+| CSP no HTML do front (Nginx): só o próprio domínio, Pagar.me (token do cartão), Google Maps e Places, Sentry e `wasm-unsafe-eval` para o leitor de QR; `frame-ancestors 'none'` | Em produção, conferida com `curl -sI` em 23/10/2026, com HSTS, nosniff, Referrer-Policy e Permissions-Policy |
 | Segredos - gitleaks no CI (job `segredos`) e sem achado no histórico; falso positivo conferido no `.gitleaksignore` | No código |
 | Auditoria - tabela `auditoria` com RLS, só de inserção (`REVOKE UPDATE, DELETE` do papel da aplicação, com teste), gravada na transação da ação; `GET /auditoria` só do dono (20 por página, filtro por `referencia` e `acao`), `GET /auditoria/exportar` em JSON com os mesmos filtros e teto de 10.000, e o histórico na ficha | No código |
 | Aviso por e-mail quando a conta entra de um aparelho novo (o primeiro entra calado) | No código |
 | Dono só opera com e-mail confirmado; sem ele, só `/conta` | No código |
 | Segundo fator (app TOTP ou código por e-mail) opcional para dono e operadora: entrada em dois passos com desafio de 5 minutos, 10 códigos de recuperação, erro de código conta para o bloqueio, link de senha não pula o fator (ADR 0017) | No código |
-| LGPD - exportação dos dados do cliente (`GET /clientes/{id}/dados`) e anonimização (`POST /clientes/{id}/anonimizacao`, recusada com cobrança em aberto), só pelo dono e dentro do revendedor; valores ficam no razão | No código; prazo de guarda a definir (PDD 6b) |
+| LGPD - exportação dos dados do cliente (`GET /clientes/{id}/dados`) e anonimização (`POST /clientes/{id}/anonimizacao`, recusada com cobrança em aberto), só pelo dono e dentro do revendedor; valores ficam no razão | No código; depois do distrato, exportação por 30 dias e guarda do que a lei exige (PDD 6b) |
 
 Revisão pela skill `seguranca` (OWASP ASVS 5.0).
 
@@ -584,13 +570,12 @@ Revisão pela skill `seguranca` (OWASP ASVS 5.0).
 - Docker Compose de desenvolvimento - `postgres` (17, papel `avalia_app` criado
   na primeira subida), `migrar` (termina antes das outras), `api` e `worker`.
   A configuração das integrações é obrigatória: sem ela, API e Worker não
-  sobem. Segredos no `.env`, modelo em `.env.example`. Ainda não rodado nesta
-  máquina, que não tem Docker.
+  sobem. Segredos no `.env`, modelo em `.env.example`.
 - Produção - `docker-compose.producao.yml`: Nginx (front compilado, TLS do
   Let's Encrypt, `/api/` com WebSocket, `/q/` e `/webhooks/` para a API, sem
   versão no cabeçalho, HSTS, nosniff, Permissions-Policy só com câmera e NFC),
-  certbot renovando, API, Worker, `migrar`, Postgres e backup diário com
-  `pg_dump`. Só o Nginx publica porta. A API confia nos cabeçalhos
+  certbot renovando, API, Worker, Gotenberg, `migrar`, Postgres e backup
+  diário com `pg_dump`. Em produção desde 22/10/2026. Só o Nginx publica porta. A API confia nos cabeçalhos
   `X-Forwarded-*` de um salto (`Proxy:AtrasDoNginx`), para o limite por IP e o
   cookie `Secure`. Healthcheck pela própria API (`--saude`), porque a imagem
   `aspnet` não tem wget nem curl. Manual em [OPERACAO.md](OPERACAO.md).
@@ -622,8 +607,9 @@ Revisão pela skill `seguranca` (OWASP ASVS 5.0).
   certo e não à outra revenda; sem token, 401), contrato e fila do Protheus.
   Marca (contraste, logo pelos bytes, equipe lê e não grava, outra revenda não
   vê), mapa, chat (conversa, não lidas, isolamento) e a gravação da operadora
-  em nome de outro revendedor só nas tabelas atendidas. 164 testes em
-  21/10/2026.
+  em nome de outro revendedor só nas tabelas atendidas, contrato e distrato,
+  encerramento com a transferência dos clientes, reconsulta da assinatura,
+  auditoria da operadora e notificações por pessoa. 256 testes em 23/10/2026.
 - Os testes entram no Postgres com o papel `avalia_app_teste`, membro do
   `avalia_app`: as mesmas permissões e o mesmo RLS, sem trocar a senha que a API
   local usa.
@@ -631,7 +617,8 @@ Revisão pela skill `seguranca` (OWASP ASVS 5.0).
   falhar.
 - SonarCloud - job `qualidade` no CI com `dotnet-sonarscanner` 11.3.0; só
   roda com o segredo `SONAR_TOKEN` e as variáveis `SONAR_ORGANIZACAO` e
-  `SONAR_PROJETO`, senão avisa e passa.
+  `SONAR_PROJETO`, senão avisa e passa. Em 23/10/2026 o token não estava
+  configurado.
 - Deploy - workflow `Deploy` no runner próprio do VPS depois do CI verde no
   `main`, com aprovação do ambiente `producao`; imagens marcadas pelo commit;
   confere `/api/health` pelo domínio. Voltar é publicar o commit anterior.
@@ -674,27 +661,26 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
 
 ## 12. Pendências técnicas
 
-- Rodar o fluxo nos sandboxes do Pagar.me e da D4Sign com chave real e
-  confirmar os pontos marcados "a conferir".
-- Instalar Docker na máquina de desenvolvimento e rodar o Compose.
-- Cartão na venda pede a tokenização do Pagar.me no front (chave pública);
-  até lá a venda sai em Pix.
-- Cadastro de recebedor pela API do Pagar.me (`POST /recipients`); até lá a
-  operadora informa o `rp_` do revendedor.
+- Pagar.me - com a conta da Avalia, ensaiar no ambiente de testes Pix, cartão
+  (formato do `/tokens`), split e webhook, e conferir os pontos marcados "a
+  conferir" na seção 5. Depois, o cadastro de recebedor pela API
+  (`POST /recipients`); até lá a operadora informa o `rp_` do revendedor.
+- D4Sign - passar do ambiente de testes para a conta de produção.
+- Google Maps no navegador - chave restrita ao domínio e Map ID.
+- Protheus - o serviço REST do lado do Protheus; até lá, o simulador.
 - Valor da renovação de venda dada em cortesia (60% de zero dá R$ 0,01); a
   definir se usa a tabela gravada na venda.
 - Pacote inicial do front com 460 kB (React, Router, Query, Zod e o
   formulário de entrada); o polyfill de QR (44 kB e 1,1 MB de WebAssembly) só
   baixa no aparelho sem `BarcodeDetector`.
-- Mapa dos lugares vendidos (Google Maps JavaScript) e busca de lugar ainda sem
-  chave na demonstração; a busca responde pedindo o link colado.
-- Rodar o compose de produção pela primeira vez num VPS (não há Docker nesta
-  máquina) e o ensaio de restauração do backup.
+- Ensaio de restauração do backup no VPS.
+- SonarCloud e Sentry - configurar o token e o DSN.
 
 ## 13. Registro de mudanças
 
 | Data | Mudança |
 | --- | --- |
+| 23/10/2026 | Documento revisado para a produção - stack, arquitetura, isolamento, front, modelo de dados numa tabela só, testes e pendências atualizados. |
 | 23/10/2026 | Versão 1.8.2. Aba aberta antes de uma publicação pedia o arquivo da tela com o hash antigo ("Importing a module script failed"): as rotas carregadas sob demanda e o `vite:preloadError` recarregam a página uma vez (`lib/recarga.ts`, trava de 1 minuto contra laço), e a raiz das rotas tem `ErroDaTela` no lugar da tela de erro do React Router. |
 | 23/10/2026 | Versão 1.8.1. `POST /conta/segundo-fator/desligar/codigo` manda código novo ao e-mail cadastrado (`GestorDeSegundoFator.PrepararDesligamento`); `desligar` aceita esse código, o do app ou um de recuperação. `notificacoes.usuario_id` (migration NotificacaoParaUsuario) e `Notificacoes.ParaVendedor`; o sino (`/notificacoes`, política `Todos`) separa operadora, dono (sem destinatário ou ele) e vendedor (só ele). |
 | 23/10/2026 | Versão 1.8.0. Auditoria da operadora - middleware `AuditoriaDaOperadoraNaRota` no grupo `/operadora` grava cada escrita com resposta abaixo de 400 (corpo JSON com buffer; arquivo não), migration AuditoriaDaOperadora, rotas `GET /operadora/auditoria` e `/operadora/auditoria/exportar`, tela da operadora. `components/ui/toggle-group.tsx` (ToggleGroup do Radix com a cara das abas) no lugar de abas sem painel, que o axe recusava (`aria-valid-attr-value`). Teste de acessibilidade cobre as telas da operadora. |

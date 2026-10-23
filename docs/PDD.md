@@ -4,11 +4,12 @@ O que a plataforma faz, para quem, e as regras de negócio. O como fica no
 [SDD](SDD.md). Os dois são atualizados no mesmo commit da mudança que os
 afeta, com uma linha no registro de mudanças do fim.
 
-Situação em 21/10/2026 - Fase 0 pronta, integrações com Pagar.me e D4Sign no
-código, e a Fase 1 com API e telas: cadastro, pedido, despacho e ativação de
-lote, estoque, consignação, equipe, catálogo, Nova venda com QR, NFC e Pix, e
-ficha da placa. Falta para fechar a Fase 1 rodar os sandboxes reais e a
-revisão do texto do contrato.
+Situação em 23/10/2026 - em produção em sales.avaliaone.com.br (versão 1.8),
+com cadastro e contrato pela D4Sign (ambiente de testes), catálogo e pedido de
+placas, lote, equipe, venda no balcão com QR e NFC, serviços, chamados,
+notificações, marca da revenda, auditoria e encerramento de conta pelo
+distrato. A cobrança pelo Pagar.me espera a conta da Avalia, e o mapa espera a
+chave do Google para o navegador (seção 11).
 
 ## 1. Visão
 
@@ -21,7 +22,7 @@ própria equipe, recebe pelo Pagar.me e acompanha as vendas num painel.
 
 | Papel | Quem é | O que faz |
 | --- | --- | --- |
-| Operadora | A Avalia | Vende placas aos revendedores, recebe a taxa de cada venda, despacha lotes, atende o chat |
+| Operadora | A Avalia | Vende placas aos revendedores, recebe a taxa de cada venda, produz e despacha lotes, executa os serviços vendidos, atende os chamados |
 | Revendedor (dono) | Empresa que revende | Compra placas, convida vendedores, define preço e comissão, acompanha painel e mapa |
 | Vendedor | Equipe do revendedor | Vende no balcão pelo celular: lê o QR e grava o NFC |
 | Cliente final | Quem compra a placa | Paga por Pix ou cartão e usa a placa no negócio |
@@ -39,8 +40,8 @@ revendedor é a Avalia.
 | Renovação | Cliente final | Avalia a taxa e o revendedor o resto, sem comissão | No pagamento |
 | Comissão | Revendedor | Vendedor, por Pix, registrado no painel | Quando o revendedor repassa |
 
-- Taxa da Avalia - 1,99% de cada venda paga, gravada na cobrança no momento
-  dela. A confirmar se é 1,99% ou R$ 1,99 fixo.
+- Taxa da Avalia - 1,99% do valor bruto de cada venda e renovação paga,
+  gravada na cobrança no momento dela (contrato, cláusula 5.4).
 - Pacotes de placas - configuráveis pela operadora - 20, 50 e 100 placas a
   R$ 23,90, R$ 16,90 e R$ 13,90 a placa (R$ 478,00, R$ 845,00 e R$ 1.390,00),
   e um de 10 para o teste da revendedora Avalia. O preço do pacote já cobre a
@@ -49,8 +50,8 @@ revendedor é a Avalia.
   serviço) com foto, preço sugerido e situação (disponível, esgotado, fora de
   linha). O revendedor não cria produto: define o preço dele, livre, nunca
   abaixo do custo - na placa, o que pagou por ela no pacote (sem estoque, o
-  preço por placa do pacote mais caro); no serviço, só maior que zero. Por
-  enquanto só a placa é comprada no atacado.
+  preço por placa do pacote mais caro); no serviço, só maior que zero. Só a
+  placa é comprada no atacado.
 - Serviço vendido - a venda paga de serviço (Perfil no Google, cardápio,
   landing page, sistema, kit mesa, QR dinâmico) vira ordem de serviço para a
   Avalia executar, com a situação a fazer, em andamento, entregue ou
@@ -81,10 +82,13 @@ revendedor é a Avalia.
 5. Ativação - o revendedor digita o número do lote (LT-0001, lt 1 ou 1); as
    placas entram no estoque dele com o custo do pacote, e o pedido fica entregue.
 6. Equipe - cadastro dos vendedores e da comissão de cada um.
-7. Venda - o vendedor busca o negócio no Google (ou cola o link de avaliação do perfil, ou o link do cliente), lê o QR da placa ou digita o código, preenche o cliente e cobra. No fim grava na tag NFC o mesmo endereço do QR (`/Q/{codigo}`).
-8. Venda - cliente, negócio, destino do QR e cobrança por Pix ou cartão.
-9. Pagamento - o cliente paga e o split divide na hora.
-10. Painel - vendas ao vivo, saldo de comissão e mapa dos lugares vendidos.
+7. Venda - o vendedor busca o negócio no Google (ou cola o link de avaliação
+   do perfil, ou o link do cliente), lê o QR da placa ou digita o código,
+   preenche o cliente e cobra por Pix ou cartão. No fim grava na tag NFC o
+   mesmo endereço do QR (`/Q/{codigo}`).
+8. Pagamento - o cliente paga e o split divide na hora.
+9. Painel - vendas ao vivo, saldo de comissão, gráficos e mapa dos lugares vendidos.
+10. Encerramento - o dono pode encerrar a conta pelo distrato (seção 6).
 
 ## 5. Telas
 
@@ -92,28 +96,34 @@ Todas no mesmo app, liberadas pelo papel do usuário.
 
 | Tela | Quem usa | Pensada para | O que faz |
 | --- | --- | --- | --- |
-| Cadastro e contrato | Revendedor | Computador | Dados da empresa, conta para receber, contrato |
-| Pedido de placas | Revendedor | Computador | Pacote, pagamento, acompanhamento do envio |
-| Ativar lote | Revendedor | Computador | Número do lote recebido |
-| Vendedores | Revendedor | Computador | Criar, editar, desativar, excluir, comissão |
-| Catálogo | Revendedor e vendedor | Computador e celular | Produtos da Avalia com foto, preço sugerido e o preço da revenda; o dono ajusta o preço e pede placas; a equipe vende daqui (serviço abre a venda sem placa) |
-| Serviços | Revendedor | Computador e celular | As ordens de serviço que a Avalia executa para os clientes da revenda, com a situação |
-| Notificações | Dono e operadora | Celular e computador | O sino do cabeçalho - venda paga da equipe, pedido, serviço e chamado, ao vivo; marcar como lida |
-| Marca | Revendedor | Computador | Logo com recorte (horizontal ou quadrado, arrastar e zoom), cores e nome exibido, com prévia do app nas cores escolhidas |
-| Painel | Revendedor | Computador | Início com os números do mês e gráficos - vendas por dia nos últimos 30 dias, recebido por mês nos últimos 6 e vendas do mês por vendedor; pendências (contrato, conta de recebimento, celular) no sino |
-| Configurações | Dono | Computador e celular | Comissão padrão e preço da renovação, que valem para venda nova |
-| Auditoria | Revendedor | Computador | Quem mudou o quê, em tabela com antes e depois, busca pelo código, filtro pela ação, 20 por página e exportação em JSON |
-| Auditoria da operadora | Operadora | Computador | O que a operadora mudou na plataforma (pacote, cupom, lote, pedido, catálogo, recebedor, contrato em papel, serviço, chamado), com o que foi enviado, busca, 20 por página e exportação em JSON |
-| Meus dados | Todos | Celular e computador | No menu da conta (junto do Sair) - nome de todos; nome da empresa, celular e endereço do dono (o CNPJ não muda); telefone e chave Pix do vendedor. O e-mail muda pelo Suporte. O dono encerra a conta aqui (Encerrar conta) |
-| Segurança | Dono e operadora | Celular e computador | Ativar o segundo fator (app autenticador ou código no e-mail), com códigos de recuperação. Desativar manda um código novo ao e-mail cadastrado; o do app e os de recuperação também valem |
-| Mapa | Revendedor | Computador | Lugares vendidos, no Google Maps |
-| Painel do vendedor | Vendedor | Celular | Vendas do mês, comissão a receber, esperando pagamento e recebida, placas com ele |
-| Nova venda | Vendedor | Celular | Negócio no Google, QR da placa, cliente, cobrança, gravação do NFC |
+| Entrada, cadastro e senha | Todos | Celular e computador | Entrar, cadastrar a revenda (CNPJ preenche razão social e endereço), confirmar o e-mail, criar e trocar a senha |
+| Início | Dono | Computador | Números do mês e gráficos - vendas por dia nos últimos 30 dias, recebido por mês nos últimos 6 e vendas do mês por vendedor |
+| Vendas | Dono | Computador | Lista das vendas, cobrança de novo, cancelamento, cortesia, recebido por fora |
+| Clientes | Dono | Computador | Clientes da revenda, exportação dos dados e anonimização (LGPD) |
 | Serviços | Dono e vendedor | Celular | Abas Link (link curto /L/ de qualquer endereço colado), NFC (grava o link curto na tag), Maps (busca o negócio no Google e cria o link curto da avaliação) e Status (só o dono; as ordens dos serviços vendidos que a Avalia executa); o dono edita, desliga e exclui o link |
-| Ficha da placa | Vendedor e revendedor | Celular | Destino, vencimento, leituras, troca, renovação |
-| Pedidos | Operadora | Computador | Pedidos pagos, em produção, lote despachado, envio |
+| Mapa | Dono | Computador | Lugares vendidos, no Google Maps |
+| Catálogo | Dono e vendedor | Computador e celular | Produtos da Avalia com foto, preço sugerido e o preço da revenda; o dono ajusta o preço e pede placas; a equipe vende daqui (serviço abre a venda sem placa) |
+| Estoque | Dono | Computador | Placas por situação, consignação ao vendedor e ativação de lote |
+| Pedidos | Dono | Computador | Pedidos de placas com a situação (aguardando pagamento, pago, em produção, enviado, entregue) e o link de pagamento |
+| Equipe | Dono | Computador | Criar, editar, desativar e excluir vendedor, comissão própria, convite |
+| Comissões e Razão | Dono | Computador | Saldo de cada vendedor, repasse com comprovante; razão do mês |
+| Configurações | Dono | Computador e celular | Comissão padrão, preço da renovação e o contrato de revenda (reenviar, conferir assinatura, baixar cópia) |
+| Marca | Dono | Computador | Logo com recorte (horizontal ou quadrado, arrastar e zoom), cores e nome exibido, com prévia nas cores escolhidas |
+| Auditoria | Dono | Computador | Quem mudou o quê, com antes e depois, busca pelo código, filtro pela ação, 20 por página e exportação em JSON |
+| Suporte | Dono | Computador e celular | Chamados com a Avalia, com o prazo de resposta |
+| Notificações | Todos | Celular e computador | O sino do cabeçalho - pendências da revenda (contrato, recebimento, celular, endereço, distrato) e avisos ao vivo; o vendedor vê os dele (venda paga, comissão repassada, placas com ele) |
+| Meus dados | Todos | Celular e computador | No menu da conta - nome de todos; nome da empresa, celular e endereço do dono (o CNPJ não muda); telefone e chave Pix do vendedor; o dono encerra a conta aqui. O e-mail muda pelo Suporte |
+| Segurança | Dono e operadora | Celular e computador | Ativar o segundo fator (app autenticador ou código no e-mail), com códigos de recuperação. Desativar manda um código novo ao e-mail cadastrado; o do app e os de recuperação também valem |
+| Painel do vendedor | Vendedor | Celular | Vendas do mês, comissão a receber, esperando pagamento e recebida, placas com ele |
+| Nova venda | Dono e vendedor | Celular | Negócio no Google, QR da placa, cliente, cobrança, gravação do NFC; ou venda de serviço, sem placa |
+| Ficha da placa | Dono e vendedor | Celular | Destino, vencimento, leituras, histórico, troca, renovação |
+| Pedidos, Lotes, Pacotes e Cupons | Operadora | Computador | Fila de pedidos (produção, despacho do lote), geração e impressão de lotes, pacotes e cupons |
 | Catálogo da Avalia | Operadora | Computador | Cadastrar e editar produto, foto com recorte, preço sugerido, ordem e situação |
-| Serviços | Operadora | Computador | A fila de ordens de serviço - iniciar, entregar, cancelar |
+| Serviços da operadora | Operadora | Computador | A fila de ordens de serviço - iniciar, entregar, cancelar |
+| Revendedores | Operadora | Computador | Revendas, recebedor no Pagar.me, contrato em papel, situação do encerramento |
+| Atendimento | Operadora | Computador | Fila de chamados pelo prazo, com o atrasado em vermelho |
+| ERP | Operadora | Computador | Envios ao Protheus e reenvio |
+| Auditoria da operadora | Operadora | Computador | O que a operadora mudou na plataforma, com o que foi enviado, busca, 20 por página e exportação em JSON |
 | Página do QR | Cliente final | Celular | Redireciona ao destino e conta a leitura |
 
 ## 6. Regras de negócio
@@ -205,7 +215,8 @@ Todas no mesmo app, liberadas pelo papel do usuário.
 - `/L/{codigo}` - mesmo formato do código da placa (6 caracteres Crockford),
   cerca de 33 bytes; cabe em qualquer tag NFC.
 - A venda com destino no Google cria o link do negócio, ou reaproveita o que já
-  leva ao mesmo destino. A tela Links cria o do negócio sem placa.
+  leva ao mesmo destino. Em Serviços, as abas Link e Maps criam o link do
+  negócio sem placa.
 - O código nunca volta ao sorteio, nem depois de o link ser excluído.
 - Clique conta só no GET de gente; HEAD e robô não contam. Desligado mostra
   aviso; excluído responde não encontrado.
@@ -235,13 +246,9 @@ Todas no mesmo app, liberadas pelo papel do usuário.
   menor sequência. Vendedor excluído devolve o que tinha.
 - Suspender não apaga nada: a placa volta exatamente como estava. Só o dono ou
   quem vendeu a placa muda o destino e suspende.
-
 - O lote é ligado ao pedido no despacho; a ativação só aceita lote ligado a
   pedido do próprio revendedor, para um número digitado errado não prender o
   lote de outro.
-- Não há consignação entre a Avalia e o revendedor - o revendedor paga o
-  pacote antes e as placas ativadas são dele. Consignação só existe dentro do
-  revendedor, do estoque dele para um vendedor da equipe, e de volta.
 - Renovação - 1 ano por 60% do valor da venda, sem comissão; o dono ajusta o
   percentual (10% a 100%) e vale para renovação nova. Conta a partir do
   vencimento antigo, mesmo paga com atraso. Uma renovação em aberto por placa;
@@ -266,8 +273,8 @@ Todas no mesmo app, liberadas pelo papel do usuário.
 ### Atendimento
 
 - O dono fala com a Avalia em chamados (menu Suporte, tela "Contate o suporte"):
-  abre com assunto e mensagem, acompanha a resposta e marca como resolvido.
-  Mensagem nova num chamado resolvido reabre o chamado. Mensagem não é editada
+  abre com assunto e mensagem, acompanha a resposta e fecha o chamado.
+  Mensagem nova num chamado fechado reabre o chamado. Mensagem não é editada
   nem apagada. Abrir o chamado marca como lidas as mensagens do outro lado, e a
   mensagem nova chega ao vivo.
 - Atendimento de segunda a sexta, das 8h às 18h de Brasília, sem feriado
@@ -365,7 +372,7 @@ porta o negócio e troca a tecnologia onde a stack pede.
 | Venda só na Nova venda, placa sem venda fora do ar | Igual | No código |
 | Pix e cartão pelo Asaas | Pix e cartão pelo Pagar.me, com split da taxa da Avalia | Pix no código; cartão pede a tokenização no front |
 | Busca do lugar no Google Places e link colado do perfil | Places (New) Text Search pelo servidor e link colado | No código |
-| Mapa de bairros em Leaflet com OpenStreetMap | Google Maps JavaScript | Fase 3 |
+| Mapa de bairros em Leaflet com OpenStreetMap | Google Maps JavaScript | No código; espera a chave do navegador |
 | Placa coringa de teste (fluxo desfeito no fim) | Lote de teste da revendedora Avalia em homologação | Planejado |
 | Renovação por 60% do valor, sem comissão | Igual, com o percentual ajustável pelo dono | No código |
 | Confirmação de pagamento em dinheiro ou outro Pix | Igual, depois de o Pix vencer; a taxa da Avalia fica a acertar no razão; o dono desfaz com estorno | No código |
@@ -404,8 +411,10 @@ porta o negócio e troca a tecnologia onde a stack pede.
   e-mail e lugar, não volta atrás, e é recusada com cobrança em aberto. Vendas
   e razão ficam, com os valores, pela obrigação fiscal.
 - Logs e Sentry sem dado pessoal: nem corpo, nem cookie, nem IP.
-- A definir com o jurídico - prazo de guarda depois do fim do contrato do
-  revendedor e o texto da política de privacidade.
+- Fim do contrato - pelo distrato, a revenda exporta os dados por 30 dias;
+  depois, a Avalia elimina ou anonimiza o que não precisar manter, e guarda o
+  que a lei exige (cláusulas 3.3 do distrato e 8.9 do contrato).
+- A definir com o jurídico - o texto da política de privacidade.
 
 ## 7. Marca do revendedor
 
@@ -420,15 +429,15 @@ A tela mostra a prévia e o contraste antes de salvar, e a API confere de novo:
 - Logo - qualquer foto ou imagem de até 25 MB; o navegador reduz para 512 px no lado maior e grava em WebP (PNG onde não há WebP). A API guarda até 512 KB, conferido pelos bytes do arquivo.
 
 A tela de login e a área da operadora usam a marca da plataforma. Voltar à
-marca da plataforma apaga cores, nome e logo. O e-mail com a marca do
-revendedor fica para depois.
+marca da plataforma apaga cores, nome e logo. O e-mail enviado em nome da
+revenda leva o nome e a cor dela (seção E-mail).
 
 ## 8. Fora do escopo
 
 - Avalia Gestor, Lia, página de links e loja, que seguem no sistema atual da
   Avalia.
-- WhatsApp e atendimento por IA. O pré-atendimento é o chat do revendedor com
-  a Avalia, dentro da plataforma.
+- WhatsApp e atendimento por IA. O atendimento é feito nos chamados, dentro da
+  plataforma.
 - Domínio próprio por revendedor. Todos usam o mesmo domínio.
 
 ## 9. A Avalia na plataforma
@@ -443,58 +452,56 @@ revendedor fica para depois.
    centavo.
 4. Volta - o Sales fica intacto por semanas; voltar é desligar o repasse.
 
-Ferramentas prontas para a Fase 4 (docs/OPERACAO.md) - reservar os códigos
-do Sales antes de qualquer lote de produção, e importar as placas por um
-arquivo que serve a qualquer revendedor, com ensaio que só mostra os totais. A
-venda importada mantém o valor de origem, sem cobrança e sem comissão.
+Ferramentas prontas (docs/OPERACAO.md) - reservar os códigos do Sales antes
+de qualquer lote de produção, converter o backup diário do Sales no arquivo de
+importação e importar as placas por um arquivo que serve a qualquer revendedor,
+com ensaio que só mostra os totais. A venda importada mantém o valor de origem,
+sem cobrança, e a comissão devida vira saldo do vendedor.
 
 Regra que não quebra - `avaliaone.com.br/q/{codigo}` responde para sempre,
 porque está impresso nas placas vendidas.
 
 ## 10. Fases
 
-Estimativa em semanas de cerca de 20 horas.
-
-| Fase | Conteúdo | Semanas | Situação |
-| --- | --- | --- | --- |
-| 0. Base | Solução em camadas, login, isolamento entre revendedores, CI | 2 | Feita |
-| Integrações | Pagar.me (cobrança, split, webhook) e D4Sign (envio, webhook) no código | - | Feita, falta sandbox real |
-| 1. Revenda | Cadastro, contrato, pedido, lote, equipe, venda, NFC e QR | 3 | Feita em simulação; falta o sandbox real do Pagar.me e da D4Sign |
-| 2. Pagamento | Checkout do pedido de placas, cupom, comissão, razão | 3 | Feita em simulação; falta o sandbox real |
-| 3. Serviços | Chat, painel ao vivo, mapa, Worker, Protheus simulado, white label | 4 | Feita; o mapa com o Google real espera a chave do navegador |
-| 4. Avalia | Teste, integração com o Sales, migração e volta | 3 | Ferramentas prontas (reservar códigos, importar placas com ensaio); falta a virada com o Sales |
+| Fase | Conteúdo | Situação |
+| --- | --- | --- |
+| 0. Base | Solução em camadas, login, isolamento entre revendedores, CI e publicação | Em produção |
+| 1. Revenda | Cadastro, contrato, pedido, lote, equipe, venda, NFC e QR | Em produção; a cobrança espera a conta do Pagar.me |
+| 2. Pagamento | Checkout do pedido de placas, cupom, comissão, razão | Pronta; espera a conta do Pagar.me |
+| 3. Serviços | Chamados, avisos ao vivo, mapa, Worker, Protheus simulado, marca da revenda, serviços vendidos | Em produção; o mapa espera a chave do navegador |
+| 4. Avalia | Teste, integração com o Sales, migração e volta | Ferramentas prontas (reserva de códigos, conversor do backup, importação com ensaio); falta a virada com o Sales |
+| 5. Encerramento | Distrato gerado pela plataforma, transferência dos clientes ativos, exportação | Em produção |
 
 ## 11. Decisões pendentes
 
 | Decisão | Opções | Recomendação |
 | --- | --- | --- |
-| Taxa da Avalia | 1,99% ou R$ 1,99 fixo por venda | 1,99% (o código assume) |
-| Preço dos pacotes | Por pacote | Definido - 20, 50 e 100 placas a R$ 23,90, R$ 16,90 e R$ 13,90 a placa |
-| Confirmação de pagamento por fora | Baixa manual no Pagar.me ou só registro na plataforma | Conferir a API do Pagar.me na Fase 2 |
-| Nome e domínio | Subdomínio de avaliaone.com.br ou domínio próprio | A definir |
+| Taxa da Avalia nas vendas recebidas por fora | Cobrar a taxa ou não | O distrato já cobra o saldo a acertar; falta a regra durante o contrato (cláusula 5.6) |
+| Renovação de venda dada em cortesia | 60% de zero (R$ 0,01) ou 60% da tabela gravada na venda | A definir |
 | Recebedor da revendedora Avalia | Mesmo da conta do marketplace ou separado | Confirmar com o Pagar.me |
-| Texto do termo do cliente | Rascunho ou revisão jurídica | Revisão antes do fim da Fase 1. O contrato de revenda foi aprovado (versão 1, 22/10/2026) |
-| Repositório | Público ou privado | Público, com dados fictícios |
+| Texto do termo do cliente | Rascunho ou revisão jurídica | Revisão jurídica |
+| Política de privacidade | Texto | Revisão jurídica |
 
-### Fase das APIs (com as contas e chaves)
+### Integrações
 
-O que está pronto no código e só fecha com a conta de verdade:
-
-| Integração | O que falta | Variáveis |
+| Integração | Situação | Variáveis |
 | --- | --- | --- |
-| Pagar.me | Sandbox: Pix, cartão (formato do `/tokens` com a chave pública), split, webhook; confirmar PSP com split na conta | `Pagarme__ChaveSecreta`, `Pagarme__ChavePublica`, `Pagarme__RecebedorAvalia`, `Pagarme__SegredoDoWebhook` |
-| Recebedor do revendedor | Criar pela API (`POST /recipients` com `register_information` e KYC). A referência de 2026 se contradiz no prefixo do id (`re_` ou `rp_`), nos tipos (texto ou número) e no formato da data; escrever com o sandbox. Hoje a operadora informa o `rp_` à mão, e a configuração só aceita `rp_` | - |
-| D4Sign | Sandbox: envio, assinatura e webhook do contrato (aceita formulário e JSON, 1.0 e 2.0; HMAC do uuid ligado na conta) | `D4Sign__TokenApi`, `D4Sign__CryptKey`, `D4Sign__SegredoHmac`, `D4Sign__Cofre`, `D4Sign__UrlDoWebhook` |
-| Resend | Domínio verificado (SPF, DKIM, DMARC); remetente e resposta | `Resend__ChaveApi`, `Resend__Remetente`, `Resend__ResponderPara` |
-| Google | Chave do servidor (Places New) e do mapa (Maps JavaScript, restrita ao domínio) e o Map ID | `Google__ChaveDoServidor`, `Google__ChaveDoMapa`, `Google__IdDoMapa` |
-| Sentry e SonarCloud | DSN e token | `Sentry__Dsn`, `SONAR_TOKEN` e as variáveis do projeto |
-| Servidor | VPS, DNS, runner e `DEPLOY_ATIVO`; conferir a CSP com `curl -sI` no primeiro deploy | - |
+| D4Sign | Em produção no ambiente de testes (sem validade jurídica); passar para a conta de produção (`secure.d4sign.com.br`) | `D4Sign__UrlBase`, `D4Sign__TokenApi`, `D4Sign__CryptKey`, `D4Sign__SegredoHmac`, `D4Sign__Cofre` |
+| Resend | Em produção, domínio sales.avaliaone.com.br verificado | `Resend__ChaveApi`, `Resend__Remetente`, `Resend__ResponderPara` |
+| Google Places | Em produção, chave do servidor restrita ao IP do VPS | `Google__ChaveDoServidor` |
+| Google Maps no navegador | Espera a chave restrita ao domínio e o Map ID | `Google__ChaveDoMapa`, `Google__IdDoMapa` |
+| BrasilAPI | Em produção, sem chave | - |
+| Gotenberg | Em produção, contêiner sem rede | `Pdf__UrlDoConversor` |
+| Pagar.me | Espera a conta da Avalia. Ensaiar no ambiente de testes - Pix, cartão (formato do `/tokens` com a chave pública), split e webhook; confirmar a conta com split | `Pagarme__ChaveSecreta`, `Pagarme__ChavePublica`, `Pagarme__RecebedorAvalia`, `Pagarme__SegredoDoWebhook` |
+| Recebedor do revendedor | Criar pela API (`POST /recipients` com `register_information` e KYC). A referência de 2026 se contradiz no prefixo do id (`re_` ou `rp_`), nos tipos (texto ou número) e no formato da data; escrever com o ambiente de testes. Enquanto isso, a operadora informa o `rp_` à mão | - |
+| Sentry e SonarCloud | Ligam com o DSN e o token; o token do SonarCloud não está configurado | `Sentry__Dsn`, `SONAR_TOKEN` e as variáveis do projeto |
 
 ## 12. Registro de mudanças
 
 | Data | Mudança |
 | --- | --- |
 | 22/10/2026 | Migração do Sales - conversor do backup diário para o arquivo de placas, venda no produto do catálogo pela chave, comissão devida trazida como saldo do vendedor. Os dois sócios entram como vendedores com 50% cada, em vez de divisão entre sócios. |
+| 23/10/2026 | Documento revisado para a produção - situação, telas por área, fases, decisões e integrações atualizadas; repetições removidas. |
 | 23/10/2026 | Depois de uma publicação, a aba que já estava aberta recarrega sozinha ao abrir uma tela, em vez de mostrar erro; erro de tela mostra o que fazer, com Recarregar. |
 | 23/10/2026 | Desativar o segundo fator pede o código novo enviado ao e-mail cadastrado. Sino também para o vendedor - venda paga, comissão repassada e placas consignadas a ele. O logo do cabeçalho leva ao início. Equipe com as ações numa linha (excluir em ícone). |
 | 23/10/2026 | Auditoria da operadora, com tela própria. Seletores de tipo de cupom, forma de pagamento e formato do logo passam de abas para escolha de opção (leitor de tela). |
