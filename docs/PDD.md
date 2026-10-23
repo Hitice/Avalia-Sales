@@ -529,6 +529,7 @@ porque está impresso nas placas vendidas.
 
 | Data | Mudança |
 | --- | --- |
+| 23/10/2026 | Estorno de venda de serviço (pelo Pagar.me ou recebimento por fora desfeito) cancela a ordem de serviço ainda não entregue e avisa a operadora no sino; a entregue fica como está. |
 | 23/10/2026 | Recebedor do Pagar.me aceito com `rp_` ou `re_`, na revenda e no recebedor da Avalia: a conta da Avalia gera `re_`. A revenda Avalia usa o mesmo recebedor da operadora, e o pedido de placas dela tem o pagamento registrado pela operadora, sem passar pelo Pagar.me. |
 | 23/10/2026 | Parcelado de 2x a 12x com o custo do cartão por conta do cliente, com a parcela e o total na Nova venda. No Pix e à vista, a Avalia recebe a parte dela sem a fatia dela na tarifa. Perfil no Google com placa passa a 20% de desconto da revenda, como os outros serviços. |
 | 23/10/2026 | Comissão do serviço sobre o que fica com a revenda (valor menos a parte da Avalia), para a comissão não comer a margem. Na placa, segue sobre o valor bruto. |

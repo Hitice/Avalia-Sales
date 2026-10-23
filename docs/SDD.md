@@ -616,7 +616,8 @@ Revisão pela skill `seguranca` (OWASP ASVS 5.0).
 ## 10. CI e qualidade
 
 - CI no GitHub Actions - restore, build em Release e a suíte inteira contra um
-  Postgres 17 de serviço, a cada push no `main` e em pull request. O front tem
+  Postgres 17 de serviço, a cada push no `main` (menos o que só muda documento -
+  `docs/`, Markdown e `.claude/` -, que não abre deploy) e em pull request. O front tem
   um job próprio no Node 24 LTS: `npm ci`, tipos, lint (oxlint), testes e build.
 - Build trata aviso como erro, com `AnalysisMode=Recommended` e as regras de
   código sem uso (IDE0051, IDE0052, IDE0060, IDE0005) ligadas no
@@ -705,6 +706,7 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
 
 | Data | Mudança |
 | --- | --- |
+| 23/10/2026 | CI do `main` ignora push só de documento (`paths-ignore`), e com isso o deploy dele não fica esperando aprovação. Estorno de venda cancela as ordens de serviço abertas dela (`EfeitosDaCobranca.Estornar`). |
 | 23/10/2026 | `Parcelamento` (custo do Pix e do cartão de 1x a 12x); total do parcelado com o custo para o cliente e parte da Avalia líquida da tarifa no Pix e à vista; `custoDasParcelasBps` em `GET /pagamento/cartao`. Migration `PerfilDoGoogleComVintePorCento`. |
 | 23/10/2026 | Parte da Avalia no serviço - `produtos_da_plataforma.desconto_da_revenda_bps` (2000; 1500 no `perfil-google-placa`) e `vendas.parte_da_avalia_cents` (migration `ParteDaAvaliaNosServicos`). A cobrança soma a parte à taxa em `taxa_avalia_cents`, que vai na regra da Avalia no split e no razão (por fora, a acertar); o piso do preço da revenda soma a parte. |
 | 23/10/2026 | `revendedores.taxa_avalia_bps` passa a 0 em todas as revendas e no padrão da coluna (migration `TaxaDaAvaliaZerada`); com taxa zero o split leva uma regra só, da revenda. `Revendedor.DefinirTaxaAvalia` para a edição futura pela operadora. |

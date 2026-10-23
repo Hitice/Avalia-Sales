@@ -2,6 +2,7 @@ using AvaliaSales.Application.Avisos;
 using AvaliaSales.Domain.Financeiro;
 using AvaliaSales.Domain.Pagamentos;
 using AvaliaSales.Domain.Pedidos;
+using AvaliaSales.Domain.Servicos;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
@@ -157,6 +158,24 @@ public sealed class EfeitosDaCobranca(IBancoDeDados banco, FilaDeEmails avisos, 
         foreach (var linha in originais.Where(l => !jaEstornadas.Contains(l.Id)))
         {
             banco.Lancamentos.Add(linha.Estorno(cobranca.PorFora ? "recebimento por fora desfeito" : "pagamento estornado no Pagar.me", agora));
+        }
+
+        // Serviço sem pagamento não se executa: a ordem ainda aberta sai cancelada; a entregue fica, e a operadora resolve com a revenda.
+        if (cobranca.Origem == OrigemDaCobranca.Venda)
+        {
+            var abertas = await banco.OrdensDeServico
+                .Where(o => o.VendaId == cobranca.OrigemId && (o.Situacao == SituacaoDaOrdem.AFazer || o.Situacao == SituacaoDaOrdem.EmAndamento))
+                .ToListAsync(ct);
+            foreach (var ordem in abertas)
+            {
+                ordem.Cancelar();
+                notificacoes.ParaOperadora(ordem.RevendedorId, "Serviço cancelado", $"{ordem.Produto} para {ordem.Cliente}: o pagamento foi estornado.", "/operadora/servicos");
+            }
+
+            if (abertas.Count > 0)
+            {
+                banco.AvisarAoVivo("servico", cobranca.RevendedorId, operadora: true);
+            }
         }
 
         banco.AvisarAoVivo("pagamento", cobranca.RevendedorId);

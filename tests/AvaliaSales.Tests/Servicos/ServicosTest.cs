@@ -79,6 +79,25 @@ public sealed class ServicosTest(ApiDeTeste api)
     }
 
     [Fact]
+    public async Task Estorno_da_venda_cancela_a_ordem_que_ainda_nao_foi_entregue()
+    {
+        var operadora = await api.ClienteLogado(await api.CriarOperadora());
+        var revenda = await api.RevendaComEstoque("Revenda do Estorno do Serviço");
+        var kit = await Cenarios.ProdutoDoCatalogo(revenda.Dono, "kit-mesa", 3_990L);
+        var venda = (await revenda.Dono.Postar("/vendas", Cenarios.Servico(kit, "11955550803"), HttpStatusCode.Created)).GetProperty("vendaId").GetGuid();
+        await revenda.Dono.Postar($"/vendas/{venda}/recebimento", new { meio = "Dinheiro" }, HttpStatusCode.NoContent);
+        var ordem = (await operadora.Pegar("/operadora/servicos")).EnumerateArray().Single(o => o.GetProperty("revendedor").GetString() == "Revenda do Estorno do Serviço");
+        Assert.Equal("AFazer", ordem.GetProperty("situacao").GetString());
+
+        Assert.Equal(HttpStatusCode.NoContent, (await revenda.Dono.DeleteAsync($"/vendas/{venda}/recebimento", Ct)).StatusCode);
+
+        var cancelada = (await operadora.Pegar("/operadora/servicos")).EnumerateArray().Single(o => o.GetProperty("id").GetGuid() == ordem.GetProperty("id").GetGuid());
+        Assert.Equal("Cancelada", cancelada.GetProperty("situacao").GetString());
+        Assert.Contains((await operadora.Pegar("/notificacoes")).GetProperty("notificacoes").EnumerateArray(),
+            n => n.GetProperty("titulo").GetString() == "Serviço cancelado" && n.GetProperty("revendedor").GetString() == "Revenda do Estorno do Serviço");
+    }
+
+    [Fact]
     public async Task Operadora_muda_o_desconto_da_revenda_e_a_parte_da_Avalia_acompanha()
     {
         var operadora = await api.ClienteLogado(await api.CriarOperadora());

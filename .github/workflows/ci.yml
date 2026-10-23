@@ -3,6 +3,8 @@ name: CI
 on:
   push:
     branches: [main]
+    # Commit só de documento não muda o que roda: sem CI, também não abre deploy para aprovar.
+    paths-ignore: ['docs/**', '**/*.md', '.claude/**']
   pull_request:
     types: [opened, synchronize, reopened, labeled, unlabeled]
 
