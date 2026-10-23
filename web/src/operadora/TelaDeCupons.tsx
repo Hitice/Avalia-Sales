@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { formatarCentavos, paraCentavos } from '@/dinheiro/dinheiro'
 import { useAlterarCupom, useAtivarCupom, useCriarCupom, useCupons, useExcluirCupom } from './consultas'
 
@@ -123,15 +123,13 @@ export function TelaDeCupons() {
         <CardContent>
           <form className="grid gap-4" onSubmit={formulario.handleSubmit(salvar)} noValidate>
             <Campo formulario={formulario} nome="codigo" rotulo="Código" className="uppercase" disabled={!!editando} />
-            <Tabs value={tipo} onValueChange={(t) => {
+            <ToggleGroup aria-label="Tipo de desconto" className="w-full" value={tipo} onValueChange={(t) => {
               formulario.setValue('tipo', t as Formulario['tipo'])
               formulario.setValue('desconto', '', { shouldValidate: formulario.formState.isSubmitted })
             }}>
-              <TabsList className="w-full">
-                <TabsTrigger value="percentual">Percentual</TabsTrigger>
-                <TabsTrigger value="reais">Em reais</TabsTrigger>
-              </TabsList>
-            </Tabs>
+              <ToggleGroupItem value="percentual">Percentual</ToggleGroupItem>
+              <ToggleGroupItem value="reais">Em reais</ToggleGroupItem>
+            </ToggleGroup>
             <Campo formulario={formulario} nome="desconto" rotulo={tipo === 'percentual' ? 'Desconto (%)' : 'Desconto (R$)'} inputMode="decimal" />
             <Campo formulario={formulario} nome="validoAte" rotulo="Vale até" type="date" conferir={false} />
             <Campo formulario={formulario} nome="usos" rotulo="Limite de usos" inputMode="numeric" placeholder="Sem limite" conferir={false} />

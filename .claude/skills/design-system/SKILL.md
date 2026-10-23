@@ -136,6 +136,13 @@ coluna é o título, as outras levam o rótulo da coluna em cima do valor e a
 coluna de ações (título só para leitor de tela) ocupa a linha toda. Tela nova
 com tabela não precisa de nada a mais.
 
+## Abas e escolha de opção
+
+Aba (`Tabs`) só com painel (`TabsContent`) para cada uma: aba sem painel aponta
+`aria-controls` para o vazio e o axe recusa. Para escolher uma opção entre
+poucas, como o tipo de desconto ou a forma de pagamento, use
+`components/ui/toggle-group.tsx`, com a mesma cara das abas e `aria-label` no grupo.
+
 ## Celular primeiro na área do vendedor
 
 - Alvo de toque de 44 px ou mais; botão primário ao alcance do polegar, no pé

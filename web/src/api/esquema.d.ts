@@ -2427,6 +2427,81 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/operadora/auditoria": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    busca?: string;
+                    pagina?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PaginaDaOperadora"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/operadora/auditoria/exportar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    busca?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RegistroDaOperadoraDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/revenda": {
         parameters: {
             query?: never;
@@ -5526,6 +5601,11 @@ export interface components {
             custoPorPlacaCents: number;
             ativo: boolean;
         };
+        PaginaDaOperadora: {
+            registros: components["schemas"]["RegistroDaOperadoraDto"][];
+            /** Format: int32 */
+            total: number;
+        };
         PaginaDeAuditoria: {
             registros: components["schemas"]["RegistroDto"][];
             /** Format: int32 */
@@ -5643,6 +5723,16 @@ export interface components {
         };
         ReceberPorFora: {
             meio: components["schemas"]["MeioDePagamento"];
+        };
+        RegistroDaOperadoraDto: {
+            /** Format: uuid */
+            id: string;
+            acao: string;
+            referencia: null | string;
+            corpo: null | string;
+            quem: string;
+            /** Format: date-time */
+            ocorridoEm: string;
         };
         RegistroDto: {
             /** Format: uuid */

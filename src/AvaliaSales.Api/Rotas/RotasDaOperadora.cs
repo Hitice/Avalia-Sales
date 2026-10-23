@@ -99,5 +99,14 @@ public static class RotasDaOperadora
             await revendedores.RegistrarContratoAssinado(id, ct);
             return Results.NoContent();
         });
+
+        // O que a operadora mudou na plataforma, registrado pelo middleware AuditoriaDaOperadoraNaRota.
+        operadora.MapGet("/auditoria", (string? busca, int? pagina, Application.Auditoria.AuditoriaDaOperadora auditoria, CancellationToken ct) =>
+            auditoria.Listar(busca, pagina ?? 1, ct));
+        operadora.MapGet("/auditoria/exportar", async (string? busca, Application.Auditoria.AuditoriaDaOperadora auditoria, CancellationToken ct) =>
+        {
+            var json = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(await auditoria.Exportar(busca, ct), RotasDaRevenda.Exportacao);
+            return Results.File(json, "application/json", $"auditoria-da-operadora-{DateTime.UtcNow:yyyy-MM-dd}.json");
+        }).Produces<IReadOnlyList<Application.Auditoria.RegistroDaOperadoraDto>>();
     }
 }

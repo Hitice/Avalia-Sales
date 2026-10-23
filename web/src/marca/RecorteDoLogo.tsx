@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import Cropper, { type Area as AreaDoCropper } from 'react-easy-crop'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import type { Area } from './reduzirLogo'
 
 /** O cabeçalho mostra o logo com até 4 de largura para 1 de altura: horizontal em 3:1 cabe com folga. */
@@ -55,11 +55,9 @@ export function RecorteDoLogo({ arquivo, aoCancelar, aoConfirmar, enviando, titu
           <DialogDescription>Arraste para enquadrar e use o zoom.</DialogDescription>
         </DialogHeader>
         {Object.keys(FORMATOS).length > 1 && (
-          <Tabs value={formato} onValueChange={(f) => { setFormato(f); enquadrar(f, proporcao) }}>
-            <TabsList className="w-full">
-              {Object.keys(FORMATOS).map((f) => <TabsTrigger key={f} value={f}>{f}</TabsTrigger>)}
-            </TabsList>
-          </Tabs>
+          <ToggleGroup aria-label="Formato do recorte" className="w-full" value={formato} onValueChange={(f) => { setFormato(f); enquadrar(f, proporcao) }}>
+            {Object.keys(FORMATOS).map((f) => <ToggleGroupItem key={f} value={f}>{f}</ToggleGroupItem>)}
+          </ToggleGroup>
         )}
         <div className="xadrez relative h-64 overflow-hidden rounded-lg sm:h-72">
           {endereco && (

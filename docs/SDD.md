@@ -219,6 +219,7 @@ aponta para a venda.
 | `revendedores` (colunas novas) | Endereço (`endereco_logradouro`, `_numero`, `_complemento`, `_bairro`, `_cidade`, `_uf`, `_cep`, tipo próprio do EF), `encerramento_pedido_em` e `encerrada_em` (data efetiva do distrato) | - |
 | `placas` (colunas novas) | `transferida_em`, `cliente_da_transferencia_id` e `valor_da_venda_cents`: o que a renovação precisa da venda que ficou na revenda antiga | Políticas `transferencia_no_encerramento` (UPDATE) e `_leitura` (SELECT), também em `clientes` e `links`, valendo só com `app.transferencia` (ADR 0019) |
 | `contratos` (tipo novo) | `Distrato` | - |
+| `auditoria_da_operadora` | Usuário, ação (método e rota com os parâmetros), referência (id ou código da rota), corpo enviado em JSON (até 2.000 caracteres), ocorrido em | Sem RLS: não é de revenda; só as rotas `/operadora/auditoria` leem |
 
 ### Planejado
 
@@ -689,13 +690,12 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
   chave na demonstração; a busca responde pedindo o link colado.
 - Rodar o compose de produção pela primeira vez num VPS (não há Docker nesta
   máquina) e o ensaio de restauração do backup.
-- Auditoria das ações da operadora (as do dono já vão para a auditoria, e a
-  ficha da placa mostra o histórico de destino).
 
 ## 13. Registro de mudanças
 
 | Data | Mudança |
 | --- | --- |
+| 23/10/2026 | Versão 1.8.0. Auditoria da operadora - middleware `AuditoriaDaOperadoraNaRota` no grupo `/operadora` grava cada escrita com resposta abaixo de 400 (corpo JSON com buffer; arquivo não), migration AuditoriaDaOperadora, rotas `GET /operadora/auditoria` e `/operadora/auditoria/exportar`, tela da operadora. `components/ui/toggle-group.tsx` (ToggleGroup do Radix com a cara das abas) no lugar de abas sem painel, que o axe recusava (`aria-valid-attr-value`). Teste de acessibilidade cobre as telas da operadora. |
 | 23/10/2026 | Versão 1.7.3. Reconsulta da assinatura (Worker a cada 30 minutos e botão do dono), `EfeitosDaAssinatura` comum ao webhook e à reconsulta, com trava da linha do contrato; aviso ao dono no sino. `PUT /conta/dados/empresa` aceita endereço sem celular quando a revenda não tem um. Ficha da placa transferida monta a venda com o cliente e o valor gravados na transferência (a venda ficou na revenda antiga). Conta encerrada ainda marca notificação como lida. Teste de ponta a ponta do encerramento; história do endereço no Storybook. 253 testes na API. |
 | 22/10/2026 | Versão 1.7.2. Representante e cargo da Avalia vêm das variáveis do ambiente `producao` no GitHub, pelo job do Deploy, e não do `.env` do VPS. |
 | 22/10/2026 | Versão 1.7.0. Migration EncerramentoDeConta (endereço e encerramento em `revendedores`; transferência em `placas`; políticas e função de transferência). Contrato versão 2 e distrato gerados no Worker pelo Gotenberg (serviço `gotenberg` no Compose, `Pdf:UrlDoConversor`); PDF fixo da versão 1 removido do assembly. BrasilAPI no cadastro. Rotas do encerramento e da exportação, middleware `ContaEncerrada`, `IAssinaturaEletronica.Cancelar`. `RevendedorDto` com `temEndereco`, `encerramentoPedidoEm` e `encerradaEm`. 250 testes na API. |

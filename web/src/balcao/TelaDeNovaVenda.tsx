@@ -15,7 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { formatarCentavos, paraCentavos } from '@/dinheiro/dinheiro'
 import { type ConfiguracaoDoCartao, cartaoValido, tokenizarCartao, validadeValida } from '@/lib/cartao'
 import { documentoOpcional, emailOpcional, telefone, texto } from '@/lib/esquemas'
@@ -348,12 +348,10 @@ function PassoDaCobranca({ produtoId, aoEscolher, fixo, valor, aoDigitarValor, e
           <Input id="valor" inputMode="decimal" placeholder={escolhido ? formatarCentavos(escolhido.precoCents) : '0,00'} value={valor} onChange={(e) => aoDigitarValor(e.target.value)} />
         </Field>
         {cartao?.disponivel && (
-          <Tabs value={meio} onValueChange={(m) => aoMudarMeio(m as 'Pix' | 'Cartao')}>
-            <TabsList className="w-full">
-              <TabsTrigger value="Pix">Pix</TabsTrigger>
-              <TabsTrigger value="Cartao">Cartão</TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <ToggleGroup aria-label="Forma de pagamento" className="w-full" value={meio} onValueChange={(m) => aoMudarMeio(m as 'Pix' | 'Cartao')}>
+            <ToggleGroupItem value="Pix">Pix</ToggleGroupItem>
+            <ToggleGroupItem value="Cartao">Cartão</ToggleGroupItem>
+          </ToggleGroup>
         )}
         {meio === 'Cartao' && cartao && (
           <div className="grid gap-4">

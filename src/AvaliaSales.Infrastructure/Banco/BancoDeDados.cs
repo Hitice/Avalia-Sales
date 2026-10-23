@@ -61,6 +61,7 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
     public DbSet<LinkCurto> Links => Set<LinkCurto>();
     public DbSet<CodigoDeLink> CodigosDeLink => Set<CodigoDeLink>();
     public DbSet<RegistroDeAuditoria> Auditoria => Set<RegistroDeAuditoria>();
+    public DbSet<RegistroDaOperadora> AuditoriaDaOperadora => Set<RegistroDaOperadora>();
 
     /// <summary>Lido pelo filtro global a cada consulta, e não na montagem do modelo.</summary>
     public Guid? RevendedorAtual => revendedor.RevendedorId;
@@ -149,6 +150,16 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
             l.HasOne<Revendedor>().WithMany().HasForeignKey(x => x.RevendedorId).OnDelete(DeleteBehavior.Restrict);
             l.HasOne<Cliente>().WithMany().HasForeignKey(x => x.ClienteId).OnDelete(DeleteBehavior.SetNull);
             l.HasOne<CodigoDeLink>().WithOne().HasForeignKey<LinkCurto>(x => x.Codigo).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // Sem RLS: não é de revenda; só as rotas da operadora leem.
+        modelo.Entity<RegistroDaOperadora>(a =>
+        {
+            a.ToTable("auditoria_da_operadora");
+            a.Property(x => x.Acao).HasMaxLength(200).IsRequired();
+            a.Property(x => x.Referencia).HasMaxLength(64);
+            a.Property(x => x.Corpo).HasMaxLength(RegistroDaOperadora.CorpoMaximo);
+            a.HasIndex(x => x.OcorridoEm);
         });
 
         modelo.Entity<RegistroDeAuditoria>(a =>

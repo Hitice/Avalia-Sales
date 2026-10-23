@@ -1,12 +1,16 @@
 import { test } from '@playwright/test'
-import { entrar, semRolagemLateral, semViolacaoGrave } from './apoio'
+import { OPERADOR, entrar, semRolagemLateral, semViolacaoGrave } from './apoio'
 
 const TELAS_DO_DONO = ['/painel/inicio', '/painel/vendas', '/painel/estoque', '/painel/pedidos', '/painel/equipe', '/painel/clientes', '/links',
   '/painel/comissoes', '/painel/razao', '/painel/mapa', '/catalogo', '/painel/configuracoes', '/painel/marca', '/painel/auditoria', '/painel/suporte']
 
-test('telas do dono sem violação grave e sem rolagem para o lado', async ({ page }) => {
-  await entrar(page)
-  for (const tela of TELAS_DO_DONO) {
+const TELAS_DA_OPERADORA = ['/operadora/pedidos', '/operadora/lotes', '/operadora/servicos', '/operadora/catalogo', '/operadora/pacotes',
+  '/operadora/cupons', '/operadora/revendedores', '/operadora/atendimento', '/operadora/erp', '/operadora/auditoria']
+
+for (const [quem, email, telas] of [['dono', undefined, TELAS_DO_DONO], ['operadora', OPERADOR, TELAS_DA_OPERADORA]] as const) {
+test(`telas da ${quem === 'dono' ? 'revenda' : 'operadora'} sem violação grave e sem rolagem para o lado`, async ({ page }) => {
+  await entrar(page, email)
+  for (const tela of telas) {
     await test.step(tela, async () => {
       await page.goto(tela)
       await page.getByRole('heading', { level: 1 }).waitFor()
@@ -16,3 +20,4 @@ test('telas do dono sem violação grave e sem rolagem para o lado', async ({ pa
     })
   }
 })
+}

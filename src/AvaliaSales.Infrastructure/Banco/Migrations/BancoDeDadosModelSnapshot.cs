@@ -147,6 +147,46 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                     b.ToTable("mensagens", (string)null);
                 });
 
+            modelBuilder.Entity("AvaliaSales.Domain.Auditoria.RegistroDaOperadora", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Acao")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("acao");
+
+                    b.Property<string>("Corpo")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("corpo");
+
+                    b.Property<DateTimeOffset>("OcorridoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("ocorrido_em");
+
+                    b.Property<string>("Referencia")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("referencia");
+
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("usuario_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_auditoria_da_operadora");
+
+                    b.HasIndex("OcorridoEm")
+                        .HasDatabaseName("ix_auditoria_da_operadora_ocorrido_em");
+
+                    b.ToTable("auditoria_da_operadora", (string)null);
+                });
+
             modelBuilder.Entity("AvaliaSales.Domain.Auditoria.RegistroDeAuditoria", b =>
                 {
                     b.Property<Guid>("Id")

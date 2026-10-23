@@ -1797,6 +1797,73 @@
         }
       }
     },
+    "/operadora/auditoria": {
+      "get": {
+        "tags": [
+          "Operadora"
+        ],
+        "parameters": [
+          {
+            "name": "busca",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pagina",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginaDaOperadora"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/operadora/auditoria/exportar": {
+      "get": {
+        "tags": [
+          "Operadora"
+        ],
+        "parameters": [
+          {
+            "name": "busca",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RegistroDaOperadoraDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/revenda": {
       "get": {
         "tags": [
@@ -5832,6 +5899,25 @@
           }
         }
       },
+      "PaginaDaOperadora": {
+        "required": [
+          "registros",
+          "total"
+        ],
+        "type": "object",
+        "properties": {
+          "registros": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RegistroDaOperadoraDto"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "PaginaDeAuditoria": {
         "required": [
           "registros",
@@ -6260,6 +6346,45 @@
         "properties": {
           "meio": {
             "$ref": "#/components/schemas/MeioDePagamento"
+          }
+        }
+      },
+      "RegistroDaOperadoraDto": {
+        "required": [
+          "id",
+          "acao",
+          "referencia",
+          "corpo",
+          "quem",
+          "ocorridoEm"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "acao": {
+            "type": "string"
+          },
+          "referencia": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "corpo": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "quem": {
+            "type": "string"
+          },
+          "ocorridoEm": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },

@@ -22,7 +22,7 @@ for (const [numero, esperado] of [['4000 0000 0000 0010', 'Pagamento confirmado'
 
     await page.getByRole('combobox').first().click()
     await page.getByRole('option').first().click()
-    await page.getByRole('tab', { name: 'Cartão' }).click()
+    await page.getByRole('radio', { name: 'Cartão' }).click()
     await expect(page.getByRole('button', { name: 'Cobrar no cartão' })).toBeDisabled()
     await page.getByLabel('Número do cartão').fill(numero)
     await page.getByLabel('Nome impresso').fill('RUI TESTE')

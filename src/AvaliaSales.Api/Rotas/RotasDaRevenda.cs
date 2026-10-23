@@ -25,7 +25,7 @@ public sealed record TrocarPlaca(string Codigo);
 public static class RotasDaRevenda
 {
     /// <summary>O arquivo exportado: legível, com a ação pelo nome, como a API responde.</summary>
-    private static readonly System.Text.Json.JsonSerializerOptions Exportacao = new(System.Text.Json.JsonSerializerDefaults.Web)
+    internal static readonly System.Text.Json.JsonSerializerOptions Exportacao = new(System.Text.Json.JsonSerializerDefaults.Web)
     {
         WriteIndented = true,
         Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() },

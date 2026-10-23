@@ -50,6 +50,7 @@ public interface IBancoDeDados
     DbSet<LinkCurto> Links { get; }
     DbSet<CodigoDeLink> CodigosDeLink { get; }
     DbSet<RegistroDeAuditoria> Auditoria { get; }
+    DbSet<RegistroDaOperadora> AuditoriaDaOperadora { get; }
 
     /// <summary>Para abrir transação. SQL direto não sai daqui: mora nos métodos abaixo, na Infrastructure.</summary>
     DatabaseFacade Database { get; }

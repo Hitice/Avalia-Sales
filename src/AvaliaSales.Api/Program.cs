@@ -196,6 +196,7 @@ app.UseStatusCodePages();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseMiddleware<ContaEncerrada>();
+app.UseMiddleware<AuditoriaDaOperadoraNaRota>();
 app.UseRateLimiter();
 
 app.MapHealthChecks("/health");

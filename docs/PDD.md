@@ -103,6 +103,7 @@ Todas no mesmo app, liberadas pelo papel do usuário.
 | Painel | Revendedor | Computador | Início com os números do mês e gráficos - vendas por dia nos últimos 30 dias, recebido por mês nos últimos 6 e vendas do mês por vendedor; pendências (contrato, conta de recebimento, celular) no sino |
 | Configurações | Dono | Computador e celular | Comissão padrão e preço da renovação, que valem para venda nova |
 | Auditoria | Revendedor | Computador | Quem mudou o quê, em tabela com antes e depois, busca pelo código, filtro pela ação, 20 por página e exportação em JSON |
+| Auditoria da operadora | Operadora | Computador | O que a operadora mudou na plataforma (pacote, cupom, lote, pedido, catálogo, recebedor, contrato em papel, serviço, chamado), com o que foi enviado, busca, 20 por página e exportação em JSON |
 | Meus dados | Todos | Celular e computador | No menu da conta (junto do Sair) - nome de todos; nome da empresa, celular e endereço do dono (o CNPJ não muda); telefone e chave Pix do vendedor. O e-mail muda pelo Suporte. O dono encerra a conta aqui (Encerrar conta) |
 | Segurança | Dono e operadora | Celular e computador | Ligar e desligar o segundo fator (app autenticador), com códigos de recuperação |
 | Mapa | Revendedor | Computador | Lugares vendidos, no Google Maps |
@@ -195,6 +196,9 @@ Todas no mesmo app, liberadas pelo papel do usuário.
   mostra tudo, com busca pelo código.
 - Registro não se altera nem se apaga, nem pela aplicação. A anonimização
   registra o fato sem o nome do cliente.
+- A operadora tem a auditoria dela: toda mudança que ela faz na plataforma e
+  deu certo fica registrada com quem, quando, a ação, o alvo e o que foi
+  enviado. Ação nova da operadora entra sozinha, sem código a mais.
 
 ### Link curto
 
@@ -491,6 +495,7 @@ O que está pronto no código e só fecha com a conta de verdade:
 | Data | Mudança |
 | --- | --- |
 | 22/10/2026 | Migração do Sales - conversor do backup diário para o arquivo de placas, venda no produto do catálogo pela chave, comissão devida trazida como saldo do vendedor. Os dois sócios entram como vendedores com 50% cada, em vez de divisão entre sócios. |
+| 23/10/2026 | Auditoria da operadora, com tela própria. Seletores de tipo de cupom, forma de pagamento e formato do logo passam de abas para escolha de opção (leitor de tela). |
 | 23/10/2026 | Conferir assinatura do contrato e do distrato, reconsulta automática a cada 30 minutos e aviso ao dono no sino. Meus dados - o endereço passa a ser gravado, o aviso de salvo não some e revenda sem celular salva o endereço. |
 | 22/10/2026 | Texto revisado - a cláusula 5.4 do contrato perde a nota de confirmar a taxa antes da assinatura; a 1.2 do distrato passa a citar a cláusula 3.3 (exportação). Prazos confirmados pela Avalia - exportação em 30 dias e saldo em 10 dias da data efetiva. |
 | 22/10/2026 | Contrato versão 2 gerado com os dados do cadastro, com a Avalia aceita na emissão e sem testemunhas. Endereço no cadastro e em Meus dados, preenchido pelo CNPJ e pelo CEP. Encerramento da conta pelo distrato - gerado e enviado à D4Sign, desistência, baixa do estoque, equipe desligada, clientes ativos para a revenda da Avalia e 30 dias para exportar. |

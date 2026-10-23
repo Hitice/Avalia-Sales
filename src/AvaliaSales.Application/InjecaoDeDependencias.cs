@@ -45,6 +45,7 @@ public static class InjecaoDeDependencias
         servicos.AddScoped<EfeitosDaAssinatura>();
         servicos.AddScoped<DocumentosDaRevenda>();
         servicos.AddScoped<Exportacao>();
+        servicos.AddScoped<Auditoria.AuditoriaDaOperadora>();
         servicos.AddScoped<Importacao.Importacao>();
         servicos.AddScoped<Importacao.Reservas>();
         servicos.AddScoped<Clientes.Clientes>();
