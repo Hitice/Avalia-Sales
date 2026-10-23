@@ -7007,6 +7007,10 @@
                 "$ref": "#/components/schemas/MeioDePagamento"
               }
             ]
+          },
+          "doSistemaAnterior": {
+            "type": "boolean",
+            "default": false
           }
         }
       },

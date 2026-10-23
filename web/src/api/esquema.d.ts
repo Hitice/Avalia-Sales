@@ -5934,6 +5934,8 @@ export interface components {
             situacao: components["schemas"]["SituacaoDaVenda"];
             cortesia: boolean;
             pagoPor: null | components["schemas"]["MeioDePagamento"];
+            /** @default false */
+            doSistemaAnterior: boolean;
         };
         VendaExportada: {
             /** Format: date-time */

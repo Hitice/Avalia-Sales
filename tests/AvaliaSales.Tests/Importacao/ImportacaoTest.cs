@@ -154,6 +154,18 @@ public sealed class ImportacaoTest(ApiDeTeste api)
         var saldo = (await dono.Pegar("/comissoes")).EnumerateArray().Single(s => s.GetProperty("vendedorId").GetGuid() == vendedorId);
         Assert.Equal(3_748, saldo.GetProperty("abertaCents").GetInt64());
 
+        // A venda trazida já foi paga lá: aqui não se cobra, cancela, dá cortesia nem recebe por fora.
+        var trazida = (await dono.Pegar("/vendas")).EnumerateArray().First(v => v.GetProperty("vendedorId").GetGuid() == vendedorId);
+        Assert.True(trazida.GetProperty("doSistemaAnterior").GetBoolean());
+        var id = trazida.GetProperty("id").GetGuid();
+        await dono.Postar($"/vendas/{id}/cobranca", new { }, HttpStatusCode.UnprocessableEntity);
+        await dono.Postar($"/vendas/{id}/cancelamento", new { }, HttpStatusCode.UnprocessableEntity);
+        await dono.Postar($"/vendas/{id}/cortesia", new { }, HttpStatusCode.UnprocessableEntity);
+        await dono.Postar($"/vendas/{id}/recebimento", new { meio = "Dinheiro" }, HttpStatusCode.UnprocessableEntity);
+
+        // A comissão entra no mês de hoje, e não no da venda: mês fechado não muda.
+        Assert.Equal(-3_748, await banco.Contar($"select coalesce(sum(valor_cents), 0) from lancamentos where revendedor_id = '{revendedorId}' and tipo = 'ComissaoDevida' and competencia = to_char(now() at time zone 'America/Sao_Paulo', 'YYYY-MM')"));
+
         // O repasse paga a comissão trazida como qualquer outra.
         var repasse = await dono.Postar("/repasses", new { vendedorId, comprovante = "pix" }, HttpStatusCode.Created);
         Assert.Equal(3_748, repasse.GetProperty("valorCents").GetInt64());

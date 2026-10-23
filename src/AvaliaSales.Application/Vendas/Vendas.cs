@@ -32,7 +32,8 @@ public sealed record VendaRegistrada(Guid VendaId, string Codigo, string Enderec
 
 public sealed record VendaDaLista(
     Guid Id, string Codigo, string Cliente, string Produto, Guid VendedorId, string Vendedor, long ValorCents, long ComissaoCents,
-    MeioDePagamento Meio, SituacaoDaCobranca? Pagamento, DateTimeOffset VendidaEm, DateTimeOffset? PagaEm, SituacaoDaVenda Situacao, bool Cortesia, MeioDePagamento? PagoPor);
+    MeioDePagamento Meio, SituacaoDaCobranca? Pagamento, DateTimeOffset VendidaEm, DateTimeOffset? PagaEm, SituacaoDaVenda Situacao, bool Cortesia, MeioDePagamento? PagoPor,
+    bool DoSistemaAnterior = false);
 
 /// <summary>
 /// A venda no balcão: placa, produto, cliente, destino e cobrança. A venda é
@@ -154,6 +155,7 @@ public sealed class Vendas(
     public async Task<VendaRegistrada> Cobrar(Guid vendaId, CancellationToken ct)
     {
         var venda = await AcharVenda(vendaId, ct);
+        ExigirDaPlataforma(venda);
         if (await banco.Cobrancas.AnyAsync(c => c.Origem == OrigemDaCobranca.Venda && c.OrigemId == venda.Id
                 && (c.Situacao == SituacaoDaCobranca.Pendente || c.Situacao == SituacaoDaCobranca.Paga), ct))
         {
@@ -186,6 +188,7 @@ public sealed class Vendas(
     public async Task ReceberPorFora(Guid vendaId, MeioDePagamento meio, CancellationToken ct)
     {
         var venda = await AcharVenda(vendaId, ct);
+        ExigirDaPlataforma(venda);
         if (venda.Situacao == SituacaoDaVenda.Cancelada || venda.Cortesia || venda.ValorCents == 0)
         {
             throw new RegraDeNegocioException("Esta venda não tem valor a receber.");
@@ -222,6 +225,7 @@ public sealed class Vendas(
     public async Task Cancelar(Guid vendaId, CancellationToken ct)
     {
         var venda = await AcharVenda(vendaId, ct);
+        ExigirDaPlataforma(venda);
         await ExigirSemCobrancaViva(venda, "Venda com cobrança em aberto ou paga.", ct);
         venda.Cancelar();
         if (venda.PlacaId is { } placaId)
@@ -244,6 +248,7 @@ public sealed class Vendas(
     public async Task Cortesia(Guid vendaId, CancellationToken ct)
     {
         var venda = await AcharVenda(vendaId, ct);
+        ExigirDaPlataforma(venda);
         await ExigirSemCobrancaViva(venda, "Venda com cobrança em aberto ou paga.", ct);
         var valorAntes = venda.ValorCents;
         venda.TornarCortesia();
@@ -313,6 +318,15 @@ public sealed class Vendas(
         renovacao.Cancelar();
     }
 
+    /// <summary>A troca de placa vale para qualquer venda; o resto só para a feita aqui.</summary>
+    private static void ExigirDaPlataforma(Venda venda)
+    {
+        if (venda.DoSistemaAnterior)
+        {
+            throw new RegraDeNegocioException("Venda paga no sistema anterior.");
+        }
+    }
+
     private async Task ExigirSemCobrancaViva(Venda venda, string recusa, CancellationToken ct)
     {
         if (await banco.Cobrancas.AnyAsync(c => c.Origem == OrigemDaCobranca.Venda && c.OrigemId == venda.Id
@@ -344,7 +358,7 @@ public sealed class Vendas(
         var nomes = await contas.Nomes(linhas.Select(l => l.v.VendedorId).Distinct(), ct);
         return linhas.Select(l => new VendaDaLista(l.v.Id, l.Codigo, l.Cliente, l.Produto, l.v.VendedorId,
             nomes.GetValueOrDefault(l.v.VendedorId, "Não identificado"), l.v.ValorCents, l.v.ComissaoCents, l.v.Meio,
-            l.Pagamento, l.v.VendidaEm, l.PagaEm, l.v.Situacao, l.v.Cortesia, l.PagoPor)).ToList();
+            l.Pagamento, l.v.VendidaEm, l.PagaEm, l.v.Situacao, l.v.Cortesia, l.PagoPor, l.v.DoSistemaAnterior)).ToList();
     }
 
     /// <summary>

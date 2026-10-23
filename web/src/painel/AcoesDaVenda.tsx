@@ -38,9 +38,9 @@ export function AcoesDaVenda({ venda, dono }: { venda: VendaDaLista; dono: boole
 
   const viva = venda.pagamento === 'Pendente' || venda.pagamento === 'Paga'
   const ativa = venda.situacao === 'Registrada'
-  const podeReceber = ativa && !venda.cortesia && venda.valorCents > 0 && !viva
+  const podeReceber = ativa && !venda.cortesia && !venda.doSistemaAnterior && venda.valorCents > 0 && !viva
   const recebidaPorFora = venda.pagamento === 'Paga' && (venda.pagoPor === 'Dinheiro' || venda.pagoPor === 'OutroPix')
-  const podeDesfazerVenda = dono && ativa && !viva
+  const podeDesfazerVenda = dono && ativa && !viva && !venda.doSistemaAnterior
   if (!ativa || (!dono && !podeReceber)) return null
 
   const fechar = (aberto: boolean) => {

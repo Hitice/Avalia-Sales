@@ -43,6 +43,12 @@ public sealed class Venda : IDoRevendedor
     /// <summary>Venda que a revenda deu de graça: valor zero e sem comissão.</summary>
     public bool Cortesia { get; private set; }
 
+    /// <summary>
+    /// Venda trazida do sistema anterior: cobrada e acertada lá. Aqui ela não se
+    /// cobra, não se cancela nem vira cortesia; o cliente já pagou do outro lado.
+    /// </summary>
+    public bool DoSistemaAnterior { get; private set; }
+
     /// <summary>O repasse que pagou a comissão desta venda ao vendedor.</summary>
     public Guid? RepasseId { get; private set; }
 
@@ -88,6 +94,7 @@ public sealed class Venda : IDoRevendedor
                 ComissaoBps = 0,
                 Meio = MeioDePagamento.Pix,
                 VendidaEm = vendidaEm,
+                DoSistemaAnterior = true,
             };
 
     /// <summary>Desfeita sem cobrança em aberto nem paga: quem chama confere isso antes.</summary>

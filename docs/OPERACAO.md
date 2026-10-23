@@ -138,7 +138,7 @@ colunas em qualquer ordem; só `codigo` e `situacao` são obrigatórias):
 | `vendedor_email` | Login do vendedor na plataforma; sem ele, a venda fica com o dono |
 | `produto` | Chave do produto no catálogo da Avalia (`placa-avaliacao-google`); sem ela, a venda vai para o produto genérico "Placa importada" |
 | `produto_preco_cents` | Preço da revenda para o produto, se ela ainda não o tinha |
-| `comissao_devida_cents` | Comissão de venda paga ainda não repassada; vira saldo do vendedor, que precisa ser da equipe |
+| `comissao_devida_cents` | Comissão de venda paga ainda não repassada; vira saldo do vendedor, que precisa ser da equipe, no mês da importação |
 | `total_leituras` | Leituras acumuladas |
 
 A placa importada entra num lote próprio, já ativado no revendedor; a venda

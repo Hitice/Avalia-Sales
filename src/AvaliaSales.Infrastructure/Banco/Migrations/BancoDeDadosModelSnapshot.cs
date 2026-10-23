@@ -1807,6 +1807,10 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("custo_cents");
 
+                    b.Property<bool>("DoSistemaAnterior")
+                        .HasColumnType("boolean")
+                        .HasColumnName("do_sistema_anterior");
+
                     b.Property<string>("Meio")
                         .IsRequired()
                         .HasMaxLength(10)

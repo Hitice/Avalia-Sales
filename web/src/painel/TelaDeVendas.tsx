@@ -15,6 +15,7 @@ import { useCobrarDeNovo, useSaldosDeComissao, useVendas } from './consultas'
 function rotuloDoPagamento(v: VendaDaLista) {
   if (v.situacao === 'Cancelada') return 'Venda cancelada'
   if (v.cortesia) return 'Cortesia'
+  if (v.doSistemaAnterior) return 'Paga no sistema anterior'
   if (v.pagamento === 'Paga' && v.pagoPor === 'Dinheiro') return 'Paga em dinheiro'
   if (v.pagamento === 'Paga' && v.pagoPor === 'OutroPix') return 'Paga por outro Pix'
   return v.pagamento ? ROTULO_DO_PAGAMENTO[v.pagamento] : 'Sem cobrança'
@@ -76,7 +77,7 @@ export function TelaDeVendas() {
                       <TableCell className="text-right tabular-nums">{formatarCentavos(v.comissaoCents)}</TableCell>
                       <TableCell><Badge variant={v.situacao === 'Cancelada' ? 'outline' : v.pagamento === 'Paga' ? 'default' : 'secondary'}>{rotuloDoPagamento(v)}</Badge></TableCell>
                       <TableCell className="text-right whitespace-nowrap">
-                        {v.situacao === 'Registrada' && !v.cortesia && (v.pagamento === null || v.pagamento === 'Falhou' || v.pagamento === 'Cancelada') && (
+                        {v.situacao === 'Registrada' && !v.cortesia && !v.doSistemaAnterior && (v.pagamento === null || v.pagamento === 'Falhou' || v.pagamento === 'Cancelada') && (
                           <Button variant="outline" disabled={cobrar.isPending} onClick={() => cobrar.mutate(v.id)}>Gerar cobrança</Button>
                         )}
                         <AcoesDaVenda venda={v} dono={dono} />

@@ -204,6 +204,7 @@ Dinheiro em centavos (`bigint`, colunas `_cents`), taxa em pontos base
 | `revendedores` (colunas novas) | Nome exibido, cor primária, cor de destaque, marca alterada em | - |
 | `revendedores` (coluna nova) | Celular de contato (`celular`, só dígitos com DDD), obrigatório no cadastro pela tela e trocado pelo dono em `PUT /revenda/celular` | - |
 | `vendas` (coluna nova) | Cortesia | - |
+| `vendas` (coluna nova) | `do_sistema_anterior` - venda trazida pelo importador | Não se cobra, cancela, vira cortesia nem recebe por fora; a troca de placa vale |
 | `envios_ao_erp` | Pedido pago a caminho do Protheus: cliente, CNPJ, quantidade, valor, situação, número no ERP, tentativas, erro | Sem RLS (fila da operadora); um por pedido |
 | `revendedores` (colunas novas) | Endereço (`endereco_logradouro`, `_numero`, `_complemento`, `_bairro`, `_cidade`, `_uf`, `_cep`, tipo próprio do EF), `encerramento_pedido_em` e `encerrada_em` (data efetiva do distrato) | - |
 | `placas` (colunas novas) | `transferida_em`, `cliente_da_transferencia_id` e `valor_da_venda_cents`: o que a renovação precisa da venda que ficou na revenda antiga | Políticas `transferencia_no_encerramento` (UPDATE) e `_leitura` (SELECT), também em `clientes` e `links`, valendo só com `app.transferencia` (ADR 0019) |
@@ -680,6 +681,7 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
 
 | Data | Mudança |
 | --- | --- |
+| 23/10/2026 | Migration VendaDoSistemaAnterior (`vendas.do_sistema_anterior`), recusa em `Vendas` (cobrança, cancelamento, cortesia, recebido por fora). A comissão devida importada entra com a data da importação; a da venda vai na descrição. |
 | 23/10/2026 | Documento revisado para a produção - stack, arquitetura, isolamento, front, modelo de dados numa tabela só, testes e pendências atualizados. |
 | 23/10/2026 | Versão 1.8.2. Aba aberta antes de uma publicação pedia o arquivo da tela com o hash antigo ("Importing a module script failed"): as rotas carregadas sob demanda e o `vite:preloadError` recarregam a página uma vez (`lib/recarga.ts`, trava de 1 minuto contra laço), e a raiz das rotas tem `ErroDaTela` no lugar da tela de erro do React Router. |
 | 23/10/2026 | Versão 1.8.1. `POST /conta/segundo-fator/desligar/codigo` manda código novo ao e-mail cadastrado (`GestorDeSegundoFator.PrepararDesligamento`); `desligar` aceita esse código, o do app ou um de recuperação. `notificacoes.usuario_id` (migration NotificacaoParaUsuario) e `Notificacoes.ParaVendedor`; o sino (`/notificacoes`, política `Todos`) separa operadora, dono (sem destinatário ou ele) e vendedor (só ele). |
