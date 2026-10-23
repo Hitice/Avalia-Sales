@@ -59,15 +59,21 @@ Arquitetura e decisões no [SDD](SDD.md); cada decisão estrutural em
      --nova-operadora --nome="Operação Avalia" --email=... --senha=...
    ```
 
-   Enquanto o cadastro temporário estiver no ar, a operadora também se cria
-   pela tela de entrada, em "Criar conta de operadora", com e-mail
-   @avaliaone.com.br e o código que chega no e-mail. Para fechar sem publicar
-   versão nova, acrescente ao `.env` e reinicie a API:
+   A operadora também se cria pela tela de entrada, em "Criar conta de
+   operadora", com e-mail @avaliaone.com.br e o código que chega no e-mail. O
+   cadastro nasce fechado e só abre com a variável `CADASTRO_DE_OPERADORA_ABERTO`
+   igual a `true` no ambiente `producao` do GitHub, que o Deploy repassa ao
+   Compose. Abrir, criar a conta e fechar em seguida:
 
    ```bash
-   echo 'CADASTRO_DE_OPERADORA_ABERTO=false' >> /srv/avalia-sales/.env
-   docker compose -f docker-compose.producao.yml --env-file /srv/avalia-sales/.env up -d api
+   gh variable set CADASTRO_DE_OPERADORA_ABERTO --env producao --body true
+   gh workflow run Deploy          # aprovar no GitHub; a entrada mostra o link
+   gh variable delete CADASTRO_DE_OPERADORA_ABERTO --env producao
+   gh workflow run Deploy          # o deploy sem a variável fecha o cadastro
    ```
+
+   Cada operadora criada pela tela aparece na Auditoria da operadora como
+   `POST /cadastro/operadora`.
 
    Para dar a outro login um e-mail que já está em uso (por exemplo, o dono de
    uma revenda passa a usar outro e-mail e o antigo fica para a operadora),

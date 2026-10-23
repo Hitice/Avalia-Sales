@@ -3,6 +3,7 @@ using AvaliaSales.Application.Avisos;
 using AvaliaSales.Application.Equipe;
 using AvaliaSales.Domain;
 using AvaliaSales.Domain.Acesso;
+using AvaliaSales.Domain.Auditoria;
 using AvaliaSales.Infrastructure.Banco;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
@@ -12,8 +13,9 @@ namespace AvaliaSales.Infrastructure.Identidade;
 /// <summary>
 /// Cadastro temporário da operadora pela tela de entrada, para a Avalia criar os
 /// próprios logins sem a linha de comando. Só para e-mail do domínio da Avalia e
-/// só com o código mandado a esse e-mail; fecha com Plataforma:CadastroDeOperadoraAberto.
-/// Até o código conferir, o login existe desligado e sem senha.
+/// só com o código mandado a esse e-mail. Nasce fechado: abre só com
+/// Plataforma:CadastroDeOperadoraAberto definido. Até o código conferir, o login existe
+/// desligado e sem senha; cada operadora criada aqui entra na auditoria da operadora.
 /// </summary>
 public sealed class CadastroDeOperadora(UserManager<Usuario> usuarios, IContas contas, FilaDeEmails emails, BancoDeDados banco,
     IOptions<OpcoesDaPlataforma> plataforma, TimeProvider relogio)
@@ -83,6 +85,7 @@ public sealed class CadastroDeOperadora(UserManager<Usuario> usuarios, IContas c
 
         usuario.EmailConfirmed = true;
         usuario.Ativo = true;
+        banco.AuditoriaDaOperadora.Add(new RegistroDaOperadora(usuario.Id, "POST /cadastro/operadora", normalizado, null, relogio.GetUtcNow()));
         await usuarios.ResetAccessFailedCountAsync(usuario);
         await usuarios.UpdateAsync(usuario);
         return usuario;

@@ -30,8 +30,8 @@ public sealed class OpcoesDaPlataforma
 
     public string? CargoDoRepresentante { get; set; }
 
-    /// <summary>Cadastro de operadora pela tela de entrada, temporário. Desligar quando a Avalia tiver os logins dela.</summary>
-    public bool CadastroDeOperadoraAberto { get; set; } = true;
+    /// <summary>Cadastro de operadora pela tela de entrada, temporário. Fechado por padrão: abrir só para criar a conta e fechar em seguida.</summary>
+    public bool CadastroDeOperadoraAberto { get; set; }
 
     /// <summary>Só e-mail deste domínio cria conta de operadora pela tela.</summary>
     public string DominioDaOperadora { get; set; } = "avaliaone.com.br";

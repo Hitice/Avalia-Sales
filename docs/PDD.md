@@ -509,7 +509,7 @@ porque está impresso nas placas vendidas.
 
 | Data | Mudança |
 | --- | --- |
-| 23/10/2026 | Cadastro temporário de operadora na tela de entrada - só e-mail @avaliaone.com.br, com código de 6 dígitos enviado ao e-mail. A operadora não pertence a revenda e não assina contrato. Sai depois da criação das contas da operação. |
+| 23/10/2026 | Cadastro temporário de operadora na tela de entrada - só e-mail @avaliaone.com.br, com código de 6 dígitos enviado ao e-mail. Fica fechado e só abre enquanto a Avalia cria a conta; cada operadora criada entra na auditoria. A operadora não pertence a revenda e não assina contrato. Sai depois da criação das contas da operação. |
 | 23/10/2026 | Importação recusada em conta encerrada, também no ensaio; vale depois da reabertura aprovada. |
 | 23/10/2026 | Venda trazida do sistema anterior aparece como "Paga no sistema anterior" e não se cobra, cancela, vira cortesia nem recebe por fora. A comissão devida trazida entra no mês da importação, sem mudar mês fechado do razão. |
 | 22/10/2026 | Migração do Sales - conversor do backup diário para o arquivo de placas, venda no produto do catálogo pela chave, comissão devida trazida como saldo do vendedor. Os dois sócios entram como vendedores com 50% cada, em vez de divisão entre sócios. |

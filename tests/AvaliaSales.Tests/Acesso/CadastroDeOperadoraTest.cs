@@ -30,6 +30,19 @@ public sealed partial class CadastroDeOperadoraTest(ApiDeTeste api)
         var operadora = await api.ClienteLogado(email);
         Assert.Equal(HttpStatusCode.OK, (await operadora.GetAsync("/operadora/pedidos", TestContext.Current.CancellationToken)).StatusCode);
         await anonimo.Postar("/cadastro/operadora/codigo", new { nome = "Outra", email }, HttpStatusCode.UnprocessableEntity);
+        var auditoria = await operadora.Pegar($"/operadora/auditoria?busca={Uri.EscapeDataString(email)}");
+        Assert.Equal("POST /cadastro/operadora", auditoria.GetProperty("registros")[0].GetProperty("acao").GetString());
+    }
+
+    [Fact]
+    public async Task Sem_a_configuracao_o_cadastro_fica_fechado()
+    {
+        await using var fabrica = api.Fabrica.WithWebHostBuilder(web => web.UseSetting("Plataforma:CadastroDeOperadoraAberto", "false"));
+        var anonimo = fabrica.CreateClient();
+
+        Assert.False((await anonimo.Pegar("/cadastro/operadora")).GetProperty("aberto").GetBoolean());
+        await anonimo.Postar("/cadastro/operadora/codigo", new { nome = "Operação", email = $"fechado-{Guid.NewGuid():N}@avaliaone.com.br" },
+            HttpStatusCode.UnprocessableEntity);
     }
 
     [Fact]
