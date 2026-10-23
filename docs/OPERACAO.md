@@ -174,6 +174,9 @@ placa (a da Lia) fica de fora. Cada vendedor do Sales com comissão devida
 precisa de login na equipe antes do `--importar-placas`, com o e-mail do Sales
 ou o do `--vendedor`.
 
+Conta encerrada não recebe importação, nem em ensaio: a operadora aprova a
+reabertura em Revendedores antes.
+
 Até a virada, só `--ensaio`: o Sales segue vendendo, e as placas impressas
 leem pelo `avaliaone.com.br/q/`, que nada daqui alcança.
 

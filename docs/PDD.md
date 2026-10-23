@@ -509,6 +509,7 @@ porque está impresso nas placas vendidas.
 
 | Data | Mudança |
 | --- | --- |
+| 23/10/2026 | Importação recusada em conta encerrada, também no ensaio; vale depois da reabertura aprovada. |
 | 23/10/2026 | Venda trazida do sistema anterior aparece como "Paga no sistema anterior" e não se cobra, cancela, vira cortesia nem recebe por fora. A comissão devida trazida entra no mês da importação, sem mudar mês fechado do razão. |
 | 22/10/2026 | Migração do Sales - conversor do backup diário para o arquivo de placas, venda no produto do catálogo pela chave, comissão devida trazida como saldo do vendedor. Os dois sócios entram como vendedores com 50% cada, em vez de divisão entre sócios. |
 | 23/10/2026 | Conta encerrada só consulta também na tela (sem Nova venda, Serviços, Catálogo, Marca e Mapa; sem busca no Google) e mostra a faixa de encerramento. Reabertura pedida ao suporte e aprovada ou recusada pela operadora, com contrato novo. |

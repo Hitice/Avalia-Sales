@@ -172,6 +172,19 @@ public sealed class ImportacaoTest(ApiDeTeste api)
     }
 
     [Fact]
+    public async Task Conta_encerrada_nao_recebe_importacao_nem_em_ensaio()
+    {
+        var (revendedorId, _) = await api.CriarRevendedor("Revenda Encerrada da Importação");
+        await using (var banco = new BancoDeDadosDoDono(api.ConexaoDoDono))
+        {
+            await banco.Contar($"update revendedores set encerrada_em = now() where id = '{revendedorId}' returning 1");
+        }
+
+        var recusa = await Assert.ThrowsAsync<Domain.RegraDeNegocioException>(() => Importar(revendedorId, [Linha(2, Codigo(), "em_branco")], ensaio: true));
+        Assert.Contains("encerrada", recusa.Message);
+    }
+
+    [Fact]
     public async Task Comissao_devida_sem_vendedor_da_equipe_recusa_o_arquivo()
     {
         var (revendedorId, email) = await api.CriarRevendedor("Revenda da Comissão Sem Dono");

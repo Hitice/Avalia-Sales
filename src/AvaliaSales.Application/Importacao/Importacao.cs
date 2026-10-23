@@ -61,6 +61,12 @@ public sealed class Importacao(IBancoDeDados banco, IRevendedorAtual atual, ICon
             throw new RegraDeNegocioException("O arquivo não tem placas.");
         }
 
+        // Conta encerrada só consulta: a importação espera a reabertura aprovada pela operadora.
+        if (await banco.Revendedores.AnyAsync(r => r.Id == revendedorId && r.EncerradaEm != null, ct))
+        {
+            throw new RegraDeNegocioException("A conta deste revendedor está encerrada. Reabra pela tela Revendedores antes de importar.");
+        }
+
         var agora = relogio.GetUtcNow();
         var recusas = new List<string>();
         var codigos = linhas.Select(l => CodigoDaPlaca.Normalizar(l.Codigo)).ToList();
