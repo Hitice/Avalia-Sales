@@ -105,7 +105,4 @@ export const ROTULO_DA_ACAO: Record<AcaoAuditada, string> = {
   SegundoFatorLigado: 'Segundo fator ligado',
   SegundoFatorDesligado: 'Segundo fator desligado',
   EmpresaAlterada: 'Dados da empresa alterados',
-  EncerramentoPedido: 'Encerramento pedido',
-  EncerramentoDesistido: 'Encerramento desistido',
-  ContaEncerrada: 'Conta encerrada',
 }

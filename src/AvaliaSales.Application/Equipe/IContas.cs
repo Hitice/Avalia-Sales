@@ -28,12 +28,6 @@ public interface IContas
 
     Task<IReadOnlyList<string>> EmailsDosDonos(Guid revendedorId, CancellationToken ct);
 
-    /// <summary>O primeiro dono com e-mail confirmado, na ordem de <see cref="EmailsDosDonos"/>: quem assina pela revenda.</summary>
-    Task<(string Nome, string Email)?> DonoQueAssina(Guid revendedorId, CancellationToken ct);
-
-    /// <summary>Desliga os logins da revenda, só de um papel ou de todos, e encerra as sessões abertas.</summary>
-    Task DesativarLogins(Guid revendedorId, Papel? papel, CancellationToken ct);
-
     Task<IReadOnlyDictionary<Guid, string>> Nomes(IEnumerable<Guid> usuarios, CancellationToken ct);
 
     Task<Guid?> IdPorEmail(string email, CancellationToken ct);

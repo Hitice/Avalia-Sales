@@ -6,9 +6,6 @@ public enum TipoDeContrato
 {
     ContratoDoRevendedor = 1,
     TermoDoCliente = 2,
-
-    /// <summary>Encerra o contrato de revenda; assinado, encerra a conta.</summary>
-    Distrato = 3,
 }
 
 /// <summary>Os passos do envio à D4Sign, na ordem. O envio retoma do último passo gravado.</summary>

@@ -77,7 +77,6 @@ builder.Services.AdicionarInfraestrutura();
 builder.Services.AdicionarIntegracoes();
 builder.Services.UsarPagarmeSimuladoSeLigado(builder.Configuration, builder.Environment.IsDevelopment());
 builder.Services.UsarProtheusSimuladoSeLigado(builder.Configuration, builder.Environment.IsDevelopment());
-builder.Services.UsarConversorSimuladoSeLigado(builder.Configuration, builder.Environment.IsDevelopment());
 new IdentityBuilder(typeof(Usuario), builder.Services).AddSignInManager();
 
 builder.Services.AddOptions<OpcoesJwt>()
@@ -195,7 +194,6 @@ app.UseExceptionHandler();
 app.UseStatusCodePages();
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseMiddleware<ContaEncerrada>();
 app.UseRateLimiter();
 
 app.MapHealthChecks("/health");

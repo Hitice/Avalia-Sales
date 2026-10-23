@@ -1,17 +1,9 @@
-/*
- * Estilo do contrato de revenda e do distrato. O conversor (Gotenberg) recebe
- * este arquivo, o logo e as fontes junto do HTML, numa pasta só: por isso os
- * endereços são só o nome do arquivo. Charis SIL (licença OFL, OFL-charis-sil.txt)
- * é derivada da Charter.
- */
-@font-face { font-family: "Charis SIL"; font-weight: 400; src: url("charis-sil-400.woff2") format("woff2"); }
-@font-face { font-family: "Charis SIL"; font-weight: 700; src: url("charis-sil-700.woff2") format("woff2"); }
-
+/* Estilo comum do contrato de revenda (versão 2) e do distrato, impressos pelo gerar.mjs. */
 @page { size: A4; margin: 24mm 22mm 26mm; }
 :root { --tinta: #14112a; --cinza: #55526a; --linha: #b9b6c8; }
 * { box-sizing: border-box; }
 html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-body { font-family: "Charis SIL", "Charter", "Georgia", serif; color: var(--tinta); font-size: 10.6pt; line-height: 1.55; margin: 0; }
+body { font-family: "Charter", "Georgia", "Times New Roman", serif; color: var(--tinta); font-size: 10.6pt; line-height: 1.55; margin: 0; }
 
 .topo { display: flex; align-items: flex-end; justify-content: space-between; padding-bottom: 8pt; border-bottom: .8pt solid var(--tinta); margin-bottom: 22pt; }
 .topo img { width: 104pt; height: auto; }
@@ -19,19 +11,25 @@ body { font-family: "Charis SIL", "Charter", "Georgia", serif; color: var(--tint
 
 h1 { font-size: 13.4pt; font-weight: 700; text-align: center; text-transform: uppercase; letter-spacing: .06em; line-height: 1.35; margin: 0 0 22pt; }
 h2 { font-size: 10.6pt; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; margin: 18pt 0 8pt; break-after: avoid; }
+h2 .numero { display: inline-block; min-width: 0; }
 h3 { font-size: 10.6pt; font-weight: 700; text-align: center; text-transform: uppercase; letter-spacing: .05em; margin: 0 0 14pt; }
 
 p { margin: 0 0 7pt; text-align: justify; hyphens: auto; orphans: 3; widows: 3; }
+.preambulo p { text-indent: 0; }
 .clausula { display: grid; grid-template-columns: 30pt 1fr; column-gap: 4pt; margin: 0 0 7pt; break-inside: avoid-page; }
 .clausula > .n { font-weight: 700; }
 .clausula > div > p:last-child { margin-bottom: 0; }
 .alineas { list-style: none; padding: 0; margin: 4pt 0 0; }
 .alineas li { display: grid; grid-template-columns: 16pt 1fr; text-align: justify; hyphens: auto; margin: 0 0 3pt; }
 
+.campo { display: inline-block; min-width: 34mm; border-bottom: .6pt solid var(--tinta); text-align: center; line-height: 1.1; padding: 0 3pt; text-indent: 0; }
+.campo.longo { min-width: 70mm; }
+.campo.curto { min-width: 16mm; }
+.campo i { font-style: normal; font-family: "Helvetica Neue", Arial, sans-serif; font-size: 6.8pt; color: var(--cinza); letter-spacing: .02em; }
+
 .opcoes { list-style: none; padding: 0; margin: 4pt 0 0; }
 .opcoes li { display: grid; grid-template-columns: 18pt 1fr; margin: 0 0 6pt; text-align: justify; }
 .opcoes li::before { content: ""; width: 9pt; height: 9pt; border: .8pt solid var(--tinta); margin-top: 2.5pt; }
-.opcoes li.marcada::before { background: var(--tinta); box-shadow: inset 0 0 0 1.6pt #fff; }
 
 .fecho { margin-top: 20pt; break-inside: avoid; }
 .local { margin: 14pt 0 0; text-align: right; }
@@ -42,10 +40,11 @@ p { margin: 0 0 7pt; text-align: justify; hyphens: auto; orphans: 3; widows: 3; 
 
 .anexo { break-before: page; }
 .ficha { border: .6pt solid var(--linha); padding: 8pt 10pt; margin: 0 0 10pt; break-inside: avoid; }
-.ficha .item { display: grid; grid-template-columns: 62mm 1fr; gap: 8pt; margin: 0 0 5pt; padding-bottom: 4pt; border-bottom: .4pt solid var(--linha); }
-.ficha .item:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: 0; }
-.tabela { width: 100%; border-collapse: collapse; font-size: 9.2pt; line-height: 1.4; }
-.tabela th { text-align: left; font-weight: 700; border-bottom: .8pt solid var(--tinta); padding: 4pt 5pt; }
-.tabela td { border-bottom: .4pt solid var(--linha); padding: 4pt 5pt; vertical-align: top; }
-.tabela tr { break-inside: avoid; }
+.ficha .item { display: grid; grid-template-columns: 52mm 1fr; align-items: end; gap: 6pt; margin: 0 0 5pt; }
+.ficha .item:last-child { margin-bottom: 0; }
+.ficha .item span:last-child { border-bottom: .6pt solid var(--tinta); min-height: 12pt; }
+.ficha .titulo { font-weight: 700; margin: 0 0 6pt; }
 .nota { font-size: 9pt; color: var(--cinza); }
+
+/* Linha com campo em branco não é justificada: o espaço entre as palavras abriria. */
+p:has(.campo), .opcoes li:has(.campo) { text-align: left; hyphens: manual; }

@@ -30,5 +30,3 @@ export const mascaraTelefone = (texto: string) => {
 }
 
 export const mascaraCodigo = (texto: string) => digitos(texto, 6)
-
-export const mascaraCep = (texto: string) => aplicar(digitos(texto, 8), '00000-000')

@@ -47,7 +47,6 @@ public sealed class ApiDeTeste : IAsyncLifetime
         ["D4Sign:UrlDoWebhook"] = "https://api.exemplo.com.br/webhooks/d4sign",
         ["Pagarme:Simulado"] = "false",
         ["Protheus:Simulado"] = "false",
-        ["Pdf:UrlDoConversor"] = "http://conversor.invalid",
         ["Plataforma:UrlPublica"] = UrlPublica,
         ["Plataforma:UrlDoPainel"] = "https://painel.exemplo.com.br",
         ["Plataforma:EmailDaOperadora"] = "operadora@exemplo.com.br",
@@ -58,12 +57,6 @@ public sealed class ApiDeTeste : IAsyncLifetime
     };
 
     public const string UrlPublica = "https://placas.exemplo.com.br";
-
-    /// <summary>O endereço do cadastro, como a tela manda.</summary>
-    public static readonly object Endereco = new
-    {
-        logradouro = "Avenida Princesa Isabel", numero = "100", complemento = (string?)null, bairro = "Tabajaras", cidade = "Uberlândia", uf = "MG", cep = "38400-192",
-    };
 
     public const string SegredoDoWebhookPagarme = "segredo-do-webhook-com-32-caracteres-ou-mais";
     public const string SegredoHmacD4Sign = "segredo-hmac-de-teste";
@@ -203,7 +196,6 @@ public sealed class ApiDeTeste : IAsyncLifetime
         servicos.AdicionarProcessamento();
         servicos.AddSingleton<IGatewayDePagamento>(gateway);
         servicos.AddSingleton<IAssinaturaEletronica>(assinatura);
-        servicos.AddSingleton<Infrastructure.Impressao.IConversorDePdf, Infrastructure.Impressao.ConversorSimulado>();
         if (erp is not null)
         {
             servicos.AddSingleton(erp);

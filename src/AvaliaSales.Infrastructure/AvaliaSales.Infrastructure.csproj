@@ -15,6 +15,6 @@
     <PackageReference Include="QRCoder" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="Impressao\Modelos\*" LogicalName="modelos/%(Filename)%(Extension)" />
+    <EmbeddedResource Include="Recursos\contrato-de-revenda.pdf" LogicalName="contrato-de-revenda.pdf" />
   </ItemGroup>
 </Project>

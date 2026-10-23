@@ -69,24 +69,6 @@ public sealed class Contas(UserManager<Usuario> usuarios, BancoDeDados banco, Ge
             .Where(u => u.RevendedorId == revendedorId && u.Papel == Papel.Dono && u.Ativo && u.EmailConfirmed && u.Email != null)
             .OrderBy(u => u.Email).Select(u => u.Email!).ToListAsync(ct);
 
-    public async Task<(string Nome, string Email)?> DonoQueAssina(Guid revendedorId, CancellationToken ct)
-    {
-        var dono = await banco.Users.AsNoTracking()
-            .Where(u => u.RevendedorId == revendedorId && u.Papel == Papel.Dono && u.Ativo && u.EmailConfirmed && u.Email != null)
-            .OrderBy(u => u.Email).Select(u => new { u.Nome, u.Email }).FirstOrDefaultAsync(ct);
-        return dono is null ? null : (dono.Nome, dono.Email!);
-    }
-
-    public async Task DesativarLogins(Guid revendedorId, Papel? papel, CancellationToken ct)
-    {
-        var ids = await banco.Users.Where(u => u.RevendedorId == revendedorId && u.Ativo && (papel == null || u.Papel == papel))
-            .Select(u => u.Id).ToListAsync(ct);
-        await banco.Users.Where(u => ids.Contains(u.Id)).ExecuteUpdateAsync(s => s.SetProperty(u => u.Ativo, false), ct);
-        var agora = relogio.GetUtcNow();
-        await banco.Sessoes.Where(s => ids.Contains(s.UsuarioId) && s.EncerradaEm == null)
-            .ExecuteUpdateAsync(s => s.SetProperty(x => x.EncerradaEm, agora), ct);
-    }
-
     public async Task<IReadOnlyDictionary<Guid, string>> Nomes(IEnumerable<Guid> ids, CancellationToken ct)
     {
         var lista = ids.Distinct().ToList();

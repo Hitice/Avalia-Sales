@@ -102,14 +102,6 @@ public static class RotasDeAcesso
             return Results.NoContent();
         }).RequireAuthorization().RequireRateLimiting(LimiteDeEntrada);
         rotas.MapPost("/cadastro", Cadastrar).AllowAnonymous().RequireRateLimiting(LimiteDeEntrada).Produces<TokenEmitido>();
-
-        // O cadastro preenche razão social e endereço pelo CNPJ, e o endereço pelo CEP. Sem resultado, 404 e a tela pede para digitar.
-        rotas.MapGet("/cadastro/cnpj/{cnpj}", async (string cnpj, IConsultaDeEndereco consulta, CancellationToken ct) =>
-                await consulta.PorCnpj(cnpj, ct) is { } empresa ? Results.Ok(empresa) : Results.NotFound())
-            .AllowAnonymous().RequireRateLimiting(LimiteDeEntrada).Produces<EmpresaConsultada>();
-        rotas.MapGet("/cadastro/cep/{cep}", async (string cep, IConsultaDeEndereco consulta, CancellationToken ct) =>
-                await consulta.PorCep(cep, ct) is { } endereco ? Results.Ok(endereco) : Results.NotFound())
-            .AllowAnonymous().RequireRateLimiting(LimiteDeEntrada).Produces<EnderecoConsultado>();
     }
 
     /// <summary>

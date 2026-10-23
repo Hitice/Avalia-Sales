@@ -21,7 +21,4 @@ public interface IAssinaturaEletronica
 
     /// <summary>O PDF do documento como está na assinatura eletrônica (o assinado, depois de assinado).</summary>
     Task<byte[]> Baixar(string documento, CancellationToken ct);
-
-    /// <summary>Cancela o documento que ainda não foi assinado, como o distrato de quem desistiu de encerrar.</summary>
-    Task Cancelar(string documento, string motivo, CancellationToken ct);
 }

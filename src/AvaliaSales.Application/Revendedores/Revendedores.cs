@@ -5,8 +5,7 @@ using Microsoft.EntityFrameworkCore;
 namespace AvaliaSales.Application.Revendedores;
 
 public sealed record RevendedorDto(Guid Id, string Nome, string? Cnpj, int TaxaAvaliaBps, int ComissaoPadraoBps,
-    string? RecebedorPagarme, DateTimeOffset? ContratoAssinadoEm, DateTimeOffset CriadoEm, int RenovacaoBps, string? Celular,
-    bool TemEndereco, DateTimeOffset? EncerramentoPedidoEm, DateTimeOffset? EncerradaEm);
+    string? RecebedorPagarme, DateTimeOffset? ContratoAssinadoEm, DateTimeOffset CriadoEm, int RenovacaoBps, string? Celular);
 
 public sealed record MinhaRevenda(RevendedorDto Revendedor, SituacaoDoContrato? Contrato);
 
@@ -15,8 +14,7 @@ public sealed class Revendedores(IBancoDeDados banco, IRevendedorAtual atual, Ti
 {
     public async Task<IReadOnlyList<RevendedorDto>> Listar(CancellationToken ct) =>
         await banco.Revendedores.AsNoTracking().OrderBy(r => r.Nome)
-            .Select(r => new RevendedorDto(r.Id, r.Nome, r.Cnpj, r.TaxaAvaliaBps, r.ComissaoPadraoBps, r.RecebedorPagarme, r.ContratoAssinadoEm, r.CriadoEm, r.RenovacaoBps, r.Celular,
-                r.Endereco != null, r.EncerramentoPedidoEm, r.EncerradaEm))
+            .Select(r => new RevendedorDto(r.Id, r.Nome, r.Cnpj, r.TaxaAvaliaBps, r.ComissaoPadraoBps, r.RecebedorPagarme, r.ContratoAssinadoEm, r.CriadoEm, r.RenovacaoBps, r.Celular))
             .ToListAsync(ct);
 
     public async Task<MinhaRevenda> DoUsuario(CancellationToken ct)
@@ -28,8 +26,7 @@ public sealed class Revendedores(IBancoDeDados banco, IRevendedorAtual atual, Ti
             .Select(c => (SituacaoDoContrato?)c.Situacao)
             .FirstOrDefaultAsync(ct);
         return new MinhaRevenda(
-            new RevendedorDto(r.Id, r.Nome, r.Cnpj, r.TaxaAvaliaBps, r.ComissaoPadraoBps, r.RecebedorPagarme, r.ContratoAssinadoEm, r.CriadoEm, r.RenovacaoBps, r.Celular,
-                r.Endereco is not null, r.EncerramentoPedidoEm, r.EncerradaEm),
+            new RevendedorDto(r.Id, r.Nome, r.Cnpj, r.TaxaAvaliaBps, r.ComissaoPadraoBps, r.RecebedorPagarme, r.ContratoAssinadoEm, r.CriadoEm, r.RenovacaoBps, r.Celular),
             contrato);
     }
 

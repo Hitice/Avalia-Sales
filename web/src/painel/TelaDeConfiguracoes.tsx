@@ -1,9 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Download, Send } from 'lucide-react'
 import { useState } from 'react'
-import { chamarApi, enviarJson, mensagemDoErro } from '@/api/cliente'
-import type { MeuContrato } from '@/api/tipos'
-import { baixarArquivo } from '@/lib/arquivo'
+import { chamarApi, chamarResposta, enviarJson, mensagemDoErro } from '@/api/cliente'
+import type { components } from '@/api/esquema'
 import { formatarBps, formatarData, paraBps, ROTULO_DO_CONTRATO } from '@/api/rotulos'
 import { Badge } from '@/components/ui/badge'
 import { Cabecalho, CarregandoTela, Erro } from '@/componentes/Tela'
@@ -68,6 +67,8 @@ function Formulario({ comissaoBps, renovacaoBps, taxaBps }: { comissaoBps: numbe
   )
 }
 
+type MeuContrato = components['schemas']['MeuContrato']
+
 /** O contrato com a Avalia: em que pé está, reenviar o e-mail de assinatura e baixar a cópia. */
 function ContratoDeRevenda() {
   const consultas = useQueryClient()
@@ -82,7 +83,14 @@ function ContratoDeRevenda() {
   async function baixar() {
     setErroDaCopia(null)
     try {
-      await baixarArquivo('/revenda/contrato/pdf', 'contrato-de-revenda.pdf')
+      const resposta = await chamarResposta('/revenda/contrato/pdf')
+      const nome = /filename="?([^";]+)"?/.exec(resposta.headers.get('Content-Disposition') ?? '')?.[1] ?? 'contrato-de-revenda.pdf'
+      const endereco = URL.createObjectURL(await resposta.blob())
+      const link = document.createElement('a')
+      link.href = endereco
+      link.download = nome
+      link.click()
+      URL.revokeObjectURL(endereco)
     } catch (e) {
       setErroDaCopia(e)
     }
