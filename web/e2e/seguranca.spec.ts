@@ -64,20 +64,6 @@ test('o dono liga o segundo fator, a entrada pede o código e ele desliga', asyn
   await expect(page.getByText('Desativada')).toBeVisible()
 })
 
-test('a entrada leva ao cadastro de operadora, que só aceita o domínio da Avalia e pede o código', async ({ page }) => {
-  await page.goto('/entrar')
-  await page.getByRole('link', { name: 'Criar conta de operadora' }).click()
-  await expect(page.getByRole('heading', { name: 'Criar conta de operadora' })).toBeVisible()
-  await page.locator('#nome').fill('Operação de Teste')
-  await page.locator('#email').fill(`fora-${Date.now()}@revenda.dev`)
-  await page.getByRole('button', { name: 'Enviar código' }).click()
-  await expect(page.getByText('Só e-mail @avaliaone.com.br cria conta de operadora.')).toBeVisible()
-  await page.locator('#email').fill(`operacao-${Date.now()}@avaliaone.com.br`)
-  await page.getByRole('button', { name: 'Enviar código' }).click()
-  await expect(page.getByLabel('Código')).toBeVisible()
-  await semViolacaoGrave(page)
-})
-
 // Vendedor novo, para não mexer na senha dos logins da demonstração.
 test('logado, o vendedor troca a senha em Meus dados e entra com a nova', async ({ page }) => {
   const dono = await apiComo(CLIENTE_A)

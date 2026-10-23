@@ -96,7 +96,7 @@ Todas no mesmo app, liberadas pelo papel do usuário.
 
 | Tela | Quem usa | Pensada para | O que faz |
 | --- | --- | --- | --- |
-| Entrada, cadastro e senha | Todos | Celular e computador | Entrar, cadastrar a revenda (CNPJ preenche razão social e endereço), confirmar o e-mail, criar e trocar a senha; cadastro temporário de operadora com e-mail @avaliaone.com.br |
+| Entrada, cadastro e senha | Todos | Celular e computador | Entrar, cadastrar a revenda (CNPJ preenche razão social e endereço), confirmar o e-mail, criar e trocar a senha |
 | Início | Dono | Computador | Números do mês e gráficos - vendas por dia nos últimos 30 dias, recebido por mês nos últimos 6 e vendas do mês por vendedor |
 | Vendas | Dono | Computador | Lista das vendas, cobrança de novo, cancelamento, cortesia, recebido por fora |
 | Clientes | Dono | Computador | Clientes da revenda, exportação dos dados e anonimização (LGPD) |
@@ -509,6 +509,8 @@ porque está impresso nas placas vendidas.
 
 | Data | Mudança |
 | --- | --- |
+| 23/10/2026 | Tabelas cabem no cartão - com mais de uma ação, a linha mostra a principal (Editar) e as outras no botão "⋯" (Equipe, Pacotes, Cupons); o formulário lateral (Novo vendedor, Novo cupom e outros) fica ao lado só a partir de 1280 px; tabela mais larga que a tela mostra sombra na borda que rola. |
+| 23/10/2026 | A plataforma tem uma operadora só, que cuida da operação inteira; a Avalia vende como revenda comum. Sai o cadastro temporário de operadora da tela de entrada. |
 | 23/10/2026 | Troca de senha logado, em Meus dados, para todos os papéis - pede a senha atual, derruba os outros aparelhos e avisa por e-mail. Vale também com a conta encerrada. |
 | 23/10/2026 | Cadastro temporário de operadora na tela de entrada - só e-mail @avaliaone.com.br, com código de 6 dígitos enviado ao e-mail. Fica fechado e só abre enquanto a Avalia cria a conta; cada operadora criada entra na auditoria. A operadora não pertence a revenda e não assina contrato. Sai depois da criação das contas da operação. |
 | 23/10/2026 | Importação recusada em conta encerrada, também no ensaio; vale depois da reabertura aprovada. |

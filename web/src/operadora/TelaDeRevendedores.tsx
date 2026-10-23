@@ -43,7 +43,7 @@ export function TelaDeRevendedores() {
                 <TableBody>
                   {revendedores.data.map((r) => (
                     <TableRow key={r.id}>
-                      <TableCell className="font-medium">{r.nome}</TableCell>
+                      <TableCell className="min-w-32 font-medium whitespace-normal">{r.nome}</TableCell>
                       <TableCell className="tabular-nums">{formatarCnpj(r.cnpj)}</TableCell>
                       <TableCell className="tabular-nums">{r.celular ? mascaraTelefone(r.celular) : '-'}</TableCell>
                       <TableCell className="text-right tabular-nums">{formatarBps(r.taxaAvaliaBps)}</TableCell>
@@ -74,7 +74,7 @@ export function TelaDeRevendedores() {
                         >
                           <Input
                             aria-label={`Recebedor de ${r.nome}`}
-                            className="w-48"
+                            className="w-40"
                             placeholder="rp_..."
                             defaultValue={r.recebedorPagarme ?? ''}
                             onChange={(e) => setDigitado({ ...digitado, [r.id]: e.target.value })}

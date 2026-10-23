@@ -13,7 +13,7 @@ public sealed class FluxoDoLoteTest(ApiDeTeste api)
         var operadora = await api.ClienteLogado(await api.CriarOperadora());
         var (revendedorId, email) = await api.CriarRevendedor("Revenda do Lote");
         var dono = await api.ClienteLogado(email);
-        var quantidade = Random.Shared.Next(200, 900);
+        var quantidade = Random.Shared.Next(200, 300);
 
         var pacote = await operadora.Postar("/operadora/pacotes", new { quantidade, precoCents = quantidade * 1_400L }, HttpStatusCode.Created);
         var lote = await operadora.Postar("/operadora/lotes", new { quantidade }, HttpStatusCode.Created);
@@ -45,7 +45,7 @@ public sealed class FluxoDoLoteTest(ApiDeTeste api)
         var operadora = await api.ClienteLogado(await api.CriarOperadora());
         var (_, email) = await api.CriarRevendedor("Revenda Sem Contrato", contratoAssinado: false);
         var dono = await api.ClienteLogado(email);
-        var pacote = await operadora.Postar("/operadora/pacotes", new { quantidade = Random.Shared.Next(901, 999), precoCents = 10_000L }, HttpStatusCode.Created);
+        var pacote = await operadora.Postar("/operadora/pacotes", new { quantidade = Random.Shared.Next(901, 950), precoCents = 10_000L }, HttpStatusCode.Created);
 
         var recusa = await dono.Postar("/pedidos", new { pacoteId = pacote.GetProperty("id").GetGuid() }, HttpStatusCode.UnprocessableEntity);
 
@@ -60,7 +60,7 @@ public sealed class FluxoDoLoteTest(ApiDeTeste api)
         var (revendedorB, emailB) = await api.CriarRevendedor("Revenda Que Digitou Errado");
         var donoA = await api.ClienteLogado(emailA);
         var donoB = await api.ClienteLogado(emailB);
-        var quantidade = Random.Shared.Next(100, 199);
+        var quantidade = Random.Shared.Next(101, 199);
         var pacote = await operadora.Postar("/operadora/pacotes", new { quantidade, precoCents = 50_000L }, HttpStatusCode.Created);
         var lote = await operadora.Postar("/operadora/lotes", new { quantidade }, HttpStatusCode.Created);
         var pedido = await donoA.Postar("/pedidos", new { pacoteId = pacote.GetProperty("id").GetGuid() }, HttpStatusCode.Created);
@@ -83,7 +83,7 @@ public sealed class FluxoDoLoteTest(ApiDeTeste api)
         var (_, emailB) = await api.CriarRevendedor("Revenda Pedido B");
         var donoA = await api.ClienteLogado(emailA);
         var donoB = await api.ClienteLogado(emailB);
-        var pacote = (await operadora.Postar("/operadora/pacotes", new { quantidade = Random.Shared.Next(11, 99), precoCents = 9_900L }, HttpStatusCode.Created)).GetProperty("id").GetGuid();
+        var pacote = (await operadora.Postar("/operadora/pacotes", new { quantidade = Random.Shared.Next(51, 100), precoCents = 9_900L }, HttpStatusCode.Created)).GetProperty("id").GetGuid();
 
         var deA = (await donoA.Postar("/pedidos", new { pacoteId = pacote }, HttpStatusCode.Created)).GetProperty("id").GetGuid();
         var deB = (await donoB.Postar("/pedidos", new { pacoteId = pacote }, HttpStatusCode.Created)).GetProperty("id").GetGuid();

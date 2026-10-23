@@ -28,8 +28,6 @@ export const rotas = createBrowserRouter([{
   children: [
   { path: '/entrar', element: <TelaDeEntrada /> },
   { path: '/cadastro', lazy: tela(() => import('@/acesso/TelaDeCadastro'), 'TelaDeCadastro') },
-  // Temporário: a Avalia cria os logins de operadora pela tela. Sai quando o cadastro fechar.
-  { path: '/cadastro/operadora', lazy: tela(() => import('@/acesso/TelaDeCadastroDeOperadora'), 'TelaDeCadastroDeOperadora') },
   { path: '/convite', lazy: tela(() => import('@/acesso/TelaDeSenha'), 'TelaDeSenha') },
   { path: '/senha', lazy: tela(() => import('@/acesso/TelaDeSenha'), 'TelaDeSenha') },
   { path: '/esqueci', lazy: tela(() => import('@/acesso/TelaDeSenha'), 'TelaEsqueci') },

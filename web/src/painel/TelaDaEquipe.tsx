@@ -1,4 +1,3 @@
-import { Trash2 } from 'lucide-react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
@@ -8,6 +7,7 @@ import { mensagemDoErro } from '@/api/cliente'
 import { formatarBps, paraBps } from '@/api/rotulos'
 import type { Vendedor } from '@/api/tipos'
 import { Campo } from '@/componentes/Campo'
+import { AcoesDaLinha } from '@/componentes/AcoesDaLinha'
 import { Cabecalho, Erro, EstadoDaConsulta, Rolagem } from '@/componentes/Tela'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -96,7 +96,7 @@ export function TelaDaEquipe() {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
+    <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
       <div>
         <Cabecalho titulo="Equipe" />
         <Erro erro={erro ? mensagemDoErro(erro) : null} />
@@ -126,16 +126,11 @@ export function TelaDaEquipe() {
                         <TableCell className="text-right tabular-nums">{v.vendas}</TableCell>
                         <TableCell><Badge variant={v.ativo && !v.convitePendente ? 'default' : 'outline'}>{!v.ativo ? 'Desativado' : v.convitePendente ? 'Convidado' : 'Ativo'}</Badge></TableCell>
                         <TableCell>
-                          <div className="flex items-center justify-end gap-2">
-                            {v.ativo && v.convitePendente && <Button variant="outline" disabled={convidar.isPending} onClick={() => convidar.mutate(v.id, { onSuccess: setConvite })}>Convidar de novo</Button>}
-                            <Button variant="outline" onClick={() => editar(v)}>Editar</Button>
-                            <Button variant="outline" onClick={() => ativar.mutate({ id: v.id, ativo: !v.ativo })}>{v.ativo ? 'Desativar' : 'Reativar'}</Button>
-                            {v.vendas === 0 && (
-                              <Button variant="ghost" size="icon" className="text-destructive" aria-label={`Excluir ${v.nome}`} title="Excluir" onClick={() => excluir.mutate(v.id)}>
-                                <Trash2 aria-hidden />
-                              </Button>
-                            )}
-                          </div>
+                          <AcoesDaLinha nome={v.nome} principal={{ rotulo: 'Editar', aoClicar: () => editar(v) }} outras={[
+                            v.ativo && v.convitePendente && { rotulo: 'Convidar de novo', desabilitada: convidar.isPending, aoClicar: () => convidar.mutate(v.id, { onSuccess: setConvite }) },
+                            { rotulo: v.ativo ? 'Desativar' : 'Reativar', aoClicar: () => ativar.mutate({ id: v.id, ativo: !v.ativo }) },
+                            v.vendas === 0 && { rotulo: 'Excluir', destrutiva: true, aoClicar: () => excluir.mutate(v.id) },
+                          ]} />
                         </TableCell>
                       </TableRow>
                     ))}

@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { mensagemDoErro } from '@/api/cliente'
 import type { Pacote } from '@/api/tipos'
 import { Campo } from '@/componentes/Campo'
+import { AcoesDaLinha } from '@/componentes/AcoesDaLinha'
 import { Cabecalho, Erro, EstadoDaConsulta, Rolagem } from '@/componentes/Tela'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -48,7 +49,7 @@ export function TelaDePacotes() {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
+    <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_18rem]">
       <div>
         <Cabecalho titulo="Pacotes" />
         <Erro erro={erro ? mensagemDoErro(erro) : null} />
@@ -75,11 +76,10 @@ export function TelaDePacotes() {
                         <TableCell className="text-right tabular-nums">{formatarCentavos(pacote.custoPorPlacaCents)}</TableCell>
                         <TableCell><Badge variant={pacote.ativo ? 'default' : 'outline'}>{pacote.ativo ? 'À venda' : 'Fora de venda'}</Badge></TableCell>
                         <TableCell>
-                          <div className="flex justify-end gap-2">
-                            <Button variant="outline" onClick={() => editar(pacote)}>Editar</Button>
-                            <Button variant="outline" onClick={() => ativar.mutate({ id: pacote.id, ativo: !pacote.ativo })}>{pacote.ativo ? 'Tirar de venda' : 'Pôr à venda'}</Button>
-                            <Button variant="ghost" onClick={() => excluir.mutate(pacote.id)}>Excluir</Button>
-                          </div>
+                          <AcoesDaLinha nome={`pacote de ${pacote.quantidade} placas`} principal={{ rotulo: 'Editar', aoClicar: () => editar(pacote) }} outras={[
+                            { rotulo: pacote.ativo ? 'Tirar de venda' : 'Pôr à venda', aoClicar: () => ativar.mutate({ id: pacote.id, ativo: !pacote.ativo }) },
+                            { rotulo: 'Excluir', destrutiva: true, aoClicar: () => excluir.mutate(pacote.id) },
+                          ]} />
                         </TableCell>
                       </TableRow>
                     ))}

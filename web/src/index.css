@@ -152,3 +152,17 @@
     box-shadow: 0 0 0 3px color-mix(in oklch, var(--destructive) 22%, transparent);
   }
 }
+
+/*
+ * Tabela mais larga que o cartão: sombra na borda de onde há coluna escondida,
+ * para a rolagem lateral não parecer botão cortado. As duas camadas da cor do
+ * cartão rolam com o conteúdo (local) e cobrem a sombra fixa quando a borda
+ * chega ao fim.
+ */
+@utility sombra-de-rolagem {
+  background:
+    linear-gradient(to right, var(--card) 30%, transparent) left center / 2.5rem 100% no-repeat local,
+    linear-gradient(to left, var(--card) 30%, transparent) right center / 2.5rem 100% no-repeat local,
+    radial-gradient(farthest-side at 0 50%, color-mix(in oklch, var(--foreground) 18%, transparent), transparent) left center / 0.75rem 100% no-repeat scroll,
+    radial-gradient(farthest-side at 100% 50%, color-mix(in oklch, var(--foreground) 18%, transparent), transparent) right center / 0.75rem 100% no-repeat scroll;
+}

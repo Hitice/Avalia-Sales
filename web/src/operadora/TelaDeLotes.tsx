@@ -26,7 +26,7 @@ export function TelaDeLotes() {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
+    <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_18rem]">
       <div>
         <Cabecalho titulo="Lotes" />
         <Erro erro={erroDoArquivo} />
@@ -52,7 +52,7 @@ export function TelaDeLotes() {
                         <TableCell className="font-medium tabular-nums">{lote.rotulo}</TableCell>
                         <TableCell className="text-right tabular-nums">{lote.quantidade}</TableCell>
                         <TableCell>{formatarDataHora(lote.criadoEm)}</TableCell>
-                        <TableCell>{lote.revendedor ?? 'Livre'}</TableCell>
+                        <TableCell className="min-w-32 whitespace-normal">{lote.revendedor ?? 'Livre'}</TableCell>
                         <TableCell>{formatarDataHora(lote.ativadoEm)}</TableCell>
                         <TableCell className="text-right"><Button variant="outline" onClick={() => baixar(lote)}>Baixar impressão</Button></TableCell>
                       </TableRow>

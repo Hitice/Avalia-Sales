@@ -35,8 +35,6 @@ jobs:
       # ambiente antes do .env, e o nome não precisa ficar no servidor nem no repositório.
       AVALIA_REPRESENTANTE: ${{ vars.AVALIA_REPRESENTANTE }}
       AVALIA_CARGO_DO_REPRESENTANTE: ${{ vars.AVALIA_CARGO_DO_REPRESENTANTE }}
-      # Cadastro temporário de operadora: só abre com a variável true; sem ela, o deploy fecha.
-      CADASTRO_DE_OPERADORA_ABERTO: ${{ vars.CADASTRO_DE_OPERADORA_ABERTO }}
     steps:
       - uses: actions/checkout@v7
         with:

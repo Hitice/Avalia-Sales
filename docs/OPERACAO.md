@@ -59,21 +59,7 @@ Arquitetura e decisões no [SDD](SDD.md); cada decisão estrutural em
      --nova-operadora --nome="Operação Avalia" --email=... --senha=...
    ```
 
-   A operadora também se cria pela tela de entrada, em "Criar conta de
-   operadora", com e-mail @avaliaone.com.br e o código que chega no e-mail. O
-   cadastro nasce fechado e só abre com a variável `CADASTRO_DE_OPERADORA_ABERTO`
-   igual a `true` no ambiente `producao` do GitHub, que o Deploy repassa ao
-   Compose. Abrir, criar a conta e fechar em seguida:
-
-   ```bash
-   gh variable set CADASTRO_DE_OPERADORA_ABERTO --env producao --body true
-   gh workflow run Deploy          # aprovar no GitHub; a entrada mostra o link
-   gh variable delete CADASTRO_DE_OPERADORA_ABERTO --env producao
-   gh workflow run Deploy          # o deploy sem a variável fecha o cadastro
-   ```
-
-   Cada operadora criada pela tela aparece na Auditoria da operadora como
-   `POST /cadastro/operadora`.
+   A plataforma tem uma operadora só, criada por este comando.
 
    Para dar a outro login um e-mail que já está em uso (por exemplo, o dono de
    uma revenda passa a usar outro e-mail e o antigo fica para a operadora),

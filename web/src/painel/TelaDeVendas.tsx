@@ -61,7 +61,7 @@ export function TelaDeVendas() {
                     <TableHead>Placa</TableHead>
                     {dono && <TableHead>Vendedor</TableHead>}
                     <TableHead className="text-right">Valor</TableHead>
-                    <TableHead className="text-right">Comissão</TableHead>
+                    <TableHead className="text-right md:max-xl:hidden">Comissão</TableHead>
                     <TableHead>Pagamento</TableHead>
                     <TableHead><span className="sr-only">Ação</span></TableHead>
                   </TableRow>
@@ -70,17 +70,19 @@ export function TelaDeVendas() {
                   {vendas.data.map((v) => (
                     <TableRow key={v.id}>
                       <TableCell>{formatarDataHora(v.vendidaEm)}</TableCell>
-                      <TableCell><p className="font-medium">{v.cliente}</p><p className="text-xs text-muted-foreground">{v.produto}</p></TableCell>
+                      <TableCell className="min-w-40 whitespace-normal"><p className="font-medium">{v.cliente}</p><p className="text-xs text-muted-foreground">{v.produto}</p></TableCell>
                       <TableCell><Link className="tabular-nums underline-offset-4 hover:underline" to={`/placa/${v.codigo}`}>{v.codigo}</Link></TableCell>
-                      {dono && <TableCell>{v.vendedor}</TableCell>}
+                      {dono && <TableCell className="min-w-28 whitespace-normal">{v.vendedor}</TableCell>}
                       <TableCell className="text-right tabular-nums">{formatarCentavos(v.valorCents)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{formatarCentavos(v.comissaoCents)}</TableCell>
+                      <TableCell className="text-right tabular-nums md:max-xl:hidden">{formatarCentavos(v.comissaoCents)}</TableCell>
                       <TableCell><Badge variant={v.situacao === 'Cancelada' ? 'outline' : v.pagamento === 'Paga' ? 'default' : 'secondary'}>{rotuloDoPagamento(v)}</Badge></TableCell>
-                      <TableCell className="text-right whitespace-nowrap">
-                        {v.situacao === 'Registrada' && !v.cortesia && !v.doSistemaAnterior && (v.pagamento === null || v.pagamento === 'Falhou' || v.pagamento === 'Cancelada') && (
-                          <Button variant="outline" disabled={cobrar.isPending} onClick={() => cobrar.mutate(v.id)}>Gerar cobrança</Button>
-                        )}
-                        <AcoesDaVenda venda={v} dono={dono} />
+                      <TableCell>
+                        <div className="flex items-center justify-end gap-2">
+                          {v.situacao === 'Registrada' && !v.cortesia && !v.doSistemaAnterior && (v.pagamento === null || v.pagamento === 'Falhou' || v.pagamento === 'Cancelada') && (
+                            <Button variant="outline" disabled={cobrar.isPending} onClick={() => cobrar.mutate(v.id)}>Gerar cobrança</Button>
+                          )}
+                          <AcoesDaVenda venda={v} dono={dono} />
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}

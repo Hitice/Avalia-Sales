@@ -44,7 +44,7 @@ export function TelaDePedidos() {
                 <TableBody>
                   {pedidos.data.map((pedido) => (
                     <TableRow key={pedido.id}>
-                      <TableCell className="font-medium">{pedido.revendedor}</TableCell>
+                      <TableCell className="min-w-32 font-medium whitespace-normal">{pedido.revendedor}</TableCell>
                       <TableCell className="text-right tabular-nums">{pedido.quantidade}</TableCell>
                       <TableCell className="text-right tabular-nums">{formatarCentavos(pedido.valorCents)}</TableCell>
                       <TableCell>{formatarDataHora(pedido.criadoEm)}</TableCell>

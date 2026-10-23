@@ -32,12 +32,6 @@ public sealed record PedidoDeReenvio(string? Desafio);
 /// memória no front; o refresh fica em cookie HttpOnly, que script nenhum lê,
 /// e é o que mantém a sessão quando a página recarrega.
 /// </summary>
-public sealed record SituacaoDoCadastroDeOperadora(bool Aberto, string Dominio);
-
-public sealed record PedidoDeOperadora(string? Nome, string? Email);
-
-public sealed record NovaOperadora(string? Email, string? Codigo, string? Senha);
-
 public static class RotasDeAcesso
 {
     public const string LimiteDeEntrada = "entrada";
@@ -120,19 +114,6 @@ public static class RotasDeAcesso
             await Entrou(http, await senhas.Trocar(Guid.Parse(Atual(atual)), pedido.Atual, pedido.Nova, ct), sessoes, emissor, banco, ct))
             .RequireAuthorization().RequireRateLimiting(LimiteDeEntrada).Produces<TokenEmitido>();
         rotas.MapPost("/cadastro", Cadastrar).AllowAnonymous().RequireRateLimiting(LimiteDeEntrada).Produces<TokenEmitido>();
-
-        // Cadastro temporário da operadora pela tela de entrada (CadastroDeOperadora): só e-mail da Avalia, com código.
-        rotas.MapGet("/cadastro/operadora", (CadastroDeOperadora cadastro) => new SituacaoDoCadastroDeOperadora(cadastro.Aberto, cadastro.Dominio))
-            .AllowAnonymous();
-        rotas.MapPost("/cadastro/operadora/codigo", async (PedidoDeOperadora pedido, CadastroDeOperadora cadastro, CancellationToken ct) =>
-        {
-            await cadastro.PedirCodigo(pedido.Nome, pedido.Email, ct);
-            return Results.NoContent();
-        }).AllowAnonymous().RequireRateLimiting(LimiteDeEntrada);
-        rotas.MapPost("/cadastro/operadora", async (NovaOperadora pedido, HttpContext http, CadastroDeOperadora cadastro, GestorDeSessoes sessoes,
-            EmissorDeToken emissor, BancoDeDados banco, CancellationToken ct) =>
-            await Entrou(http, await cadastro.Concluir(pedido.Email, pedido.Codigo, pedido.Senha), sessoes, emissor, banco, ct))
-            .AllowAnonymous().RequireRateLimiting(LimiteDeEntrada).Produces<TokenEmitido>();
 
         // O cadastro preenche razão social e endereço pelo CNPJ, e o endereço pelo CEP. Sem resultado, 404 e a tela pede para digitar.
         rotas.MapGet("/cadastro/cnpj/{cnpj}", async (string cnpj, IConsultaDeEndereco consulta, CancellationToken ct) =>

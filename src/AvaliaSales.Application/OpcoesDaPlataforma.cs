@@ -30,12 +30,6 @@ public sealed class OpcoesDaPlataforma
 
     public string? CargoDoRepresentante { get; set; }
 
-    /// <summary>Cadastro de operadora pela tela de entrada, temporário. Fechado por padrão: abrir só para criar a conta e fechar em seguida.</summary>
-    public bool CadastroDeOperadoraAberto { get; set; }
-
-    /// <summary>Só e-mail deste domínio cria conta de operadora pela tela.</summary>
-    public string DominioDaOperadora { get; set; } = "avaliaone.com.br";
-
     public string HostPublico => new Uri(UrlPublica).Host;
 
     /// <summary>O endereço gravado no QR e no NFC, em maiúsculas para o modo alfanumérico do QR.</summary>

@@ -6,6 +6,7 @@ import { mensagemDoErro } from '@/api/cliente'
 import { formatarBps, formatarData, paraBps } from '@/api/rotulos'
 import type { Cupom } from '@/api/tipos'
 import { Campo } from '@/componentes/Campo'
+import { AcoesDaLinha } from '@/componentes/AcoesDaLinha'
 import { Cabecalho, Erro, EstadoDaConsulta, Rolagem } from '@/componentes/Tela'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -74,7 +75,7 @@ export function TelaDeCupons() {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
+    <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
       <div>
         <Cabecalho titulo="Cupons" />
         <Erro erro={erro ? mensagemDoErro(erro) : null} />
@@ -103,11 +104,10 @@ export function TelaDeCupons() {
                         <TableCell className="text-right tabular-nums">{c.usos}{c.usosMaximos ? ` de ${c.usosMaximos}` : ''}</TableCell>
                         <TableCell><Badge variant={c.ativo ? 'default' : 'outline'}>{c.ativo ? 'Ativo' : 'Desligado'}</Badge></TableCell>
                         <TableCell>
-                          <div className="flex justify-end gap-2">
-                            <Button variant="outline" onClick={() => editar(c)}>Editar</Button>
-                            <Button variant="outline" onClick={() => ativar.mutate({ id: c.id, ativo: !c.ativo })}>{c.ativo ? 'Desligar' : 'Ligar'}</Button>
-                            {c.usos === 0 && <Button variant="ghost" onClick={() => excluir.mutate(c.id)}>Excluir</Button>}
-                          </div>
+                          <AcoesDaLinha nome={c.codigo} principal={{ rotulo: 'Editar', aoClicar: () => editar(c) }} outras={[
+                            { rotulo: c.ativo ? 'Desligar' : 'Ligar', aoClicar: () => ativar.mutate({ id: c.id, ativo: !c.ativo }) },
+                            c.usos === 0 && { rotulo: 'Excluir', destrutiva: true, aoClicar: () => excluir.mutate(c.id) },
+                          ]} />
                         </TableCell>
                       </TableRow>
                     ))}

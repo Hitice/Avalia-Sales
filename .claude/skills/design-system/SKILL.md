@@ -136,6 +136,16 @@ coluna é o título, as outras levam o rótulo da coluna em cima do valor e a
 coluna de ações (título só para leitor de tela) ocupa a linha toda. Tela nova
 com tabela não precisa de nada a mais.
 
+No computador a tabela tem de caber no cartão:
+- Linha com mais de uma ação usa `componentes/AcoesDaLinha`: a principal
+  (Editar) visível e as outras no botão "⋯"; no celular, fileira de botões.
+- Texto longo (nome de cliente, revenda, vendedor) quebra linha com
+  `min-w-* whitespace-normal`; a célula padrão não quebra.
+- Formulário ao lado da tabela só a partir de `xl` (1280 px):
+  `xl:grid-cols-[minmax(0,1fr)_20rem]`.
+- O que ainda passar rola dentro do cartão, com a sombra `sombra-de-rolagem`
+  na borda. Conferir a 1024 e a 1280 px.
+
 ## Abas e escolha de opção
 
 Aba (`Tabs`) só com painel (`TabsContent`) para cada uma: aba sem painel aponta

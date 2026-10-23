@@ -69,7 +69,6 @@ public static class InjecaoDeDependencias
         servicos.AddScoped<GestorDeAparelhos>();
         servicos.AddScoped<GestorDeSessoes>();
         servicos.AddScoped<GestorDeSenhas>();
-        servicos.AddScoped<CadastroDeOperadora>();
         return servicos;
     }
 
