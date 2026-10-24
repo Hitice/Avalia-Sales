@@ -9,6 +9,8 @@ x-integracoes: &integracoes
   DOTNET_ENVIRONMENT: Production
   Proxy__AtrasDoNginx: "true"
   Sentry__Dsn: ${SENTRY_DSN:-}
+  # A versão no Sentry é o commit publicado: o erro aponta o commit suspeito e a versão em que começou.
+  Sentry__Release: avalia-sales@${VERSAO:-local}
   Pagarme__ChaveSecreta: ${PAGARME_CHAVE_SECRETA:?defina PAGARME_CHAVE_SECRETA}
   Pagarme__RecebedorAvalia: ${PAGARME_RECEBEDOR_AVALIA:?defina PAGARME_RECEBEDOR_AVALIA}
   Pagarme__SegredoDoWebhook: ${PAGARME_SEGREDO_DO_WEBHOOK:?defina PAGARME_SEGREDO_DO_WEBHOOK}
@@ -116,6 +118,7 @@ services:
       dockerfile: infra/nginx/Dockerfile
       args:
         VITE_SENTRY_DSN: ${SENTRY_DSN_DO_FRONT:-}
+        VITE_SENTRY_RELEASE: avalia-sales@${VERSAO:-local}
     environment:
       DOMINIO: ${DOMINIO:?defina DOMINIO, como sales.avaliaone.com.br}
     ports:

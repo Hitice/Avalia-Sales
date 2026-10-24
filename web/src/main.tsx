@@ -14,7 +14,7 @@ const consultas = new QueryClient({
 // Erros do front no Sentry só com DSN na compilação, carregado à parte para não pesar no
 // pacote de quem não usa. O SDK do navegador não manda IP nem cookie sem pedir.
 if (import.meta.env.VITE_SENTRY_DSN) {
-  void import('@sentry/react').then((Sentry) => Sentry.init({ dsn: import.meta.env.VITE_SENTRY_DSN, environment: import.meta.env.MODE }))
+  void import('@sentry/react').then((Sentry) => Sentry.init({ dsn: import.meta.env.VITE_SENTRY_DSN, environment: import.meta.env.MODE, release: import.meta.env.VITE_SENTRY_RELEASE || undefined }))
 }
 
 // A sessão do cookie é tentada logo: recarregar a página não pede login de novo.

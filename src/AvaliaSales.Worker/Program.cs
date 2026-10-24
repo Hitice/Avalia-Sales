@@ -11,6 +11,7 @@ if (builder.Configuration["Sentry:Dsn"] is { Length: > 0 } dsn)
         o.Dsn = dsn;
         o.SendDefaultPii = false;
         o.Environment = builder.Environment.EnvironmentName;
+        o.Release = builder.Configuration["Sentry:Release"] is { Length: > 0 } versao ? versao : null;
     });
 }
 
