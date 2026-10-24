@@ -1,465 +1,593 @@
-// /now - palhetas do quadro, situação lida do /api/health e mapas de rota.
-// Sem dependência; o texto real fica no HTML e as palhetas só desenham por cima.
+// /now - a abertura com fumaça e frase digitada, a barra de leitura, os
+// números que contam e as peças interativas (a venda, a parede entre revendas,
+// a marca, as esteiras e a faixa da stack). Sem dependência e sem build.
+// O HTML já traz o estado final de tudo: este arquivo só anima e responde.
 
-const reduz = window.matchMedia('(prefers-reduced-motion: reduce)');
-const ALFABETO = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-const GIRO_MS = 58;
-const SAUDE_MS = 30_000;
-const SAUDE_PRAZO_MS = 8_000;
+const raiz = document.documentElement;
+const parado = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-/* ---------- Palhetas ---------- */
+raiz.classList.add('js');
 
-const fila = new Set();
-let girando = false;
-
-function letra(c) {
-  return c === ' ' ? '' : c;
+if (! parado) {
+  raiz.classList.add('movimento');
 }
 
-function mostrar(t, c) {
-  if (t.textContent === c) return;
-  t.textContent = c;
-  // Alterna entre duas animações iguais para reiniciar a dobra a cada troca.
-  const a = t.classList.contains('va');
-  t.classList.toggle('va', !a);
-  t.classList.toggle('vb', a);
-}
+/* ---------------------------------------------------------------------------
+   Fumaça em WebGL, só onde vale a pena. Economia de dados ou aparelho fraco:
+   fica a fumaça de CSS parada, sem baixar o módulo nem ligar a GPU.
+   --------------------------------------------------------------------------- */
+function ligarFumaca() {
+  const canvas = document.querySelector('[data-fumaca]');
+  const hero = canvas?.closest('[data-hero]');
 
-function girar(agora) {
-  for (const t of fila) {
-    const j = t._giro;
-    const passo = Math.floor((agora - j.inicio) / GIRO_MS);
-    if (passo < 0 || passo === j.passo) continue;
-    j.passo = passo;
-    if (passo >= j.voltas) {
-      mostrar(t, j.alvo);
-      fila.delete(t);
-    } else {
-      mostrar(t, ALFABETO[Math.floor(Math.random() * ALFABETO.length)]);
-    }
-  }
-  if (fila.size) requestAnimationFrame(girar);
-  else girando = false;
-}
-
-function agendar(t, alvo, atraso) {
-  if (reduz.matches) {
-    fila.delete(t);
-    t.textContent = alvo;
+  if (! canvas || ! hero) {
     return;
   }
-  t._giro = { alvo, inicio: performance.now() + atraso, voltas: 3 + Math.floor(Math.random() * 6), passo: -1 };
-  fila.add(t);
-  if (!girando) {
-    girando = true;
-    requestAnimationFrame(girar);
+
+  const economia = navigator.connection?.saveData === true
+    || (navigator.deviceMemory !== undefined && navigator.deviceMemory <= 2)
+    || (navigator.hardwareConcurrency !== undefined && navigator.hardwareConcurrency <= 2);
+
+  if (economia) {
+    hero.classList.add('fumaca-parada');
+    canvas.remove();
+
+    return;
   }
-}
 
-function palheta() {
-  const t = document.createElement('span');
-  t.className = 't';
-  return t;
-}
-
-// Monta as palhetas de um elemento [data-pal]. data-pal="titulo" quebra por palavra;
-// um número fixa a largura em palhetas, para a coluna não mudar quando o texto muda.
-function montar(el) {
-  const texto = el.textContent.trim();
-  const modo = el.dataset.pal;
-  const vh = document.createElement('span');
-  vh.className = 'vh';
-  const pal = document.createElement('span');
-  pal.className = 'pal';
-  pal.setAttribute('aria-hidden', 'true');
-  el.textContent = '';
-  el.append(vh, pal);
-  el._pal = { vh, pal, modo, largura: Number.parseInt(modo, 10) || 0, tiles: [] };
-  if (modo === 'titulo') {
-    const tiles = [];
-    const alvos = [];
-    for (const palavra of texto.toLocaleUpperCase('pt-BR').split(/\s+/)) {
-      const grupo = document.createElement('span');
-      grupo.className = 'pal-palavra';
-      for (const c of palavra) {
-        const t = palheta();
-        grupo.append(t);
-        tiles.push(t);
-        alvos.push(c);
+  import('/now/fumaca.js')
+    .then(({ iniciar }) => {
+      if (iniciar(canvas) === false) {
+        hero.classList.add('fumaca-parada');
+        canvas.remove();
       }
-      pal.append(grupo);
+    })
+    .catch(() => hero.classList.add('fumaca-parada'));
+}
+
+/* ---------------------------------------------------------------------------
+   Rolagem: a abertura sobe e apaga, e a barra de leitura avança.
+   --------------------------------------------------------------------------- */
+function ligarRolagem() {
+  const hero = document.querySelector('[data-hero]');
+  const barra = document.querySelector('[data-barra]');
+  let pendente = false;
+
+  const medir = () => {
+    pendente = false;
+
+    const altura = Math.max(1, raiz.scrollHeight - innerHeight);
+    const lido = Math.min(1, Math.max(0, scrollY / altura));
+
+    if (barra) {
+      barra.style.transform = `scaleX(${lido})`;
     }
-    vh.textContent = texto;
-    el._pal.tiles = tiles;
-    el._pal.alvos = alvos;
-  } else {
-    escrever(el, texto, -1);
-  }
-}
 
-// Troca o texto; atraso < 0 só prepara as palhetas vazias, sem girar.
-function escrever(el, texto, atraso) {
-  const p = el._pal;
-  p.vh.textContent = texto;
-  const chars = [...texto.toLocaleUpperCase('pt-BR')];
-  const total = Math.max(p.largura, chars.length);
-  while (p.tiles.length < total) {
-    const t = palheta();
-    p.pal.append(t);
-    p.tiles.push(t);
-  }
-  while (p.tiles.length > total) p.tiles.pop().remove();
-  p.alvos = p.tiles.map((_, i) => letra(chars[i] ?? ' '));
-  if (atraso >= 0) cascata(el, atraso);
-}
-
-function cascata(el, atraso, passo = 30) {
-  const { tiles, alvos } = el._pal;
-  tiles.forEach((t, i) => {
-    if (alvos[i] === '' && t.textContent === '') {
-      // Palheta já vazia: só desmarca um giro anterior que ainda não começou.
-      fila.delete(t);
-      return;
+    if (hero && ! parado) {
+      hero.style.setProperty('--rolagem', Math.min(1, scrollY / innerHeight).toFixed(3));
     }
-    agendar(t, alvos[i], atraso + i * passo);
-  });
-}
+  };
 
-function prepararQuadro() {
-  document.querySelectorAll('[data-pal]').forEach(montar);
-
-  const titulo = document.querySelector('[data-pal="titulo"]');
-  if (titulo) cascata(titulo, 0, 22);
-
-  document.querySelectorAll('#quadro tbody tr').forEach((tr, linha) => {
-    const base = 180 + linha * 70;
-    tr.querySelectorAll('[data-pal]').forEach((el, coluna) => cascata(el, base + coluna * 220));
-  });
-
-  document.querySelectorAll('.numeros [data-pal]').forEach((el, i) => cascata(el, 900 + i * 90, 40));
-}
-
-/* ---------- Situação da produção ---------- */
-
-const ESTADOS = {
-  wait: { situacao: 'Lendo', selo: 'Lendo' },
-  ok: { situacao: 'Operacional', selo: 'Ao vivo' },
-  off: { situacao: 'Fora do ar', selo: 'Fora do ar' },
-};
-let estadoAtual = 'wait';
-
-function aplicar(estado) {
-  const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-  const aovivo = document.getElementById('aovivo');
-  const rotuloHora = document.getElementById('aovivo-hora');
-  if (rotuloHora) rotuloHora.textContent = `lido às ${hora}`;
-  if (aovivo) aovivo.dataset.estado = estado;
-  if (estado === estadoAtual) return;
-  estadoAtual = estado;
-
-  const celula = document.getElementById('sit-producao');
-  if (celula) {
-    celula.dataset.estado = estado;
-    if (celula._pal) escrever(celula, ESTADOS[estado].situacao, 0);
-    else celula.textContent = ESTADOS[estado].situacao;
-  }
-  const selo = document.getElementById('selo-producao');
-  if (selo) {
-    selo.dataset.estado = estado;
-    selo.textContent = ESTADOS[estado].selo;
-  }
-}
-
-async function lerSaude() {
-  if (document.hidden) return;
-  const controle = new AbortController();
-  const prazo = setTimeout(() => controle.abort(), SAUDE_PRAZO_MS);
-  let ok = false;
-  try {
-    const resposta = await fetch('/api/health', {
-      cache: 'no-store',
-      headers: { Accept: 'text/plain' },
-      signal: controle.signal,
-    });
-    ok = resposta.ok && (await resposta.text()).trim() === 'Healthy';
-  } catch {
-    ok = false;
-  } finally {
-    clearTimeout(prazo);
-  }
-  aplicar(ok ? 'ok' : 'off');
-}
-
-function vigiarSaude() {
-  lerSaude();
-  setInterval(lerSaude, SAUDE_MS);
-  document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) lerSaude();
-  });
-}
-
-/* ---------- Mapas de rota ---------- */
-
-const SVG = 'http://www.w3.org/2000/svg';
-const PARADA_MS = 170;
-const TRECHO_MS = 520;
-
-function suave(k) {
-  return k < 0.5 ? 4 * k * k * k : 1 - (-2 * k + 2) ** 3 / 2;
-}
-
-// Caminho ortogonal com cantos arredondados.
-function caminho(v, raio = 14) {
-  let d = `M${v[0].x},${v[0].y}`;
-  for (let i = 1; i < v.length - 1; i++) {
-    const p = v[i - 1];
-    const c = v[i];
-    const n = v[i + 1];
-    const d1 = Math.hypot(c.x - p.x, c.y - p.y);
-    const d2 = Math.hypot(n.x - c.x, n.y - c.y);
-    const reto = Math.abs((c.x - p.x) * (n.y - c.y) - (c.y - p.y) * (n.x - c.x)) < 0.5;
-    if (reto || d1 === 0 || d2 === 0) {
-      d += ` L${c.x},${c.y}`;
-      continue;
+  addEventListener('scroll', () => {
+    if (! pendente) {
+      pendente = true;
+      requestAnimationFrame(medir);
     }
-    const r = Math.min(raio, d1 / 2, d2 / 2);
-    const ax = c.x - ((c.x - p.x) / d1) * r;
-    const ay = c.y - ((c.y - p.y) / d1) * r;
-    const bx = c.x + ((n.x - c.x) / d2) * r;
-    const by = c.y + ((n.y - c.y) / d2) * r;
-    d += ` L${ax},${ay} Q${c.x},${c.y} ${bx},${by}`;
-  }
-  const u = v[v.length - 1];
-  return `${d} L${u.x},${u.y}`;
+  }, { passive: true });
+
+  addEventListener('resize', medir, { passive: true });
+  medir();
 }
 
-function elementoSvg(nome, classe) {
-  const e = document.createElementNS(SVG, nome);
-  e.setAttribute('class', classe);
-  return e;
-}
+/* Tempo de leitura a 200 palavras por minuto, contado no texto do documento. */
+function tempoDeLeitura() {
+  const documento = document.querySelector('.documento');
+  const selo = document.querySelector('[data-leitura]');
 
-function medir(r) {
-  const caixa = r.svg.getBoundingClientRect();
-  if (!caixa.width || !caixa.height) return false;
-  const horizontal = getComputedStyle(r.ol).getPropertyValue('--trilho').trim() === 'horizontal';
-  const pts = r.lis.map((li) => {
-    const b = li.querySelector('.ponto').getBoundingClientRect();
-    return { x: b.left + b.width / 2 - caixa.left, y: b.top + b.height / 2 - caixa.top };
-  });
-
-  const verts = [pts[0]];
-  const indices = [0];
-  for (let i = 1; i < pts.length; i++) {
-    const a = pts[i - 1];
-    const b = pts[i];
-    const mesmaFila = Math.abs(a.y - b.y) < 2;
-    const mesmaColuna = Math.abs(a.x - b.x) < 2;
-    if (mesmaFila || (mesmaColuna && !horizontal)) {
-      verts.push(b);
-    } else if (mesmaColuna) {
-      // Serpente: a rota sai pela margem, desce e volta, sem cruzar o texto da estação.
-      const gx = a.x > caixa.width / 2 ? caixa.width - 18 : -18;
-      verts.push({ x: gx, y: a.y }, { x: gx, y: b.y }, b);
-    } else {
-      const my = (a.y + b.y) / 2;
-      verts.push({ x: a.x, y: my }, { x: b.x, y: my }, b);
-    }
-    indices.push(verts.length - 1);
+  if (! documento || ! selo) {
+    return;
   }
 
-  const d = caminho(verts);
-  r.base.setAttribute('d', d);
-  r.aceso.setAttribute('d', d);
-  r.L = r.aceso.getTotalLength();
-  const regua = document.createElementNS(SVG, 'path');
-  r.svg.append(regua);
-  r.marcos = indices.map((ix) => {
-    if (ix === 0) return 0;
-    regua.setAttribute('d', caminho(verts.slice(0, ix + 1)));
-    return regua.getTotalLength();
-  });
-  regua.remove();
-  r.aceso.style.strokeDasharray = `${r.L} ${r.L}`;
-  return true;
+  // Conta só o que está à vista: o detalhe técnico fechado não pesa no tempo de leitura.
+  const visivel = documento.cloneNode(true);
+  visivel.querySelectorAll('details').forEach((d) => d.remove());
+  const palavras = visivel.textContent.trim().split(/\s+/).length;
+
+  selo.querySelector('span').textContent = `${Math.max(1, Math.round(palavras / 200))} min de leitura`;
+  selo.hidden = false;
 }
 
-function quadroFinal(r, feito) {
-  r.aceso.style.strokeDashoffset = feito ? '0' : String(r.L);
-  r.pulso.style.opacity = '0';
-  r.lis.forEach((li) => {
-    li.classList.toggle('passou', feito);
-    li.classList.remove('chegou');
-  });
-}
-
-function parar(r) {
-  if (r.raf) cancelAnimationFrame(r.raf);
-  r.raf = 0;
-  if (r.fim) {
-    const fim = r.fim;
-    r.fim = null;
-    fim();
+/* ---------------------------------------------------------------------------
+   Frase que se escreve sozinha. A frase já vem inteira no HTML e cada letra
+   vira um span invisível que aparece na sua vez: o texto ocupa desde o início
+   o espaço final, e a página não pula. Com movimento reduzido, nada roda.
+   --------------------------------------------------------------------------- */
+function digitar(frase) {
+  if (parado) {
+    return;
   }
-}
 
-function percorrer(r) {
-  parar(r);
-  if (!r.L) return Promise.resolve();
-  if (reduz.matches) {
-    r.estado = 'feito';
-    quadroFinal(r, true);
-    return Promise.resolve();
-  }
-  r.estado = 'andando';
-  quadroFinal(r, false);
-  const n = r.marcos.length;
-  const ciclo = PARADA_MS + TRECHO_MS;
-  const inicio = performance.now();
-  r.pulso.style.opacity = '1';
+  const letras = [];
 
-  return new Promise((resolve) => {
-    r.fim = () => {
-      r.estado = 'feito';
-      quadroFinal(r, true);
-      resolve();
-    };
-    const passo = (agora) => {
-      const t = Math.max(0, agora - inicio);
-      const j = Math.floor(t / ciclo);
-      if (j >= n - 1) {
-        const p = r.aceso.getPointAtLength(r.L);
-        r.pulso.setAttribute('cx', p.x);
-        r.pulso.setAttribute('cy', p.y);
-        r.aceso.style.strokeDashoffset = '0';
-        r.lis.forEach((li) => li.classList.add('passou'));
-        r.lis[n - 1].classList.add('chegou');
-        if (t >= (n - 1) * ciclo + PARADA_MS * 2) {
-          r.raf = 0;
-          if (r.fim) {
-            const fim = r.fim;
-            r.fim = null;
-            fim();
-          }
-          return;
+  const quebrar = (no) => {
+    [...no.childNodes].forEach((filho) => {
+      if (filho.nodeType !== Node.TEXT_NODE) {
+        if (filho.namespaceURI !== 'http://www.w3.org/2000/svg') {
+          quebrar(filho);
         }
-        r.raf = requestAnimationFrame(passo);
+
         return;
       }
-      const local = t - j * ciclo;
-      const k = local < PARADA_MS ? 0 : suave((local - PARADA_MS) / TRECHO_MS);
-      const s = r.marcos[j] + (r.marcos[j + 1] - r.marcos[j]) * k;
-      const p = r.aceso.getPointAtLength(s);
-      r.pulso.setAttribute('cx', p.x);
-      r.pulso.setAttribute('cy', p.y);
-      r.aceso.style.strokeDashoffset = String(r.L - s);
-      r.lis.forEach((li, i) => {
-        li.classList.toggle('passou', i <= j);
-        li.classList.toggle('chegou', i === j && local < PARADA_MS);
+
+      const pedaco = document.createDocumentFragment();
+
+      [...filho.textContent].forEach((caractere) => {
+        const letra = document.createElement('span');
+
+        letra.className = 'letra';
+        letra.textContent = caractere;
+        pedaco.appendChild(letra);
+        letras.push(letra);
       });
-      r.raf = requestAnimationFrame(passo);
+
+      filho.replaceWith(pedaco);
+    });
+  };
+
+  frase.setAttribute('aria-label', frase.textContent.replace(/\s+/g, ' ').trim());
+  quebrar(frase);
+  frase.classList.add('digitando');
+
+  let indice = 0;
+
+  const passo = () => {
+    letras[indice - 1]?.classList.remove('atual');
+
+    const letra = letras[indice];
+
+    if (! letra) {
+      letras[letras.length - 1].classList.add('atual');
+      frase.dispatchEvent(new CustomEvent('digitada'));
+      setTimeout(() => frase.classList.add('digitada'), 1800);
+
+      return;
+    }
+
+    letra.classList.add('vista', 'atual');
+
+    const palavra = letra.closest('b');
+
+    if (palavra && letra === palavra.lastElementChild) {
+      palavra.classList.add('acesa');
+    }
+
+    indice++;
+
+    // Ritmo de quem digita: espaço é rápido, letra varia um pouco.
+    setTimeout(passo, letra.textContent === ' ' ? 40 : 55 + Math.random() * 45);
+  };
+
+  setTimeout(passo, Number(frase.dataset.digitar) || 0);
+}
+
+/* ---------------------------------------------------------------------------
+   As duas palavras que trocam de lugar pelos arcos das setas. A distância e o
+   desenho saem da medida das palavras na tela (offsetLeft ignora o transform,
+   então a medida no meio da troca dá o lugar de repouso).
+   --------------------------------------------------------------------------- */
+function trocar(caixa) {
+  const primeira = caixa.querySelector('.viaja-a');
+  const segunda = caixa.querySelector('.viaja-b');
+  const cima = caixa.querySelector('.seta-cima');
+  const baixo = caixa.querySelector('.seta-baixo');
+  const desenho = caixa.querySelector('svg');
+
+  if (! primeira || ! segunda || ! cima || ! baixo) {
+    return;
+  }
+
+  const medir = () => {
+    const em = parseFloat(getComputedStyle(caixa).fontSize);
+    const largura = caixa.offsetWidth;
+    const altura = caixa.offsetHeight;
+    const x1 = primeira.offsetLeft + primeira.offsetWidth / 2;
+    const x2 = segunda.offsetLeft + segunda.offsetWidth / 2;
+    const folga = em * 0.12;
+    const inicio = primeira.offsetLeft;
+    const fim = segunda.offsetLeft + segunda.offsetWidth;
+
+    // Troca pelas bordas, e não pelo centro: as palavras têm larguras
+    // diferentes; o "e" anda a diferença para os espaços ficarem iguais.
+    caixa.style.setProperty('--ida-a', `${fim - primeira.offsetWidth - inicio}px`);
+    caixa.style.setProperty('--ida-b', `${inicio - segunda.offsetLeft}px`);
+    caixa.style.setProperty('--ida-e', `${segunda.offsetWidth - primeira.offsetWidth}px`);
+    desenho.setAttribute('viewBox', `0 0 ${largura} ${altura}`);
+    desenho.style.setProperty('--traco', `${Math.max(2, em * 0.055)}px`);
+
+    // Arco de círculo pela corda e pela flecha: r = (c²/4 + f²) / 2f.
+    const corda = x2 - x1;
+    const flecha = em * 0.7;
+    const raio = (corda * corda / 4 + flecha * flecha) / (2 * flecha);
+
+    cima.setAttribute('d', `M ${x1} ${folga} A ${raio} ${raio} 0 0 1 ${x2 - em * 0.08} ${folga}`);
+    baixo.setAttribute('d', `M ${x2} ${altura - folga} A ${raio} ${raio} 0 0 1 ${x1 + em * 0.08} ${altura - folga}`);
+
+    desenho.querySelectorAll('linearGradient').forEach((degrade) => {
+      degrade.setAttribute('x1', x1);
+      degrade.setAttribute('x2', x2);
+    });
+  };
+
+  medir();
+  new ResizeObserver(medir).observe(caixa);
+  document.fonts?.ready.then(medir);
+
+  if (parado) {
+    caixa.classList.add('setas-paradas');
+
+    return;
+  }
+
+  const frase = caixa.closest('[data-digitar]');
+  const comecar = () => caixa.classList.add('trocando');
+
+  if (frase) {
+    frase.addEventListener('digitada', () => setTimeout(comecar, 600), { once: true });
+  } else {
+    comecar();
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Quando entra na tela. `quase` pede o elemento quase inteiro visível: com a
+   abertura ocupando a tela, qualquer pixel disparava antes da hora.
+   --------------------------------------------------------------------------- */
+function quandoVisivel(elemento, fazer, limiar = 0.3) {
+  if (parado || ! ('IntersectionObserver' in window)) {
+    fazer();
+
+    return;
+  }
+
+  const observador = new IntersectionObserver((entradas) => {
+    if (entradas.some((entrada) => entrada.isIntersecting)) {
+      observador.disconnect();
+      fazer();
+    }
+  }, { threshold: limiar });
+
+  observador.observe(elemento);
+}
+
+/* Número que conta de zero até o valor. O valor final já está no HTML. */
+function contar(alvo) {
+  const valor = Number(alvo.dataset.contar);
+
+  if (parado || ! ('IntersectionObserver' in window) || ! Number.isFinite(valor)) {
+    return;
+  }
+
+  alvo.textContent = '0';
+
+  quandoVisivel(alvo.closest('li') ?? alvo, () => {
+    const inicio = performance.now();
+
+    const passo = (agora) => {
+      const p = Math.min((agora - inicio) / 1400, 1);
+
+      alvo.textContent = Math.round(valor * (1 - (1 - p) ** 3)).toLocaleString('pt-BR');
+
+      if (p < 1) {
+        requestAnimationFrame(passo);
+      }
     };
-    r.raf = requestAnimationFrame(passo);
-  });
+
+    requestAnimationFrame(passo);
+  }, 0.9);
 }
 
-function prepararRota(el) {
-  const svg = el.querySelector('.trilho');
-  const ol = el.querySelector('.estacoes');
-  if (!svg || !ol) return null;
-  const r = {
-    el,
-    svg,
-    ol,
-    lis: [...ol.children],
-    base: elementoSvg('path', 'trilho-base'),
-    aceso: elementoSvg('path', 'trilho-aceso'),
-    pulso: elementoSvg('circle', 'trilho-pulso'),
-    L: 0,
-    marcos: [],
-    estado: 'antes',
-    raf: 0,
-    fim: null,
-  };
-  r.pulso.setAttribute('r', '6');
-  r.pulso.style.opacity = '0';
-  svg.append(r.base, r.aceso, r.pulso);
-  if (!medir(r)) return r;
-  el.classList.add('viva');
-  quadroFinal(r, reduz.matches);
-  if (reduz.matches) r.estado = 'feito';
-  return r;
-}
+/* ---------------------------------------------------------------------------
+   Esteiras: um pulso acende os passos em ordem. "Rodar de novo" repete.
+   --------------------------------------------------------------------------- */
+function esteira(figura) {
+  const passos = [...figura.querySelectorAll('.esteira-linha > li')];
+  const botao = figura.querySelector('[data-rodar]');
+  let relogios = [];
 
-function remedir(r) {
-  const andando = r.estado === 'andando';
-  if (andando) parar(r);
-  if (!medir(r)) return;
-  r.el.classList.add('viva');
-  quadroFinal(r, r.estado === 'feito' || reduz.matches);
-}
+  const rodar = () => {
+    relogios.forEach(clearTimeout);
+    relogios = [];
 
-async function percorrerFluxo(fluxo) {
-  const vez = (fluxo._vez = (fluxo._vez || 0) + 1);
-  fluxo._rotas.forEach((r) => {
-    parar(r);
-    r.estado = 'antes';
-    quadroFinal(r, false);
-  });
-  for (const r of fluxo._rotas) {
-    if (fluxo._vez !== vez) return;
-    await percorrer(r);
-  }
-}
+    if (parado) {
+      passos.forEach((passo) => passo.classList.add('acesa'));
 
-function prepararFluxos() {
-  const fluxos = [...document.querySelectorAll('.fluxo')];
-  const todas = [];
-  for (const f of fluxos) {
-    f._rotas = [...f.querySelectorAll('.rota')].map(prepararRota).filter(Boolean);
-    todas.push(...f._rotas);
-  }
+      return;
+    }
 
-  let pendente = 0;
-  const remedirTudo = () => {
-    cancelAnimationFrame(pendente);
-    pendente = requestAnimationFrame(() => todas.forEach(remedir));
-  };
-  if ('ResizeObserver' in window) {
-    const ro = new ResizeObserver(remedirTudo);
-    todas.forEach((r) => ro.observe(r.el));
-  } else {
-    window.addEventListener('resize', remedirTudo);
-  }
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(remedirTudo);
-
-  if ('IntersectionObserver' in window && !reduz.matches) {
-    const io = new IntersectionObserver(
-      (entradas) => {
-        for (const e of entradas) {
-          if (!e.isIntersecting) continue;
-          io.unobserve(e.target);
-          percorrerFluxo(e.target);
-        }
-      },
-      { threshold: 0.35 },
-    );
-    fluxos.forEach((f) => io.observe(f));
-  } else {
-    todas.forEach((r) => {
-      r.estado = 'feito';
-      quadroFinal(r, true);
+    passos.forEach((passo) => passo.classList.remove('acesa'));
+    passos.forEach((passo, i) => {
+      relogios.push(setTimeout(() => passo.classList.add('acesa'), 250 + i * 480));
     });
+  };
+
+  botao?.addEventListener('click', rodar);
+  quandoVisivel(figura, rodar, 0.45);
+}
+
+/* ---------------------------------------------------------------------------
+   QR de enfeite: os três quadros de posição e módulos sorteados por semente.
+   Não codifica nada; o rótulo da tela diz que é exemplo.
+   --------------------------------------------------------------------------- */
+function desenharQr(alvo) {
+  const lado = 25;
+  let semente = Number(alvo.dataset.qr) || 1;
+  const acaso = () => {
+    semente = (semente * 1664525 + 1013904223) % 4294967296;
+
+    return semente / 4294967296;
+  };
+
+  const emQuadro = (x, y) => [[0, 0], [lado - 7, 0], [0, lado - 7]].some(([qx, qy]) => x >= qx - 1 && x <= qx + 7 && y >= qy - 1 && y <= qy + 7);
+  let caminho = '';
+
+  for (let y = 0; y < lado; y++) {
+    for (let x = 0; x < lado; x++) {
+      if (! emQuadro(x, y) && acaso() > 0.52) {
+        caminho += `M${x} ${y}h1v1h-1z`;
+      }
+    }
   }
 
-  document.querySelectorAll('[data-replay]').forEach((botao) => {
+  const quadro = (x, y) => `M${x} ${y}h7v7h-7zM${x + 1} ${y + 1}v5h5v-5zM${x + 2} ${y + 2}h3v3h-3z`;
+
+  alvo.innerHTML = `<svg viewBox="-1 -1 ${lado + 2} ${lado + 2}" shape-rendering="crispEdges"><rect x="-1" y="-1" width="${lado + 2}" height="${lado + 2}" fill="#fff"/><path fill="#120c2b" fill-rule="evenodd" d="${quadro(0, 0)}${quadro(lado - 7, 0)}${quadro(0, lado - 7)}${caminho}"/></svg>`;
+}
+
+/* ---------------------------------------------------------------------------
+   A venda simulada. A etapa vive no data-etapa do telefone; o CSS mostra a
+   tela dela, e as animações reiniciam sozinhas quando o atributo muda.
+   --------------------------------------------------------------------------- */
+function venda(figura) {
+  const telefone = figura.querySelector('.telefone');
+  const avancar = figura.querySelector('.venda-controles [data-avancar]');
+  const recomecar = figura.querySelector('[data-recomecar]');
+  const status = figura.querySelector('[data-venda-status]');
+  const passos = [...figura.querySelectorAll('[data-passo]')];
+  const total = 6;
+
+  const rotulos = ['Vender', 'Ler a placa', 'Cobrar no Pix', 'Simular o pagamento', 'Ver a divisão', 'Pôr a placa no ar', 'Vender de novo'];
+  const avisos = [
+    'Início do vendedor.',
+    'Etapa 1 de 6: placa de avaliação e perfil no Google na mesma venda, total de R$ 300,00.',
+    'Etapa 2 de 6: QR lido, placa AV7K2Q vinculada ao cliente.',
+    'Etapa 3 de 6: Pix de R$ 300,00 na tela, aguardando pagamento.',
+    'Etapa 4 de 6: pagamento confirmado, a tela mudou para Pago sozinha.',
+    'Etapa 5 de 6: revenda R$ 180,00, comissão do vendedor R$ 30,00, operadora R$ 90,00. Valores de exemplo.',
+    'Etapa 6 de 6: placa no ar, apontando para a avaliação no Google do negócio.',
+  ];
+
+  const ir = (etapa) => {
+    const atual = Math.max(0, Math.min(total, etapa));
+
+    telefone.dataset.etapa = String(atual);
+    avancar.textContent = rotulos[atual];
+    recomecar.hidden = atual === 0 || atual === total;
+    status.textContent = avisos[atual];
+
+    passos.forEach((passo) => {
+      const numero = Number(passo.dataset.passo);
+
+      passo.classList.toggle('feita', numero < atual);
+
+      if (numero === atual) {
+        passo.setAttribute('aria-current', 'step');
+      } else {
+        passo.removeAttribute('aria-current');
+      }
+    });
+  };
+
+  avancar.addEventListener('click', () => {
+    const atual = Number(telefone.dataset.etapa);
+
+    ir(atual >= total ? 1 : atual + 1);
+  });
+
+  recomecar.addEventListener('click', () => {
+    ir(0);
+    avancar.focus();
+  });
+
+  figura.querySelectorAll('[data-ir]').forEach((botao) => {
+    botao.addEventListener('click', () => ir(Number(botao.dataset.ir)));
+  });
+
+  ir(0);
+}
+
+/* ---------------------------------------------------------------------------
+   A parede entre revendas: o pedido da Aurora bate no filtro do código, ou,
+   com o filtro desligado, passa dele e bate na trava do banco.
+   --------------------------------------------------------------------------- */
+function isolamento(figura) {
+  const botao = figura.querySelector('[data-tentar]');
+  const chave = figura.querySelector('[data-sem-filtro]');
+  const pacote = figura.querySelector('.isola-pacote');
+  const resultado = figura.querySelector('[data-isola-resultado]');
+  const paredeCodigo = figura.querySelector('.parede-codigo');
+  const paredeBanco = figura.querySelector('.parede-banco');
+
+  const textos = {
+    codigo: 'Barrado no código: a consulta da Aurora só enxerga a Aurora. <b>Nenhuma linha da Ipê.</b>',
+    banco: 'Sem o filtro, a consulta passou do código e o banco barrou: a política de linha devolve só o que é da Aurora. <b>Nenhuma linha da Ipê.</b>',
+  };
+
+  chave.addEventListener('change', () => {
+    figura.classList.toggle('sem-filtro', chave.checked);
+    resultado.textContent = chave.checked
+      ? 'Filtro do código desligado. Tente de novo.'
+      : 'Filtro do código ligado. A Aurora vê só a própria carteira.';
+  });
+
+  botao.addEventListener('click', () => {
+    const parede = chave.checked ? paredeBanco : paredeCodigo;
+    const texto = chave.checked ? textos.banco : textos.codigo;
+
+    if (parado || ! pacote.animate) {
+      resultado.innerHTML = texto;
+
+      return;
+    }
+
+    const origem = pacote.getBoundingClientRect();
+    const alvo = parede.getBoundingClientRect();
+    const distancia = alvo.left - origem.right;
+
+    resultado.textContent = 'Consultando…';
+    botao.disabled = true;
+
+    const animacao = pacote.animate([
+      { transform: 'translateX(0)', opacity: 0 },
+      { transform: 'translateX(0)', opacity: 1, offset: 0.08 },
+      { transform: `translateX(${distancia}px)`, opacity: 1, offset: 0.5, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' },
+      { transform: `translateX(${distancia - 28}px)`, opacity: 1, offset: 0.72 },
+      { transform: 'translateX(-6px)', opacity: 0 },
+    ], { duration: 1200, easing: 'cubic-bezier(0.5, 0, 0.75, 0)' });
+
+    setTimeout(() => {
+      parede.classList.remove('bateu');
+      void parede.offsetWidth;
+      parede.classList.add('bateu');
+    }, 560);
+
+    animacao.finished.then(() => {
+      resultado.innerHTML = texto;
+      botao.disabled = false;
+    });
+  });
+}
+
+/* ---------------------------------------------------------------------------
+   A marca: luminância relativa e contraste do WCAG. O texto do botão é o que
+   mais contrasta com a cor; o destaque sobre o branco escurece até 4,5:1.
+   --------------------------------------------------------------------------- */
+const canal = (v) => {
+  const c = v / 255;
+
+  return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+};
+
+const rgb = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+const luminancia = (hex) => {
+  const [r, g, b] = rgb(hex).map(canal);
+
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+};
+
+const contraste = (a, b) => {
+  const [claro, escuro] = [luminancia(a), luminancia(b)].sort((x, y) => y - x);
+
+  return (claro + 0.05) / (escuro + 0.05);
+};
+
+const hexDe = (valores) => `#${valores.map((v) => Math.round(Math.max(0, Math.min(255, v))).toString(16).padStart(2, '0')).join('')}`;
+const razao = (valor) => `${valor.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}:1`;
+
+function marca(figura) {
+  const mini = figura.querySelector('[data-mini]');
+  const leitura = figura.querySelector('[data-contraste]');
+  const nome = figura.querySelector('[data-mini-nome]');
+  const inicial = figura.querySelector('[data-mini-inicial]');
+  const livre = figura.querySelector('[data-cor-livre]');
+  const cores = [...figura.querySelectorAll('input[name="cor"]')];
+
+  const aplicar = (cor) => {
+    if (! /^#[0-9a-f]{6}$/i.test(cor)) {
+      return;
+    }
+
+    const branco = contraste(cor, '#ffffff');
+    const preto = contraste(cor, '#18181b');
+    const texto = branco >= preto ? '#ffffff' : '#18181b';
+
+    // Escurece em passos de 4% até o destaque passar de 4,5:1 sobre o branco.
+    let destaque = cor;
+
+    for (let fator = 1; contraste(destaque, '#ffffff') < 4.5 && fator > 0; fator -= 0.04) {
+      destaque = hexDe(rgb(cor).map((v) => v * fator));
+    }
+
+    mini.style.setProperty('--marca', cor);
+    mini.style.setProperty('--marca-texto', texto);
+    mini.style.setProperty('--marca-destaque', destaque);
+
+    const botao = `Botão com texto ${texto === '#ffffff' ? 'branco' : 'escuro'}, contraste ${razao(Math.max(branco, preto))}.`;
+    const tom = destaque === cor
+      ? ` Destaque na própria cor, ${razao(contraste(cor, '#ffffff'))} sobre o branco.`
+      : ` Destaque escurecido para ${destaque}, ${razao(contraste(destaque, '#ffffff'))} sobre o branco.`;
+
+    leitura.textContent = botao + tom;
+  };
+
+  cores.forEach((entrada) => entrada.addEventListener('change', () => aplicar(entrada.value)));
+
+  livre.addEventListener('input', () => {
+    cores.forEach((entrada) => { entrada.checked = false; });
+    aplicar(livre.value);
+  });
+
+  figura.querySelectorAll('input[name="nome"]').forEach((entrada) => {
+    entrada.addEventListener('change', () => {
+      nome.textContent = entrada.value;
+      inicial.textContent = entrada.value.replace(/^(Revenda|Casa)\s+/, '').charAt(0);
+    });
+  });
+
+  aplicar(cores.find((entrada) => entrada.checked)?.value ?? '#bb00bf');
+}
+
+/* A faixa da stack: tocar, focar ou passar o mouse mostra o papel da peça. */
+function stack(lista) {
+  const saida = document.querySelector('[data-stack-papel]');
+  const botoes = [...lista.querySelectorAll('button')];
+
+  const mostrar = (botao) => {
+    const papel = botao.parentElement.querySelector('.papel').textContent;
+    const nome = document.createElement('b');
+
+    nome.textContent = botao.textContent.trim();
+    saida.replaceChildren(nome, ` - ${papel}`);
+    saida.hidden = false;
+  };
+
+  botoes.forEach((botao) => {
+    botao.setAttribute('aria-pressed', 'false');
     botao.addEventListener('click', () => {
-      const f = document.getElementById(botao.dataset.replay);
-      if (f && f._rotas) percorrerFluxo(f);
+      botoes.forEach((outro) => outro.setAttribute('aria-pressed', String(outro === botao)));
+      mostrar(botao);
+    });
+    botao.addEventListener('focus', () => mostrar(botao));
+    botao.addEventListener('pointerenter', (evento) => {
+      if (evento.pointerType === 'mouse') {
+        mostrar(botao);
+      }
     });
   });
 }
 
-prepararQuadro();
-vigiarSaude();
-prepararFluxos();
+/* ---------------------------------------------------------------------------
+   Ligar tudo. O módulo roda depois do HTML lido.
+   --------------------------------------------------------------------------- */
+ligarFumaca();
+ligarRolagem();
+tempoDeLeitura();
+document.querySelectorAll('[data-troca]').forEach(trocar);
+document.querySelectorAll('[data-digitar]').forEach(digitar);
+document.querySelectorAll('[data-contar]').forEach(contar);
+document.querySelectorAll('[data-revelar]').forEach((figura) => quandoVisivel(figura, () => figura.classList.add('revelado')));
+document.querySelectorAll('[data-esteira]').forEach(esteira);
+document.querySelectorAll('[data-qr]').forEach(desenharQr);
+document.querySelectorAll('[data-venda]').forEach(venda);
+document.querySelectorAll('[data-isola]').forEach(isolamento);
+document.querySelectorAll('[data-marca]').forEach(marca);
+document.querySelectorAll('[data-stack]').forEach(stack);
