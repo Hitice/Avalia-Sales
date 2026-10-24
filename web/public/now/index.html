@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Avalia Sales Showcase: plataforma de gestão de produtos</title>
+  <title>Avalia Sales: plataforma de gestão de produtos</title>
   <meta name="description" content="Avalia Sales, plataforma de gestão de produtos em produção: integrações com Pagar.me, D4Sign, Resend, Google Maps e Protheus, arquitetura em camadas com .NET e React, PostgreSQL multi-tenant, infraestrutura própria com Docker e CI/CD.">
   <link rel="canonical" href="https://sales.avaliaone.com.br/now">
   <meta name="author" content="Pedro Fernandes">
@@ -13,19 +13,19 @@
   <meta property="og:type" content="article">
   <meta property="og:locale" content="pt_BR">
   <meta property="og:site_name" content="Avalia Sales">
-  <meta property="og:title" content="Avalia Sales Showcase: plataforma de gestão de produtos">
+  <meta property="og:title" content="Avalia Sales: plataforma de gestão de produtos">
   <meta property="og:description" content="Integrações, arquitetura, dados, infraestrutura e entrega contínua de uma plataforma em produção.">
   <meta property="og:url" content="https://sales.avaliaone.com.br/now">
   <meta property="og:image" content="https://sales.avaliaone.com.br/now/img/og.png">
   <meta property="og:image:type" content="image/png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="og:image:alt" content="Fumaça rosa e azul sobre fundo escuro com a marca Avalia Sales e o título Showcase, plataforma de gestão de produtos">
+  <meta property="og:image:alt" content="Fumaça rosa e azul sobre fundo escuro com a marca Avalia Sales e o título Plataforma de gestão de produtos">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Avalia Sales Showcase: plataforma de gestão de produtos">
+  <meta name="twitter:title" content="Avalia Sales: plataforma de gestão de produtos">
   <meta name="twitter:description" content="Integrações, arquitetura, dados, infraestrutura e entrega contínua de uma plataforma em produção.">
   <meta name="twitter:image" content="https://sales.avaliaone.com.br/now/img/og.png">
-  <meta name="twitter:image:alt" content="Fumaça rosa e azul sobre fundo escuro com a marca Avalia Sales e o título Showcase, plataforma de gestão de produtos">
+  <meta name="twitter:image:alt" content="Fumaça rosa e azul sobre fundo escuro com a marca Avalia Sales e o título Plataforma de gestão de produtos">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="preload" href="/now/fonts/sora.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/now/fonts/inter.woff2" as="font" type="font/woff2" crossorigin>
@@ -64,7 +64,8 @@
 
   <div class="hero-centro">
     <img src="/now/img/marca-clara.svg" width="146" height="60" alt="Avalia Sales" class="hero-logo">
-    <h1 class="hero-titulo">Showcase<span>Plataforma de gestão de produtos.</span></h1>
+    <h1 class="hero-titulo" data-escrever>Plataforma de gestão de produtos 2.0</h1>
+    <span class="hero-traco" aria-hidden="true"></span>
     <p class="hero-autor">Pedro Fernandes · <a href="https://github.com/Hitice" rel="me noopener">GitHub</a> · <a href="https://www.linkedin.com/in/hitice" rel="me noopener">LinkedIn</a></p>
     <div class="hero-apis">
       <div class="hero-apis-faixa">
@@ -90,8 +91,8 @@
   <article class="documento">
 
     <!-- Integrações -->
-    <h2 id="integracoes">Integrações</h2>
-    <p>Pagamento, assinatura, e-mail, mapas e ERP atrás de interfaces próprias, cada uma com simulador e teste de contrato.</p>
+    <h2 id="integracoes" class="abre-bloco" data-revelar>Integrações</h2>
+    <p>Pagamento, assinatura, e-mail, mapas e ERP integrados, com contrato, simulador e testes automatizados.</p>
 
     <figure class="venda" data-venda>
       <figcaption class="figura-titulo">Clique em vender e entenda o fluxo</figcaption>
@@ -101,11 +102,10 @@
           <div class="telefone" data-etapa="0">
             <div class="telefone-tela">
 
-              <section class="tela" data-tela="0" aria-label="Início do vendedor">
-                <p class="app-topo"><span class="app-marca" aria-hidden="true"></span>Revenda Exemplo</p>
-                <p class="app-ola">Boa tarde, Ana</p>
-                <p class="app-resumo"><span>Vendas hoje</span><strong>3</strong></p>
-                <span class="app-cta" aria-hidden="true">Vender</span>
+              <section class="tela tela-bloqueio" data-tela="0" aria-label="Celular bloqueado">
+                <p class="bloqueio-hora">09:41</p>
+                <p class="bloqueio-data">sábado, 24 de outubro</p>
+                <p class="bloqueio-aviso"><span class="app-marca" aria-hidden="true"></span><span>Revenda Exemplo<small>3 vendas hoje</small></span></p>
               </section>
 
               <section class="tela" data-tela="1" aria-label="Itens da venda">
@@ -164,6 +164,12 @@
                 </div>
               </section>
 
+              <div class="destravar" data-destravar>
+                <span class="destravar-texto" aria-hidden="true">deslize para vender</span>
+                <button type="button" class="destravar-botao" data-destravar-botao aria-label="Deslize ou toque para vender">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -177,72 +183,61 @@
         <ol class="etapas">
           <li data-passo="1">
             <button type="button" class="etapa-nome" data-ir="1">Itens</button>
-            <p>Placa e serviço consolidados na mesma venda.</p>
-            <details class="como"><summary><span class="vh">Detalhes técnicos</span></summary><p>Cada item é uma venda com comissão própria; o grupo compartilha uma cobrança. Cancelar um item gera estorno parcial.</p></details>
+            <p>Placa e serviço na mesma venda. <em class="tec">Uma cobrança; estorno parcial por item.</em></p>
           </li>
           <li data-passo="2">
             <button type="button" class="etapa-nome" data-ir="2">Placa</button>
-            <p>Leitura do QR pela câmera e vínculo ao cliente.</p>
-            <details class="como"><summary><span class="vh">Detalhes técnicos</span></summary><p>Leitura no navegador, com WebAssembly onde não há leitor nativo. Código único entre todas as revendas.</p></details>
+            <p>QR lido pela câmera. <em class="tec">WebAssembly como fallback.</em></p>
           </li>
           <li data-passo="3">
             <button type="button" class="etapa-nome" data-ir="3">Checkout</button>
-            <p>Checkout transparente com Pix e cartão.</p>
-            <details class="como"><summary><span class="vh">Detalhes técnicos</span></summary><p>Cobrança persistida antes da chamada ao gateway, com o próprio id como código: a retentativa localiza o pedido em vez de criar outro. Cartão tokenizado no navegador.</p></details>
+            <p>Checkout transparente, Pix e cartão. <em class="tec">Persistido antes do gateway; cartão tokenizado.</em></p>
           </li>
           <li data-passo="4">
             <button type="button" class="etapa-nome" data-ir="4">Confirmação</button>
-            <p>Confirmação em tempo real na tela do vendedor.</p>
-            <details class="como"><summary><span class="vh">Detalhes técnicos</span></summary><p>Webhook persistido uma vez e reconferido na fonte. O PostgreSQL notifica no commit e o SignalR entrega à tela.</p></details>
+            <p>Em tempo real, na tela do vendedor. <em class="tec">Webhook reconferido; NOTIFY e SignalR.</em></p>
           </li>
           <li data-passo="5">
             <button type="button" class="etapa-nome" data-ir="5">Split</button>
-            <p>Split de pagamento entre revenda e operadora, com comissão calculada.</p>
-            <details class="como"><summary><span class="vh">Detalhes técnicos</span></summary><p>Valor fixo por recebedor, em centavos. Lançamentos num razão só de inserção.</p></details>
+            <p>Revenda, operadora e comissão. <em class="tec">Valor fixo por recebedor, em centavos.</em></p>
           </li>
           <li data-passo="6">
             <button type="button" class="etapa-nome" data-ir="6">Ativação</button>
-            <p>Placa ativa com destino dinâmico e gravação NFC.</p>
-            <details class="como"><summary><span class="vh">Detalhes técnicos</span></summary><p>O QR aponta para um endereço da plataforma, que redireciona ao destino configurado. NFC gravado via Web NFC.</p></details>
+            <p>Destino dinâmico e NFC gravado. <em class="tec">Redirect configurável; Web NFC.</em></p>
           </li>
         </ol>
       </div>
     </figure>
 
-    <ul class="integracoes">
+    <ul class="integracoes anima" data-revelar>
       <li>
         <span class="logo i-pagarme" aria-hidden="true"></span>
         <div>
-          <p><strong>Pagar.me</strong> - checkout com cupom, Pix e cartão, split entre recebedores, estorno total e parcial.</p>
-          <details class="como"><summary><span class="vh">Detalhes técnicos</span></summary><p>Webhook apenas persiste o evento; o Worker reconsulta a cobrança antes de qualquer baixa.</p></details>
+          <p><strong>Pagar.me</strong> - checkout com cupom, Pix e cartão, split entre recebedores, estorno total e parcial. <em class="tec">Webhook só persiste; o Worker reconsulta antes da baixa.</em></p>
         </div>
       </li>
       <li>
         <span class="logo logo-texto" aria-hidden="true">D4</span>
         <div>
-          <p><strong>D4Sign</strong> - assinatura eletrônica do contrato de revenda. Ambiente sandbox.</p>
-          <details class="como"><summary><span class="vh">Detalhes técnicos</span></summary><p>Envio retomável por etapas, webhook com HMAC e reconsulta do documento parado.</p></details>
+          <p><strong>D4Sign</strong> - assinatura eletrônica do contrato de revenda. Ambiente sandbox. <em class="tec">Envio retomável e webhook com HMAC.</em></p>
         </div>
       </li>
       <li>
         <span class="logo i-resend" aria-hidden="true"></span>
         <div>
-          <p><strong>Resend</strong> - e-mail transacional com fila persistida e retentativa exponencial.</p>
-          <details class="como"><summary><span class="vh">Detalhes técnicos</span></summary><p>A fila é gravada na transação do fato, com chave única e Idempotency-Key no envio.</p></details>
+          <p><strong>Resend</strong> - e-mail transacional com fila persistida e retentativa exponencial. <em class="tec">Fila transacional com Idempotency-Key.</em></p>
         </div>
       </li>
       <li>
         <span class="logo i-googlemaps" aria-hidden="true"></span>
         <div>
-          <p><strong>Google Maps e Places</strong> - localização do estabelecimento e mapa de vendas por cidade.</p>
-          <details class="como"><summary><span class="vh">Detalhes técnicos</span></summary><p>Persistido apenas o place_id; o link de avaliação deriva dele.</p></details>
+          <p><strong>Google Maps e Places</strong> - localização do estabelecimento e mapa de vendas por cidade. <em class="tec">Persiste apenas o place_id.</em></p>
         </div>
       </li>
       <li>
         <span class="logo i-totvs" aria-hidden="true"></span>
         <div>
-          <p><strong>Protheus</strong> - conector REST com fila e simulador, pronto para validação contra o ERP.</p>
-          <details class="como"><summary><span class="vh">Detalhes técnicos</span></summary><p>Chave por pedido impede pedido de venda duplicado na retentativa.</p></details>
+          <p><strong>Protheus</strong> - conector REST com fila e simulador, pronto para validação contra o ERP. <em class="tec">Chave por pedido evita duplicidade.</em></p>
         </div>
       </li>
     </ul>
@@ -250,7 +245,7 @@
 
     <!-- Modernização -->
     <h2 id="modernizacao">Migração sem downtime</h2>
-    <p>Substituição de um sistema em produção por redirecionamento incremental de rotas, com a operação ativa.</p>
+    <p>Substituição de sistema em produção por redirecionamento incremental de rotas.</p>
 
     <figure class="esteira" data-esteira>
       <figcaption class="figura-titulo">Migração</figcaption>
@@ -262,12 +257,12 @@
         <li style="--ordem: 4"><strong>Conferência</strong><span>link a link</span></li>
         <li style="--ordem: 5" class="esteira-fim"><strong>Virada</strong><span>em um dia</span></li>
       </ol>
-      <button type="button" class="botao botao-linha esteira-rodar" data-rodar>Rodar de novo</button>
+      <button type="button" class="botao botao-linha esteira-rodar" data-rodar>Play</button>
     </figure>
-    <details class="como"><summary><span class="vh">Detalhes técnicos</span></summary><p>Redirecionamento 302 sem cache, rota por rota. Conversor em modo ensaio, depois importação tudo ou nada. Cada placa vendida conferida do endereço antigo ao destino final.</p></details>
+    <p class="tec-bloco"><em class="tec">302 sem cache, conversor em ensaio e importação tudo ou nada.</em></p>
 
     <!-- Arquitetura -->
-    <h2 id="arquitetura">Arquitetura em camadas</h2>
+    <h2 id="arquitetura" class="abre-bloco" data-revelar>Arquitetura em camadas</h2>
     <p>A API responde sem aguardar integrações; o Worker Service processa filas e retentativas.</p>
 
     <figure class="fluxo" data-revelar>
@@ -290,7 +285,7 @@
       </div>
     </figure>
 
-    <div class="tabela"><table>
+    <div class="tabela anima-tabela" data-revelar><table>
       <caption class="vh">Camadas</caption>
       <thead><tr><th scope="col">Camada</th><th scope="col">Responsabilidade</th></tr></thead>
       <tbody>
@@ -300,18 +295,18 @@
         <tr><td><strong>Api</strong> e <strong>Worker</strong></td><td>ASP.NET Core e Worker Service</td></tr>
       </tbody>
     </table></div>
-    <details class="como"><summary><span class="vh">Detalhes técnicos</span></summary><p>Webhooks, retomadas, conferência de pagamento e assinatura, filas de e-mail e ERP, geração de PDF. Polly com timeout e retry apenas em métodos seguros.</p></details>
+    <p class="tec-bloco"><em class="tec">Polly com retry só em métodos seguros.</em></p>
 
     <!-- Dados -->
     <h2 id="dados">PostgreSQL</h2>
     <p>Modelagem multi-tenant, migrations aditivas e consultas otimizadas.</p>
-    <ul class="check">
+    <ul class="check anima" data-revelar>
       <li><strong>Valores em centavos</strong> - bigint e pontos base</li>
       <li><strong>Razão só de inserção</strong> - correção por estorno, fechamento de mês por trigger</li>
       <li><strong>Migrations aditivas</strong> - rollback sem restauração</li>
       <li><strong>Concorrência</strong> - FOR UPDATE SKIP LOCKED na fila de eventos</li>
     </ul>
-    <details class="como"><summary><span class="vh">Detalhes técnicos</span></summary><p>Entity Framework Core com índices parciais nas filas, AsNoTracking nas leituras e ExecuteUpdate em lote.</p></details>
+    <p class="tec-bloco"><em class="tec">EF Core, índices parciais, AsNoTracking e ExecuteUpdate.</em></p>
 
     <h3 id="isolamento">Isolamento multi-tenant</h3>
     <p>Filtro global no ORM e row-level security no banco.</p>
@@ -338,10 +333,10 @@
       </div>
       <p class="isola-resultado" aria-live="polite" data-isola-resultado>A Aurora vê só a própria carteira.</p>
     </figure>
-    <details class="como"><summary><span class="vh">Detalhes técnicos</span></summary><p>Conexão com papel sem BYPASSRLS. Um teste falha se uma tabela nova for criada sem a política.</p></details>
+    <p class="tec-bloco"><em class="tec">Papel sem BYPASSRLS; teste falha em tabela sem política.</em></p>
 
     <!-- Servidor -->
-    <h2 id="servidor">Infraestrutura própria</h2>
+    <h2 id="servidor" class="abre-bloco" data-revelar>Infraestrutura própria</h2>
     <p>Linux, Docker Compose, Nginx como proxy reverso e TLS com Let's Encrypt.</p>
 
     <figure class="subida" data-revelar>
@@ -353,7 +348,7 @@
         <li style="--ordem: 3"><strong>Borda</strong><span>Nginx</span><span>TLS</span></li>
       </ol>
     </figure>
-    <details class="como"><summary><span class="vh">Detalhes técnicos</span></summary><p>Oito serviços com healthcheck e restart; aplicação sem root; HSTS, CSP e Permissions-Policy na borda.</p></details>
+    <p class="tec-bloco"><em class="tec">Healthcheck, restart, aplicação sem root, HSTS e CSP.</em></p>
 
     <!-- CI/CD -->
     <h2 id="publicacao">CI/CD</h2>
@@ -369,14 +364,14 @@
         <li style="--ordem: 4"><strong>Health check</strong><span>pelo domínio</span></li>
         <li style="--ordem: 5" class="esteira-fim"><strong>Rollback</strong><span>SHA anterior</span></li>
       </ol>
-      <button type="button" class="botao botao-linha esteira-rodar" data-rodar>Rodar de novo</button>
+      <button type="button" class="botao botao-linha esteira-rodar" data-rodar>Play</button>
     </figure>
-    <details class="como"><summary><span class="vh">Detalhes técnicos</span></summary><p>Testes da API contra PostgreSQL, tipos do front conferidos contra o contrato OpenAPI, Playwright e gitleaks. Avisos do compilador tratados como erro.</p></details>
+    <p class="tec-bloco"><em class="tec">Tipos conferidos contra o OpenAPI; avisos do compilador como erro.</em></p>
 
     <!-- Testes -->
     <h2 id="testes">Testes e observabilidade</h2>
     <p>Cerca de 430 testes por publicação e rastreamento de erros por versão.</p>
-    <ul class="check">
+    <ul class="check anima" data-revelar>
       <li><strong>Unidade</strong> - regras de domínio</li>
       <li><strong>Contrato HTTP</strong> - integrações contra servidor falso</li>
       <li><strong>Integração</strong> - PostgreSQL real com RLS ativo</li>
@@ -395,15 +390,15 @@
         <div class="fluxo-no fluxo-no-branco" style="--ordem: 6"><strong>Resolução</strong><span>pelo commit</span></div>
       </div>
     </figure>
-    <details class="como"><summary><span class="vh">Detalhes técnicos</span></summary><p>xUnit, Vitest e Playwright com axe. Sentry na API, no Worker e no front, com o commit publicado como release.</p></details>
+    <p class="tec-bloco"><em class="tec">xUnit, Vitest e Playwright com axe; release por commit no Sentry.</em></p>
 
     <!-- Documentação -->
     <h2 id="documentacao">Documentação técnica</h2>
-    <p>Produto, arquitetura, operação e 20 ADRs versionados com o código; contrato OpenAPI gera os tipos do front.</p>
+    <p>Produto, arquitetura, operação e 20 ADRs versionados com o código.</p>
 
     <!-- Segurança -->
-    <h2 id="seguranca">Segurança e LGPD</h2>
-    <div class="tabela"><table>
+    <h2 id="seguranca" class="abre-bloco" data-revelar>Segurança e LGPD</h2>
+    <div class="tabela anima-tabela" data-revelar><table>
       <caption class="vh">Controles</caption>
       <thead><tr><th scope="col">Risco</th><th scope="col">Controle</th></tr></thead>
       <tbody>
@@ -415,7 +410,7 @@
         <tr><td>Direitos do titular</td><td>Exportação e anonimização</td></tr>
       </tbody>
     </table></div>
-    <details class="como"><summary><span class="vh">Detalhes técnicos</span></summary><p>ASP.NET Identity. Revenda como controladora e plataforma como operadora; monitoramento sem dado pessoal.</p></details>
+    <p class="tec-bloco"><em class="tec">ASP.NET Identity; revenda controladora, plataforma operadora.</em></p>
 
     <!-- Tempo real -->
     <h2 id="tempo-real">Tempo real</h2>
@@ -461,13 +456,13 @@
     </figure>
 
     <!-- Stack -->
-    <h2 id="stack">Stack</h2>
-    <ul class="stack" data-stack>
+    <h2 id="stack">Stacks</h2>
+    <ul class="stack anima" data-stack data-revelar>
       <li><button type="button"><span class="ico i-dotnet" aria-hidden="true"></span>C# e .NET</button><span class="papel">A API e o processo de fundo, com as regras de negócio</span></li>
       <li><button type="button"><span class="ico i-dotnet" aria-hidden="true"></span>ASP.NET Core</button><span class="papel">HTTP, autenticação e o canal ao vivo</span></li>
       <li><button type="button"><span class="ico ico-letra" aria-hidden="true">EF</span>Entity Framework Core</button><span class="papel">Acesso ao banco, filtro por revenda e migrations</span></li>
       <li><button type="button"><span class="ico i-postgresql" aria-hidden="true"></span>PostgreSQL</button><span class="papel">Os dados, com a trava de revenda no próprio banco</span></li>
-      <li><button type="button"><span class="ico i-react" aria-hidden="true"></span>React</button><span class="papel">As telas do vendedor, do dono e da operadora</span></li>
+      <li><button type="button"><span class="ico i-react" aria-hidden="true"></span>React</button><span class="papel">As telas do vendedor, do revendedor e da operadora</span></li>
       <li><button type="button"><span class="ico i-typescript" aria-hidden="true"></span>TypeScript</button><span class="papel">Tipos do front gerados do contrato da API</span></li>
       <li><button type="button"><span class="ico i-vite" aria-hidden="true"></span>Vite</button><span class="papel">O build do front</span></li>
       <li><button type="button"><span class="ico i-tailwindcss" aria-hidden="true"></span>Tailwind CSS</button><span class="papel">O visual, com a cor da revenda em tokens</span></li>
@@ -483,17 +478,17 @@
 
     <!-- Telas -->
     <h2 id="telas">Telas</h2>
-    <div class="telas">
+    <div class="telas anima" data-revelar>
       <figure class="tela-grande">
-        <img src="/now/img/dono-inicio-1440.webp" width="1440" height="900" loading="lazy" decoding="async" alt="Início do dono no computador: placas em estoque, placas no ar, vendas e recebido no mês, vendas dos últimos 30 dias, para onde foi o dinheiro do mês e vendas de hoje">
-        <figcaption>Dono, desktop. Dados de demonstração.</figcaption>
+        <img src="/now/img/revendedor-inicio-1440.webp" width="1440" height="900" loading="lazy" decoding="async" alt="Início do revendedor no computador: placas em estoque, placas no ar, vendas e recebido no mês, vendas dos últimos 30 dias, para onde foi o dinheiro do mês e vendas de hoje">
+        <figcaption>Revendedor, desktop. Dados de demonstração.</figcaption>
       </figure>
       <figure>
         <img src="/now/img/vendedor-vender-390.webp" width="390" height="844" loading="lazy" decoding="async" alt="Nova venda no celular do vendedor: catálogo com placas e serviços, preço por placa e pedido mínimo">
         <figcaption>Vendedor, celular. Dados de demonstração.</figcaption>
       </figure>
       <figure>
-        <img src="/now/img/dono-vendas-390.webp" width="390" height="844" loading="lazy" decoding="async" alt="Vendas no celular do dono, com as abas Vendas e Catálogo">
+        <img src="/now/img/revendedor-vendas-390.webp" width="390" height="844" loading="lazy" decoding="async" alt="Vendas no celular do revendedor, com as abas Vendas e Catálogo">
         <figcaption>Vendas, celular. Dados de demonstração.</figcaption>
       </figure>
     </div>

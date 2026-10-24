@@ -287,7 +287,7 @@ function contar(alvo) {
 }
 
 /* ---------------------------------------------------------------------------
-   Esteiras: um pulso acende os passos em ordem. "Rodar de novo" repete.
+   Esteiras: um pulso acende os passos em ordem. "Play" repete.
    --------------------------------------------------------------------------- */
 function esteira(figura) {
   const passos = [...figura.querySelectorAll('.esteira-linha > li')];
@@ -344,6 +344,136 @@ function desenharQr(alvo) {
 }
 
 /* ---------------------------------------------------------------------------
+   A trilha das seções: um ponto por h2 do documento, a linha preenchida até
+   onde se leu e a alça que se arrasta para percorrer a página, com encaixe na
+   seção mais próxima ao soltar. Os pontos são links: quem usa teclado navega
+   por eles, e a alça é só para o ponteiro.
+   --------------------------------------------------------------------------- */
+function trilha() {
+  const secoes = [...document.querySelectorAll('.documento h2[id]')];
+  if (secoes.length < 2) return;
+
+  const nav = document.createElement('nav');
+  nav.className = 'trilha';
+  nav.setAttribute('aria-label', 'Seções');
+  nav.innerHTML = '<i class="trilha-linha" aria-hidden="true"></i><i class="trilha-feita" aria-hidden="true"></i><ol></ol><i class="trilha-alca" aria-hidden="true"></i>';
+  const lista = nav.querySelector('ol');
+  const alca = nav.querySelector('.trilha-alca');
+  const ultimo = secoes.length - 1;
+
+  secoes.forEach((secao, n) => {
+    const item = document.createElement('li');
+    item.style.setProperty('--pos', `${(n / ultimo) * 100}%`);
+    item.innerHTML = `<a href="#${secao.id}"><span></span></a>`;
+    item.querySelector('span').textContent = secao.textContent.trim();
+    lista.append(item);
+  });
+  document.body.append(nav);
+  const itens = [...lista.children];
+
+  const folga = () => window.innerHeight * 0.3;
+  const topo = (secao) => secao.getBoundingClientRect().top + window.scrollY;
+
+  // Onde se está, de 0 ao último índice: a seção atual mais a fração até a próxima.
+  const posicao = () => {
+    const y = window.scrollY + folga();
+    if (y <= topo(secoes[0])) return 0;
+    for (let n = 0; n < ultimo; n++) {
+      const a = topo(secoes[n]);
+      const b = topo(secoes[n + 1]);
+      if (y < b) return n + (y - a) / (b - a);
+    }
+    return ultimo;
+  };
+
+  const rolarPara = (p, suave) => {
+    const n = Math.min(ultimo, Math.floor(p));
+    const a = topo(secoes[n]);
+    const b = n < ultimo ? topo(secoes[n + 1]) : a;
+    window.scrollTo({ top: a + (b - a) * (p - n) - folga() + 1, behavior: suave ? 'smooth' : 'instant' });
+  };
+
+  let arrastando = false;
+  const pinta = () => {
+    const p = posicao();
+    const pct = `${(p / ultimo) * 100}%`;
+    nav.style.setProperty('--feito', pct);
+    if (!arrastando) nav.style.setProperty('--alca', pct);
+    itens.forEach((item, n) => {
+      item.classList.toggle('lida', n <= p);
+      item.classList.toggle('ativa', n === Math.round(p));
+    });
+    nav.classList.toggle('visivel', window.scrollY > window.innerHeight * 0.6);
+  };
+
+  const pelaAltura = (evento) => {
+    const caixa = nav.getBoundingClientRect();
+    const f = Math.max(0, Math.min(1, (evento.clientY - caixa.top) / caixa.height));
+    nav.style.setProperty('--alca', `${f * 100}%`);
+    return f * ultimo;
+  };
+
+  // Enquanto o botão está apertado, o movimento é ouvido na janela inteira:
+  // não depende de o ponteiro continuar preso à alça.
+  const move = (evento) => rolarPara(pelaAltura(evento), false);
+  const solta = (evento) => {
+    window.removeEventListener('pointermove', move);
+    window.removeEventListener('pointerup', solta);
+    window.removeEventListener('pointercancel', solta);
+    arrastando = false;
+    nav.classList.remove('arrastando');
+    rolarPara(Math.round(pelaAltura(evento)), true);
+  };
+
+  alca.addEventListener('pointerdown', (evento) => {
+    evento.preventDefault();
+    arrastando = true;
+    nav.classList.add('arrastando');
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', solta);
+    window.addEventListener('pointercancel', solta);
+  });
+
+  window.addEventListener('scroll', pinta, { passive: true });
+  window.addEventListener('resize', pinta);
+  pinta();
+}
+
+/* ---------------------------------------------------------------------------
+   O título que se escreve: letras em spans com o índice na variável --i, as
+   palavras agrupadas para a quebra de linha não cortar no meio. O leitor de
+   tela recebe a frase inteira pelo aria-label.
+   --------------------------------------------------------------------------- */
+function escrever(alvo) {
+  const frase = alvo.textContent.trim();
+  let i = 0;
+
+  alvo.setAttribute('aria-label', frase);
+  alvo.textContent = '';
+  frase.split(' ').forEach((palavra, n) => {
+    const grupo = document.createElement('span');
+
+    grupo.className = 'palavra';
+    grupo.setAttribute('aria-hidden', 'true');
+    [...(n > 0 ? ' ' + palavra : palavra)].forEach((letra) => {
+      const span = document.createElement('span');
+
+      span.className = 'letra';
+      span.style.setProperty('--i', String(i++));
+      span.textContent = letra;
+      grupo.append(span);
+    });
+    alvo.append(grupo);
+  });
+
+  const cursor = document.createElement('span');
+
+  cursor.className = 'cursor';
+  cursor.setAttribute('aria-hidden', 'true');
+  alvo.lastChild.append(cursor);
+}
+
+/* ---------------------------------------------------------------------------
    A venda simulada. A etapa vive no data-etapa do telefone; o CSS mostra a
    tela dela, e as animações reiniciam sozinhas quando o atributo muda.
    --------------------------------------------------------------------------- */
@@ -352,12 +482,14 @@ function venda(figura) {
   const avancar = figura.querySelector('.venda-controles [data-avancar]');
   const recomecar = figura.querySelector('[data-recomecar]');
   const status = figura.querySelector('[data-venda-status]');
+  const destravar = figura.querySelector('[data-destravar]');
+  const alca = figura.querySelector('[data-destravar-botao]');
   const passos = [...figura.querySelectorAll('[data-passo]')];
   const total = 6;
 
   const rotulos = ['Vender', 'Ler a placa', 'Cobrar no Pix', 'Simular o pagamento', 'Ver a divisão', 'Pôr a placa no ar', 'Vender de novo'];
   const avisos = [
-    'Início do vendedor.',
+    'Celular bloqueado. Deslize para vender.',
     'Etapa 1 de 6: placa de avaliação e perfil no Google na mesma venda, total de R$ 300,00.',
     'Etapa 2 de 6: QR lido, placa AV7K2Q vinculada ao cliente.',
     'Etapa 3 de 6: Pix de R$ 300,00 na tela, aguardando pagamento.',
@@ -371,6 +503,7 @@ function venda(figura) {
 
     telefone.dataset.etapa = String(atual);
     avancar.textContent = rotulos[atual];
+    avancar.hidden = atual === 0;
     recomecar.hidden = atual === 0 || atual === total;
     status.textContent = avisos[atual];
 
@@ -390,12 +523,66 @@ function venda(figura) {
   avancar.addEventListener('click', () => {
     const atual = Number(telefone.dataset.etapa);
 
-    ir(atual >= total ? 1 : atual + 1);
+    ir(atual >= total ? 0 : atual + 1);
+
+    if (atual >= total) {
+      alca.focus();
+    }
   });
 
   recomecar.addEventListener('click', () => {
     ir(0);
-    avancar.focus();
+    alca.focus();
+  });
+
+  // Deslizar a alça até o fim destrava; tocar sem arrastar, ou Enter, também.
+  let inicio = null;
+  let andou = 0;
+  const limite = () => destravar.clientWidth - alca.offsetWidth - 8;
+  const destrava = () => {
+    alca.style.transform = `translateX(${limite()}px)`;
+    window.setTimeout(() => {
+      ir(1);
+      alca.style.transform = '';
+      avancar.focus();
+    }, 220);
+  };
+
+  alca.addEventListener('pointerdown', (evento) => {
+    inicio = evento.clientX;
+    andou = 0;
+    alca.setPointerCapture(evento.pointerId);
+    destravar.classList.add('arrastando');
+  });
+
+  alca.addEventListener('pointermove', (evento) => {
+    if (inicio === null) return;
+    andou = Math.max(0, Math.min(limite(), evento.clientX - inicio));
+    alca.style.transform = `translateX(${andou}px)`;
+  });
+
+  const solta = () => {
+    if (inicio === null) return;
+    inicio = null;
+    destravar.classList.remove('arrastando');
+
+    if (andou < 4 || andou > limite() * 0.6) {
+      destrava();
+    } else {
+      alca.style.transform = '';
+    }
+  };
+
+  alca.addEventListener('pointerup', solta);
+  alca.addEventListener('pointercancel', () => {
+    inicio = null;
+    destravar.classList.remove('arrastando');
+    alca.style.transform = '';
+  });
+
+  alca.addEventListener('click', (evento) => {
+    // O clique do teclado chega sem ponteiro (detail 0); o do mouse já destravou no pointerup.
+    if (evento.detail === 0) destrava();
   });
 
   figura.querySelectorAll('[data-ir]').forEach((botao) => {
@@ -587,6 +774,8 @@ document.querySelectorAll('[data-contar]').forEach(contar);
 document.querySelectorAll('[data-revelar]').forEach((figura) => quandoVisivel(figura, () => figura.classList.add('revelado')));
 document.querySelectorAll('[data-esteira]').forEach(esteira);
 document.querySelectorAll('[data-qr]').forEach(desenharQr);
+document.querySelectorAll('[data-escrever]').forEach(escrever);
+trilha();
 document.querySelectorAll('[data-venda]').forEach(venda);
 document.querySelectorAll('[data-isola]').forEach(isolamento);
 document.querySelectorAll('[data-marca]').forEach(marca);
