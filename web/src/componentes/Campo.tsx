@@ -42,8 +42,8 @@ export function Campo<T extends FieldValues>({ formulario, nome, rotulo, conferi
       <div className="relative">
         {multilinha
           ? <Textarea id={id} aria-invalid={mostrarErro} data-valido={valido || undefined} className={className} {...registro} />
-          : <Input id={id} aria-invalid={mostrarErro} data-valido={valido || undefined} className={cn(valido && 'pr-9', className)} {...extra} {...registro} onChange={aoDigitar} />}
-        {valido && !multilinha && <Check aria-hidden className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-sucesso" />}
+          : <Input id={id} aria-invalid={mostrarErro} data-valido={valido || undefined} className={cn(valido && (extra.type === 'password' ? 'pr-20' : 'pr-9'), className)} {...extra} {...registro} onChange={aoDigitar} />}
+        {valido && !multilinha && <Check aria-hidden className={cn('pointer-events-none absolute top-1/2 size-4 -translate-y-1/2 text-sucesso', extra.type === 'password' ? 'right-12' : 'right-3')} />}
       </div>
       {mostrarErro && <FieldError errors={[estado.error]} />}
     </Field>

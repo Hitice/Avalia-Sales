@@ -588,6 +588,11 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("comissao_bps");
 
+                    b.Property<string>("Cpf")
+                        .HasMaxLength(11)
+                        .HasColumnType("character varying(11)")
+                        .HasColumnName("cpf");
+
                     b.Property<DateTimeOffset>("CriadoEm")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("criado_em");
@@ -1819,6 +1824,10 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
+
+                    b.Property<bool>("CabecalhoNaCor")
+                        .HasColumnType("boolean")
+                        .HasColumnName("cabecalho_na_cor");
 
                     b.Property<string>("Celular")
                         .HasMaxLength(13)

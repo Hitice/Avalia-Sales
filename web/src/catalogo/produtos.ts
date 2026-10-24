@@ -11,7 +11,7 @@ export function useCatalogo() {
 
 function useGravar<T>(fazer: (dados: T) => Promise<unknown>) {
   const cliente = useQueryClient()
-  return useMutation({ mutationFn: fazer, onSuccess: () => cliente.invalidateQueries({ queryKey: chave }) })
+  return useMutation({ mutationFn: fazer, meta: { sucesso: 'Alteração salva.' }, onSuccess: () => cliente.invalidateQueries({ queryKey: chave }) })
 }
 
 export const useAjustarProduto = () =>

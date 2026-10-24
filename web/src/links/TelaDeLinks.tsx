@@ -20,6 +20,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ListaComBusca } from '@/componentes/ListaComBusca'
 import { useAlterarLink, useAtivarLink, useCriarLink, useExcluirLink, useLinks } from './consultas'
 
 const esquema = z.object({ titulo: texto('o título') })
@@ -107,8 +108,8 @@ function ListaDeLinks({ aoEditar }: { aoEditar: (l: LinkCurto) => void }) {
     <div className="grid content-start gap-3">
       <Erro erro={erro ? mensagemDoErro(erro) : null} />
       <EstadoDaConsulta carregando={links.isPending} erro={links.error} vazio={links.data?.length === 0} textoVazio="Nenhum link." />
-      {links.data?.map((l) => (
-        <Card key={l.id}>
+      <ListaComBusca itens={links.data ?? []} chave={(l) => l.id} texto={(l) => `${l.titulo} ${l.destino} ${l.endereco}`}>{(l) => (
+        <Card>
           <CardContent className="grid grid-cols-1 gap-3 pt-6">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
@@ -127,7 +128,7 @@ function ListaDeLinks({ aoEditar }: { aoEditar: (l: LinkCurto) => void }) {
             )}
           </CardContent>
         </Card>
-      ))}
+      )}</ListaComBusca>
     </div>
   )
 }
@@ -138,8 +139,8 @@ function GravarNasTags() {
   return (
     <div className="grid content-start gap-3">
       <EstadoDaConsulta carregando={links.isPending} erro={links.error} vazio={links.data?.length === 0} textoVazio="Nenhum link. Crie um na aba Link." />
-      {links.data?.filter((l) => l.ativo).map((l) => (
-        <Card key={l.id}>
+      <ListaComBusca itens={(links.data ?? []).filter((l) => l.ativo)} chave={(l) => l.id} texto={(l) => `${l.titulo} ${l.endereco}`}>{(l) => (
+        <Card>
           <CardContent className="grid gap-3 pt-6">
             <div className="min-w-0">
               <p className="font-medium">{l.titulo}</p>
@@ -148,7 +149,7 @@ function GravarNasTags() {
             <GravarNfc endereco={l.endereco} />
           </CardContent>
         </Card>
-      ))}
+      )}</ListaComBusca>
     </div>
   )
 }

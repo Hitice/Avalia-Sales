@@ -29,7 +29,6 @@ type Grupo = { titulo?: string; itens: Item[] }
 /**
  * No celular, a barra de baixo leva as telas de todo dia, ao alcance do
  * polegar; o resto fica no "Mais". No computador, o menu lateral mostra tudo.
- * O Catálogo é uma aba da tela Vendas: não ocupa lugar aqui.
  */
 const PRINCIPAIS: Record<Papel, Item[]> = {
   Operadora: [
@@ -78,6 +77,7 @@ const MENU: Record<Papel, Grupo[]> = {
     ] },
     { titulo: 'Vendas', itens: [
       { para: '/painel/vendas', rotulo: 'Vendas', icone: Receipt },
+      { para: '/catalogo', rotulo: 'Catálogo', icone: BookOpen },
       { para: '/painel/clientes', rotulo: 'Clientes', icone: Users },
       { para: '/links', rotulo: 'Serviços', icone: Wrench },
       { para: '/painel/mapa', rotulo: 'Mapa', icone: MapPin },
@@ -106,6 +106,7 @@ const MENU: Record<Papel, Grupo[]> = {
       { para: '/vender', rotulo: 'Nova venda', icone: PlusCircle },
       { para: '/vendedor/placas', rotulo: 'Minhas placas', icone: Package },
       { para: '/vendedor/vendas', rotulo: 'Minhas vendas', icone: Receipt },
+      { para: '/catalogo', rotulo: 'Catálogo', icone: BookOpen },
       { para: '/links', rotulo: 'Serviços', icone: Wrench },
     ] },
   ],
@@ -118,6 +119,7 @@ export function Moldura() {
   const aviso = useAvisosAoVivo()
   const marca = useMarca()
   const logo = useLogo(marca)
+  const naCor = !!marca?.cabecalhoNaCor
   // Conta encerrada pelo distrato só consulta: o que serve para vender sai do menu.
   const encerrada = useContaEncerrada()
   const permitido = (i: Item) => !encerrada || !soComAContaAtiva(i.para)
@@ -151,7 +153,8 @@ export function Moldura() {
   return (
     <div className="min-h-svh">
       <div role="progressbar" aria-label="Carregando" aria-hidden={!carregando} className={cn('barra-de-carregando fixed inset-x-0 top-0 z-30 h-1 transition-opacity', carregando ? 'opacity-100 delay-300' : 'opacity-0 delay-0')} />
-      <header className="sticky top-0 z-10 border-b bg-card">
+      {/* Cabeçalho na cor primária, se a revenda escolheu: o texto já vem com o contraste certo e o logo fica num fundo branco. */}
+      <header className={cn('sticky top-0 z-10 border-b bg-card', naCor && 'border-primary bg-primary text-primary-foreground')} data-na-cor={naCor || undefined}>
         <div className={cn('mx-auto flex h-14 max-w-7xl items-center gap-3 px-4', lateral && 'lg:max-w-none lg:pr-6 lg:pl-0')}>
           {/* O logo leva à tela inicial do papel, como nos sites. No computador, é o topo do painel lateral. */}
           <NavLink
@@ -160,17 +163,17 @@ export function Moldura() {
             className={cn('flex min-w-0 shrink-0 items-center rounded-md', lateral && 'lg:h-14.25 lg:w-60 lg:self-start lg:rounded-none lg:border-r lg:border-b lg:border-b-card lg:px-5')}
           >
             {logo
-              ? <img src={logo} alt="" className="h-8 w-auto max-w-32 object-contain lg:max-w-48" />
+              ? <img src={logo} alt="" className={cn('h-8 w-auto max-w-32 object-contain lg:max-w-48', naCor && 'rounded-md bg-card px-1.5 py-0.5')} />
               : marca?.nomeExibido
                 ? <span className="min-w-0 truncate text-md font-medium">{marca.nomeExibido}</span>
                 : (
-                    <>
+                    <span className={cn('flex items-center', naCor && 'rounded-md bg-card px-1.5 py-0.5')}>
                       <img src="/marca/gauge.svg" alt="" width={61} height={32} className={cn('h-8 w-auto', lateral && 'lg:hidden')} />
                       {lateral && <MarcaAvalia className="hidden h-9 w-auto lg:block" />}
-                    </>
+                    </span>
                   )}
           </NavLink>
-          {perfil?.revendedor && !marca?.nomeExibido && <span className={cn('hidden truncate text-sm text-muted-foreground sm:inline', lateral && 'lg:hidden')}>{perfil.revendedor}</span>}
+          {perfil?.revendedor && !marca?.nomeExibido && <span className={cn('hidden truncate text-sm text-muted-foreground sm:inline', naCor && 'text-primary-foreground', lateral && 'lg:hidden')}>{perfil.revendedor}</span>}
           {perfil?.papel === 'Operadora' && <span className={cn('hidden text-sm text-muted-foreground sm:inline', lateral && 'lg:hidden')}>Operação</span>}
           <div className="ml-auto flex items-center gap-1">
             {!travado && <Sino />}
@@ -215,7 +218,7 @@ export function Moldura() {
         </div>
         <div className="min-w-0">
           <AvisoDeContaEncerrada />
-          <main className={cn('mx-auto min-w-0 max-w-7xl p-4 md:px-6 md:pt-6', lateral && 'lg:max-w-6xl lg:px-8', naVenda ? 'pb-40 md:pb-24' : 'pb-24 md:pb-8')}>
+          <main className={cn('mx-auto min-w-0 max-w-7xl p-4 md:px-6 md:pt-6', lateral && 'lg:max-w-270 lg:px-8', naVenda ? 'pb-40 md:pb-24' : 'pb-24 md:pb-8')}>
             {travado ? <ConfirmeOEmail email={perfil.email} /> : encerrada && soComAContaAtiva(caminho) ? <Navigate to="/painel/inicio" replace /> : <Outlet />}
           </main>
         </div>

@@ -5,9 +5,9 @@ using Microsoft.EntityFrameworkCore;
 namespace AvaliaSales.Application.Revendedores;
 
 /// <summary>A marca como o app aplica: as cores prontas, com o texto de cada uma já escolhido pelo contraste.</summary>
-public sealed record MarcaDto(string? NomeExibido, string? CorPrimaria, string? TextoSobrePrimaria, string? CorDestaque, string? TextoSobreDestaque, bool TemLogo, long Versao);
+public sealed record MarcaDto(string? NomeExibido, string? CorPrimaria, string? TextoSobrePrimaria, string? CorDestaque, string? TextoSobreDestaque, bool TemLogo, long Versao, bool CabecalhoNaCor = false);
 
-public sealed record GravarMarca(string? NomeExibido, string CorPrimaria, string CorDestaque);
+public sealed record GravarMarca(string? NomeExibido, string CorPrimaria, string CorDestaque, bool CabecalhoNaCor = false);
 
 /// <summary>White label: o dono define a marca, e a equipe dele vê o app com ela. Login e área da operadora ficam com a marca da plataforma.</summary>
 public sealed class Marca(IBancoDeDados banco, IRevendedorAtual atual, Auditoria.Auditoria auditoria, TimeProvider relogio)
@@ -15,17 +15,17 @@ public sealed class Marca(IBancoDeDados banco, IRevendedorAtual atual, Auditoria
     public async Task<MarcaDto> Ler(CancellationToken ct)
     {
         var r = await banco.Revendedores.AsNoTracking().Where(x => x.Id == atual.RevendedorId)
-            .Select(x => new { x.NomeExibido, x.CorPrimaria, x.CorDestaque, TemLogo = banco.Logos.Any(l => l.RevendedorId == x.Id), x.MarcaAlteradaEm })
+            .Select(x => new { x.NomeExibido, x.CorPrimaria, x.CorDestaque, x.CabecalhoNaCor, TemLogo = banco.Logos.Any(l => l.RevendedorId == x.Id), x.MarcaAlteradaEm })
             .SingleAsync(ct);
         return new MarcaDto(r.NomeExibido, r.CorPrimaria, r.CorPrimaria is null ? null : Contraste.TextoSobre(r.CorPrimaria),
-            r.CorDestaque, r.CorDestaque is null ? null : Contraste.TextoSobre(r.CorDestaque), r.TemLogo, r.MarcaAlteradaEm?.ToUnixTimeSeconds() ?? 0);
+            r.CorDestaque, r.CorDestaque is null ? null : Contraste.TextoSobre(r.CorDestaque), r.TemLogo, r.MarcaAlteradaEm?.ToUnixTimeSeconds() ?? 0, r.CorPrimaria is not null && r.CabecalhoNaCor);
     }
 
     public async Task<MarcaDto> Gravar(GravarMarca comando, CancellationToken ct)
     {
         var revendedor = await Atual(ct);
         var antes = $"{revendedor.NomeExibido ?? "-"} {revendedor.CorPrimaria ?? "-"} {revendedor.CorDestaque ?? "-"}";
-        revendedor.DefinirMarca(comando.NomeExibido, comando.CorPrimaria, comando.CorDestaque, relogio.GetUtcNow());
+        revendedor.DefinirMarca(comando.NomeExibido, comando.CorPrimaria, comando.CorDestaque, relogio.GetUtcNow(), comando.CabecalhoNaCor);
         auditoria.Registrar(AcaoAuditada.MarcaAlterada, "Marca", revendedor.Id.ToString(), antes,
             $"{revendedor.NomeExibido ?? "-"} {revendedor.CorPrimaria} {revendedor.CorDestaque}");
         await banco.SaveChangesAsync(ct);

@@ -108,7 +108,7 @@ export function TelaEsqueci() {
               <FieldGroup>
                 {errors.root && <Alert variant="destructive"><AlertDescription>{errors.root.message}</AlertDescription></Alert>}
                 <Campo formulario={formulario} nome="email" rotulo="E-mail" type="email" autoComplete="email" />
-                <Button type="submit" size="lg" disabled={isSubmitting}>Mandar o link</Button>
+                <Button type="submit" size="lg" disabled={isSubmitting}>Enviar por e-mail</Button>
               </FieldGroup>
             </form>
           )}

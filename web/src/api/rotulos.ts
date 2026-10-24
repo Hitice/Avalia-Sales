@@ -219,6 +219,7 @@ export const ROTULO_DA_ACAO: Record<AcaoAuditada, string> = {
   SocioCadastrado: 'Sócio cadastrado',
   SocioAlterado: 'Sócio alterado',
   SocioExcluido: 'Sócio excluído',
+  ClienteCadastrado: 'Cliente cadastrado',
 }
 
 export const ROTULO_DA_DESPESA: Record<CategoriaDeDespesa, string> = {

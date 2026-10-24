@@ -10,7 +10,7 @@ export const useLinks = () => useQuery({ queryKey: chave, queryFn: () => chamarA
 
 function useGravar<T>(fazer: (dados: T) => Promise<unknown>) {
   const cliente = useQueryClient()
-  return useMutation({ mutationFn: fazer, onSuccess: () => cliente.invalidateQueries({ queryKey: chave }) })
+  return useMutation({ mutationFn: fazer, meta: { sucesso: 'Alteração salva.' }, onSuccess: () => cliente.invalidateQueries({ queryKey: chave }) })
 }
 
 export const useCriarLink = () => useGravar((l: GravarLink) => chamarApi<LinkCurto>('/links', enviarJson('POST', l)))

@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
+import { toast } from 'sonner'
 import { chamarApi, enviarJson, mensagemDoErro } from '@/api/cliente'
 import { type TokenEmitido, useSessao } from '@/acesso/sessao'
 import { Campo } from '@/componentes/Campo'
@@ -40,6 +41,7 @@ export function TrocaDeSenha() {
       entrar(await chamarApi<TokenEmitido>('/conta/senha', enviarJson('POST', { atual, nova })))
       setAberta(false)
       setTrocada(true)
+      toast.success('Senha trocada.')
     } catch (e) {
       formulario.setError('root', { message: mensagemDoErro(e) })
     }

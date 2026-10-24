@@ -7,7 +7,8 @@ export type Acao = { rotulo: string; aoClicar: () => void; desabilitada?: boolea
 type Props = {
   /** Nome da linha, para o leitor de tela: "Mais ações de Ju Gomes". */
   nome: string
-  principal: Acao
+  /** Sem ação principal, a linha tem só o menu: toda linha da tabela igual. */
+  principal?: Acao
   /** Ações que não valem para a linha entram como false e somem. */
   outras: (Acao | false | null | undefined)[]
 }
@@ -34,6 +35,8 @@ export function AcoesDaLinha({ nome, principal, outras }: Props) {
       </DropdownMenuContent>
     </DropdownMenu>
   )
+  if (!principal) return <span className="flex items-center justify-end">{menu}</span>
+
   return (
     <>
       <div className="flex flex-wrap items-center justify-end gap-2 md:hidden">

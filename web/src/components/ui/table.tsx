@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { cn } from "cn"
+import { Input } from "./input"
 
 /**
  * Copia o título de cada coluna para as células (data-rotulo), que o CSS do
@@ -29,28 +30,72 @@ function rotular(tabela: HTMLTableElement | null) {
  * 12 px sobre o cinza-50, linhas de 44 px com fio claro, e a primeira e a
  * última coluna alinhadas ao texto do cartão.
  */
+/** Sem acento e em minúsculas: "Ótica" acha "otica". */
+const normalizar = (texto: string) => texto.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase()
+
+/** Esconde as linhas que não têm o termo e devolve quantas há e quantas ficaram. */
+function filtrar(tabela: HTMLTableElement | null, termo: string) {
+  const linhas = Array.from(tabela?.tBodies ?? []).flatMap((corpo) => Array.from(corpo.rows))
+  const busca = normalizar(termo.trim())
+  let visiveis = 0
+  for (const linha of linhas) {
+    const esconder = busca.length > 0 && !normalizar(linha.textContent ?? "").includes(busca)
+    if (esconder !== linha.hidden) linha.hidden = esconder
+    if (!esconder) visiveis++
+  }
+  return { total: linhas.length, visiveis }
+}
+
+/** A partir de quantas linhas a tabela ganha o campo de busca. */
+const LINHAS_PARA_BUSCA = 7
+
+/**
+ * Toda tabela rola dentro dela com o cabeçalho fixo e, a partir de sete
+ * linhas, ganha a busca: o texto filtra pelo que aparece na linha, sem
+ * acento. Tabela paginada pela API busca só na página aberta; a tela dela tem
+ * o filtro que vai à API.
+ */
 function Table({ className, ...props }: React.ComponentProps<"table">) {
   const ref = React.useRef<HTMLTableElement>(null)
-  React.useLayoutEffect(() => rotular(ref.current))
+  const [termo, setTermo] = React.useState("")
+  const [contagem, setContagem] = React.useState({ total: 0, visiveis: 0 })
+  const termoAtual = React.useRef(termo)
+  termoAtual.current = termo
+
+  const atualizar = React.useCallback(() => {
+    const tabela = ref.current
+    rotular(tabela)
+    const nova = filtrar(tabela, termoAtual.current)
+    setContagem((velha) => (velha.total === nova.total && velha.visiveis === nova.visiveis ? velha : nova))
+  }, [])
+  React.useLayoutEffect(atualizar)
   React.useEffect(() => {
     const tabela = ref.current
     if (!tabela) return
-    const observador = new MutationObserver(() => rotular(tabela))
-    observador.observe(tabela, { childList: true, subtree: true })
+    const observador = new MutationObserver(atualizar)
+    observador.observe(tabela, { childList: true, subtree: true, characterData: true })
     return () => observador.disconnect()
-  }, [])
+  }, [atualizar])
 
+  const comBusca = contagem.total >= LINHAS_PARA_BUSCA || termo.length > 0
   return (
-    <div
-      data-slot="table-container"
-      className="relative w-full md:sombra-de-rolagem md:overflow-x-auto"
-    >
-      <table
-        ref={ref}
-        data-slot="table"
-        className={cn("w-full caption-bottom text-sm max-md:block", className)}
-        {...props}
-      />
+    <div data-slot="table-container" className="relative w-full">
+      {comBusca && (
+        <div className="mb-3 flex items-center gap-3 md:px-5 md:pt-1">
+          <Input type="search" value={termo} onChange={(e) => setTermo(e.target.value)} placeholder="Buscar na lista" aria-label="Buscar na lista" className="md:max-w-xs" />
+          {termo.trim() && <p className="shrink-0 text-xs text-muted-foreground" aria-live="polite">{contagem.visiveis} de {contagem.total}</p>}
+        </div>
+      )}
+      {/* Área que rola recebe foco: quem usa teclado também rola a lista. */}
+      <div className="rolagem-da-tabela md:sombra-de-rolagem md:overflow-x-auto" tabIndex={0} role="region" aria-label="Lista">
+        <table
+          ref={ref}
+          data-slot="table"
+          className={cn("w-full caption-bottom text-sm max-md:block", className)}
+          {...props}
+        />
+      </div>
+      {comBusca && termo.trim() && contagem.visiveis === 0 && <p className="py-3 text-sm text-muted-foreground md:px-5">Nada na lista com "{termo.trim()}".</p>}
     </div>
   )
 }

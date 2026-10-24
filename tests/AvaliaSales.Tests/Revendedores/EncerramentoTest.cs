@@ -50,7 +50,7 @@ public sealed class EncerramentoTest(ApiDeTeste api)
         var estado = await dono.Postar("/revenda/encerramento", new { });
 
         Assert.NotEqual(System.Text.Json.JsonValueKind.Null, estado.GetProperty("encerradaEm").ValueKind);
-        var escrita = await dono.PutAsJsonAsync("/revenda/renovacao", new { renovacaoBps = 5000 }, Ct);
+        var escrita = await dono.PutAsJsonAsync("/revenda/comissao", new { comissaoBps = 2000 }, Ct);
         Assert.Equal(HttpStatusCode.Conflict, escrita.StatusCode);
         var exportacao = await dono.GetAsync("/revenda/exportacao", Ct);
         Assert.Equal(HttpStatusCode.OK, exportacao.StatusCode);
@@ -144,7 +144,7 @@ public sealed class EncerramentoTest(ApiDeTeste api)
         Assert.Equal(System.Text.Json.JsonValueKind.Null, estado.GetProperty("pedidoEm").ValueKind);
         Assert.Equal("Cancelado", estado.GetProperty("distrato").GetProperty("situacao").GetString());
         Assert.Equal(1, api.Assinatura.Chamadas.GetValueOrDefault("Cancelar"));
-        await revenda.Dono.Colocar("/revenda/renovacao", new { renovacaoBps = 5000 }, HttpStatusCode.NoContent);
+        await revenda.Dono.Colocar("/revenda/comissao", new { comissaoBps = 2000 }, HttpStatusCode.NoContent);
     }
 
     /// <summary>
@@ -173,7 +173,7 @@ public sealed class EncerramentoTest(ApiDeTeste api)
 
         var estado = await dono.Pegar("/revenda/encerramento");
         Assert.Equal(System.Text.Json.JsonValueKind.Null, estado.GetProperty("encerradaEm").ValueKind);
-        await dono.Colocar("/revenda/renovacao", new { renovacaoBps = 5000 }, HttpStatusCode.NoContent);
+        await dono.Colocar("/revenda/comissao", new { comissaoBps = 2000 }, HttpStatusCode.NoContent);
         await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
         Assert.Equal(1, await banco.Contar($"select count(*) from revendedores where id = '{revendedor}' and reaberta_em is not null and contrato_assinado_em is null"));
         Assert.Equal(1, await banco.Contar($"select count(*) from notificacoes where revendedor_id = '{revendedor}' and titulo = 'Conta reaberta'"));
@@ -195,7 +195,7 @@ public sealed class EncerramentoTest(ApiDeTeste api)
         var estado = await dono.Pegar("/revenda/encerramento");
         Assert.NotEqual(System.Text.Json.JsonValueKind.Null, estado.GetProperty("encerradaEm").ValueKind);
         Assert.Equal(System.Text.Json.JsonValueKind.Null, estado.GetProperty("reaberturaPedidaEm").ValueKind);
-        Assert.Equal(HttpStatusCode.Conflict, (await dono.PutAsJsonAsync("/revenda/renovacao", new { renovacaoBps = 5000 }, Ct)).StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, (await dono.PutAsJsonAsync("/revenda/comissao", new { comissaoBps = 2000 }, Ct)).StatusCode);
     }
 
     /// <summary>A revenda da Avalia do banco de teste, criada uma vez com o CNPJ da Avalia.</summary>

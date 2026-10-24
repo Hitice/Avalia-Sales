@@ -118,6 +118,12 @@ public static class RotasDaOperadora
             await revendedores.DefinirRecebedor(id, pedido.Recebedor, ct);
             return Results.NoContent();
         });
+        // A renovação é preço da operadora: a revenda vê o percentual, não muda.
+        operadora.MapPut("/revendedores/{id:guid}/renovacao", async (Guid id, DefinirRenovacao pedido, Revendedores revendedores, CancellationToken ct) =>
+        {
+            await revendedores.DefinirRenovacao(id, pedido.RenovacaoBps, ct);
+            return Results.NoContent();
+        });
         operadora.MapPost("/revendedores/{id:guid}/contrato-assinado", async (Guid id, Revendedores revendedores, CancellationToken ct) =>
         {
             await revendedores.RegistrarContratoAssinado(id, ct);

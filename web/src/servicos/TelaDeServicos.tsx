@@ -22,7 +22,7 @@ export function OrdensDaRevenda() {
 export function TelaDeServicosDaOperadora() {
   const ordens = useOrdens('/operadora/servicos')
   const consultas = useQueryClient()
-  const mudar = useMutation({
+  const mudar = useMutation({ meta: { sucesso: 'Ordem atualizada.' },
     mutationFn: ({ id, acao }: { id: string; acao: 'iniciar' | 'entregar' | 'cancelar' | 'reabrir' }) => chamarApi(`/operadora/servicos/${id}/${acao}`, enviarJson('POST', {})),
     onSuccess: () => consultas.invalidateQueries({ queryKey: ['servicos'] }),
   })

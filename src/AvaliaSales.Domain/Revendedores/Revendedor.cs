@@ -37,6 +37,9 @@ public sealed class Revendedor
 
     public string? CorPrimaria { get; private set; }
     public string? CorDestaque { get; private set; }
+
+    /// <summary>O cabeçalho do app na cor primária, com o texto que o contraste escolheu; falso deixa o cabeçalho branco.</summary>
+    public bool CabecalhoNaCor { get; private set; }
     public DateTimeOffset? MarcaAlteradaEm { get; private set; }
 
     /// <summary>Quando o contrato de revenda foi assinado. Sem ele, não há pedido de placas.</summary>
@@ -136,7 +139,7 @@ public sealed class Revendedor
     /// de foco sobre o fundo claro. Cor que não dá contraste é recusada aqui,
     /// mesmo que a tela já tenha conferido.
     /// </summary>
-    public void DefinirMarca(string? nomeExibido, string corPrimaria, string corDestaque, DateTimeOffset agora)
+    public void DefinirMarca(string? nomeExibido, string corPrimaria, string corDestaque, DateTimeOffset agora, bool cabecalhoNaCor = false)
     {
         var nome = string.IsNullOrWhiteSpace(nomeExibido) ? null : nomeExibido.Trim();
         if (nome is { Length: > NomeExibidoMaximo })
@@ -159,6 +162,7 @@ public sealed class Revendedor
         NomeExibido = nome;
         CorPrimaria = primaria;
         CorDestaque = destaque;
+        CabecalhoNaCor = cabecalhoNaCor;
         MarcaAlteradaEm = agora;
     }
 
@@ -167,6 +171,7 @@ public sealed class Revendedor
         NomeExibido = null;
         CorPrimaria = null;
         CorDestaque = null;
+        CabecalhoNaCor = false;
         MarcaAlteradaEm = agora;
     }
 

@@ -24,7 +24,7 @@ export function TelaDoCatalogoDaAvalia() {
   const consultas = useQueryClient()
   const produtos = useQuery({ queryKey: chave, queryFn: () => chamarApi<ProdutoDaPlataforma[]>('/operadora/catalogo') })
   const refazer = () => Promise.all([consultas.invalidateQueries({ queryKey: chave }), consultas.invalidateQueries({ queryKey: ['catalogo'] })])
-  const situacao = useMutation({
+  const situacao = useMutation({ meta: { sucesso: 'Alteração salva.' },
     mutationFn: ({ id, valor }: { id: string; valor: SituacaoDoProduto }) => chamarApi(`/operadora/catalogo/${id}/situacao`, enviarJson('PUT', { situacao: valor })),
     onSuccess: refazer,
   })
@@ -115,7 +115,7 @@ function FormularioDoProduto({ produto, aoFechar, aoSalvar }: { produto: Produto
   // Pedido mínimo só do serviço vendido por quantidade (kit mesa, placa de cardápio); placa sai uma por código.
   const [minimo, setMinimo] = useState(String(produto?.quantidadeMinima ?? 1))
   const minimoValido = tipo !== 'Servico' || Number(minimo) >= 1
-  const gravar = useMutation({
+  const gravar = useMutation({ meta: { sucesso: 'Produto salvo.' },
     mutationFn: () => {
       const corpo = {
         chave, nome, descricao, tipo, precoSugeridoCents: paraCentavos(preco), ordem: Number(ordem) || 0, descontoDaRevendaBps: paraBps(desconto),

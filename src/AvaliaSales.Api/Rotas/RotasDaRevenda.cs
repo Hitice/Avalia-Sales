@@ -21,6 +21,8 @@ public sealed record NovoPedido(Guid PacoteId, string? Cupom);
 
 public sealed record DefinirRenovacao(int RenovacaoBps);
 
+public sealed record ClienteCadastrado(Guid Id);
+
 public sealed record AtivarLote(string Numero);
 
 public sealed record DefinirComissao(int ComissaoBps);
@@ -87,11 +89,6 @@ public static class RotasDaRevenda
             return Results.NoContent();
         });
 
-        dono.MapPut("/revenda/renovacao", async (DefinirRenovacao pedido, Revendedores revendedores, CancellationToken ct) =>
-        {
-            await revendedores.DefinirRenovacao(pedido.RenovacaoBps, ct);
-            return Results.NoContent();
-        });
         // O contrato de revenda: situação, reenvio do e-mail de assinatura e cópia em PDF.
         dono.MapGet("/revenda/contrato", async (Application.Contratos.ContratoDaRevenda contrato, CancellationToken ct) =>
             await contrato.Ler(Domain.Contratos.TipoDeContrato.ContratoDoRevendedor, ct) is { } meu ? Results.Ok(meu) : Results.NoContent()).Produces<Application.Contratos.MeuContrato>();
@@ -143,16 +140,18 @@ public static class RotasDaRevenda
 
         // LGPD: o dono atende o titular. A exportação baixa como arquivo; a anonimização não volta atrás.
         // Quem mudou o quê: destino, venda, comissão, equipe, marca. Só o dono vê.
-        dono.MapGet("/auditoria", (string? referencia, Domain.Auditoria.AcaoAuditada? acao, int? pagina, Application.Auditoria.Auditoria auditoria, CancellationToken ct) =>
-            auditoria.Listar(referencia, acao, pagina ?? 1, ct));
-        dono.MapGet("/auditoria/exportar", async (string? referencia, Domain.Auditoria.AcaoAuditada? acao, Application.Auditoria.Auditoria auditoria, CancellationToken ct) =>
+        dono.MapGet("/auditoria", (string? referencia, Domain.Auditoria.AcaoAuditada? acao, string? busca, int? pagina, Application.Auditoria.Auditoria auditoria, CancellationToken ct) =>
+            auditoria.Listar(referencia, acao, pagina ?? 1, ct, busca));
+        dono.MapGet("/auditoria/exportar", async (string? referencia, Domain.Auditoria.AcaoAuditada? acao, string? busca, Application.Auditoria.Auditoria auditoria, CancellationToken ct) =>
         {
-            var registros = await auditoria.Exportar(referencia, acao, ct);
+            var registros = await auditoria.Exportar(referencia, acao, ct, busca);
             var json = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(registros, Exportacao);
             return Results.File(json, "application/json", $"auditoria-{DateTime.UtcNow:yyyy-MM-dd}.json");
         }).Produces<IReadOnlyList<Application.Auditoria.RegistroDto>>();
         dono.MapGet("/clientes", (string? busca, Application.Clientes.Clientes clientes, CancellationToken ct) => clientes.Listar(busca, ct));
         dono.MapGet("/clientes/{id:guid}", (Guid id, Application.Clientes.Clientes clientes, CancellationToken ct) => clientes.Ficha(id, ct));
+        dono.MapPost("/clientes", async (Application.Clientes.AlterarCliente pedido, Application.Clientes.Clientes clientes, CancellationToken ct) =>
+            TypedResults.Created("/clientes", new ClienteCadastrado(await clientes.Cadastrar(pedido, ct))));
         dono.MapPut("/clientes/{id:guid}", async (Guid id, Application.Clientes.AlterarCliente pedido, Application.Clientes.Clientes clientes, CancellationToken ct) =>
         {
             await clientes.Alterar(id, pedido, ct);

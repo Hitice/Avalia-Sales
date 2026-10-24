@@ -20,6 +20,7 @@ function useGravar<T, R = unknown>(fazer: (dados: T) => Promise<R>) {
   const cliente = useQueryClient()
   return useMutation({
     mutationFn: fazer,
+    meta: { sucesso: 'Alteração salva.' },
     onSuccess: () => Promise.all(['financeiro', 'razao', 'auditoria'].map((chave) => cliente.invalidateQueries({ queryKey: [chave] }))),
   })
 }

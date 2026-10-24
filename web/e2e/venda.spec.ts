@@ -67,15 +67,13 @@ test('voltar no primeiro passo sai da venda', async ({ page }) => {
   await expect(page).not.toHaveURL(/\/vender/)
 })
 
-test('o Catálogo é a aba da tela Vendas, e o endereço antigo leva para lá', async ({ page }) => {
+test('o Catálogo tem tela própria no menu, e a aba antiga de Vendas leva para lá', async ({ page }) => {
   await entrar(page)
-  await page.goto('/catalogo')
-  await expect(page).toHaveURL(/\/painel\/vendas\?aba=catalogo$/)
-  await expect(page.getByRole('tab', { name: 'Catálogo', selected: true })).toBeVisible()
+  await page.goto('/painel/vendas?aba=catalogo')
+  await expect(page).toHaveURL(/\/catalogo$/)
+  await expect(page.getByRole('heading', { level: 1, name: 'Catálogo' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Pedir placas' })).toBeVisible()
   await semViolacaoGrave(page)
-  await page.getByRole('tab', { name: 'Vendas' }).click()
-  await expect(page).toHaveURL(/\/painel\/vendas$/)
 })
 
 test('a busca do negócio no Google, na aba Maps, chama a API sem recarregar a página', async ({ page }) => {

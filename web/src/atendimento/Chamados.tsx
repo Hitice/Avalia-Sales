@@ -78,14 +78,14 @@ export function ConversaDoChamado({ base, id, operadora }: { base: BaseDosChamad
   const conversa = useQuery({ queryKey: ['chat', base, id], queryFn: () => chamarApi<ChamadoComMensagens>(`${base}/${id}`) })
   const [texto, setTexto] = useState('')
   const refazer = () => consultas.invalidateQueries({ queryKey: ['chat'] })
-  const responder = useMutation({
+  const responder = useMutation({ meta: { sucesso: 'Resposta enviada.' },
     mutationFn: (t: string) => chamarApi<MensagemDoChamado>(`${base}/${id}/mensagens`, enviarJson('POST', { texto: t })),
     onSuccess: () => {
       setTexto('')
       return refazer()
     },
   })
-  const resolver = useMutation({ mutationFn: () => chamarApi(`${base}/${id}/resolver`, enviarJson('POST', {})), onSuccess: refazer })
+  const resolver = useMutation({ meta: { sucesso: 'Chamado resolvido.' }, mutationFn: () => chamarApi(`${base}/${id}/resolver`, enviarJson('POST', {})), onSuccess: refazer })
   const fim = useRef<HTMLDivElement>(null)
   // Corpo em bloco: no Chromium atual o scrollIntoView devolve uma Promise, e efeito não pode devolver nada além da limpeza.
   useEffect(() => {

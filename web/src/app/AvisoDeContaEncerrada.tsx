@@ -28,7 +28,7 @@ export function AvisoDeContaEncerrada() {
   })
   const [aberto, setAberto] = useState(false)
   const [motivo, setMotivo] = useState('')
-  const pedir = useMutation({
+  const pedir = useMutation({ meta: { sucesso: 'Pedido enviado.' },
     mutationFn: () => chamarApi<EstadoDoEncerramento>('/revenda/reabertura', enviarJson('POST', { motivo: motivo.trim() || null })),
     onSuccess: (novo) => {
       consultas.setQueryData(['revenda', 'encerramento'], novo)

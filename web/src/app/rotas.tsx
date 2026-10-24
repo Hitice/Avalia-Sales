@@ -2,7 +2,6 @@ import type { ComponentType } from 'react'
 import { Navigate, createBrowserRouter } from 'react-router'
 import { Protegida } from '@/acesso/Protegida'
 import { TelaDeEntrada } from '@/acesso/TelaDeEntrada'
-import { ParaOCatalogo } from '@/catalogo/ParaOCatalogo'
 import { CarregandoTela } from '@/componentes/Tela'
 import { ehFalhaDeCarregamento, recarregarParaVersaoNova } from '@/lib/recarga'
 import { ErroDaTela } from './ErroDaTela'
@@ -74,7 +73,7 @@ export const rotas = createBrowserRouter([{
               { path: 'financeiro', lazy: tela(() => import('@/financeiro/TelaDoFinanceiro'), 'TelaDoFinanceiro') },
               { path: 'mapa', lazy: tela(() => import('@/painel/TelaDoMapa'), 'TelaDoMapa') },
               { path: 'suporte', lazy: tela(() => import('@/atendimento/TelaDeSuporte'), 'TelaDeSuporte') },
-              { path: 'catalogo', element: <Navigate to="/painel/vendas?aba=catalogo" replace /> },
+              { path: 'catalogo', element: <Navigate to="/catalogo" replace /> },
               { path: 'servicos', element: <Navigate to="/links?aba=status" replace /> },
               { path: 'configuracoes', lazy: tela(() => import('@/painel/TelaDeConfiguracoes'), 'TelaDeConfiguracoes') },
               { path: 'marca', lazy: tela(() => import('@/marca/TelaDaMarca'), 'TelaDaMarca') },
@@ -93,7 +92,7 @@ export const rotas = createBrowserRouter([{
             element: <Protegida papeis={['Dono', 'Vendedor']} />,
             children: [
               { path: '/vender', lazy: tela(() => import('@/balcao/TelaDeNovaVenda'), 'TelaDeNovaVenda') },
-              { path: '/catalogo', element: <ParaOCatalogo /> },
+              { path: '/catalogo', lazy: tela(() => import('@/catalogo/TelaDoCatalogo'), 'TelaDoCatalogo') },
               { path: '/placa/:codigo', lazy: tela(() => import('@/balcao/TelaDaPlaca'), 'TelaDaPlaca') },
               { path: '/links', lazy: tela(() => import('@/links/TelaDeLinks'), 'TelaDeLinks') },
               { path: '/vendedor/inicio', lazy: tela(() => import('@/painel/TelaDoVendedor'), 'TelaDoVendedor') },

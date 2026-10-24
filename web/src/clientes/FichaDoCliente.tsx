@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
-import { chamarApi, enviarJson, mensagemDoErro } from '@/api/cliente'
+import { chamarApi, chamarResposta, enviarJson, mensagemDoErro } from '@/api/cliente'
 import { formatarData, ROTULO_DO_ESTADO } from '@/api/rotulos'
 import type { EstadoDaPlaca, FichaDoCliente as Ficha } from '@/api/tipos'
 import { BuscaNoGoogle } from '@/balcao/EscolhaDeDestino'
@@ -14,10 +14,22 @@ import { formatarCentavos } from '@/dinheiro/dinheiro'
 
 type Outro = { id: string; nome: string }
 
+/** Tudo o que a plataforma guarda sobre o cliente, num JSON baixado no aparelho. */
+async function exportarDados(id: string, nome: string) {
+  const resposta = await chamarResposta(`/clientes/${id}/dados`)
+  const url = URL.createObjectURL(await resposta.blob())
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `dados-${nome.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.json`
+  link.click()
+  URL.revokeObjectURL(url)
+}
+
 /**
- * A ficha do cliente para o dono: editar o cadastro (com o lugar no Google,
- * que põe o cliente no mapa), ver as placas e vendas, juntar o cadastro
- * duplicado e excluir o que não tem venda.
+ * A ficha do cliente para o revendedor: editar o cadastro (com o lugar no
+ * Google, que põe o cliente no mapa), ver as placas e vendas, juntar o
+ * cadastro duplicado, exportar e anonimizar (LGPD) e excluir o que não tem
+ * venda.
  */
 export function FichaDoCliente({ id, outros, aoFechar }: { id: string; outros: Outro[]; aoFechar: () => void }) {
   const consultas = useQueryClient()
@@ -26,10 +38,13 @@ export function FichaDoCliente({ id, outros, aoFechar }: { id: string; outros: O
   const [buscandoLugar, setBuscandoLugar] = useState(false)
   const [juntarCom, setJuntarCom] = useState('')
   const atualizar = () => consultas.invalidateQueries({ queryKey: ['clientes'] })
-  const salvar = useMutation({ mutationFn: (dados: Partial<Ficha>) => chamarApi(`/clientes/${id}`, enviarJson('PUT', dados)), onSuccess: () => { setEditando(null); return atualizar() } })
-  const juntar = useMutation({ mutationFn: (outro: string) => chamarApi(`/clientes/${id}/juncao`, enviarJson('POST', { outro })), onSuccess: () => { setJuntarCom(''); return atualizar() } })
-  const excluir = useMutation({ mutationFn: () => chamarApi(`/clientes/${id}`, { method: 'DELETE' }), onSuccess: () => { aoFechar(); return atualizar() } })
-  const erro = salvar.error ?? juntar.error ?? excluir.error
+  const salvar = useMutation({ meta: { sucesso: 'Cliente salvo.' }, mutationFn: (dados: Partial<Ficha>) => chamarApi(`/clientes/${id}`, enviarJson('PUT', dados)), onSuccess: () => { setEditando(null); return atualizar() } })
+  const juntar = useMutation({ meta: { sucesso: 'Cadastros juntados.' }, mutationFn: (outro: string) => chamarApi(`/clientes/${id}/juncao`, enviarJson('POST', { outro })), onSuccess: () => { setJuntarCom(''); return atualizar() } })
+  const excluir = useMutation({ meta: { sucesso: 'Cliente excluído.' }, mutationFn: () => chamarApi(`/clientes/${id}`, { method: 'DELETE' }), onSuccess: () => { aoFechar(); return atualizar() } })
+  const anonimizar = useMutation({ meta: { sucesso: 'Cliente anonimizado.' }, mutationFn: () => chamarApi(`/clientes/${id}/anonimizacao`, enviarJson('POST', {})), onSuccess: () => { setAnonimizando(false); return atualizar() } })
+  const [anonimizando, setAnonimizando] = useState(false)
+  const [erroDaExportacao, setErroDaExportacao] = useState<unknown>(null)
+  const erro = salvar.error ?? juntar.error ?? excluir.error ?? anonimizar.error ?? erroDaExportacao
   const c = ficha.data
   const campo = (nome: 'nome' | 'responsavel' | 'telefone' | 'documento' | 'email', rotulo: string) => (
     <Field>
@@ -99,8 +114,23 @@ export function FichaDoCliente({ id, outros, aoFechar }: { id: string; outros: O
             </div>
           </div>
         )}
-        {c && c.vendas.length === 0 && (
-          <Button variant="destructive" className="justify-self-start" disabled={excluir.isPending} onClick={() => excluir.mutate()}>Excluir cliente</Button>
+        {c && !c.anonimizado && (
+          <div className="grid gap-2 border-t pt-4">
+            <p className="text-sm font-medium">Direitos do titular (LGPD)</p>
+            <p className="text-xs text-muted-foreground">Anonimizar apaga nome, telefone, documento e e-mail e não volta atrás. Os valores das vendas ficam no razão.</p>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" onClick={() => { setErroDaExportacao(null); exportarDados(c.id, c.nome).catch(setErroDaExportacao) }}>Exportar dados</Button>
+              {anonimizando
+                ? (
+                    <>
+                      <Button variant="destructive" disabled={anonimizar.isPending} onClick={() => anonimizar.mutate()}>Confirmar: anonimizar</Button>
+                      <Button variant="ghost" onClick={() => setAnonimizando(false)}>Cancelar</Button>
+                    </>
+                  )
+                : <Button variant="ghost" className="text-destructive" onClick={() => setAnonimizando(true)}>Anonimizar</Button>}
+              {c.vendas.length === 0 && <Button variant="destructive" disabled={excluir.isPending} onClick={() => excluir.mutate()}>Excluir cliente</Button>}
+            </div>
+          </div>
         )}
       </DialogContent>
     </Dialog>

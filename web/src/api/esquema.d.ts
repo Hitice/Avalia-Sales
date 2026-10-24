@@ -2658,6 +2658,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/operadora/revendedores/{id}/renovacao": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["DefinirRenovacao"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/operadora/revendedores/{id}/contrato-assinado": {
         parameters: {
             query?: never;
@@ -3360,43 +3399,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/revenda/renovacao": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["DefinirRenovacao"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/revenda/contrato": {
         parameters: {
             query?: never;
@@ -3991,6 +3993,7 @@ export interface paths {
                 query?: {
                     referencia?: string;
                     acao?: components["schemas"]["AcaoAuditada"];
+                    busca?: string;
                     pagina?: number;
                 };
                 header?: never;
@@ -4030,6 +4033,7 @@ export interface paths {
                 query?: {
                     referencia?: string;
                     acao?: components["schemas"]["AcaoAuditada"];
+                    busca?: string;
                 };
                 header?: never;
                 path?: never;
@@ -4086,7 +4090,30 @@ export interface paths {
             };
         };
         put?: never;
-        post?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AlterarCliente"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ClienteCadastrado"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -6349,7 +6376,7 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /** @enum {unknown} */
-        AcaoAuditada: "DestinoDefinido" | "DestinoTrocado" | "PlacaSuspensa" | "PlacaNoAr" | "PlacaTrocada" | "VendaCancelada" | "VendaEmCortesia" | "RecebidoPorFora" | "RecebimentoDesfeito" | "VendedorCadastrado" | "VendedorAlterado" | "VendedorDesativado" | "VendedorReativado" | "VendedorExcluido" | "ComissaoPadraoAlterada" | "ProdutoAlterado" | "RepasseRegistrado" | "ClienteAnonimizado" | "MarcaAlterada" | "LinkAlterado" | "LinkExcluido" | "SegundoFatorLigado" | "SegundoFatorDesligado" | "EmpresaAlterada" | "EncerramentoPedido" | "EncerramentoDesistido" | "ContaEncerrada" | "ReaberturaPedida" | "ClienteAlterado" | "ClienteExcluido" | "ClientesJuntados" | "VendaCorrigida" | "RepasseDesfeito" | "MesFechado" | "MesReaberto" | "SocioCadastrado" | "SocioAlterado" | "SocioExcluido";
+        AcaoAuditada: "DestinoDefinido" | "DestinoTrocado" | "PlacaSuspensa" | "PlacaNoAr" | "PlacaTrocada" | "VendaCancelada" | "VendaEmCortesia" | "RecebidoPorFora" | "RecebimentoDesfeito" | "VendedorCadastrado" | "VendedorAlterado" | "VendedorDesativado" | "VendedorReativado" | "VendedorExcluido" | "ComissaoPadraoAlterada" | "ProdutoAlterado" | "RepasseRegistrado" | "ClienteAnonimizado" | "MarcaAlterada" | "LinkAlterado" | "LinkExcluido" | "SegundoFatorLigado" | "SegundoFatorDesligado" | "EmpresaAlterada" | "EncerramentoPedido" | "EncerramentoDesistido" | "ContaEncerrada" | "ReaberturaPedida" | "ClienteAlterado" | "ClienteExcluido" | "ClientesJuntados" | "VendaCorrigida" | "RepasseDesfeito" | "MesFechado" | "MesReaberto" | "SocioCadastrado" | "SocioAlterado" | "SocioExcluido" | "ClienteCadastrado";
         AjustarProduto: {
             /** Format: int64 */
             precoCents: number;
@@ -6386,6 +6413,7 @@ export interface components {
             chavePix: null | string;
             /** Format: int32 */
             comissaoBps: null | number;
+            cpf?: null | string;
         };
         AnonymousTypeOfstringAndstring: {
             chave: null | string;
@@ -6455,6 +6483,10 @@ export interface components {
         ChaveDoAutenticador: {
             chave: string;
             uri: string;
+        };
+        ClienteCadastrado: {
+            /** Format: uuid */
+            id: string;
         };
         ClienteDaLista: {
             /** Format: uuid */
@@ -6830,6 +6862,8 @@ export interface components {
             nomeExibido: null | string;
             corPrimaria: string;
             corDestaque: string;
+            /** @default false */
+            cabecalhoNaCor: boolean;
         };
         GravarPacote: {
             /** Format: int32 */
@@ -7036,6 +7070,8 @@ export interface components {
             temLogo: boolean;
             /** Format: int64 */
             versao: number;
+            /** @default false */
+            cabecalhoNaCor: boolean;
         };
         /** @enum {unknown} */
         MeioDePagamento: "Pix" | "Cartao" | "Link" | "Dinheiro" | "OutroPix";
@@ -7206,6 +7242,7 @@ export interface components {
             chavePix: null | string;
             /** Format: int32 */
             comissaoBps: null | number;
+            cpf?: null | string;
         };
         OrdemDaVenda: {
             /** Format: int64 */
@@ -7699,6 +7736,7 @@ export interface components {
             vendas: number;
             convitePendente: boolean;
             linkDoConvite?: null | string;
+            cpf?: null | string;
         };
     };
     responses: never;

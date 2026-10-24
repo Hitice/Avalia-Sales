@@ -26,9 +26,9 @@ export function EncerramentoDaConta() {
     consultas.setQueryData(chave, novo)
     return consultas.invalidateQueries({ queryKey: ['revenda'] })
   }
-  const pedir = useMutation({ mutationFn: () => chamarApi<EstadoDoEncerramento>('/revenda/encerramento', enviarJson('POST', {})), onSuccess: atualizar })
-  const desistir = useMutation({ mutationFn: () => chamarApi<EstadoDoEncerramento>('/revenda/encerramento', { method: 'DELETE' }), onSuccess: atualizar })
-  const reenviar = useMutation({ mutationFn: () => chamarApi('/revenda/encerramento/reenvio', enviarJson('POST', {})) })
+  const pedir = useMutation({ meta: { sucesso: 'Encerramento pedido.' }, mutationFn: () => chamarApi<EstadoDoEncerramento>('/revenda/encerramento', enviarJson('POST', {})), onSuccess: atualizar })
+  const desistir = useMutation({ meta: { sucesso: 'Encerramento cancelado.' }, mutationFn: () => chamarApi<EstadoDoEncerramento>('/revenda/encerramento', { method: 'DELETE' }), onSuccess: atualizar })
+  const reenviar = useMutation({ meta: { sucesso: 'Distrato reenviado.' }, mutationFn: () => chamarApi('/revenda/encerramento/reenvio', enviarJson('POST', {})) })
   // Confere na D4Sign se o distrato já foi assinado; assinado, a conta encerra na hora.
   const conferir = useMutation({
     mutationFn: () => chamarApi('/revenda/encerramento/conferencia', enviarJson('POST', {})),

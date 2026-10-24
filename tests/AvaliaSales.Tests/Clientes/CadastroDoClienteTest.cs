@@ -101,4 +101,31 @@ public sealed class CadastroDoClienteTest(ApiDeTeste api)
         var recusa = await revenda.Dono.Colocar($"/vendas/{venda}", new { vendedorId = bia }, HttpStatusCode.UnprocessableEntity);
         Assert.Contains("já foi deste vendedor", recusa.GetProperty("detail").GetString());
     }
+
+    [Fact]
+    public async Task Dono_cadastra_o_cliente_antes_da_venda_e_o_mesmo_documento_e_recusado()
+    {
+        var revenda = await api.RevendaComEstoque("Revenda do Cliente Cadastrado");
+        var corpo = new { nome = "Academia Forte", responsavel = "Lia", telefone = "34999990077", documento = "11222333000181", email = "lia@academiaforte.com.br", lugarNoGoogle = (string?)null };
+
+        var criado = await revenda.Dono.Postar("/clientes", corpo, HttpStatusCode.Created);
+        var id = criado.GetProperty("id").GetGuid();
+        Assert.Equal(id, await ClienteDe(revenda.Dono, "34999990077"));
+        Assert.Equal("Academia Forte", (await revenda.Dono.Pegar($"/clientes/{id}")).GetProperty("nome").GetString());
+
+        var repetido = await revenda.Dono.Postar("/clientes", new { nome = "Academia Forte 2", responsavel = "Lia", telefone = "34999990078", documento = "11222333000181", email = (string?)null, lugarNoGoogle = (string?)null }, HttpStatusCode.UnprocessableEntity);
+        Assert.Contains("CPF ou CNPJ", repetido.GetProperty("detail").GetString());
+    }
+
+    [Fact]
+    public async Task Vendedor_guarda_o_cpf_e_cpf_errado_e_recusado()
+    {
+        var revenda = await api.RevendaComEstoque("Revenda do CPF do Vendedor");
+        var email = $"vendedor-{Guid.NewGuid():N}@teste.com.br";
+        var criado = await revenda.Dono.Postar("/equipe", new { nome = "Rui Prado", email, senha = ApiDeTeste.Senha, cpf = "529.982.247-25" }, HttpStatusCode.Created);
+        Assert.Equal("52998224725", criado.GetProperty("cpf").GetString());
+
+        var id = criado.GetProperty("id").GetGuid();
+        await revenda.Dono.Colocar($"/equipe/{id}", new { nome = "Rui Prado", cpf = "11111111112" }, HttpStatusCode.UnprocessableEntity);
+    }
 }

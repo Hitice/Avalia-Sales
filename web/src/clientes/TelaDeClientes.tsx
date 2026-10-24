@@ -1,61 +1,40 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
-import { chamarApi, chamarResposta, enviarJson, mensagemDoErro } from '@/api/cliente'
+import { chamarApi, enviarJson, mensagemDoErro } from '@/api/cliente'
 import { formatarData, formatarTelefone } from '@/api/rotulos'
 import { Cabecalho, Erro, EstadoDaConsulta, Rolagem } from '@/componentes/Tela'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Field, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { digitos, mascaraDocumento, mascaraTelefone } from '@/lib/mascaras'
 import { FichaDoCliente } from './FichaDoCliente'
 
 type Cliente = { id: string; nome: string; responsavel: string; telefone: string; documento: string | null; email: string | null; placas: number; criadoEm: string; anonimizado: boolean }
 
 /**
- * Os clientes da revenda e os direitos do titular (LGPD): exportar tudo o que a
- * plataforma guarda sobre ele e anonimizar. A anonimização não volta atrás;
- * os valores das vendas ficam para o razão.
+ * Os clientes da revenda. A ficha de cada um (clique no nome) edita, junta
+ * duplicados, exporta e anonimiza; o cliente novo pode entrar antes da venda.
  */
 export function TelaDeClientes() {
-  const consultas = useQueryClient()
   const [busca, setBusca] = useState('')
-  const [confirmando, setConfirmando] = useState<string | null>(null)
-  const [erro, setErro] = useState<unknown>(null)
   const [aberto, setAberto] = useState<string | null>(null)
+  const [cadastrando, setCadastrando] = useState(false)
   const clientes = useQuery({ queryKey: ['clientes', busca], queryFn: () => chamarApi<Cliente[]>(`/clientes?busca=${encodeURIComponent(busca)}`) })
-  const anonimizar = useMutation({
-    mutationFn: (id: string) => chamarApi(`/clientes/${id}/anonimizacao`, enviarJson('POST', {})),
-    onSuccess: () => {
-      setConfirmando(null)
-      return consultas.invalidateQueries({ queryKey: ['clientes'] })
-    },
-  })
-
-  async function exportar(c: Cliente) {
-    setErro(null)
-    try {
-      const resposta = await chamarResposta(`/clientes/${c.id}/dados`)
-      const url = URL.createObjectURL(await resposta.blob())
-      const link = document.createElement('a')
-      link.href = url
-      link.download = `dados-${c.nome.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.json`
-      link.click()
-      URL.revokeObjectURL(url)
-    } catch (e) {
-      setErro(e)
-    }
-  }
 
   return (
     <>
       <Cabecalho titulo="Clientes">
-        <Input aria-label="Buscar cliente" placeholder="Nome, telefone ou CNPJ" className="w-64" value={busca} onChange={(e) => setBusca(e.target.value)} />
+        <Input type="search" aria-label="Buscar cliente" placeholder="Nome, telefone ou CNPJ" className="w-64" value={busca} onChange={(e) => setBusca(e.target.value)} />
+        <Button onClick={() => setCadastrando(true)}>Cadastrar cliente</Button>
       </Cabecalho>
-      <Erro erro={erro || anonimizar.error ? mensagemDoErro(erro ?? anonimizar.error) : null} />
       <Card className="mt-3">
         <CardContent>
-          <EstadoDaConsulta carregando={clientes.isPending} erro={clientes.error} vazio={clientes.data?.length === 0} textoVazio="Nenhum cliente encontrado." />
+          <EstadoDaConsulta carregando={clientes.isPending} erro={clientes.error} vazio={clientes.data?.length === 0} textoVazio="Nenhum cliente encontrado."
+            acao={<Button variant="outline" onClick={() => setCadastrando(true)}>Cadastrar cliente</Button>} />
           {clientes.data && clientes.data.length > 0 && (
             <Rolagem>
               <Table>
@@ -65,7 +44,6 @@ export function TelaDeClientes() {
                     <TableHead>Telefone</TableHead>
                     <TableHead className="text-right">Placas</TableHead>
                     <TableHead>Desde</TableHead>
-                    <TableHead><span className="sr-only">Direitos do titular</span></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -80,21 +58,6 @@ export function TelaDeClientes() {
                       <TableCell className="tabular-nums">{c.telefone ? formatarTelefone(c.telefone) : '-'}</TableCell>
                       <TableCell className="text-right tabular-nums">{c.placas}</TableCell>
                       <TableCell>{formatarData(c.criadoEm)}</TableCell>
-                      <TableCell>
-                        {!c.anonimizado && (
-                          <div className="flex justify-end gap-2">
-                            <Button variant="outline" onClick={() => exportar(c)}>Exportar dados</Button>
-                            {confirmando === c.id
-                              ? (
-                                  <>
-                                    <Button variant="destructive" disabled={anonimizar.isPending} onClick={() => anonimizar.mutate(c.id)}>Confirmar: anonimizar</Button>
-                                    <Button variant="ghost" onClick={() => setConfirmando(null)}>Cancelar</Button>
-                                  </>
-                                )
-                              : <Button variant="ghost" onClick={() => setConfirmando(c.id)}>Anonimizar</Button>}
-                          </div>
-                        )}
-                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -107,6 +70,57 @@ export function TelaDeClientes() {
         <FichaDoCliente id={aberto} aoFechar={() => setAberto(null)}
           outros={(clientes.data ?? []).filter((c) => c.id !== aberto && !c.anonimizado).map((c) => ({ id: c.id, nome: c.nome }))} />
       )}
+      {cadastrando && <NovoCliente aoFechar={() => setCadastrando(false)} aoCadastrar={(id) => { setCadastrando(false); setAberto(id) }} />}
     </>
+  )
+}
+
+const VAZIO = { nome: '', responsavel: '', telefone: '', documento: '', email: '' }
+
+/** O cliente novo, sem venda ainda. O lugar no Google entra pela ficha, depois. */
+function NovoCliente({ aoFechar, aoCadastrar }: { aoFechar: () => void; aoCadastrar: (id: string) => void }) {
+  const consultas = useQueryClient()
+  const [dados, setDados] = useState(VAZIO)
+  const cadastrar = useMutation({
+    meta: { sucesso: 'Cliente cadastrado.' },
+    mutationFn: () => chamarApi<{ id: string }>('/clientes', enviarJson('POST', {
+      nome: dados.nome, responsavel: dados.responsavel, telefone: digitos(dados.telefone),
+      documento: digitos(dados.documento) || null, email: dados.email.trim() || null, lugarNoGoogle: null,
+    })),
+    onSuccess: async (criado) => {
+      await consultas.invalidateQueries({ queryKey: ['clientes'] })
+      aoCadastrar(criado.id)
+    },
+  })
+  const campo = (nome: keyof typeof VAZIO, rotulo: string, extra: { mascara?: (t: string) => string; inputMode?: 'numeric' | 'email'; type?: string } = {}) => (
+    <Field>
+      <FieldLabel htmlFor={`novo-${nome}`}>{rotulo}</FieldLabel>
+      <Input id={`novo-${nome}`} type={extra.type} inputMode={extra.inputMode} value={dados[nome]}
+        onChange={(e) => setDados({ ...dados, [nome]: extra.mascara ? extra.mascara(e.target.value) : e.target.value })} />
+    </Field>
+  )
+  const pronto = dados.nome.trim() && dados.responsavel.trim() && digitos(dados.telefone).length >= 10
+
+  return (
+    <Dialog open onOpenChange={(aberto) => !aberto && aoFechar()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Cadastrar cliente</DialogTitle>
+          <DialogDescription>Para vender depois. CPF ou CNPJ e e-mail servem para a cobrança.</DialogDescription>
+        </DialogHeader>
+        <form className="grid gap-3" onSubmit={(e) => { e.preventDefault(); cadastrar.mutate() }}>
+          <Erro erro={cadastrar.error ? mensagemDoErro(cadastrar.error) : null} />
+          {campo('nome', 'Empresa')}
+          {campo('responsavel', 'Responsável')}
+          {campo('telefone', 'Telefone', { mascara: mascaraTelefone, inputMode: 'numeric', type: 'tel' })}
+          {campo('documento', 'CPF ou CNPJ (opcional)', { mascara: mascaraDocumento, inputMode: 'numeric' })}
+          {campo('email', 'E-mail (opcional)', { inputMode: 'email', type: 'email' })}
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={aoFechar}>Cancelar</Button>
+            <Button type="submit" disabled={!pronto || cadastrar.isPending}>Cadastrar</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   )
 }

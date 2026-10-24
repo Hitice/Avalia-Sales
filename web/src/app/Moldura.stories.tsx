@@ -16,7 +16,7 @@ const PERFIS: Record<Papel, Perfil> = {
 }
 
 const MARCA_DA_REVENDA: Marca = {
-  nomeExibido: 'Padaria do Bairro', corPrimaria: '#0F5132', textoSobrePrimaria: '#FFFFFF', corDestaque: '#F2B705', textoSobreDestaque: '#120C2B', temLogo: false, versao: 1,
+  nomeExibido: 'Padaria do Bairro', corPrimaria: '#0F5132', textoSobrePrimaria: '#FFFFFF', corDestaque: '#F2B705', textoSobreDestaque: '#120C2B', temLogo: false, versao: 1, cabecalhoNaCor: false,
 }
 
 function TelaDeExemplo() {

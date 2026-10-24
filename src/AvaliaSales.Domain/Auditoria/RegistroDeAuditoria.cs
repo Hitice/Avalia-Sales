@@ -40,6 +40,7 @@ public enum AcaoAuditada
     SocioCadastrado,
     SocioAlterado,
     SocioExcluido,
+    ClienteCadastrado,
 }
 
 /// <summary>

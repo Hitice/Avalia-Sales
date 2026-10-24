@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field, FieldDescription, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { useComissaoPadrao, useDefinirRenovacao, useMinhaRevenda } from './consultas'
+import { useComissaoPadrao, useMinhaRevenda } from './consultas'
 
 /** As regras de negócio da revenda: a comissão de quem não tem a própria e o preço da renovação. Vale para venda nova. */
 export function TelaDeConfiguracoes() {
@@ -26,17 +26,13 @@ const paraTexto = (bps: number) => String(bps / 100).replace('.', ',')
 
 function Formulario({ comissaoBps, renovacaoBps, taxaBps }: { comissaoBps: number; renovacaoBps: number; taxaBps: number }) {
   const comissao = useComissaoPadrao()
-  const renovacao = useDefinirRenovacao()
   const [textoDaComissao, setTextoDaComissao] = useState(paraTexto(comissaoBps))
-  const [textoDaRenovacao, setTextoDaRenovacao] = useState(paraTexto(renovacaoBps))
   const novaComissao = paraBps(textoDaComissao)
-  const novaRenovacao = paraBps(textoDaRenovacao)
-  const erro = comissao.error ?? renovacao.error
-  const salvo = comissao.isSuccess || renovacao.isSuccess
+  const erro = comissao.error
+  const salvo = comissao.isSuccess
 
   async function salvar() {
     if (novaComissao !== null && novaComissao !== comissaoBps) await comissao.mutateAsync(novaComissao).catch(() => undefined)
-    if (novaRenovacao !== null && novaRenovacao !== renovacaoBps) await renovacao.mutateAsync(novaRenovacao).catch(() => undefined)
   }
 
   return (
@@ -53,13 +49,9 @@ function Formulario({ comissaoBps, renovacaoBps, taxaBps }: { comissaoBps: numbe
               <Input id="comissao" inputMode="decimal" className="max-w-40" value={textoDaComissao} onChange={(e) => setTextoDaComissao(e.target.value)} />
               <FieldDescription>Para o vendedor e o produto sem comissão própria.</FieldDescription>
             </Field>
-            <Field>
-              <FieldLabel htmlFor="renovacao">Renovação (% da venda)</FieldLabel>
-              <Input id="renovacao" inputMode="decimal" className="max-w-40" value={textoDaRenovacao} onChange={(e) => setTextoDaRenovacao(e.target.value)} />
-              <FieldDescription>Preço de mais um ano da placa. Renovação não paga comissão.</FieldDescription>
-            </Field>
+            <p className="text-sm">Renovação: <span className="font-medium tabular-nums">{formatarBps(renovacaoBps)}</span> da venda por mais um ano da placa, definida pela operadora. Renovação não paga comissão.</p>
             {taxaBps > 0 && <p className="text-sm text-muted-foreground">Taxa da plataforma por venda paga: {formatarBps(taxaBps)}.</p>}
-            <Button type="submit" className="justify-self-start" disabled={novaComissao === null || novaRenovacao === null || comissao.isPending || renovacao.isPending}>Salvar</Button>
+            <Button type="submit" className="justify-self-start" disabled={novaComissao === null || comissao.isPending}>Salvar</Button>
           </form>
         </CardContent>
       </Card>
@@ -72,7 +64,7 @@ function Formulario({ comissaoBps, renovacaoBps, taxaBps }: { comissaoBps: numbe
 function ContratoDeRevenda() {
   const consultas = useQueryClient()
   const contrato = useQuery({ queryKey: ['revenda', 'contrato'], queryFn: () => chamarApi<MeuContrato | undefined>('/revenda/contrato') })
-  const reenviar = useMutation({
+  const reenviar = useMutation({ meta: { sucesso: 'Contrato reenviado.' },
     mutationFn: () => chamarApi('/revenda/contrato/reenvio', enviarJson('POST', {})),
     onSuccess: () => consultas.invalidateQueries({ queryKey: ['revenda', 'contrato'] }),
   })

@@ -2,7 +2,7 @@ import { test } from '@playwright/test'
 import { OPERADOR, entrar, semRolagemLateral, semViolacaoGrave } from './apoio'
 
 const TELAS_DO_DONO = ['/painel/inicio', '/painel/vendas', '/painel/estoque', '/painel/pedidos', '/painel/equipe', '/painel/clientes', '/links',
-  '/painel/comissoes', '/painel/financeiro', '/painel/razao', '/painel/mapa', '/painel/vendas?aba=catalogo', '/painel/configuracoes', '/painel/marca', '/painel/auditoria', '/painel/suporte']
+  '/painel/comissoes', '/painel/financeiro', '/painel/razao', '/painel/mapa', '/catalogo', '/painel/configuracoes', '/painel/marca', '/painel/auditoria', '/painel/suporte']
 
 const TELAS_DA_OPERADORA = ['/operadora/pedidos', '/operadora/lotes', '/operadora/servicos', '/operadora/catalogo', '/operadora/pacotes',
   '/operadora/cupons', '/operadora/revendedores', '/operadora/atendimento', '/operadora/erp', '/operadora/auditoria']

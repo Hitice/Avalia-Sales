@@ -1,46 +1,35 @@
-import { BookOpen, Layers, Receipt } from 'lucide-react'
-import { Link, useSearchParams } from 'react-router'
+import { Layers } from 'lucide-react'
+import { Link, Navigate, useSearchParams } from 'react-router'
 import { mensagemDoErro } from '@/api/cliente'
 import { formatarDataHora } from '@/api/rotulos'
 import { useSessao } from '@/acesso/sessao'
 import { useContaEncerrada } from '@/app/contaEncerrada'
-import { Catalogo } from '@/catalogo/Catalogo'
 import { Aviso, Cabecalho, Erro, EstadoDaConsulta, Rolagem } from '@/componentes/Tela'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { formatarCentavos } from '@/dinheiro/dinheiro'
 import { AcoesDaVenda } from './AcoesDaVenda'
 import { useCobrarDeNovo, useSaldosDeComissao, useVendas } from './consultas'
 import { nomeDoProduto, rotuloDaVenda, tomDaVenda } from './situacaoDaVenda'
 
 /**
- * A casa da venda: a aba Vendas lista as vendas e a comissão de cada uma (a
- * comissão só conta quando o cliente paga); a aba Catálogo é de onde se
- * vende e onde o dono ajusta preço e pede placas.
+ * As vendas e a comissão de cada uma (a comissão só conta quando o cliente
+ * paga). O Catálogo tem tela própria no menu.
  */
 export function TelaDeVendas() {
   const dono = useSessao((s) => s.perfil?.papel === 'Dono')
   const encerrada = useContaEncerrada()
-  const [parametros, setParametros] = useSearchParams()
-  const aba = parametros.get('aba') === 'catalogo' && !encerrada ? 'catalogo' : 'vendas'
-  const irPara = (nova: string) => setParametros(nova === 'catalogo' ? { aba: nova } : {}, { replace: true })
+  // O Catálogo era uma aba daqui: o endereço antigo leva à tela dele.
+  if (useSearchParams()[0].get('aba') === 'catalogo') return <Navigate to="/catalogo" replace />
 
   return (
     <>
       <Cabecalho titulo={dono ? 'Vendas' : 'Minhas vendas'}>
         {!encerrada && <Button asChild className="lg:hidden"><Link to="/vender">Nova venda</Link></Button>}
       </Cabecalho>
-      <Tabs value={aba} onValueChange={irPara} className="gap-4">
-        <TabsList className="w-full sm:w-auto">
-          <TabsTrigger value="vendas"><Receipt aria-hidden />Vendas</TabsTrigger>
-          {!encerrada && <TabsTrigger value="catalogo"><BookOpen aria-hidden />Catálogo</TabsTrigger>}
-        </TabsList>
-        <TabsContent value="vendas"><ListaDeVendas dono={dono} /></TabsContent>
-        {!encerrada && <TabsContent value="catalogo"><Catalogo /></TabsContent>}
-      </Tabs>
+      <ListaDeVendas dono={dono} />
     </>
   )
 }

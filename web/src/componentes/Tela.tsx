@@ -77,8 +77,9 @@ export function Aviso({ children }: { children: ReactNode }) {
   )
 }
 
-export function EtiquetaDoEstado({ estado }: { estado: EstadoDaPlaca }) {
-  return <Badge variant={TOM_DO_ESTADO[estado]}>{ROTULO_DO_ESTADO[estado]}</Badge>
+/** Situação da placa. Em tabela, com largura fixa: "Ativa" e "Encerrada" ficam do mesmo tamanho e a coluna alinha. */
+export function EtiquetaDoEstado({ estado, largura = false }: { estado: EstadoDaPlaca; largura?: boolean }) {
+  return <Badge variant={TOM_DO_ESTADO[estado]} className={largura ? 'w-24 justify-center' : undefined}>{ROTULO_DO_ESTADO[estado]}</Badge>
 }
 
 /**

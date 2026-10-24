@@ -1,3 +1,4 @@
+import { Ellipsis } from 'lucide-react'
 import { useState } from 'react'
 import { mensagemDoErro } from '@/api/cliente'
 import { ROTULO_DO_CANCELAMENTO } from '@/api/rotulos'
@@ -95,7 +96,7 @@ export function AcoesDaVenda({ venda, dono, naPagina = false }: { venda: VendaDa
       <DialogTrigger asChild>
         {naPagina
           ? <Button variant="outline">Editar ou cancelar</Button>
-          : <Button variant="ghost" aria-label={`Mais ações da placa ${venda.codigo}`}>Mais</Button>}
+          : <Button variant="ghost" size="icon" aria-label={`Mais ações da venda de ${venda.cliente}`} title="Mais ações"><Ellipsis aria-hidden /></Button>}
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>

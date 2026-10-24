@@ -26,8 +26,10 @@ export function TelaDoEstoque() {
   const dono = useSessao((s) => s.perfil?.papel === 'Dono')
   const [estado, setEstado] = useState<EstadoDaPlaca | undefined>()
   const [codigo, setCodigo] = useState('')
+  const [com, setCom] = useState<string | undefined>()
   const [pagina, setPagina] = useState(1)
-  const placas = usePlacas({ estado, codigo: codigo || undefined, pagina })
+  const placas = usePlacas({ estado, codigo: codigo || undefined, consignadaA: com, pagina })
+  const equipe = useEquipe()
   const navegar = useNavigate()
   const baixar = useBaixarPlaca()
   const desfazer = useDesfazerBaixa()
@@ -35,7 +37,7 @@ export function TelaDoEstoque() {
   const paginas = Math.max(1, Math.ceil(total / 50))
 
   return (
-    <div className={dono ? 'grid grid-cols-1 gap-4 xl:lista-e-lateral-80' : 'grid gap-4'}>
+    <div className="grid gap-4">
       <div>
         <Cabecalho titulo={dono ? 'Estoque' : 'Minhas placas'} />
         <div className="mb-3 flex flex-wrap gap-2">
@@ -46,7 +48,16 @@ export function TelaDoEstoque() {
               {ESTADOS.map((e) => <SelectItem key={e} value={e}>{ROTULO_DO_ESTADO[e]} ({placas.data?.porEstado[e] ?? 0})</SelectItem>)}
             </SelectContent>
           </Select>
-          <Input aria-label="Buscar código" placeholder="Código" className="w-36 uppercase" value={codigo} onChange={(e) => { setCodigo(e.target.value); setPagina(1) }} />
+          {dono && (
+            <Select value={com ?? TODOS} onValueChange={(v) => { setCom(v === TODOS ? undefined : v); setPagina(1) }}>
+              <SelectTrigger aria-label="Com quem" className="w-44"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={TODOS}>Com todos</SelectItem>
+                {(equipe.data ?? []).map((v) => <SelectItem key={v.id} value={v.id}>{v.nome}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          )}
+          <Input type="search" aria-label="Buscar código" placeholder="Código" className="w-36 uppercase" value={codigo} onChange={(e) => { setCodigo(e.target.value); setPagina(1) }} />
         </div>
         <Erro erro={baixar.error || desfazer.error ? mensagemDoErro(baixar.error ?? desfazer.error) : null} />
         <Card>
@@ -72,7 +83,7 @@ export function TelaDoEstoque() {
                         <TableCell><Link className="font-medium tabular-nums underline-offset-4 hover:underline" to={`/placa/${p.codigo}`}>{p.codigo}</Link></TableCell>
                         <TableCell>
                           <span className="flex flex-wrap items-center gap-1.5">
-                            <EtiquetaDoEstado estado={p.estado} />
+                            <EtiquetaDoEstado estado={p.estado} largura />
                             {p.motivoDaBaixa && <span className="text-xs text-muted-foreground">{ROTULO_DA_BAIXA[p.motivoDaBaixa] ?? MOTIVO_DO_SISTEMA[p.motivoDaBaixa]}</span>}
                           </span>
                         </TableCell>
@@ -81,7 +92,8 @@ export function TelaDoEstoque() {
                         <TableCell className="text-right tabular-nums">{p.totalLeituras}</TableCell>
                         {dono && (
                           <TableCell>
-                            <AcoesDaLinha nome={p.codigo} principal={{ rotulo: 'Ficha', aoClicar: () => navegar(`/placa/${p.codigo}`) }} outras={[
+                            <AcoesDaLinha nome={p.codigo} outras={[
+                              { rotulo: 'Abrir a ficha', aoClicar: () => navegar(`/placa/${p.codigo}`) },
                               ...(p.estado === 'EmEstoque' ? MOTIVOS.map((m) => ({ rotulo: `Baixa: ${ROTULO_DA_BAIXA[m]}`, destrutiva: true, aoClicar: () => baixar.mutate({ codigo: p.codigo, motivo: m }) })) : []),
                               p.estado === 'Baixada' && !!p.motivoDaBaixa && p.motivoDaBaixa in ROTULO_DA_BAIXA && { rotulo: 'Desfazer baixa', aoClicar: () => desfazer.mutate(p.codigo) },
                             ]} />
@@ -104,7 +116,7 @@ export function TelaDoEstoque() {
         </Card>
       </div>
       {dono && (
-        <div className="grid content-start gap-4">
+        <div className="grid items-start gap-4 lg:grid-cols-2">
           <Consignacao />
           <LotesDaRevenda />
         </div>
@@ -131,23 +143,41 @@ function LotesDaRevenda() {
   if (!lotes.data?.length) return null
 
   return (
-    <Card className="self-start">
+    <Card>
       <CardHeader><CardTitle>Lotes</CardTitle></CardHeader>
       <CardContent className="grid gap-3">
         <Erro erro={arquivar.error ? mensagemDoErro(arquivar.error) : null} />
-        {lotes.data.map((l) => (
-          <div key={l.id} className="flex items-start justify-between gap-3 text-sm">
-            <div className="min-w-0">
-              <p className="font-medium tabular-nums">{l.rotulo} {l.categoria !== 'Placa' && <Badge variant="outline">{ROTULO_DA_CATEGORIA[l.categoria]}</Badge>}</p>
-              {l.titulo && <p className="truncate text-muted-foreground">{l.titulo}</p>}
-              <p className="text-muted-foreground tabular-nums">{l.emEstoque} em estoque{l.baixadas > 0 ? `, ${l.baixadas} baixadas` : ''}</p>
-            </div>
-            <Button size="sm" variant={l.arquivadoEm ? 'outline' : 'ghost'} disabled={arquivar.isPending}
-              onClick={() => arquivar.mutate({ id: l.id, arquivado: !l.arquivadoEm })}>
-              {l.arquivadoEm ? 'Desarquivar' : 'Arquivar'}
-            </Button>
-          </div>
-        ))}
+        <Rolagem>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Lote</TableHead>
+                <TableHead className="text-right">Em estoque</TableHead>
+                <TableHead className="text-right">Baixadas</TableHead>
+                <TableHead><span className="sr-only">Ações</span></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {lotes.data.map((l) => (
+                <TableRow key={l.id}>
+                  <TableCell className="whitespace-normal">
+                    <span className="font-medium tabular-nums">{l.rotulo}</span>
+                    {l.categoria !== 'Placa' && <Badge variant="outline" className="ml-2">{ROTULO_DA_CATEGORIA[l.categoria]}</Badge>}
+                    {l.titulo && <span className="block text-xs text-muted-foreground">{l.titulo}</span>}
+                    {l.arquivadoEm && <span className="block text-xs text-muted-foreground">Arquivado</span>}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">{l.emEstoque}</TableCell>
+                  <TableCell className="text-right tabular-nums">{l.baixadas}</TableCell>
+                  <TableCell>
+                    <AcoesDaLinha nome={l.rotulo} outras={[
+                      { rotulo: l.arquivadoEm ? 'Desarquivar' : 'Arquivar', desabilitada: arquivar.isPending, aoClicar: () => arquivar.mutate({ id: l.id, arquivado: !l.arquivadoEm }) },
+                    ]} />
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Rolagem>
       </CardContent>
     </Card>
   )
@@ -165,7 +195,7 @@ function Consignacao() {
   const ativos = (equipe.data ?? []).filter((v) => v.ativo)
 
   return (
-    <Card className="self-start">
+    <Card>
       <CardHeader><CardTitle>Consignar ao vendedor</CardTitle></CardHeader>
       <CardContent>
         <form

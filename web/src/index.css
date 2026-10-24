@@ -319,6 +319,28 @@
  * cartão rolam com o conteúdo (local) e cobrem a sombra fixa quando a borda
  * chega ao fim.
  */
+/*
+ * Lista longa rola dentro dela, com o cabeçalho fixo: a página não cresce sem
+ * fim e o título da coluna não some. A linha que a busca esconde sai também do
+ * cartão do celular, que tem display próprio.
+ */
+@utility rolagem-da-tabela {
+  max-height: 70dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+[data-slot="table-header"] th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--cinza-50);
+}
+
+[data-slot="table-row"][hidden] {
+  display: none !important;
+}
+
 @utility sombra-de-rolagem {
   background:
     linear-gradient(to right, var(--card) 30%, transparent) left center / 2.5rem 100% no-repeat local,

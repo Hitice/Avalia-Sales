@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router'
 import { formatarData } from '@/api/rotulos'
 import { useSessao } from '@/acesso/sessao'
@@ -10,6 +10,8 @@ import { formatarCentavos } from '@/dinheiro/dinheiro'
 import { usePlacas, useSaldosDeComissao, useVendas } from './consultas'
 import { Indicador, Indicadores } from '@/componentes/Indicador'
 import { rotuloDaVenda, tomDaVenda } from './situacaoDaVenda'
+import { VendasEm30Dias, vendasPorDia } from './VendasEm30Dias'
+import { Rosca } from '@/financeiro/Graficos'
 
 /**
  * O painel do vendedor: o que vendeu no mês, a comissão a receber (venda paga,
@@ -30,6 +32,8 @@ export function TelaDoVendedor() {
   const doMes = validas.filter((v) => Date.parse(v.vendidaEm) >= inicioDoMes)
   const esperando = validas.filter((v) => v.pagamento !== 'Paga' && !v.cortesia && v.comissaoCents > 0)
   const saldo = saldos.data?.[0]
+  const [agora] = useState(() => Date.now())
+  const porDia = useMemo(() => vendasPorDia(vendas.data ?? [], agora), [vendas.data, agora])
   const soma = (lista: typeof validas, campo: 'valorCents' | 'comissaoCents') => lista.reduce((s, v) => s + v[campo], 0)
 
   const numeros = [
@@ -51,6 +55,15 @@ export function TelaDoVendedor() {
         {numeros.map((n) => <Indicador key={n.rotulo} rotulo={n.rotulo} valor={n.valor} destaque={n.destaque} />)}
       </Indicadores>
       {saldo?.ultimoRepasse && <p className="mt-3 text-xs text-muted-foreground">Último repasse em {formatarData(saldo.ultimoRepasse)}.</p>}
+      <div className="mt-3 grid gap-3 md:mt-4 md:gap-4 lg:grid-cols-12">
+        <VendasEm30Dias className="lg:col-span-7" porDia={porDia} carregando={vendas.isPending} />
+        <Rosca className="lg:col-span-5" titulo="Minha comissão" vazio="Nenhuma comissão ainda."
+          itens={[
+            { nome: 'A receber', valorCents: Math.max(0, saldo?.abertaCents ?? 0) },
+            { nome: 'Esperando o cliente pagar', valorCents: soma(esperando, 'comissaoCents') },
+            { nome: 'Recebida', valorCents: saldo?.repassadaCents ?? 0 },
+          ]} />
+      </div>
       <Card className="mt-3 md:mt-4">
         <CardHeader>
           <CardTitle>Últimas vendas</CardTitle>
@@ -63,7 +76,7 @@ export function TelaDoVendedor() {
                 <ul className="-my-1 divide-y">
                   {validas.slice(0, 5).map((v) => (
                     <li key={v.id}>
-                      <Link to={v.codigo ? `/placa/${v.codigo}` : '/vendedor/vendas'} className="-mx-2 flex min-h-14 items-center justify-between gap-3 rounded-md px-2 py-2.5 transition-colors duration-150 hover:bg-cinza-50">
+                      <Link to={`/vendedor/vendas/${v.id}`} className="-mx-2 flex min-h-14 items-center justify-between gap-3 rounded-md px-2 py-2.5 transition-colors duration-150 hover:bg-cinza-50">
                         <span className="min-w-0">
                           <span className="block truncate font-medium">{v.cliente}</span>
                           <span className="block truncate text-xs text-muted-foreground tabular-nums">{formatarData(v.vendidaEm)}, comissão {formatarCentavos(v.comissaoCents)}</span>

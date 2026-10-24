@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import { chamarApi, enviarJson, mensagemDoErro } from '@/api/cliente'
 import type { components } from '@/api/esquema'
 import { Cabecalho, Erro } from '@/componentes/Tela'
+import { ShieldAlert } from 'lucide-react'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -20,7 +22,7 @@ export function TelaDeSeguranca() {
   const situacao = useQuery({ queryKey: ['segundo-fator'], queryFn: () => chamarApi<Situacao>('/conta/segundo-fator') })
   const preparar = useMutation({ mutationFn: () => chamarApi<Chave>('/conta/segundo-fator/chave', enviarJson('POST')) })
   const pedirCodigo = useMutation({ mutationFn: () => chamarApi('/conta/segundo-fator/email/codigo', enviarJson('POST')) })
-  const ligar = useMutation({
+  const ligar = useMutation({ meta: { sucesso: 'Segundo fator ligado.' },
     mutationFn: (codigo: string) => chamarApi<string[]>(pedirCodigo.isSuccess ? '/conta/segundo-fator/email' : '/conta/segundo-fator', enviarJson('POST', { codigo })),
     onSuccess: () => cliente.invalidateQueries({ queryKey: ['segundo-fator'] }),
   })
@@ -30,7 +32,7 @@ export function TelaDeSeguranca() {
     mutationFn: () => chamarApi('/conta/segundo-fator/desligar/codigo', enviarJson('POST')),
     onSuccess: () => espera.iniciar(),
   })
-  const desligar = useMutation({
+  const desligar = useMutation({ meta: { sucesso: 'Segundo fator desligado.' },
     mutationFn: (codigo: string) => chamarApi('/conta/segundo-fator/desligar', enviarJson('POST', { codigo })),
     onSuccess: () => {
       codigoParaDesligar.reset()
@@ -67,6 +69,11 @@ export function TelaDeSeguranca() {
           )}
           {!ligado && !ligar.data && !chave && !pedirCodigo.isSuccess && (
             <div className="grid gap-2">
+              <Alert variant="atencao">
+                <ShieldAlert aria-hidden />
+                <AlertTitle>Ative o segundo fator</AlertTitle>
+                <AlertDescription>Com ele, quem descobrir a sua senha ainda não entra: o acesso pede um código do seu celular. A conta mexe com vendas, clientes e o dinheiro da revenda.</AlertDescription>
+              </Alert>
               <Button onClick={() => preparar.mutate()} disabled={preparar.isPending}>Ativar com app autenticador</Button>
               <Button variant="outline" onClick={() => pedirCodigo.mutate()} disabled={pedirCodigo.isPending || !situacao.data?.emailConfirmado}>Ativar com código por e-mail</Button>
               <p className="text-xs text-muted-foreground">O app protege mais: quem tem a senha às vezes tem o e-mail.</p>

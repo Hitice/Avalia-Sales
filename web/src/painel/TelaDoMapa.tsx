@@ -121,7 +121,8 @@ function MapaDoGoogle({ chave, idDoMapa, lugares, cidade, aoAcharCidades }: Prop
         importLibrary('maps'), importLibrary('places'), importLibrary('marker'),
       ])
       if (cancelado || !elemento.current) return
-      mapa.current = new Map(elemento.current, { center: CENTRO_DO_BRASIL, zoom: 4, mapId: idDoMapa })
+      // Tema escuro do Google: o mapa fica de fundo e os marcadores das vendas aparecem.
+      mapa.current = new Map(elemento.current, { center: CENTRO_DO_BRASIL, zoom: 4, mapId: idDoMapa, colorScheme: 'DARK' })
       const achados = await Promise.all(lugares.map(async (l) => {
         try {
           const lugar = new Place({ id: l.lugarNoGoogle })

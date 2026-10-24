@@ -22,10 +22,14 @@ public sealed class Auditoria(IBancoDeDados banco, IUsuarioAtual usuario, IConta
     public void Registrar(AcaoAuditada acao, string alvo, string referencia, string? antes = null, string? depois = null) =>
         banco.Auditoria.Add(new RegistroDeAuditoria(usuario.UsuarioId, acao, alvo, referencia, antes, depois, relogio.GetUtcNow()));
 
-    /// <summary>Com <paramref name="referencia"/>, só o que tocou aquele alvo (a ficha da placa usa assim); com <paramref name="acao"/>, só aquela ação.</summary>
-    public async Task<PaginaDeAuditoria> Listar(string? referencia, AcaoAuditada? acao, int pagina, CancellationToken ct)
+    /// <summary>
+    /// Com <paramref name="referencia"/>, só o que tocou aquele alvo (a ficha da placa usa assim); com
+    /// <paramref name="acao"/>, só aquela ação; com <paramref name="busca"/>, o texto no alvo, no código,
+    /// no antes e no depois, no nome da ação ou no nome do vendedor que fez.
+    /// </summary>
+    public async Task<PaginaDeAuditoria> Listar(string? referencia, AcaoAuditada? acao, int pagina, CancellationToken ct, string? busca = null)
     {
-        var consulta = Filtrar(referencia, acao);
+        var consulta = await Buscar(Filtrar(referencia, acao), busca, ct);
         var total = await consulta.CountAsync(ct);
         var registros = await consulta.OrderByDescending(r => r.OcorridoEm)
             .Skip((Math.Max(pagina, 1) - 1) * PorPagina).Take(PorPagina).ToListAsync(ct);
@@ -33,9 +37,9 @@ public sealed class Auditoria(IBancoDeDados banco, IUsuarioAtual usuario, IConta
     }
 
     /// <summary>Tudo o que o filtro pega, do mais novo ao mais antigo, até o teto, para o dono guardar ou entregar.</summary>
-    public async Task<IReadOnlyList<RegistroDto>> Exportar(string? referencia, AcaoAuditada? acao, CancellationToken ct)
+    public async Task<IReadOnlyList<RegistroDto>> Exportar(string? referencia, AcaoAuditada? acao, CancellationToken ct, string? busca = null)
     {
-        var registros = await Filtrar(referencia, acao).OrderByDescending(r => r.OcorridoEm).Take(ExportadosNoMaximo).ToListAsync(ct);
+        var registros = await (await Buscar(Filtrar(referencia, acao), busca, ct)).OrderByDescending(r => r.OcorridoEm).Take(ExportadosNoMaximo).ToListAsync(ct);
         return await ParaDto(registros, ct);
     }
 
@@ -53,6 +57,25 @@ public sealed class Auditoria(IBancoDeDados banco, IUsuarioAtual usuario, IConta
         }
 
         return consulta;
+    }
+
+    private async Task<IQueryable<RegistroDeAuditoria>> Buscar(IQueryable<RegistroDeAuditoria> consulta, string? busca, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(busca))
+        {
+            return consulta;
+        }
+
+        var termo = busca.Trim().ToLowerInvariant();
+        var semEspaco = termo.Replace(" ", string.Empty, StringComparison.Ordinal);
+        var acoes = Enum.GetValues<AcaoAuditada>().Where(a => a.ToString().ToLowerInvariant().Contains(semEspaco, StringComparison.Ordinal)).ToList();
+        // Vira lower(...) LIKE no Postgres: a cultura do .NET não entra na consulta.
+#pragma warning disable CA1304, CA1311, CA1862
+        var quem = await banco.Vendedores.AsNoTracking().Where(v => v.Nome.ToLower().Contains(termo)).Select(v => (Guid?)v.Id).ToListAsync(ct);
+        return consulta.Where(r => r.Alvo.ToLower().Contains(termo) || r.Referencia.ToLower().Contains(termo)
+            || (r.Antes != null && r.Antes.ToLower().Contains(termo)) || (r.Depois != null && r.Depois.ToLower().Contains(termo))
+            || acoes.Contains(r.Acao) || quem.Contains(r.UsuarioId));
+#pragma warning restore CA1304, CA1311, CA1862
     }
 
     private async Task<List<RegistroDto>> ParaDto(List<RegistroDeAuditoria> registros, CancellationToken ct)

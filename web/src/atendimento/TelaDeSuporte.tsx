@@ -41,7 +41,7 @@ function NovoChamado({ aoAbrir }: { aoAbrir: (c: Chamado) => void }) {
   const consultas = useQueryClient()
   const [assunto, setAssunto] = useState('')
   const [texto, setTexto] = useState('')
-  const abrir = useMutation({
+  const abrir = useMutation({ meta: { sucesso: 'Chamado aberto.' },
     mutationFn: () => chamarApi<Chamado>('/chamados', enviarJson('POST', { assunto, texto })),
     onSuccess: async (c) => {
       await consultas.invalidateQueries({ queryKey: ['chat'] })

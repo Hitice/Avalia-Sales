@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { mensagemDoErro } from '@/api/cliente'
-import { formatarBps, formatarData } from '@/api/rotulos'
+import { formatarBps, formatarData, paraBps } from '@/api/rotulos'
 import { Cabecalho, Erro, EstadoDaConsulta, Rolagem } from '@/componentes/Tela'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -8,7 +8,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { mascaraTelefone } from '@/lib/mascaras'
-import { useContratoAssinado, useDefinirRecebedor, useReabertura, useRevendedores, useSuspensao } from './consultas'
+import { useContratoAssinado, useDefinirRecebedor, useDefinirRenovacao, useReabertura, useRevendedores, useSuspensao } from './consultas'
 
 const formatarCnpj = (c: string | null) => c ? c.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5') : '-'
 
@@ -16,6 +16,8 @@ const formatarCnpj = (c: string | null) => c ? c.replace(/^(\d{2})(\d{3})(\d{3})
 export function TelaDeRevendedores() {
   const revendedores = useRevendedores()
   const recebedor = useDefinirRecebedor()
+  const renovacao = useDefinirRenovacao()
+  const [renovacoes, setRenovacoes] = useState<Record<string, string>>({})
   const contrato = useContratoAssinado()
   const reabertura = useReabertura()
   const suspensao = useSuspensao()
@@ -26,7 +28,7 @@ export function TelaDeRevendedores() {
   return (
     <>
       <Cabecalho titulo="Revendedores" />
-      <Erro erro={recebedor.error || contrato.error || reabertura.error ? mensagemDoErro(recebedor.error ?? contrato.error ?? reabertura.error) : null} />
+      <Erro erro={recebedor.error || renovacao.error || contrato.error || reabertura.error ? mensagemDoErro(recebedor.error ?? renovacao.error ?? contrato.error ?? reabertura.error) : null} />
       <Card className="mt-3">
         <CardContent>
           <EstadoDaConsulta carregando={revendedores.isPending} erro={revendedores.error} vazio={revendedores.data?.length === 0} textoVazio="Nenhum revendedor ainda." />
@@ -39,6 +41,7 @@ export function TelaDeRevendedores() {
                     <TableHead>CNPJ</TableHead>
                     <TableHead>Celular</TableHead>
                     <TableHead className="text-right">Taxa</TableHead>
+                    <TableHead>Renovação (% da venda)</TableHead>
                     <TableHead>Contrato</TableHead>
                     <TableHead>Recebedor no Pagar.me</TableHead>
                   </TableRow>
@@ -71,6 +74,25 @@ export function TelaDeRevendedores() {
                       <TableCell className="tabular-nums">{formatarCnpj(r.cnpj)}</TableCell>
                       <TableCell className="tabular-nums">{r.celular ? mascaraTelefone(r.celular) : '-'}</TableCell>
                       <TableCell className="text-right tabular-nums">{formatarBps(r.taxaAvaliaBps)}</TableCell>
+                      <TableCell>
+                        <form
+                          className="flex gap-2"
+                          onSubmit={(e) => {
+                            e.preventDefault()
+                            const bps = paraBps(renovacoes[r.id] ?? '')
+                            if (bps !== null) renovacao.mutate({ id: r.id, renovacaoBps: bps })
+                          }}
+                        >
+                          <Input
+                            aria-label={`Renovação de ${r.nome}, em porcentagem da venda`}
+                            className="w-20"
+                            inputMode="decimal"
+                            defaultValue={String(r.renovacaoBps / 100).replace('.', ',')}
+                            onChange={(e) => setRenovacoes({ ...renovacoes, [r.id]: e.target.value })}
+                          />
+                          <Button type="submit" variant="outline" disabled={paraBps(renovacoes[r.id] ?? '') === null || renovacao.isPending}>Salvar</Button>
+                        </form>
+                      </TableCell>
                       <TableCell>
                         {r.encerradaEm && r.reaberturaPedidaEm
                           ? (

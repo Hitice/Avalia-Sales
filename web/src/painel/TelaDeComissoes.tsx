@@ -4,7 +4,8 @@ import { mensagemDoErro } from '@/api/cliente'
 import { formatarData, formatarDataHora } from '@/api/rotulos'
 import type { SaldoDeComissao } from '@/api/tipos'
 import { Cabecalho, Erro, EstadoDaConsulta, Rolagem } from '@/componentes/Tela'
-import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field, FieldLabel } from '@/components/ui/field'
@@ -35,11 +36,14 @@ export function TelaDeComissoes() {
   const [escolhido, setEscolhido] = useState<SaldoDeComissao | null>(null)
   const [ate, setAte] = useState('')
   const [comprovante, setComprovante] = useState('')
+  const aPagar = (saldos.data ?? []).filter((s) => s.abertaCents > 0)
 
   return (
-    <div className={`grid grid-cols-1 gap-4 ${escolhido ? 'xl:lista-e-lateral-80' : ''}`}>
-      <div className="grid gap-4">
-        <Cabecalho titulo="Comissões" />
+    <div className="grid gap-4">
+        <Cabecalho titulo="Comissões">
+          <Button disabled={!aPagar.length} title={aPagar.length ? undefined : 'Nenhum vendedor com comissão a pagar'} onClick={() => { setEscolhido(aPagar[0]); repassar.reset() }}>Registrar repasse</Button>
+        </Cabecalho>
+        {saldos.data && saldos.data.length > 0 && !aPagar.length && <p className="text-sm text-muted-foreground">Nada a pagar agora: a comissão entra quando o cliente paga a venda.</p>}
         <Card>
           <CardContent>
             <EstadoDaConsulta carregando={saldos.isPending} erro={saldos.error} vazio={saldos.data?.length === 0} textoVazio="Nenhum vendedor na equipe."
@@ -66,7 +70,7 @@ export function TelaDeComissoes() {
                         <TableCell className={`text-right font-medium tabular-nums ${s.abertaCents < 0 ? 'text-destructive' : ''}`}>{formatarCentavos(s.abertaCents)}</TableCell>
                         <TableCell>{formatarData(s.ultimoRepasse)}</TableCell>
                         <TableCell className="text-right">
-                          {s.abertaCents > 0 && <Button variant="outline" onClick={() => { setEscolhido(s); repassar.reset() }}>Registrar repasse</Button>}
+                          <Button variant="outline" disabled={s.abertaCents <= 0} onClick={() => { setEscolhido(s); repassar.reset() }}>Repassar</Button>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -116,24 +120,32 @@ export function TelaDeComissoes() {
             )}
           </CardContent>
         </Card>
-      </div>
-      {escolhido && (
-        <Card className="self-start">
-          <CardHeader><CardTitle>Repasse a {escolhido.vendedor}</CardTitle></CardHeader>
-          <CardContent>
+      <Dialog open={!!escolhido} onOpenChange={(aberto) => { if (!aberto) setEscolhido(null) }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Registrar repasse</DialogTitle>
+            <DialogDescription>O Pix feito ao vendedor, pelas vendas pagas até a data.</DialogDescription>
+          </DialogHeader>
+          {escolhido && (
             <form
               className="grid gap-4"
               onSubmit={(e) => {
                 e.preventDefault()
                 repassar.mutate(
                   { vendedorId: escolhido.vendedorId, ate: ate ? new Date(`${ate}T23:59:59`).toISOString() : null, comprovante: comprovante || null },
-                  { onSuccess: () => { setAte(''); setComprovante('') } },
+                  { onSuccess: () => { setAte(''); setComprovante(''); setEscolhido(null) } },
                 )
               }}
             >
               <Erro erro={repassar.error ? mensagemDoErro(repassar.error) : null} />
-              {repassar.data && <Alert><AlertDescription>Repasse de {formatarCentavos(repassar.data.valorCents)} registrado, {repassar.data.vendas} vendas.</AlertDescription></Alert>}
-              <p className="text-sm">A pagar: <span className="font-medium tabular-nums">{formatarCentavos(escolhido.abertaCents)}</span>.</p>
+              <Field>
+                <FieldLabel htmlFor="vendedor-do-repasse">Vendedor</FieldLabel>
+                <Select value={escolhido.vendedorId} onValueChange={(id) => setEscolhido(aPagar.find((s) => s.vendedorId === id) ?? escolhido)}>
+                  <SelectTrigger id="vendedor-do-repasse" className="w-full"><SelectValue /></SelectTrigger>
+                  <SelectContent>{aPagar.map((s) => <SelectItem key={s.vendedorId} value={s.vendedorId}>{s.vendedor}, {formatarCentavos(s.abertaCents)}</SelectItem>)}</SelectContent>
+                </Select>
+              </Field>
+              {escolhido.chavePix && <p className="text-sm text-muted-foreground">Pix {escolhido.chavePix}</p>}
               <Field>
                 <FieldLabel htmlFor="ate">Vendas pagas até</FieldLabel>
                 <Input id="ate" type="date" value={ate} onChange={(e) => setAte(e.target.value)} />
@@ -142,12 +154,14 @@ export function TelaDeComissoes() {
                 <FieldLabel htmlFor="comprovante">Comprovante do Pix</FieldLabel>
                 <Input id="comprovante" placeholder="Id da transação" value={comprovante} onChange={(e) => setComprovante(e.target.value)} />
               </Field>
-              <Button type="submit" disabled={repassar.isPending}>Registrar repasse</Button>
-              <Button type="button" variant="ghost" onClick={() => setEscolhido(null)}>Fechar</Button>
+              <DialogFooter>
+                <Button type="button" variant="ghost" onClick={() => setEscolhido(null)}>Cancelar</Button>
+                <Button type="submit" disabled={repassar.isPending}>Registrar {formatarCentavos(escolhido.abertaCents)}</Button>
+              </DialogFooter>
             </form>
-          </CardContent>
-        </Card>
-      )}
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

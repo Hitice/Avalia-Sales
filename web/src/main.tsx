@@ -1,14 +1,22 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { MutationCache, QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { RouterProvider } from 'react-router'
+import { toast } from 'sonner'
+import { Toaster } from '@/components/ui/sonner'
 import { iniciarSessao } from '@/acesso/renovacao'
 import { rotas } from '@/app/rotas'
 import { recarregarParaVersaoNova } from '@/lib/recarga'
 import './index.css'
 
+// Gravação com meta.sucesso confirma na tela quando dá certo; o erro continua no lugar dele, junto do formulário.
 const consultas = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, retry: 1 } },
+  mutationCache: new MutationCache({
+    onSuccess: (_dados, _variaveis, _contexto, mutacao) => {
+      if (mutacao.meta?.sucesso) toast.success(mutacao.meta.sucesso)
+    },
+  }),
 })
 
 // Erros do front no Sentry só com DSN na compilação, carregado à parte para não pesar no
@@ -29,6 +37,7 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={consultas}>
       <RouterProvider router={rotas} />
+      <Toaster />
     </QueryClientProvider>
   </StrictMode>,
 )

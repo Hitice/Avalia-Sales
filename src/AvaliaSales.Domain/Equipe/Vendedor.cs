@@ -16,6 +16,9 @@ public sealed class Vendedor : IDoRevendedor
     public string? Telefone { get; private set; }
     public string? ChavePix { get; private set; }
 
+    /// <summary>Só dígitos; opcional, para o recibo do repasse e a nota.</summary>
+    public string? Cpf { get; private set; }
+
     /// <summary>Comissão própria em pontos base; nula usa a padrão do revendedor.</summary>
     public int? ComissaoBps { get; private set; }
 
@@ -50,6 +53,14 @@ public sealed class Vendedor : IDoRevendedor
 
     /// <summary>O próprio vendedor troca nome, telefone e chave Pix; a comissão é do dono.</summary>
     public void AlterarDados(string nome, string? telefone, string? chavePix) => Alterar(nome, telefone, chavePix, ComissaoBps);
+
+    public void DefinirCpf(string? cpf)
+    {
+        var digitos = new string((cpf ?? string.Empty).Where(char.IsAsciiDigit).ToArray());
+        Cpf = digitos.Length == 0 ? null
+            : Documentos.CpfValido(digitos) ? digitos
+            : throw new RegraDeNegocioException("CPF inválido. Confira os números.");
+    }
 
     public void DefinirAtivo(bool ativo) => Ativo = ativo;
 }

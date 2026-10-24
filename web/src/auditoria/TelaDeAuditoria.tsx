@@ -16,15 +16,15 @@ const POR_PAGINA = 20
 
 /** O que mudou na revenda e quem mudou: destino, venda, comissão, equipe, marca, empresa e links. Só lê; ninguém apaga. */
 export function TelaDeAuditoria() {
-  const [referencia, setReferencia] = useState('')
+  const [busca, setBusca] = useState('')
   const [pagina, setPagina] = useState(1)
   const [erroDaExportacao, setErroDaExportacao] = useState<unknown>(null)
   const [aberto, setAberto] = useState<RegistroDeAuditoria | null>(null)
   const filtro = new URLSearchParams({
-    ...(referencia.trim() ? { referencia: referencia.trim().toUpperCase() } : {}),
+    ...(busca.trim() ? { busca: busca.trim() } : {}),
   })
   const consulta = useQuery({
-    queryKey: ['auditoria', referencia, pagina],
+    queryKey: ['auditoria', busca, pagina],
     queryFn: () => chamarApi<PaginaDeAuditoria>(`/auditoria?${new URLSearchParams({ ...Object.fromEntries(filtro), pagina: String(pagina) })}`),
   })
   const total = consulta.data?.total ?? 0
@@ -52,8 +52,8 @@ export function TelaDeAuditoria() {
         <Button variant="outline" onClick={exportar} disabled={total === 0}><Download aria-hidden />Exportar JSON</Button>
       </Cabecalho>
       <div className="mb-4 flex flex-wrap gap-2">
-        <Input aria-label="Código da placa ou do link" placeholder="Código da placa" className="w-44 uppercase placeholder:normal-case" value={referencia}
-          onChange={(e) => { setReferencia(e.target.value); setPagina(1) }} />
+        <Input type="search" aria-label="Buscar na auditoria" placeholder="Placa, cliente, vendedor ou ação" className="w-72" value={busca}
+          onChange={(e) => { setBusca(e.target.value); setPagina(1) }} />
       </div>
       <Erro erro={erroDaExportacao ? mensagemDoErro(erroDaExportacao) : null} />
       <Card>

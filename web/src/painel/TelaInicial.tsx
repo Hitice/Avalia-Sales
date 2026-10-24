@@ -1,28 +1,23 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router'
-import { Bar, BarChart, CartesianGrid, Cell, XAxis, YAxis } from 'recharts'
 import type { VendaDaLista } from '@/api/tipos'
 import { Cabecalho, Carregando, Erro, Rolagem, Vazio } from '@/componentes/Tela'
 import { Indicador, Indicadores } from '@/componentes/Indicador'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { formatarCentavos } from '@/dinheiro/dinheiro'
 import { useContaEncerrada } from '@/app/contaEncerrada'
 import { useDre } from '@/financeiro/consultas'
 import { Rosca } from '@/financeiro/Graficos'
 import { usePlacas, useVendas } from './consultas'
+import { VendasEm30Dias, vendasPorDia } from './VendasEm30Dias'
 import { nomeDoProduto, rotuloDaVenda, tomDaVenda } from './situacaoDaVenda'
 
-const DIA = 86_400_000
-const diaCurto = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit' })
 const hora = new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit' })
 const diaDaSemana = new Intl.DateTimeFormat('pt-BR', { weekday: 'long' })
 const diaEMes = new Intl.DateTimeFormat('pt-BR', { day: 'numeric', month: 'long' })
-
-const configDasVendas = { vendas: { label: 'Vendas', color: 'var(--chart-1)' } } satisfies ChartConfig
 
 /** "Sexta, 24 de outubro". */
 function dataPorExtenso(agora: number) {
@@ -64,31 +59,7 @@ export function TelaInicial() {
       <Erro erro={vendas.error} />
       <Indicadores>{numeros.map((n) => <Indicador key={n.rotulo} rotulo={n.rotulo} valor={n.valor} />)}</Indicadores>
       <div className="mt-3 grid gap-3 md:mt-4 md:gap-4 lg:grid-cols-12">
-        <Card className="lg:col-span-7">
-          <CardHeader>
-            <CardTitle>Vendas nos últimos 30 dias</CardTitle>
-            <CardAction className="text-xs text-muted-foreground tabular-nums">{dados.porDia[0].dia} a {dados.porDia[29].dia}</CardAction>
-          </CardHeader>
-          <CardContent>
-            {vendas.isPending ? <Carregando linhas={3} /> : (
-              <>
-                <ChartContainer config={configDasVendas} className="aspect-auto h-48 w-full">
-                  <BarChart accessibilityLayer data={dados.porDia} margin={{ left: -20, right: 16, top: 4 }} barCategoryGap={2}>
-                    <CartesianGrid vertical={false} />
-                    <XAxis dataKey="dia" tickLine={false} axisLine={false} tickMargin={8} interval={0} ticks={[0, 7, 14, 21, 28].map((i) => dados.porDia[i].dia)} />
-                    <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={44} />
-                    <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-                    {/* Dia sem venda fica num traço cinza de 2 px: a falta aparece sem parecer dado. */}
-                    <Bar dataKey="vendas" radius={[2, 2, 0, 0]} maxBarSize={14} minPointSize={2} isAnimationActive={false}>
-                      {dados.porDia.map((p) => <Cell key={p.dia} fill={p.vendas > 0 ? 'var(--color-vendas)' : 'var(--chart-4)'} />)}
-                    </Bar>
-                  </BarChart>
-                </ChartContainer>
-                <TabelaOculta titulo="Vendas por dia" linhas={dados.porDia.map((p) => [p.dia, String(p.vendas)])} />
-              </>
-            )}
-          </CardContent>
-        </Card>
+        <VendasEm30Dias className="lg:col-span-7" porDia={dados.porDia} carregando={vendas.isPending} />
         {d
           ? (
               <Rosca
@@ -168,16 +139,6 @@ export function TelaInicial() {
 /** "Placa K7M2PX" ou "10x Kit Mesa". */
 const item = (v: VendaDaLista) => (v.codigo ? `${nomeDoProduto(v)} ${v.codigo}` : nomeDoProduto(v))
 
-/** A mesma informação do gráfico, para leitor de tela. */
-function TabelaOculta({ titulo, linhas }: { titulo: string; linhas: string[][] }) {
-  return (
-    <table className="sr-only">
-      <caption>{titulo}</caption>
-      <tbody>{linhas.map(([a, b]) => <tr key={a}><th scope="row">{a}</th><td>{b}</td></tr>)}</tbody>
-    </table>
-  )
-}
-
 /** Venda cancelada não conta nos números; a lista de hoje mostra todas, cada uma com a situação. */
 function montar(vendas: VendaDaLista[], agora: number) {
   const valendo = vendas.filter((v) => v.situacao === 'Registrada')
@@ -185,10 +146,7 @@ function montar(vendas: VendaDaLista[], agora: number) {
   const inicioDoMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1).getTime()
   const inicioDoDia = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate()).getTime()
 
-  const porDia = Array.from({ length: 30 }, (_, i) => {
-    const inicio = inicioDoDia - (29 - i) * DIA
-    return { dia: diaCurto.format(inicio), vendas: valendo.filter((v) => { const t = Date.parse(v.vendidaEm); return t >= inicio && t < inicio + DIA }).length }
-  })
+  const porDia = vendasPorDia(vendas, agora)
 
   const doMes = valendo.filter((v) => Date.parse(v.vendidaEm) >= inicioDoMes)
 

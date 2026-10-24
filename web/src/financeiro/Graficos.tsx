@@ -27,7 +27,7 @@ function TabelaOculta({ titulo, linhas }: { titulo: string; linhas: string[][] }
  * marca (chart-1) e o percentual dela vai no centro; o resto divide as outras
  * três cores, da maior para a menor.
  */
-export function Rosca({ titulo, itens, vazio, primeira, className }: { titulo: string; itens: Fatia[]; vazio: string; primeira?: Fatia; className?: string }) {
+export function Rosca({ titulo, itens, vazio, primeira, className, empilhada = false }: { titulo: string; itens: Fatia[]; vazio: string; primeira?: Fatia; className?: string; empilhada?: boolean }) {
   const fixa = primeira && primeira.valorCents > 0 ? primeira : null
   // Com `primeira`, a cor da marca é dela: sem ela no mês (zero ou negativa), a cor fica sem uso, e não vai para outra parte.
   const deslocamento = primeira && !fixa ? 1 : 0
@@ -41,7 +41,7 @@ export function Rosca({ titulo, itens, vazio, primeira, className }: { titulo: s
       <CardHeader><CardTitle>{titulo}</CardTitle></CardHeader>
       <CardContent>
         {partes.length === 0 ? <p className="text-sm text-muted-foreground">{vazio}</p> : (
-          <div className="grid items-center gap-5 sm:lateral-e-lista-32">
+          <div className={empilhada ? 'grid items-center gap-4' : 'grid items-center gap-5 sm:lateral-e-lista-32'}>
             <div className="relative mx-auto size-32">
               <ChartContainer config={config} className="aspect-square size-32">
                 <PieChart>
@@ -87,7 +87,7 @@ export function Historico({ meses }: { meses: MesDoHistorico[] }) {
     <Card>
       <CardHeader><CardTitle>Últimos 6 meses</CardTitle></CardHeader>
       <CardContent>
-        <ChartContainer config={configDoHistorico} className="aspect-auto h-56 w-full">
+        <ChartContainer config={configDoHistorico} className="aspect-auto h-40 w-full">
           <BarChart accessibilityLayer data={dados} margin={{ left: 4, right: 4 }}>
             <CartesianGrid vertical={false} />
             <XAxis dataKey="mes" tickLine={false} axisLine={false} tickMargin={8} />

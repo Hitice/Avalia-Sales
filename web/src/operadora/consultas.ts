@@ -17,7 +17,7 @@ export const useRevendedores = () => useQuery({ queryKey: chaves.revendedores, q
 /** Toda gravação da operadora refaz as listas dela: pedido, lote e revendedor andam juntos. */
 function useGravar<T>(fazer: (dados: T) => Promise<unknown>) {
   const cliente = useQueryClient()
-  return useMutation({ mutationFn: fazer, onSuccess: () => cliente.invalidateQueries({ queryKey: ['operadora'] }) })
+  return useMutation({ mutationFn: fazer, meta: { sucesso: 'Alteração salva.' }, onSuccess: () => cliente.invalidateQueries({ queryKey: ['operadora'] }) })
 }
 
 export const useRegistrarPagamento = () => useGravar((id: string) => chamarApi(`/operadora/pedidos/${id}/pagamento`, enviarJson('POST', {})))
@@ -32,6 +32,7 @@ export const useCriarPacote = () => useGravar((p: { quantidade: number; precoCen
 export const useAlterarPacote = () => useGravar(({ id, ...p }: { id: string; quantidade: number; precoCents: number }) => chamarApi(`/operadora/pacotes/${id}`, enviarJson('PUT', p)))
 export const useAtivarPacote = () => useGravar(({ id, ativo }: { id: string; ativo: boolean }) => chamarApi(`/operadora/pacotes/${id}/ativo`, enviarJson('PUT', { ativo })))
 export const useExcluirPacote = () => useGravar((id: string) => chamarApi(`/operadora/pacotes/${id}`, { method: 'DELETE' }))
+export const useDefinirRenovacao = () => useGravar(({ id, renovacaoBps }: { id: string; renovacaoBps: number }) => chamarApi(`/operadora/revendedores/${id}/renovacao`, enviarJson('PUT', { renovacaoBps })))
 export const useDefinirRecebedor = () => useGravar(({ id, recebedor }: { id: string; recebedor: string }) => chamarApi(`/operadora/revendedores/${id}/recebedor`, enviarJson('PUT', { recebedor })))
 export const useSuspensao = () => useGravar(({ id, suspender, motivo }: { id: string; suspender: boolean; motivo?: string | null }) =>
   chamarApi(`/operadora/revendedores/${id}/suspensao`, suspender ? enviarJson('POST', { motivo: motivo ?? null }) : { method: 'DELETE' }))

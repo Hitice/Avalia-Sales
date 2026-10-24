@@ -23,7 +23,7 @@ import { PainelDeSocios } from './PainelDeSocios'
 /** Uma linha da DRE: rótulo e valor; a saída vem com o sinal de menos, e o recuo marca o detalhe. */
 function Linha({ rotulo, cents, saida = false, detalhe = false, total = false }: { rotulo: string; cents: number; saida?: boolean; detalhe?: boolean; total?: boolean }) {
   return (
-    <div className={cn('flex items-baseline justify-between gap-3 py-1.5', detalhe && 'pl-4 text-sm text-muted-foreground', total && 'mt-1 border-t pt-3 font-semibold')}>
+    <div className={cn('flex items-baseline justify-between gap-3 py-1', detalhe && 'pl-4 text-xs text-muted-foreground', total && 'mt-1 border-t pt-2 font-semibold')}>
       <dt>{rotulo}</dt>
       <dd className={cn('tabular-nums', total && cents < 0 && 'text-destructive')}>{formatarCentavos(saida && cents !== 0 ? -cents : cents)}</dd>
     </div>
@@ -35,7 +35,7 @@ function Demonstrativo({ dre }: { dre: DreDoMes }) {
     <Card>
       <CardHeader><CardTitle>Resultado do mês</CardTitle></CardHeader>
       <CardContent>
-        <dl>
+        <dl className="text-sm">
           <Linha rotulo={`Vendido (${dre.vendas} ${dre.vendas === 1 ? 'venda' : 'vendas'})`} cents={dre.vendidoCents} />
           <Linha rotulo="Recebido" cents={dre.recebidoCents} />
           <Linha rotulo="A reconhecer" cents={dre.aReconhecerCents} detalhe />
@@ -48,7 +48,7 @@ function Demonstrativo({ dre }: { dre: DreDoMes }) {
           {dre.despesasPorCategoria.map((d) => <Linha key={d.categoria} rotulo={ROTULO_DA_DESPESA[d.categoria]} cents={d.valorCents} saida detalhe />)}
           <Linha rotulo="Resultado" cents={dre.resultadoCents} total />
         </dl>
-        <dl className="mt-4 rounded-lg bg-muted px-3 py-1">
+        <dl className="mt-3 rounded-lg bg-muted px-3 py-1 text-sm">
           <Linha rotulo="Retiradas de sócio" cents={dre.retiradasCents} saida />
           {dre.retiradasPorNatureza.map((r) => <Linha key={r.natureza} rotulo={ROTULO_DA_RETIRADA[r.natureza]} cents={r.valorCents} saida detalhe />)}
         </dl>
@@ -153,15 +153,16 @@ export function TelaDoFinanceiro() {
                 <Indicador rotulo="Despesas" valor={formatarCentavos(d.despesasCents)} />
                 <Indicador rotulo="Retiradas" valor={formatarCentavos(d.retiradasCents)} />
               </Indicadores>
-              <div className="grid gap-4 xl:grid-cols-2">
+              {/* No computador cabe numa tela: o resultado, para onde foi o dinheiro, e as despesas com o histórico na terceira coluna. */}
+              <div className="grid items-start gap-4 lg:grid-cols-3">
                 <Demonstrativo dre={d} />
+                <Rosca titulo="Para onde foi o dinheiro" itens={ondeFoi} vazio="Nenhuma saída no mês." empilhada />
                 <div className="grid content-start gap-4">
-                  <Rosca titulo="Para onde foi o dinheiro" itens={ondeFoi} vazio="Nenhuma saída no mês." />
-                  <Rosca titulo="Despesas por categoria" vazio="Nenhuma despesa no mês."
+                  <Rosca titulo="Despesas por categoria" vazio="Nenhuma despesa no mês." empilhada
                     itens={d.despesasPorCategoria.map((c) => ({ nome: ROTULO_DA_DESPESA[c.categoria], valorCents: c.valorCents }))} />
+                  {historico.data && <Historico meses={historico.data} />}
                 </div>
               </div>
-              {historico.data && <Historico meses={historico.data} />}
             </div>
           )}
         </TabsContent>

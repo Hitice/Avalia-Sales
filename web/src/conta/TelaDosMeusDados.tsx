@@ -39,6 +39,7 @@ export function TelaDosMeusDados() {
 function useGravar(caminho: string) {
   const consultas = useQueryClient()
   return useMutation({
+    meta: { sucesso: 'Dados salvos.' },
     mutationFn: (corpo: object) => chamarApi<DadosDaConta>(caminho, enviarJson('PUT', corpo)),
     onSuccess: (novo) => {
       consultas.setQueryData(chave, novo)
@@ -120,7 +121,8 @@ function Formularios({ dados, salvo, aoSalvar }: { dados: DadosDaConta; salvo: b
           <CardContent className="grid gap-4">
             <Field>
               <FieldLabel htmlFor="cnpj">CNPJ</FieldLabel>
-              <Input id="cnpj" value={dados.empresa.cnpj ? mascaraCnpj(dados.empresa.cnpj) : '-'} readOnly disabled />
+              <Input id="cnpj" value={dados.empresa.cnpj ? mascaraCnpj(dados.empresa.cnpj) : 'Não informado'} readOnly disabled />
+              <FieldDescription>O CNPJ é o do contrato de revenda. Para alterar, solicite ao suporte.</FieldDescription>
             </Field>
             <Field>
               <FieldLabel htmlFor="celular">Celular com DDD</FieldLabel>

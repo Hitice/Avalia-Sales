@@ -1993,6 +1993,39 @@
         }
       }
     },
+    "/operadora/revendedores/{id}/renovacao": {
+      "put": {
+        "tags": [
+          "Operadora"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DefinirRenovacao"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/operadora/revendedores/{id}/contrato-assinado": {
       "post": {
         "tags": [
@@ -2528,28 +2561,6 @@
         }
       }
     },
-    "/revenda/renovacao": {
-      "put": {
-        "tags": [
-          "Revenda"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/DefinirRenovacao"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
     "/revenda/contrato": {
       "get": {
         "tags": [
@@ -2914,6 +2925,13 @@
             }
           },
           {
+            "name": "busca",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "pagina",
             "in": "query",
             "schema": {
@@ -2954,6 +2972,13 @@
             "in": "query",
             "schema": {
               "$ref": "#/components/schemas/AcaoAuditada"
+            }
+          },
+          {
+            "name": "busca",
+            "in": "query",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -2998,6 +3023,33 @@
                   "items": {
                     "$ref": "#/components/schemas/ClienteDaLista"
                   }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Revenda"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlterarCliente"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClienteCadastrado"
                 }
               }
             }
@@ -4829,7 +4881,8 @@
           "MesReaberto",
           "SocioCadastrado",
           "SocioAlterado",
-          "SocioExcluido"
+          "SocioExcluido",
+          "ClienteCadastrado"
         ]
       },
       "AjustarProduto": {
@@ -4998,6 +5051,12 @@
               "integer"
             ],
             "format": "int32"
+          },
+          "cpf": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -5246,6 +5305,18 @@
           },
           "uri": {
             "type": "string"
+          }
+        }
+      },
+      "ClienteCadastrado": {
+        "required": [
+          "id"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
           }
         }
       },
@@ -6675,6 +6746,10 @@
           },
           "corDestaque": {
             "type": "string"
+          },
+          "cabecalhoNaCor": {
+            "type": "boolean",
+            "default": false
           }
         }
       },
@@ -7322,6 +7397,10 @@
           "versao": {
             "type": "integer",
             "format": "int64"
+          },
+          "cabecalhoNaCor": {
+            "type": "boolean",
+            "default": false
           }
         },
         "description": "A marca como o app aplica: as cores prontas, com o texto de cada uma j\u00E1 escolhido pelo contraste."
@@ -7943,6 +8022,12 @@
               "integer"
             ],
             "format": "int32"
+          },
+          "cpf": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         },
         "description": "Sem senha, o vendedor recebe o convite e cria a dele."
@@ -9724,6 +9809,12 @@
             "type": "boolean"
           },
           "linkDoConvite": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "cpf": {
             "type": [
               "null",
               "string"

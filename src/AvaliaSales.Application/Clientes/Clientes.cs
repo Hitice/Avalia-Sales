@@ -114,6 +114,31 @@ public sealed class Clientes(IBancoDeDados banco, IRevendedorAtual atual, Audito
     }
 
     /// <summary>Documento repetido no revendedor é o mesmo cliente: em vez de recusar no banco, a tela sugere juntar.</summary>
+    /// <summary>
+    /// Cliente cadastrado à mão, antes da venda. O mesmo CPF, CNPJ ou telefone
+    /// já cadastrado é recusado: a venda acharia os dois e juntaria depois.
+    /// </summary>
+    public async Task<Guid> Cadastrar(AlterarCliente pedido, CancellationToken ct)
+    {
+        var cliente = new Domain.Vendas.Cliente(pedido.Nome, pedido.Responsavel, pedido.Telefone ?? string.Empty, pedido.Documento, relogio.GetUtcNow());
+        cliente.Completar(null, pedido.Email, pedido.LugarNoGoogle);
+        if (cliente.Documento is { } documento && await banco.Clientes.AnyAsync(c => c.Documento == documento, ct))
+        {
+            throw new RegraDeNegocioException("Já existe cliente com este CPF ou CNPJ. Abra a ficha dele.");
+        }
+
+        if (await banco.Clientes.AnyAsync(c => c.Telefone == cliente.Telefone, ct))
+        {
+            throw new RegraDeNegocioException("Já existe cliente com este telefone. Abra a ficha dele.");
+        }
+
+        banco.Clientes.Add(cliente);
+        auditoria.Registrar(AcaoAuditada.ClienteCadastrado, $"Cliente {cliente.Nome}", cliente.Id.ToString(), null,
+            $"{cliente.Nome}, {cliente.Telefone}, {cliente.Documento}, {cliente.Email}");
+        await banco.SaveChangesAsync(ct);
+        return cliente.Id;
+    }
+
     public async Task Alterar(Guid id, AlterarCliente pedido, CancellationToken ct)
     {
         var cliente = await Achar(id, ct);

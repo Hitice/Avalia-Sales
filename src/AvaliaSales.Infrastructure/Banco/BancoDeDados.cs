@@ -565,6 +565,7 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
             v.Property(x => x.Email).HasMaxLength(254).IsRequired();
             v.Property(x => x.Telefone).HasMaxLength(13);
             v.Property(x => x.ChavePix).HasMaxLength(140);
+            v.Property(x => x.Cpf).HasMaxLength(11);
             v.HasOne<Revendedor>().WithMany().HasForeignKey(x => x.RevendedorId).OnDelete(DeleteBehavior.Restrict);
             v.HasOne<Usuario>().WithOne().HasForeignKey<Vendedor>(x => x.Id).OnDelete(DeleteBehavior.Restrict);
             v.HasIndex(x => new { x.RevendedorId, x.Nome });

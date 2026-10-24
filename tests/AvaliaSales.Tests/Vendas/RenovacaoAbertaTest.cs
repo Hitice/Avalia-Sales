@@ -1,3 +1,4 @@
+using System.Net.Http.Json;
 using System.Net;
 using AvaliaSales.Tests.Apoio;
 
@@ -20,5 +21,19 @@ public sealed class RenovacaoAbertaTest(ApiDeTeste api)
 
         await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
         Assert.Equal("Cancelada", await banco.Texto($"select r.situacao from renovacoes r join placas p on p.id = r.placa_id where p.codigo = '{codigo}'"));
+    }
+
+    [Fact]
+    public async Task Percentual_da_renovacao_e_da_operadora_e_a_revenda_so_le()
+    {
+        var revenda = await api.RevendaComEstoque("Revenda da Renovação da Operadora");
+        var operadora = await api.ClienteLogado(await api.CriarOperadora());
+
+        await operadora.Colocar($"/operadora/revendedores/{revenda.Id}/renovacao", new { renovacaoBps = 4_500 }, HttpStatusCode.NoContent);
+
+        Assert.Equal(4_500, (await revenda.Dono.Pegar("/revenda")).GetProperty("revendedor").GetProperty("renovacaoBps").GetInt32());
+        var tentativa = await revenda.Dono.PutAsJsonAsync("/revenda/renovacao", new { renovacaoBps = 1_000 }, TestContext.Current.CancellationToken);
+        Assert.False(tentativa.IsSuccessStatusCode);
+        Assert.Equal(4_500, (await revenda.Dono.Pegar("/revenda")).GetProperty("revendedor").GetProperty("renovacaoBps").GetInt32());
     }
 }

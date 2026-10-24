@@ -85,4 +85,20 @@ public sealed class AuditoriaTest(ApiDeTeste api)
         Assert.Equal("Cliente", registro.GetProperty("alvo").GetString());
         Assert.DoesNotContain("Padaria", registro.ToString(), StringComparison.Ordinal);
     }
+
+    [Fact]
+    public async Task Busca_da_auditoria_acha_pelo_texto_pela_acao_e_pelo_vendedor()
+    {
+        var revenda = await api.RevendaComEstoque("Revenda da Busca Auditada");
+        await revenda.Dono.Colocar("/revenda/comissao", new { comissaoBps = 2_700 }, HttpStatusCode.NoContent);
+        var email = $"vendedor-{Guid.NewGuid():N}@teste.com.br";
+        await revenda.Dono.Postar("/equipe", new { nome = "Otávio Lins", email, senha = ApiDeTeste.Senha }, HttpStatusCode.Created);
+
+        static List<string?> Acoes(System.Text.Json.JsonElement pagina) =>
+            pagina.GetProperty("registros").EnumerateArray().Select(r => r.GetProperty("acao").GetString()).ToList();
+        Assert.Equal(["ComissaoPadraoAlterada"], Acoes(await revenda.Dono.Pegar("/auditoria?busca=27%25")));
+        Assert.Contains("VendedorCadastrado", Acoes(await revenda.Dono.Pegar("/auditoria?busca=vendedor")));
+        Assert.Contains("VendedorCadastrado", Acoes(await revenda.Dono.Pegar("/auditoria?busca=ot%C3%A1vio")));
+        Assert.Empty(Acoes(await revenda.Dono.Pegar("/auditoria?busca=nada-com-isso")));
+    }
 }

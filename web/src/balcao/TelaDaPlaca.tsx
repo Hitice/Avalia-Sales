@@ -14,6 +14,7 @@ import { Historico } from '@/auditoria/Historico'
 import { EscolhaDeDestino } from './EscolhaDeDestino'
 import { GravarNfc } from './BotoesDeNfc'
 import { Dados } from '@/componentes/Dados'
+import { porDiaDe, VendasEm30Dias } from '@/painel/VendasEm30Dias'
 
 /** A ficha da placa: destino, vencimento, leituras do mês e o liga e desliga. */
 export function TelaDaPlaca() {
@@ -25,7 +26,7 @@ export function TelaDaPlaca() {
   const [trocando, setTrocando] = useState(false)
   const [destino, setDestino] = useState<DestinoInformado>({ tipo: 'Google', lugarNoGoogle: null, link: null })
   const f = ficha.data
-  const maior = Math.max(1, ...(f?.leituras.map((l) => l.total) ?? [0]))
+  const [agora] = useState(() => Date.now())
 
   if (ficha.isPending) return <CarregandoTela />
   if (!f) return <Erro erro={ficha.error} />
@@ -115,19 +116,8 @@ export function TelaDaPlaca() {
           </CardContent>
         </Card>
       )}
-      <Card>
-        <CardHeader><CardTitle>Leituras</CardTitle></CardHeader>
-        <CardContent className="grid gap-3">
-          <p className="text-sm">{f.totalLeituras} leituras no total. Última: {formatarDataHora(f.ultimaLeituraEm)}.</p>
-          {f.leituras.length > 0 && (
-            <div className="flex h-24 items-end gap-0.5" role="img" aria-label={`Leituras dos últimos 30 dias: ${f.leituras.reduce((s, l) => s + l.total, 0)}`}>
-              {f.leituras.map((l) => (
-                <div key={l.dia} title={`${formatarData(l.dia)}: ${l.total}`} className="flex-1 rounded-t-sm bg-primary" style={{ height: `${(l.total / maior) * 100}%` }} />
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <VendasEm30Dias titulo="Leituras nos últimos 30 dias" serie="Leituras" carregando={false} porDia={porDiaDe(f.leituras, agora)}
+        detalhe={<p className="mb-3 text-sm">{f.totalLeituras} leituras no total. Última: {formatarDataHora(f.ultimaLeituraEm)}.</p>} />
       <Card>
         <CardHeader><CardTitle>Histórico</CardTitle></CardHeader>
         <CardContent><Historico registros={f.historico} /></CardContent>

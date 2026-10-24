@@ -51,6 +51,7 @@ export function TelaDoRazao() {
                   <TableRow>
                     <TableHead>Data</TableHead>
                     <TableHead>Tipo</TableHead>
+                    <TableHead>Condição</TableHead>
                     <TableHead>Descrição</TableHead>
                     <TableHead className="text-right">Valor</TableHead>
                   </TableRow>
@@ -59,7 +60,8 @@ export function TelaDoRazao() {
                   {r.lancamentos.map((l) => (
                     <TableRow key={l.id}>
                       <TableCell>{formatarDataHora(l.ocorridoEm)}</TableCell>
-                      <TableCell>{ROTULO[l.tipo]} {l.estorno && <Badge variant="destructive">Estorno</Badge>}</TableCell>
+                      <TableCell>{ROTULO[l.tipo]}</TableCell>
+                      <TableCell>{l.estorno ? <Badge variant="destructive" className="w-20 justify-center">Estorno</Badge> : <span className="text-muted-foreground">-</span>}</TableCell>
                       <TableCell>{l.descricao}</TableCell>
                       <TableCell className={`text-right tabular-nums ${l.valorCents < 0 ? 'text-muted-foreground' : ''}`}>{formatarCentavos(l.valorCents)}</TableCell>
                     </TableRow>

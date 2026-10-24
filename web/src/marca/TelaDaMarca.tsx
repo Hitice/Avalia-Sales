@@ -1,6 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { Home, ImageUp, Receipt } from 'lucide-react'
 import { type CSSProperties, useRef, useState } from 'react'
+import { toast } from 'sonner'
 import { chamarApi, chamarResposta, enviarJson, mensagemDoErro } from '@/api/cliente'
 import { Cabecalho, CarregandoTela, Erro } from '@/componentes/Tela'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -8,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { corValida, problemasDaMarca, textoSobre } from './contraste'
 import { type Marca, useLogo, useMarca, variaveisDaMarca } from './marca'
 import { RecorteDoLogo } from './RecorteDoLogo'
@@ -35,6 +37,7 @@ function FormularioDaMarca({ marca, salvo, setSalvo }: { marca: Marca; salvo: bo
   const [nome, setNome] = useState(marca.nomeExibido ?? '')
   const [primaria, setPrimaria] = useState(marca.corPrimaria ?? PADRAO.primaria)
   const [destaque, setDestaque] = useState(marca.corDestaque ?? PADRAO.destaque)
+  const [naCor, setNaCor] = useState(marca.cabecalhoNaCor)
   const [erro, setErro] = useState<unknown>(null)
   const [paraRecortar, setParaRecortar] = useState<File | null>(null)
   const [enviando, setEnviando] = useState(false)
@@ -47,9 +50,10 @@ function FormularioDaMarca({ marca, salvo, setSalvo }: { marca: Marca; salvo: bo
     setErro(null)
     setSalvo(false)
     try {
-      await chamarApi<Marca>('/revenda/marca', enviarJson('PUT', { nomeExibido: nome || null, corPrimaria: primaria, corDestaque: destaque }))
+      await chamarApi<Marca>('/revenda/marca', enviarJson('PUT', { nomeExibido: nome || null, corPrimaria: primaria, corDestaque: destaque, cabecalhoNaCor: naCor }))
       await refazer()
       setSalvo(true)
+      toast.success('Marca salva.')
     } catch (e) {
       setErro(e)
     }
@@ -114,7 +118,13 @@ function FormularioDaMarca({ marca, salvo, setSalvo }: { marca: Marca; salvo: bo
             {cor('Cor primária', 'primaria', primaria, setPrimaria)}
             {cor('Cor de destaque', 'destaque', destaque, setDestaque)}
             {problemas.map((p) => <p key={p} role="alert" className="text-sm text-destructive">{p}</p>)}
-            <Button disabled={problemas.length > 0} onClick={salvar}>Salvar marca</Button>
+            <Field>
+              <FieldLabel>Cabeçalho</FieldLabel>
+              <ToggleGroup aria-label="Cabeçalho" value={naCor ? 'cor' : 'branco'} onValueChange={(v) => setNaCor(v === 'cor')} className="w-full">
+                <ToggleGroupItem value="branco">Branco</ToggleGroupItem>
+                <ToggleGroupItem value="cor">Na cor primária</ToggleGroupItem>
+              </ToggleGroup>
+            </Field>
             <Field>
               <FieldLabel>Logo</FieldLabel>
               {logo && <div className="xadrez flex h-16 items-center justify-center rounded-lg border p-2"><img src={logo} alt="Logo atual" className="max-h-12 w-auto max-w-full object-contain" /></div>}
@@ -126,9 +136,13 @@ function FormularioDaMarca({ marca, salvo, setSalvo }: { marca: Marca; salvo: bo
                 </Button>
                 {marca.temLogo && <Button type="button" variant="ghost" className="text-destructive" onClick={() => chamarApi('/revenda/marca/logo', { method: 'DELETE' }).then(refazer).catch(setErro)}>Remover</Button>}
               </div>
+              <p className="text-xs text-muted-foreground">O logo grava ao confirmar o recorte; cores, nome e cabeçalho, no Salvar.</p>
             </Field>
             <RecorteDoLogo arquivo={paraRecortar} enviando={enviando} aoCancelar={() => setParaRecortar(null)} aoConfirmar={enviarLogo} />
-            <Button variant="ghost" onClick={restaurar}>Restaurar</Button>
+            <div className="flex gap-2 border-t pt-4">
+              <Button className="flex-1" disabled={problemas.length > 0} onClick={salvar}>Salvar marca</Button>
+              <Button variant="ghost" onClick={restaurar}>Restaurar o padrão</Button>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -137,8 +151,10 @@ function FormularioDaMarca({ marca, salvo, setSalvo }: { marca: Marca; salvo: bo
         <CardContent>
           {/* As mesmas variáveis que o app aplica depois de salvar: a prévia é o app em miniatura. */}
           <div inert style={corValida(primaria) && corValida(destaque) ? variaveisDaMarca(primaria, destaque, textoSobre(primaria)) as CSSProperties : undefined} className="overflow-hidden rounded-lg border bg-background">
-            <div className="flex h-12 items-center gap-3 bg-card px-3">
-              {logo ? <img src={logo} alt="" className="h-7 w-auto max-w-28 object-contain" /> : <span className="font-semibold">{nome || 'Avalia Sales'}</span>}
+            <div className={naCor ? 'flex h-12 items-center gap-3 bg-primary px-3 text-primary-foreground' : 'flex h-12 items-center gap-3 bg-card px-3'}>
+              {logo
+                ? <img src={logo} alt="" className={naCor ? 'h-7 w-auto max-w-28 rounded-md bg-card object-contain px-1.5 py-0.5' : 'h-7 w-auto max-w-28 object-contain'} />
+                : <span className="font-semibold">{nome || 'Avalia Sales'}</span>}
             </div>
             <div className="grid lateral-e-lista-36 gap-4 p-3">
               <div className="grid content-start gap-0.5 text-sm">

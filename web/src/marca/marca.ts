@@ -13,6 +13,7 @@ export type Marca = {
   textoSobreDestaque: string | null
   temLogo: boolean
   versao: number
+  cabecalhoNaCor: boolean
 }
 
 const VARIAVEIS = ['--primary', '--primary-foreground', '--primary-texto', '--ring', '--destaque', '--chart-1', '--chart-2']

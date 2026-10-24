@@ -59,10 +59,10 @@ public sealed class Revendedores(IBancoDeDados banco, IRevendedorAtual atual, Eq
         await banco.SaveChangesAsync(ct);
     }
 
-    /// <summary>O dono define o preço da renovação; vale para renovação nova.</summary>
-    public async Task DefinirRenovacao(int bps, CancellationToken ct)
+    /// <summary>A operadora define o preço da renovação de cada revenda; vale para renovação nova.</summary>
+    public async Task DefinirRenovacao(Guid id, int bps, CancellationToken ct)
     {
-        (await Achar(atual.RevendedorId ?? Guid.Empty, ct)).DefinirRenovacao(bps);
+        (await Achar(id, ct)).DefinirRenovacao(bps);
         await banco.SaveChangesAsync(ct);
     }
 
