@@ -141,8 +141,8 @@ design system está descrito em [DESIGN.md](DESIGN.md).
 
 ## Qualidade
 
-- Cerca de 470 testes automáticos por publicação: 338 na API, 116 no front
-  (incluindo cada história do Storybook com o axe) e 15 jornadas ponta a ponta
+- Cerca de 470 testes automáticos por publicação: 340 na API, 116 no front
+  (incluindo cada história do Storybook com o axe) e 16 jornadas ponta a ponta
   no celular e no computador.
 - Os testes da API rodam contra um PostgreSQL de verdade, com o mesmo papel e o
   mesmo RLS da produção.
