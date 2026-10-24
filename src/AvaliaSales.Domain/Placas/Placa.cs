@@ -237,8 +237,13 @@ public sealed class Placa : IDoRevendedor
     /// o destino e o vencimento passam para esta, e a antiga é encerrada para
     /// sempre. O código antigo não volta a circular.
     /// </summary>
-    public void ReceberVendaDe(Placa antiga)
+    public void ReceberVendaDe(Placa antiga, MotivoDaBaixa? motivo = null, DateTimeOffset? agora = null)
     {
+        if (motivo is not (null or Placas.MotivoDaBaixa.Troca or Placas.MotivoDaBaixa.DefeitoDeImpressao or Placas.MotivoDaBaixa.Quebrada or Placas.MotivoDaBaixa.Perdida))
+        {
+            throw new RegraDeNegocioException("Motivo da troca inválido.");
+        }
+
         if (Situacao != SituacaoDaPlaca.EmEstoque || VendaId is not null)
         {
             throw new RegraDeNegocioException($"A placa {Codigo} não está livre no estoque.");
@@ -255,8 +260,10 @@ public sealed class Placa : IDoRevendedor
         Destino = antiga.Destino;
         Situacao = antiga.Situacao == SituacaoDaPlaca.Suspensa ? SituacaoDaPlaca.Suspensa : SituacaoDaPlaca.Ativa;
         ConsignadaA = null;
+        // A antiga guarda a venda de onde saiu: a ficha conta a história, e a baixa dela não se desfaz.
         antiga.Situacao = SituacaoDaPlaca.Baixada;
-        antiga.MotivoDaBaixa = Placas.MotivoDaBaixa.Troca;
+        antiga.MotivoDaBaixa = motivo ?? Placas.MotivoDaBaixa.Troca;
+        antiga.BaixadaEm = agora;
     }
 
     /// <summary>

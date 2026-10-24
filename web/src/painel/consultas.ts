@@ -56,7 +56,8 @@ export const useDesfazerRecebimento = () => useGravar((vendaId: string) => chama
 export const useCancelarVenda = () => useGravar((vendaId: string) => chamarApi(`/vendas/${vendaId}/cancelamento`, enviarJson('POST', {})), VENDA_MUDOU)
 export const useCortesia = () => useGravar((vendaId: string) => chamarApi(`/vendas/${vendaId}/cortesia`, enviarJson('POST', {})), VENDA_MUDOU)
 export const useTrocarPlaca = () =>
-  useGravar(({ vendaId, codigo }: { vendaId: string; codigo: string }) => chamarApi<{ codigo: string }>(`/vendas/${vendaId}/troca-de-placa`, enviarJson('POST', { codigo })), VENDA_MUDOU)
+  useGravar(({ vendaId, codigo, motivo }: { vendaId: string; codigo: string; motivo: MotivoDaBaixa }) =>
+    chamarApi<{ codigo: string }>(`/vendas/${vendaId}/troca-de-placa`, enviarJson('POST', { codigo, motivo })), [...VENDA_MUDOU, 'lotes'])
 
 export const useSaldosDeComissao = () => useQuery({ queryKey: ['comissoes'], queryFn: () => chamarApi<SaldoDeComissao[]>('/comissoes') })
 export const useRepasses = () => useQuery({ queryKey: ['repasses'], queryFn: () => chamarApi<Repasse[]>('/repasses') })

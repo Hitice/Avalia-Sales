@@ -257,8 +257,13 @@ public sealed class Vendas(
         await banco.SaveChangesAsync(ct);
     }
 
-    /// <summary>A venda passa para outra placa do estoque, e a antiga é encerrada para sempre.</summary>
-    public async Task<string> TrocarPlaca(Guid vendaId, string codigoNovo, CancellationToken ct)
+    /// <summary>
+    /// A venda passa para outra placa do estoque, com o mesmo destino e o mesmo
+    /// vencimento, e a antiga é encerrada para sempre com o motivo (defeito de
+    /// impressão, quebrada, perdida). O dono troca com qualquer placa livre; o
+    /// vendedor, na venda dele e com placa que está com ele.
+    /// </summary>
+    public async Task<string> TrocarPlaca(Guid vendaId, string codigoNovo, MotivoDaBaixa? motivo, CancellationToken ct)
     {
         var venda = await AcharVenda(vendaId, ct);
         var codigo = CodigoDaPlaca.Normalizar(codigoNovo);
@@ -273,10 +278,15 @@ public sealed class Vendas(
             throw new RegraDeNegocioException("A placa nova é a mesma da venda.");
         }
 
-        nova.ReceberVendaDe(antiga);
+        if (usuario.Papel == Papel.Vendedor && nova.ConsignadaA != usuario.UsuarioId)
+        {
+            throw new RegraDeNegocioException("Troque por uma placa que está com você.");
+        }
+
+        nova.ReceberVendaDe(antiga, motivo, relogio.GetUtcNow());
         venda.TrocarPlaca(nova.Id);
         // Nas duas placas: a ficha de cada uma conta para onde a venda foi ou de onde veio.
-        auditoria.Registrar(AcaoAuditada.PlacaTrocada, $"Placa {antiga.Codigo}", antiga.Codigo, antiga.Codigo, nova.Codigo);
+        auditoria.Registrar(AcaoAuditada.PlacaTrocada, $"Placa {antiga.Codigo} ({antiga.MotivoDaBaixa})", antiga.Codigo, antiga.Codigo, nova.Codigo);
         auditoria.Registrar(AcaoAuditada.PlacaTrocada, $"Placa {nova.Codigo}", nova.Codigo, antiga.Codigo, nova.Codigo);
         banco.AvisarAoVivo("venda", venda.RevendedorId);
         await banco.SaveChangesAsync(ct);

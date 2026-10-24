@@ -1,15 +1,23 @@
 import { useState } from 'react'
 import { mensagemDoErro } from '@/api/cliente'
-import type { VendaDaLista } from '@/api/tipos'
+import type { MotivoDaBaixa, VendaDaLista } from '@/api/tipos'
 import { Erro } from '@/componentes/Tela'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { formatarCentavos } from '@/dinheiro/dinheiro'
 import { useCancelarVenda, useCortesia, useDesfazerRecebimento, useReceberPorFora, useTrocarPlaca } from './consultas'
 
 type Acao = 'Dinheiro' | 'OutroPix' | 'desfazer' | 'cortesia' | 'cancelar'
+
+/** Por que a placa da venda sai: a antiga fica encerrada com o motivo. */
+const MOTIVO_DA_TROCA: Partial<Record<MotivoDaBaixa, string>> = {
+  DefeitoDeImpressao: 'Defeito de impressão',
+  Quebrada: 'Quebrada',
+  Perdida: 'Perdida',
+}
 
 const CONFIRMACAO: Record<Acao, string> = {
   Dinheiro: 'Confirmar: recebido em dinheiro',
@@ -27,6 +35,7 @@ export function AcoesDaVenda({ venda, dono }: { venda: VendaDaLista; dono: boole
   const [aberto, setAberto] = useState(false)
   const [confirmando, setConfirmando] = useState<Acao | null>(null)
   const [codigo, setCodigo] = useState('')
+  const [motivo, setMotivo] = useState<MotivoDaBaixa>('DefeitoDeImpressao')
   const receber = useReceberPorFora()
   const desfazer = useDesfazerRecebimento()
   const cancelar = useCancelarVenda()
@@ -41,12 +50,15 @@ export function AcoesDaVenda({ venda, dono }: { venda: VendaDaLista; dono: boole
   const podeReceber = ativa && !venda.cortesia && !venda.doSistemaAnterior && venda.valorCents > 0 && !viva
   const recebidaPorFora = venda.pagamento === 'Paga' && (venda.pagoPor === 'Dinheiro' || venda.pagoPor === 'OutroPix')
   const podeDesfazerVenda = dono && ativa && !viva && !venda.doSistemaAnterior
-  if (!ativa || (!dono && !podeReceber)) return null
+  // O vendedor troca na venda dele, com placa que está com ele; a API confere.
+  const podeTrocar = ativa && !!venda.codigo
+  if (!ativa || (!dono && !podeReceber && !podeTrocar)) return null
 
   const fechar = (aberto: boolean) => {
     setAberto(aberto)
     setConfirmando(null)
     setCodigo('')
+    setMotivo('DefeitoDeImpressao')
     mutacoes.forEach((m) => m.reset())
   }
   const feito = { onSuccess: () => fechar(false) }
@@ -91,15 +103,21 @@ export function AcoesDaVenda({ venda, dono }: { venda: VendaDaLista; dono: boole
             {dono && recebidaPorFora && (
               <Button variant="outline" onClick={() => setConfirmando('desfazer')}>Desfazer o recebimento</Button>
             )}
-            {dono && (
+            {podeTrocar && (
               <form
                 className="grid gap-2"
                 onSubmit={(e) => {
                   e.preventDefault()
-                  trocar.mutate({ vendaId: venda.id, codigo }, feito)
+                  trocar.mutate({ vendaId: venda.id, codigo, motivo }, feito)
                 }}
               >
                 <Label htmlFor={`troca-${venda.id}`}>Trocar a placa</Label>
+                <Select value={motivo} onValueChange={(v) => setMotivo(v as MotivoDaBaixa)}>
+                  <SelectTrigger aria-label="Motivo da troca" className="w-full"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {(Object.keys(MOTIVO_DA_TROCA) as MotivoDaBaixa[]).map((m) => <SelectItem key={m} value={m}>{MOTIVO_DA_TROCA[m]}</SelectItem>)}
+                  </SelectContent>
+                </Select>
                 <div className="flex gap-2">
                   <Input id={`troca-${venda.id}`} value={codigo} onChange={(e) => setCodigo(e.target.value)} placeholder="Código da placa nova" autoComplete="off" className="uppercase placeholder:normal-case" />
                   <Button type="submit" variant="outline" disabled={ocupado || codigo.trim().length < 6}>Trocar</Button>

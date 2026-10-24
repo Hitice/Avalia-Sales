@@ -39,6 +39,9 @@ public static class RotasDaEquipe
         equipe.MapPost("/vendas", async (NovaVenda pedido, Vendas vendas, CancellationToken ct) =>
             Results.Created("/vendas", await vendas.Registrar(pedido, ct)));
         equipe.MapPost("/vendas/{id:guid}/cobranca", (Guid id, Vendas vendas, CancellationToken ct) => vendas.Cobrar(id, ct));
+        // O vendedor troca na venda dele, com placa que está com ele (Vendas.TrocarPlaca confere).
+        equipe.MapPost("/vendas/{id:guid}/troca-de-placa", async (Guid id, TrocarPlaca pedido, Vendas vendas, CancellationToken ct) =>
+            Results.Ok(new { Codigo = await vendas.TrocarPlaca(id, pedido.Codigo, pedido.Motivo, ct) }));
         equipe.MapPost("/vendas/{id:guid}/recebimento", async (Guid id, ReceberPorFora pedido, Vendas vendas, CancellationToken ct) =>
         {
             await vendas.ReceberPorFora(id, pedido.Meio, ct);

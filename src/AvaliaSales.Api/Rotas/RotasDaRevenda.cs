@@ -21,7 +21,7 @@ public sealed record Consignar(Guid VendedorId, IReadOnlyList<string>? Codigos, 
 
 public sealed record Devolver(Guid VendedorId);
 
-public sealed record TrocarPlaca(string Codigo);
+public sealed record TrocarPlaca(string Codigo, Domain.Placas.MotivoDaBaixa? Motivo = null);
 
 /// <summary>A área do dono: a revenda, pedidos de placas, ativação de lote, equipe e consignação.</summary>
 public static class RotasDaRevenda
@@ -164,8 +164,6 @@ public static class RotasDaRevenda
             await vendas.Cortesia(id, ct);
             return Results.NoContent();
         });
-        dono.MapPost("/vendas/{id:guid}/troca-de-placa", async (Guid id, TrocarPlaca pedido, Application.Vendas.Vendas vendas, CancellationToken ct) =>
-            Results.Ok(new { Codigo = await vendas.TrocarPlaca(id, pedido.Codigo, ct) }));
 
         dono.MapPost("/placas/{codigo}/baixa", async (string codigo, BaixarPlaca pedido, Estoque estoque, CancellationToken ct) =>
         {

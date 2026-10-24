@@ -3070,39 +3070,6 @@
         }
       }
     },
-    "/vendas/{id}/troca-de-placa": {
-      "post": {
-        "tags": [
-          "Revenda"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TrocarPlaca"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
     "/placas/{codigo}/baixa": {
       "post": {
         "tags": [
@@ -3491,6 +3458,39 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/vendas/{id}/troca-de-placa": {
+      "post": {
+        "tags": [
+          "Balc\u00E3o"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrocarPlaca"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
           }
         }
       }
@@ -7432,6 +7432,16 @@
         "properties": {
           "codigo": {
             "type": "string"
+          },
+          "motivo": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/MotivoDaBaixa"
+              }
+            ]
           }
         }
       },

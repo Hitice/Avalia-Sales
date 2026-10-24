@@ -102,6 +102,28 @@ public sealed class VendaDesfeitaTest(ApiDeTeste api)
     }
 
     [Fact]
+    public async Task Vendedor_troca_a_placa_quebrada_da_venda_dele_com_placa_que_esta_com_ele()
+    {
+        var revenda = await api.RevendaComEstoque("Revenda da Troca do Vendedor");
+        var email = $"vendedor-{Guid.NewGuid():N}@teste.com.br";
+        var vendedorId = (await revenda.Dono.Postar("/equipe", new { nome = "Lia", email, senha = ApiDeTeste.Senha, comissaoBps = 2_000 }, HttpStatusCode.Created)).GetProperty("id").GetGuid();
+        var lia = await api.ClienteLogado(email);
+        var (vendida, comEla, livre) = (revenda.Codigos[6], revenda.Codigos[7], revenda.Codigos[8]);
+        await revenda.Dono.Postar("/estoque/consignacao", new { vendedorId, codigos = new[] { vendida, comEla } });
+        await lia.Postar("/vendas", Cenarios.Venda(vendida, revenda.ProdutoId, "11977770014"), HttpStatusCode.Created);
+        var venda = await VendaDe(revenda.Dono, vendida);
+
+        await lia.Postar($"/vendas/{venda}/troca-de-placa", new { codigo = livre, motivo = "Quebrada" }, HttpStatusCode.UnprocessableEntity);
+        await lia.Postar($"/vendas/{venda}/troca-de-placa", new { codigo = comEla, motivo = "Quebrada" });
+
+        Assert.Equal(venda, await VendaDe(revenda.Dono, comEla));
+        await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
+        Assert.Equal(1, await banco.Contar($"select count(*) from placas where codigo = '{vendida}' and situacao = 'Baixada' and motivo_da_baixa = 'Quebrada' and baixada_em is not null"));
+        await revenda.Dono.DeleteAsync($"/placas/{vendida}/baixa", Ct);
+        Assert.Equal(1, await banco.Contar($"select count(*) from placas where codigo = '{vendida}' and situacao = 'Baixada'"));
+    }
+
+    [Fact]
     public async Task Recebido_por_fora_vai_ao_razao_com_a_taxa_a_acertar_e_o_dono_desfaz()
     {
         var revenda = await api.RevendaComEstoque("Revenda do Balcão", taxaAvaliaBps: 199);

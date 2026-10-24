@@ -4198,45 +4198,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/vendas/{id}/troca-de-placa": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["TrocarPlaca"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/placas/{codigo}/baixa": {
         parameters: {
             query?: never;
@@ -4717,6 +4678,45 @@ export interface paths {
                     content: {
                         "application/json": components["schemas"]["VendaRegistrada"];
                     };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/vendas/{id}/troca-de-placa": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["TrocarPlaca"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
                 };
             };
         };
@@ -6342,6 +6342,7 @@ export interface components {
         };
         TrocarPlaca: {
             codigo: string;
+            motivo?: null | components["schemas"]["MotivoDaBaixa"];
         };
         VendaDaFicha: {
             /** Format: uuid */
