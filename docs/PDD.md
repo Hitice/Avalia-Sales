@@ -126,6 +126,7 @@ Todas no mesmo app, liberadas pelo papel do usuário.
 | Pedidos | Dono | Computador | Pedidos de placas com a situação (aguardando pagamento, pago, em produção, enviado ou pronto para retirada, entregue) e o link de pagamento |
 | Equipe | Dono | Computador | Criar, editar, desativar e excluir vendedor, comissão própria, convite |
 | Comissões e Razão | Dono | Computador | Saldo de cada vendedor, repasse com comprovante; razão do mês |
+| Financeiro | Dono | Celular e computador | Abas Resultado (DRE do mês, pizzas de para onde foi o dinheiro e de despesas por categoria, barras de recebido e resultado nos últimos 6 meses), Despesas e Sócios (sócios do contrato e retiradas), com criar, editar e excluir; fechar e reabrir o mês |
 | Configurações | Dono | Computador e celular | Comissão padrão, preço da renovação e o contrato de revenda (reenviar, conferir assinatura, baixar cópia) |
 | Marca | Dono | Computador | Logo com recorte (horizontal ou quadrado, arrastar e zoom), cores e nome exibido, com prévia nas cores escolhidas |
 | Auditoria | Dono | Computador | Quem mudou o quê, com antes e depois, busca pelo código, filtro pela ação, 20 por página e exportação em JSON |
@@ -215,6 +216,46 @@ Todas no mesmo app, liberadas pelo papel do usuário.
   paga. O mesmo pagamento nunca é lançado duas vezes.
 - Competência no fuso de Brasília. O líquido do mês é receita menos taxa menos
   comissão; a taxa do Pagar.me sai no extrato do Pagar.me.
+- Também vão ao razão a despesa, a retirada de sócio, a perda de placa e o
+  custo da placa dada em cortesia (seção Financeiro). Mês fechado não recebe
+  linha: a que chega para ele entra no mês corrente.
+
+### Financeiro
+
+- Despesa - data (o mês da data é a competência), descrição, categoria (placas
+  e material, frete, marketing, software e ferramentas, impostos, taxas,
+  outros) e valor. Vai ao razão como linha; editar estorna a linha em vigor e
+  lança a nova, excluir só estorna. Data no futuro é recusada.
+- Sócio do contrato - nome, como no contrato social, e CPF opcional. Só ele
+  recebe retirada. O parceiro comercial que não está no contrato é vendedor
+  com comissão, na Equipe. Sócio com retirada não se exclui.
+- Retirada de sócio - sócio, data, natureza (pró-labore, distribuição de
+  lucros, adiantamento), valor e observação. Vai ao razão como a despesa, mas
+  fica abaixo do resultado: não é despesa.
+- Custo da placa - o que a revenda pagou por ela no pedido de placas, com o
+  cupom, dividido pela quantidade, congelado na ativação do lote e copiado na
+  venda. O custo da placa vendida acompanha a receita da venda (mesmo mês, mesmo
+  estorno). A placa dada em cortesia lança o custo no mês da cortesia; a
+  cortesia cancelada estorna.
+- Perda - placa perdida ou quebrada (baixa em estoque, troca com esse motivo,
+  venda cancelada em que a placa voltou com defeito ou não voltou), pelo custo
+  dela. Baixa desfeita estorna a perda. Defeito de impressão não é perda: o
+  acrílico volta com outro QR. Lote arquivado, código não impresso e
+  encerramento da conta também não.
+- DRE do mês - vendido (vendas registradas no mês que seguem de pé), recebido
+  (pagamentos menos estornos), receita reconhecida, menos taxa da plataforma,
+  comissões, custo das placas, perdas e despesas por categoria, igual a
+  resultado. Retiradas de sócio, por natureza, ficam abaixo do resultado.
+- Receita reconhecida - a placa vendida ou renovada é uma obrigação de 12 meses
+  (o QR passa pela plataforma): a receita entra em 12 partes a partir do mês do
+  pagamento, e o custo da placa vendida acompanha. Serviço entra inteiro no
+  mês. Comissão e taxa entram no mês do pagamento. O que já entrou no caixa e
+  ainda não no resultado aparece como "a reconhecer". Estorno para a
+  apropriação e devolve no mês dele o que já tinha entrado.
+- Fechamento do mês - o dono fecha mês que já acabou. Fechado, a despesa ou
+  retirada com data nele é recusada, e a correção de linha dele vai ao mês
+  corrente; o pagamento do mês fechado que chega depois também entra no mês
+  corrente. Reabrir pede o motivo. Fechar e reabrir vão à auditoria.
 
 ### Auditoria
 
@@ -222,7 +263,8 @@ Todas no mesmo app, liberadas pelo papel do usuário.
   destino da placa (na venda e nas trocas), suspender e pôr no ar, troca de
   placa, cancelamento, cortesia, recebido por fora e o desfazer, equipe
   (cadastro, alteração, desativação, exclusão), comissão padrão, produto,
-  repasse, marca, links e anonimização do cliente.
+  repasse, marca, links, anonimização do cliente, fechamento e reabertura do
+  mês e cadastro, alteração e exclusão de sócio.
 - A ficha da placa mostra o histórico dela; a tela Auditoria, só do dono,
   mostra tudo, com busca pelo código.
 - Registro não se altera nem se apaga, nem pela aplicação. A anonimização
@@ -510,6 +552,7 @@ porque está impresso nas placas vendidas.
 | Recebedor da revendedora Avalia | Mesmo da conta do marketplace ou separado | Separado, para o extrato da revenda não se misturar com a taxa; se for o mesmo, a cobrança vai numa regra só |
 | Texto do termo do cliente | Rascunho ou revisão jurídica | Revisão jurídica |
 | Política de privacidade | Texto | Revisão jurídica |
+| Receita da placa em 12 partes, custo junto, comissão e taxa no mês | Confirmar com o contador; a linha da taxa do cartão também | Manter até o parecer; muda só a leitura da DRE, o razão fica igual |
 
 ### Integrações
 
@@ -529,6 +572,15 @@ porque está impresso nas placas vendidas.
 
 | Data | Mudança |
 | --- | --- |
+| 24/10/2026 | Área Financeiro do dono (menu Equipe e dinheiro) - DRE do mês, gráficos, despesas, sócios e retiradas, fechamento do mês. |
+| 24/10/2026 | Despesa com data, descrição, categoria e valor vai ao razão; editar estorna e lança de novo, excluir estorna. |
+| 24/10/2026 | Só o sócio cadastrado como do contrato social recebe retirada; o parceiro comercial fora do contrato segue como vendedor com comissão. |
+| 24/10/2026 | Retirada de sócio com natureza (pró-labore, distribuição de lucros, adiantamento) vai ao razão e fica abaixo do resultado, fora das despesas. |
+| 24/10/2026 | Custo da placa é o valor pago no pedido de placas, com o cupom, dividido pela quantidade, congelado na ativação do lote; o da placa vendida acompanha a receita da venda. |
+| 24/10/2026 | Perda pelo custo da placa: perdida ou quebrada em estoque, na troca ou na venda cancelada que não voltou ou voltou com defeito. Defeito de impressão não é perda. Cortesia lança o custo da placa no mês. |
+| 24/10/2026 | Receita da placa (venda e renovação) reconhecida em 12 partes a partir do mês do pagamento, com o custo da placa junto; serviço inteiro no mês; comissão e taxa no mês do pagamento. |
+| 24/10/2026 | DRE do mês com vendido, recebido, receita reconhecida, taxa, comissões, custo das placas, perdas, despesas por categoria e resultado; retiradas abaixo do resultado. |
+| 24/10/2026 | Fechamento do mês pelo dono, só de mês que já acabou: mês fechado não recebe linha, a correção vai ao mês corrente, e reabrir pede motivo e vai à auditoria. |
 | 24/10/2026 | Cancelamento de ponta a ponta: a venda se cancela antes do estorno (motivo ou observação inválidos recusam antes de o dinheiro voltar). O estorno, venha do cancelamento ou do painel do Pagar.me, estorna o razão, cancela a ordem de serviço aberta, avisa a operadora da ordem já entregue para tirar do ar o que foi entregue, e encerra (marca como lido) o que a venda abriu no sino de dono, vendedor e operadora. Estorno feito só no painel avisa o dono para cancelar a venda. O vendedor recebe o aviso da venda dele cancelada, com a comissão estornada. |
 | 24/10/2026 | Estorno recusado pelo Pagar.me (por exemplo, sem saldo disponível na conta para devolver o Pix) aparece como recusa clara no cancelamento, e nada muda: a venda segue paga. Sem saldo, o estorno sai pelo painel do Pagar.me, que devolve a taxa junto, e depois o cancelamento aqui fecha a venda sem pedir outro estorno. |
 | 24/10/2026 | A tela da venda registrada espera o pagamento também na venda de serviço (antes esperava sem fim) e para quando o Pix vence, com o aviso para gerar outro em Vendas. No computador, o botão da Nova venda fica logo abaixo do cartão, na coluna da venda, e não preso no rodapé da janela. |

@@ -35,6 +35,11 @@ public enum AcaoAuditada
     ClientesJuntados,
     VendaCorrigida,
     RepasseDesfeito,
+    MesFechado,
+    MesReaberto,
+    SocioCadastrado,
+    SocioAlterado,
+    SocioExcluido,
 }
 
 /// <summary>

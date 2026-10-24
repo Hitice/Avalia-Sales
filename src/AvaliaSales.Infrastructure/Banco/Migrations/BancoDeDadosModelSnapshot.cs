@@ -697,12 +697,118 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                     b.ToTable("envios_ao_erp", (string)null);
                 });
 
+            modelBuilder.Entity("AvaliaSales.Domain.Financeiro.Despesa", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Categoria")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("categoria");
+
+                    b.Property<DateTimeOffset>("CriadaEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("criada_em");
+
+                    b.Property<DateOnly>("Data")
+                        .HasColumnType("date")
+                        .HasColumnName("data");
+
+                    b.Property<string>("Descricao")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("descricao");
+
+                    b.Property<Guid>("LancamentoId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("lancamento_id");
+
+                    b.Property<Guid>("RevendedorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("revendedor_id");
+
+                    b.Property<long>("ValorCents")
+                        .HasColumnType("bigint")
+                        .HasColumnName("valor_cents");
+
+                    b.HasKey("Id")
+                        .HasName("pk_despesas");
+
+                    b.HasIndex("LancamentoId")
+                        .HasDatabaseName("ix_despesas_lancamento_id");
+
+                    b.HasIndex("RevendedorId", "Data")
+                        .HasDatabaseName("ix_despesas_revendedor_id_data");
+
+                    b.ToTable("despesas", (string)null);
+                });
+
+            modelBuilder.Entity("AvaliaSales.Domain.Financeiro.FechamentoDoMes", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Competencia")
+                        .IsRequired()
+                        .HasMaxLength(7)
+                        .HasColumnType("character(7)")
+                        .HasColumnName("competencia")
+                        .IsFixedLength();
+
+                    b.Property<DateTimeOffset>("FechadoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("fechado_em");
+
+                    b.Property<Guid?>("FechadoPor")
+                        .HasColumnType("uuid")
+                        .HasColumnName("fechado_por");
+
+                    b.Property<string>("MotivoDaReabertura")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("motivo_da_reabertura");
+
+                    b.Property<DateTimeOffset?>("ReabertoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("reaberto_em");
+
+                    b.Property<Guid?>("ReabertoPor")
+                        .HasColumnType("uuid")
+                        .HasColumnName("reaberto_por");
+
+                    b.Property<Guid>("RevendedorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("revendedor_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_fechamentos");
+
+                    b.HasIndex("RevendedorId", "Competencia")
+                        .IsUnique()
+                        .HasDatabaseName("ix_fechamentos_revendedor_id_competencia")
+                        .HasFilter("reaberto_em is null");
+
+                    b.ToTable("fechamentos", (string)null);
+                });
+
             modelBuilder.Entity("AvaliaSales.Domain.Financeiro.Lancamento", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
+
+                    b.Property<string>("Categoria")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("categoria");
 
                     b.Property<string>("Competencia")
                         .IsRequired()
@@ -728,6 +834,10 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                     b.Property<Guid>("OrigemId")
                         .HasColumnType("uuid")
                         .HasColumnName("origem_id");
+
+                    b.Property<Guid?>("PlacaId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("placa_id");
 
                     b.Property<Guid>("RevendedorId")
                         .HasColumnType("uuid")
@@ -766,6 +876,10 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
 
                     b.HasIndex("RevendedorId", "Competencia")
                         .HasDatabaseName("ix_lancamentos_revendedor_id_competencia");
+
+                    b.HasIndex("RevendedorId", "PlacaId")
+                        .HasDatabaseName("ix_lancamentos_revendedor_id_placa_id")
+                        .HasFilter("placa_id is not null");
 
                     b.HasIndex("RevendedorId", "VendedorId", "Tipo")
                         .HasDatabaseName("ix_lancamentos_revendedor_id_vendedor_id_tipo");
@@ -823,6 +937,99 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .HasDatabaseName("ix_repasses_revendedor_id_vendedor_id_pago_em");
 
                     b.ToTable("repasses", (string)null);
+                });
+
+            modelBuilder.Entity("AvaliaSales.Domain.Financeiro.Retirada", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CriadaEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("criada_em");
+
+                    b.Property<DateOnly>("Data")
+                        .HasColumnType("date")
+                        .HasColumnName("data");
+
+                    b.Property<Guid>("LancamentoId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("lancamento_id");
+
+                    b.Property<string>("Natureza")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("natureza");
+
+                    b.Property<string>("Observacao")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("observacao");
+
+                    b.Property<Guid>("RevendedorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("revendedor_id");
+
+                    b.Property<Guid>("SocioId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("socio_id");
+
+                    b.Property<long>("ValorCents")
+                        .HasColumnType("bigint")
+                        .HasColumnName("valor_cents");
+
+                    b.HasKey("Id")
+                        .HasName("pk_retiradas");
+
+                    b.HasIndex("LancamentoId")
+                        .HasDatabaseName("ix_retiradas_lancamento_id");
+
+                    b.HasIndex("SocioId")
+                        .HasDatabaseName("ix_retiradas_socio_id");
+
+                    b.HasIndex("RevendedorId", "Data")
+                        .HasDatabaseName("ix_retiradas_revendedor_id_data");
+
+                    b.ToTable("retiradas", (string)null);
+                });
+
+            modelBuilder.Entity("AvaliaSales.Domain.Financeiro.Socio", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Cpf")
+                        .HasMaxLength(11)
+                        .HasColumnType("character(11)")
+                        .HasColumnName("cpf")
+                        .IsFixedLength();
+
+                    b.Property<DateTimeOffset>("CriadoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("criado_em");
+
+                    b.Property<string>("Nome")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("nome");
+
+                    b.Property<Guid>("RevendedorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("revendedor_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_socios");
+
+                    b.HasIndex("RevendedorId", "Nome")
+                        .HasDatabaseName("ix_socios_revendedor_id_nome");
+
+                    b.ToTable("socios", (string)null);
                 });
 
             modelBuilder.Entity("AvaliaSales.Domain.Integracoes.VinculoExterno", b =>
@@ -2579,6 +2786,33 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .HasConstraintName("fk_envios_ao_erp_revendedores_revendedor_id");
                 });
 
+            modelBuilder.Entity("AvaliaSales.Domain.Financeiro.Despesa", b =>
+                {
+                    b.HasOne("AvaliaSales.Domain.Financeiro.Lancamento", null)
+                        .WithMany()
+                        .HasForeignKey("LancamentoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_despesas_lancamentos_lancamento_id");
+
+                    b.HasOne("AvaliaSales.Domain.Revendedores.Revendedor", null)
+                        .WithMany()
+                        .HasForeignKey("RevendedorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_despesas_revendedores_revendedor_id");
+                });
+
+            modelBuilder.Entity("AvaliaSales.Domain.Financeiro.FechamentoDoMes", b =>
+                {
+                    b.HasOne("AvaliaSales.Domain.Revendedores.Revendedor", null)
+                        .WithMany()
+                        .HasForeignKey("RevendedorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_fechamentos_revendedores_revendedor_id");
+                });
+
             modelBuilder.Entity("AvaliaSales.Domain.Financeiro.Lancamento", b =>
                 {
                     b.HasOne("AvaliaSales.Domain.Financeiro.Lancamento", null)
@@ -2610,6 +2844,40 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_repasses_vendedores_vendedor_id");
+                });
+
+            modelBuilder.Entity("AvaliaSales.Domain.Financeiro.Retirada", b =>
+                {
+                    b.HasOne("AvaliaSales.Domain.Financeiro.Lancamento", null)
+                        .WithMany()
+                        .HasForeignKey("LancamentoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_retiradas_lancamentos_lancamento_id");
+
+                    b.HasOne("AvaliaSales.Domain.Revendedores.Revendedor", null)
+                        .WithMany()
+                        .HasForeignKey("RevendedorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_retiradas_revendedores_revendedor_id");
+
+                    b.HasOne("AvaliaSales.Domain.Financeiro.Socio", null)
+                        .WithMany()
+                        .HasForeignKey("SocioId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_retiradas_socios_socio_id");
+                });
+
+            modelBuilder.Entity("AvaliaSales.Domain.Financeiro.Socio", b =>
+                {
+                    b.HasOne("AvaliaSales.Domain.Revendedores.Revendedor", null)
+                        .WithMany()
+                        .HasForeignKey("RevendedorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_socios_revendedores_revendedor_id");
                 });
 
             modelBuilder.Entity("AvaliaSales.Domain.Integracoes.VinculoExterno", b =>

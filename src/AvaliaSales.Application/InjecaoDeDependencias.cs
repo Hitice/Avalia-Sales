@@ -32,6 +32,11 @@ public static class InjecaoDeDependencias
         servicos.AddScoped<Pedidos.Cupons>();
         servicos.AddScoped<Comissoes>();
         servicos.AddScoped<Razao>();
+        servicos.AddScoped<Fechamentos>();
+        servicos.AddScoped<Despesas>();
+        servicos.AddScoped<Socios>();
+        servicos.AddScoped<Dre>();
+        servicos.AddScoped<CustoDasPlacas>();
         servicos.AddScoped<Renovacoes>();
         servicos.AddScoped<Vendas.TestesGratuitos>();
         servicos.AddScoped<Pagamentos.EfeitosDaCobranca>();

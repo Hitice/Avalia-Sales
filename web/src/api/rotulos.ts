@@ -1,4 +1,4 @@
-import type { AcaoAuditada, CategoriaDoLote, EstadoDaPlaca, MotivoDaBaixa, MotivoDoCancelamento, Pedido, SituacaoDaCobranca, SituacaoDaOrdem, SituacaoDoContrato, SituacaoDoPedido, SituacaoDoProduto, TipoDeProduto } from './tipos'
+import type { AcaoAuditada, CategoriaDeDespesa, CategoriaDoLote, EstadoDaPlaca, MotivoDaBaixa, MotivoDoCancelamento, Pedido, SituacaoDaCobranca, SituacaoDaOrdem, SituacaoDoContrato, SituacaoDoPedido, SituacaoDoProduto, NaturezaDaRetirada, TipoDeProduto } from './tipos'
 
 /** Os nomes que a tela mostra para cada situação da API. */
 export const ROTULO_DO_ESTADO: Record<EstadoDaPlaca, string> = {
@@ -142,4 +142,25 @@ export const ROTULO_DA_ACAO: Record<AcaoAuditada, string> = {
   ClientesJuntados: 'Clientes juntados',
   VendaCorrigida: 'Venda corrigida',
   RepasseDesfeito: 'Repasse desfeito',
+  MesFechado: 'Mês fechado',
+  MesReaberto: 'Mês reaberto',
+  SocioCadastrado: 'Sócio cadastrado',
+  SocioAlterado: 'Sócio alterado',
+  SocioExcluido: 'Sócio excluído',
+}
+
+export const ROTULO_DA_DESPESA: Record<CategoriaDeDespesa, string> = {
+  PlacasEMaterial: 'Placas e material',
+  Frete: 'Frete',
+  Marketing: 'Marketing',
+  SoftwareEFerramentas: 'Software e ferramentas',
+  Impostos: 'Impostos',
+  Taxas: 'Taxas',
+  Outros: 'Outros',
+}
+
+export const ROTULO_DA_RETIRADA: Record<NaturezaDaRetirada, string> = {
+  ProLabore: 'Pró-labore',
+  DistribuicaoDeLucros: 'Distribuição de lucros',
+  Adiantamento: 'Adiantamento',
 }

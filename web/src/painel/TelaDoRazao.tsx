@@ -15,6 +15,10 @@ const ROTULO: Record<TipoDeLancamento, string> = {
   TaxaAvalia: 'Parte da Avalia',
   ComissaoDevida: 'Comissão devida',
   ComissaoPaga: 'Comissão repassada',
+  CustoDaPlaca: 'Custo da placa',
+  Perda: 'Perda de placa',
+  Despesa: 'Despesa',
+  RetiradaDeSocio: 'Retirada de sócio',
 }
 
 const nomeDoMes = (competencia: string) => {

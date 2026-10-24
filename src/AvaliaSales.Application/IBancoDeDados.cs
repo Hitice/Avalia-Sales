@@ -42,6 +42,10 @@ public interface IBancoDeDados
     DbSet<Cupom> Cupons { get; }
     DbSet<Lancamento> Lancamentos { get; }
     DbSet<Repasse> Repasses { get; }
+    DbSet<Despesa> Despesas { get; }
+    DbSet<Socio> Socios { get; }
+    DbSet<Retirada> Retiradas { get; }
+    DbSet<FechamentoDoMes> Fechamentos { get; }
     DbSet<Renovacao> Renovacoes { get; }
     DbSet<EnvioAoErp> EnviosAoErp { get; }
     DbSet<LogoDoRevendedor> Logos { get; }
