@@ -496,3 +496,8 @@ web/playwright-report/
 web/test-results/
 web/storybook-static/
 docs/contrato/exemplo-*.pdf
+
+# Rascunhos e capturas da revisão de design (impeccable)
+.impeccable/mocks/
+.impeccable/review/
+.impeccable/build/

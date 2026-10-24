@@ -5498,12 +5498,14 @@ export interface paths {
                 };
             };
             responses: {
-                /** @description OK */
-                200: {
+                /** @description Created */
+                201: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["VendasRegistradas"];
+                    };
                 };
             };
         };
@@ -7580,6 +7582,13 @@ export interface components {
             cobranca: null | components["schemas"]["CobrancaDto"];
             semCobranca: null | string;
             linkCurto?: null | string;
+        };
+        VendasRegistradas: {
+            vendas: components["schemas"]["VendaRegistrada"][];
+            /** Format: int64 */
+            totalCents: number;
+            cobranca: null | components["schemas"]["CobrancaDto"];
+            semCobranca: null | string;
         };
         /** @description LinkDoConvite só vem na resposta de quem acabou de convidar. */
         VendedorDto: {

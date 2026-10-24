@@ -4168,8 +4168,15 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK"
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VendasRegistradas"
+                }
+              }
+            }
           }
         }
       }
@@ -9328,6 +9335,43 @@
           }
         },
         "description": "LinkCurto - o /L/ do neg\u00F3cio, quando o destino \u00E9 a avalia\u00E7\u00E3o no Google."
+      },
+      "VendasRegistradas": {
+        "required": [
+          "vendas",
+          "totalCents",
+          "cobranca",
+          "semCobranca"
+        ],
+        "type": "object",
+        "properties": {
+          "vendas": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VendaRegistrada"
+            }
+          },
+          "totalCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "cobranca": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CobrancaDto"
+              }
+            ]
+          },
+          "semCobranca": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
       },
       "VendedorDto": {
         "required": [

@@ -29,8 +29,8 @@ export type Vendedor = Esquema['VendedorDto']
 export type VendaDaLista = Esquema['VendaDaLista']
 export type VendaRegistrada = Esquema['VendaRegistrada']
 export type NovaVendaComItens = Esquema['NovaVendaComItens']
-/** A resposta do POST /vendas/itens (Vendas.VendasRegistradas), que o contrato não descreve. As vendas vêm na ordem dos itens enviados. */
-export type VendasRegistradas = { vendas: VendaRegistrada[]; totalCents: number; cobranca: Esquema['CobrancaDto'] | null; semCobranca: string | null }
+/** A resposta do POST /vendas/itens. As vendas vêm na ordem dos itens enviados. */
+export type VendasRegistradas = Esquema['VendasRegistradas']
 export type LinkCurto = Esquema['LinkDto']
 export type Ficha = Esquema['FichaDto']
 export type Lugar = Esquema['Lugar']
