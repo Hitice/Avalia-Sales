@@ -3844,3 +3844,33 @@ html:not(.js) .marca fieldset {
     font-size: 8vw;
   }
 }
+
+/* A alça convida: a cada volta dá um empurrão para a direita e volta, com uma
+   onda clara em volta. Para na primeira interação (classe .usado). A animação
+   manda no transform, então sai durante o arrasto e depois de usada. */
+.destravar:not(.usado) .destravar-botao {
+  animation: alca-convida 3s var(--sai) 1.4s infinite, alca-onda 3s ease-out 1.4s infinite;
+}
+
+.destravar.arrastando .destravar-botao,
+.destravar.usado .destravar-botao {
+  animation: none;
+}
+
+@keyframes alca-convida {
+  0%, 52%, 100% { transform: translateX(0); }
+  18% { transform: translateX(2.4rem); }
+  32% { transform: translateX(0); }
+  40% { transform: translateX(0.8rem); }
+}
+
+@keyframes alca-onda {
+  0%, 14% { box-shadow: 0 0 0 0 rgb(255 255 255 / 0.5); }
+  50%, 100% { box-shadow: 0 0 0 14px rgb(255 255 255 / 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .destravar:not(.usado) .destravar-botao {
+    animation: none;
+  }
+}

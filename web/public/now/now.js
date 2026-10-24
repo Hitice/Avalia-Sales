@@ -490,20 +490,45 @@ function carrossel(caixa) {
   const trilho = caixa.querySelector('.integracoes');
   const voltar = caixa.querySelector('[data-carrossel-voltar]');
   const avancar = caixa.querySelector('[data-carrossel-avancar]');
-  const passo = () => {
-    const cartoes = trilho.children;
-    return cartoes.length > 1 ? cartoes[1].offsetLeft - cartoes[0].offsetLeft : trilho.clientWidth;
+  const originais = [...trilho.children];
+  const total = originais.length;
+
+  // Rolagem infinita: uma cópia da lista antes e outra depois das originais.
+  // As cópias são só para o olho: fora do leitor de tela e do teclado.
+  const copia = (li) => {
+    const clone = li.cloneNode(true);
+    clone.setAttribute('aria-hidden', 'true');
+    clone.inert = true;
+    return clone;
   };
-  const pontas = () => {
-    voltar.disabled = trilho.scrollLeft <= 2;
-    avancar.disabled = trilho.scrollLeft + trilho.clientWidth >= trilho.scrollWidth - 2;
+  trilho.prepend(...originais.map(copia));
+  trilho.append(...originais.map(copia));
+
+  const passo = () => trilho.children[1].offsetLeft - trilho.children[0].offsetLeft;
+  const inicio = () => trilho.children[total].offsetLeft - trilho.children[0].offsetLeft;
+  const pular = (x) => {
+    trilho.style.scrollBehavior = 'auto';
+    trilho.scrollLeft = x;
+    trilho.style.scrollBehavior = '';
   };
+
+  // Ao parar numa cópia, salta em silêncio para o cartão original igual.
+  const ajustar = () => {
+    const n = Math.round(trilho.scrollLeft / passo());
+    if (n < total) pular(trilho.scrollLeft + total * passo());
+    else if (n >= total * 2) pular(trilho.scrollLeft - total * passo());
+  };
+
+  let espera;
+  trilho.addEventListener('scroll', () => {
+    clearTimeout(espera);
+    espera = setTimeout(ajustar, 140);
+  }, { passive: true });
 
   voltar.addEventListener('click', () => trilho.scrollBy({ left: -passo() }));
   avancar.addEventListener('click', () => trilho.scrollBy({ left: passo() }));
-  trilho.addEventListener('scroll', pontas, { passive: true });
-  window.addEventListener('resize', pontas);
-  pontas();
+  window.addEventListener('resize', () => pular(inicio()));
+  pular(inicio());
 }
 
 /* ---------------------------------------------------------------------------
@@ -582,6 +607,7 @@ function venda(figura) {
   };
 
   alca.addEventListener('pointerdown', (evento) => {
+    destravar.classList.add('usado');
     inicio = evento.clientX;
     andou = 0;
     alca.setPointerCapture(evento.pointerId);
@@ -615,7 +641,10 @@ function venda(figura) {
 
   alca.addEventListener('click', (evento) => {
     // O clique do teclado chega sem ponteiro (detail 0); o do mouse já destravou no pointerup.
-    if (evento.detail === 0) destrava();
+    if (evento.detail === 0) {
+      destravar.classList.add('usado');
+      destrava();
+    }
   });
 
   // Tocar num cartão leva o celular àquela etapa. No celular, onde os cartões
