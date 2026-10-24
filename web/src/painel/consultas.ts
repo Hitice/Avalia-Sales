@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { chamarApi, enviarJson } from '@/api/cliente'
-import type { EstadoDaPlaca, LoteDaRevenda, MinhaRevenda, MotivoDaBaixa, MotivoDoCancelamento, PlacaDaVendaCancelada, Pacote, PaginaDePlacas, Pedido, Repasse, ResumoDoMes, SaldoDeComissao, VendaDaLista, VendaRegistrada, Vendedor } from '@/api/tipos'
+import type { EstadoDaPlaca, LoteDaRevenda, MinhaRevenda, MotivoDaBaixa, MotivoDoCancelamento, PlacaDaVendaCancelada, Pacote, PaginaDePlacas, Pedido, Repasse, ResumoDoMes, DetalheDaVenda, SaldoDeComissao, VendaDaLista, VendaRegistrada, Vendedor } from '@/api/tipos'
 
 export type FiltroDePlacas = { estado?: EstadoDaPlaca; consignadaA?: string; codigo?: string; pagina?: number }
 
@@ -9,6 +9,7 @@ export const usePacotes = () => useQuery({ queryKey: ['pacotes'], queryFn: () =>
 export const usePedidos = () => useQuery({ queryKey: ['pedidos'], queryFn: () => chamarApi<Pedido[]>('/pedidos') })
 export const useEquipe = () => useQuery({ queryKey: ['equipe'], queryFn: () => chamarApi<Vendedor[]>('/equipe') })
 export const useVendas = () => useQuery({ queryKey: ['vendas'], queryFn: () => chamarApi<VendaDaLista[]>('/vendas') })
+export const useVenda = (id: string) => useQuery({ queryKey: ['vendas', id], queryFn: () => chamarApi<DetalheDaVenda>(`/vendas/${id}`) })
 
 export function usePlacas(filtro: FiltroDePlacas) {
   const busca = new URLSearchParams(Object.entries(filtro).filter(([, v]) => v !== undefined && v !== '').map(([k, v]) => [k, String(v)]))

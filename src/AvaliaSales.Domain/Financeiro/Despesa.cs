@@ -9,6 +9,9 @@ public enum CategoriaDeDespesa
     Impostos = 5,
     Taxas = 6,
     Outros = 7,
+
+    /// <summary>Serviço pago a PJ contra nota fiscal, como o sócio de fato que não está no contrato social: entra no resultado.</summary>
+    ServicoDePjComNota = 8,
 }
 
 /// <summary>

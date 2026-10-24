@@ -38,7 +38,7 @@ const CONFIRMACAO: Record<Acao, string> = {
  * O que se faz com a venda depois do balcão. A API recusa o que não cabe
  * (Pix em aberto, comissão já repassada); a tela só esconde o que nunca cabe.
  */
-export function AcoesDaVenda({ venda, dono }: { venda: VendaDaLista; dono: boolean }) {
+export function AcoesDaVenda({ venda, dono, naPagina = false }: { venda: VendaDaLista; dono: boolean; naPagina?: boolean }) {
   const [aberto, setAberto] = useState(false)
   const [confirmando, setConfirmando] = useState<Acao | null>(null)
   const [codigo, setCodigo] = useState('')
@@ -93,7 +93,9 @@ export function AcoesDaVenda({ venda, dono }: { venda: VendaDaLista; dono: boole
   return (
     <Dialog open={aberto} onOpenChange={fechar}>
       <DialogTrigger asChild>
-        <Button variant="ghost" aria-label={`Mais ações da placa ${venda.codigo}`}>Mais</Button>
+        {naPagina
+          ? <Button variant="outline">Editar ou cancelar</Button>
+          : <Button variant="ghost" aria-label={`Mais ações da placa ${venda.codigo}`}>Mais</Button>}
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>

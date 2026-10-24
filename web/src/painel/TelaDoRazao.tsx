@@ -1,6 +1,5 @@
 import { useState } from 'react'
-import { formatarDataHora } from '@/api/rotulos'
-import type { TipoDeLancamento } from '@/api/tipos'
+import { formatarDataHora, ROTULO_DO_LANCAMENTO as ROTULO } from '@/api/rotulos'
 import { Cabecalho, EstadoDaConsulta, Rolagem } from '@/componentes/Tela'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
@@ -9,17 +8,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { formatarCentavos } from '@/dinheiro/dinheiro'
 import { useMesesDoRazao, useRazao } from './consultas'
 import { Indicador, Indicadores } from '@/componentes/Indicador'
-
-const ROTULO: Record<TipoDeLancamento, string> = {
-  Receita: 'Receita',
-  TaxaAvalia: 'Parte da Avalia',
-  ComissaoDevida: 'Comissão devida',
-  ComissaoPaga: 'Comissão repassada',
-  CustoDaPlaca: 'Custo da placa',
-  Perda: 'Perda de placa',
-  Despesa: 'Despesa',
-  RetiradaDeSocio: 'Retirada de sócio',
-}
 
 const nomeDoMes = (competencia: string) => {
   const [ano, mes] = competencia.split('-').map(Number)

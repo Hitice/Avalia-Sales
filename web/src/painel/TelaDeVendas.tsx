@@ -94,7 +94,7 @@ function ListaDeVendas({ dono }: { dono: boolean }) {
                     <TableRow key={v.id}>
                       <TableCell>{formatarDataHora(v.vendidaEm)}</TableCell>
                       <TableCell className="min-w-40 whitespace-normal">
-                        <p className="font-medium">{v.cliente}</p>
+                        <Link className="font-medium underline-offset-4 hover:underline" to={`${dono ? '/painel/vendas' : '/vendedor/vendas'}/${v.id}`}>{v.cliente}</Link>
                         <p className="text-xs text-muted-foreground">{nomeDoProduto(v)}</p>
                         {v.grupoId && (
                           <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">

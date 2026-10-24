@@ -36,6 +36,7 @@ public static class RotasDaEquipe
         equipe.MapGet("/comissoes", (Comissoes comissoes, CancellationToken ct) => comissoes.Saldos(ct));
 
         equipe.MapGet("/vendas", (Vendas vendas, CancellationToken ct) => vendas.Listar(ct));
+        equipe.MapGet("/vendas/{id:guid}", (Guid id, Vendas vendas, CancellationToken ct) => vendas.Detalhe(id, ct));
         equipe.MapPost("/vendas", async (NovaVenda pedido, Vendas vendas, CancellationToken ct) =>
             Results.Created("/vendas", await vendas.Registrar(pedido, ct)));
         equipe.MapPost("/vendas/itens", async (NovaVendaComItens pedido, Vendas vendas, CancellationToken ct) =>

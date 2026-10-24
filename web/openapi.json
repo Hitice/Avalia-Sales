@@ -3216,6 +3216,34 @@
             "description": "OK"
           }
         }
+      },
+      "get": {
+        "tags": [
+          "Balc\u00E3o"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DetalheDaVenda"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/vendas/{id}/cancelamento": {
@@ -5109,7 +5137,8 @@
           "SoftwareEFerramentas",
           "Impostos",
           "Taxas",
-          "Outros"
+          "Outros",
+          "ServicoDePjComNota"
         ]
       },
       "CategoriaDoLote": {
@@ -5272,6 +5301,44 @@
           }
         }
       },
+      "ClienteDaVenda": {
+        "required": [
+          "id",
+          "nome",
+          "responsavel",
+          "telefone",
+          "documento",
+          "email"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nome": {
+            "type": "string"
+          },
+          "responsavel": {
+            "type": "string"
+          },
+          "telefone": {
+            "type": "string"
+          },
+          "documento": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "ClienteExportado": {
         "required": [
           "nome",
@@ -5302,6 +5369,52 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "CobrancaDaVenda": {
+        "required": [
+          "situacao",
+          "meio",
+          "valorCents",
+          "estornadoCents",
+          "criadaEm",
+          "pagaEm",
+          "pixExpiraEm"
+        ],
+        "type": "object",
+        "properties": {
+          "situacao": {
+            "$ref": "#/components/schemas/SituacaoDaCobranca"
+          },
+          "meio": {
+            "$ref": "#/components/schemas/MeioDePagamento"
+          },
+          "valorCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "estornadoCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "criadaEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "pagaEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "pixExpiraEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         }
       },
@@ -5876,6 +5989,81 @@
           }
         },
         "description": "O destino como vem da tela. O link colado vence a busca: foi a pessoa que o trouxe do perfil."
+      },
+      "DetalheDaVenda": {
+        "required": [
+          "venda",
+          "cliente",
+          "cobranca",
+          "itens",
+          "ordens",
+          "razao",
+          "observacaoDoCancelamento",
+          "canceladaEm",
+          "venceEm",
+          "comissaoRepassada"
+        ],
+        "type": "object",
+        "properties": {
+          "venda": {
+            "$ref": "#/components/schemas/VendaDaLista"
+          },
+          "cliente": {
+            "$ref": "#/components/schemas/ClienteDaVenda"
+          },
+          "cobranca": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CobrancaDaVenda"
+              }
+            ]
+          },
+          "itens": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ItemDoGrupo"
+            }
+          },
+          "ordens": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrdemDaVenda"
+            }
+          },
+          "razao": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinhaDaVenda"
+            }
+          },
+          "observacaoDoCancelamento": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "canceladaEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "venceEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "comissaoRepassada": {
+            "type": "boolean"
+          }
+        },
+        "description": "A venda no balc\u00E3o: placa, produto, cliente, destino e cobran\u00E7a. A venda \u00E9\ngravada antes da cobran\u00E7a: o Pagar.me fora do ar n\u00E3o segura o vendedor, e a\ncobran\u00E7a \u00E9 gerada de novo pela lista de vendas."
       },
       "Devolver": {
         "required": [
@@ -6671,6 +6859,40 @@
         },
         "description": "Um produto como a revenda v\u00EA: o do cat\u00E1logo da Avalia com o pre\u00E7o dela.\nId \u00E9 o do produto da Avalia. O produto antigo, de antes\ndo cat\u00E1logo, n\u00E3o aparece: s\u00F3 as vendas feitas com ele continuam apontando para ele."
       },
+      "ItemDoGrupo": {
+        "required": [
+          "id",
+          "produto",
+          "codigo",
+          "quantidade",
+          "valorCents",
+          "situacao"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "produto": {
+            "type": "string"
+          },
+          "codigo": {
+            "type": "string"
+          },
+          "quantidade": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "valorCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "situacao": {
+            "$ref": "#/components/schemas/SituacaoDaVenda"
+          }
+        }
+      },
       "JuntarClientes": {
         "required": [
           "outro"
@@ -6761,6 +6983,39 @@
           "total": {
             "type": "integer",
             "format": "int32"
+          }
+        }
+      },
+      "LinhaDaVenda": {
+        "required": [
+          "tipo",
+          "descricao",
+          "valorCents",
+          "competencia",
+          "ocorridoEm",
+          "estorno"
+        ],
+        "type": "object",
+        "properties": {
+          "tipo": {
+            "$ref": "#/components/schemas/TipoDeLancamento"
+          },
+          "descricao": {
+            "type": "string"
+          },
+          "valorCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "competencia": {
+            "type": "string"
+          },
+          "ocorridoEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "estorno": {
+            "type": "boolean"
           }
         }
       },
@@ -7239,10 +7494,9 @@
           "Inadimplencia",
           "Desistencia",
           "Defeito",
-          "Outro"
-        ],
-        "description": "Por que a venda foi desfeita (Pedro, 23/10/2026).",
-        "default": "ErroDeCadastro"
+          "Outro",
+          null
+        ]
       },
       "NaturezaDaRetirada": {
         "enum": [
@@ -7692,6 +7946,44 @@
           }
         },
         "description": "Sem senha, o vendedor recebe o convite e cria a dele."
+      },
+      "OrdemDaVenda": {
+        "required": [
+          "numero",
+          "produto",
+          "quantidade",
+          "situacao",
+          "criadaEm",
+          "entregueEm"
+        ],
+        "type": "object",
+        "properties": {
+          "numero": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "produto": {
+            "type": "string"
+          },
+          "quantidade": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "situacao": {
+            "$ref": "#/components/schemas/SituacaoDaOrdem"
+          },
+          "criadaEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "entregueEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
       },
       "OrdemDto": {
         "required": [

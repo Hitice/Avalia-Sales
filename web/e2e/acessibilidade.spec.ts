@@ -21,3 +21,13 @@ test(`telas da ${quem === 'dono' ? 'revenda' : 'operadora'} sem violação grave
   }
 })
 }
+
+test('detalhe da venda abre pela lista, sem violação grave e sem rolagem para o lado', async ({ page }) => {
+  await entrar(page)
+  await page.goto('/painel/vendas')
+  await page.locator('a[href^="/painel/vendas/"]').first().click()
+  await page.getByText('Pagamento', { exact: true }).waitFor()
+  await page.waitForLoadState('networkidle')
+  await semViolacaoGrave(page)
+  await semRolagemLateral(page)
+})

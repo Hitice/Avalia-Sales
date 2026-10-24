@@ -130,4 +130,32 @@ public sealed class VendaComItensTest(ApiDeTeste api)
         Assert.Equal(19_990L, nova.GetProperty("cobranca").GetProperty("valorCents").GetInt64());
         Assert.Equal(1, await banco.Contar($"select count(*) from cobrancas where origem_id = '{ids[0]}' and situacao = 'Pendente' and valor_cents = 19990"));
     }
+
+    [Fact]
+    public async Task Detalhe_da_venda_mostra_os_itens_juntos_o_pagamento_a_ordem_e_o_razao_e_o_vendedor_nao_abre_a_venda_de_outro()
+    {
+        var revenda = await api.RevendaComEstoque("Revenda do Detalhe");
+        var kit = await Cenarios.ProdutoDoCatalogo(revenda.Dono, "kit-mesa", 3_990L);
+        var feita = await revenda.Dono.Postar("/vendas/itens", Pedido("11966660009",
+            new { produtoId = revenda.ProdutoId, codigo = revenda.Codigos[0], destino = Google },
+            new { produtoId = kit, quantidade = 10 }), HttpStatusCode.Created);
+        var ids = feita.GetProperty("vendas").EnumerateArray().Select(v => v.GetProperty("vendaId").GetGuid()).ToList();
+
+        await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
+        api.Gateway.Mudar(Guid.Parse(await banco.Texto($"select id::text from cobrancas where origem_id = '{ids[0]}'")).ToString("N"), SituacaoDaCobranca.Paga);
+        await Rotinas(DateTimeOffset.UtcNow.AddMinutes(10));
+
+        var detalhe = await revenda.Dono.Pegar($"/vendas/{ids[1]}");
+        Assert.Equal(ids[1], detalhe.GetProperty("venda").GetProperty("id").GetGuid());
+        Assert.Equal("Bar dos Itens", detalhe.GetProperty("cliente").GetProperty("nome").GetString());
+        Assert.Equal("Paga", detalhe.GetProperty("cobranca").GetProperty("situacao").GetString());
+        Assert.Equal(ids[0], detalhe.GetProperty("itens").EnumerateArray().Single().GetProperty("id").GetGuid());
+        Assert.Equal(10, detalhe.GetProperty("ordens").EnumerateArray().Single().GetProperty("quantidade").GetInt32());
+        Assert.Contains(detalhe.GetProperty("razao").EnumerateArray(), l => l.GetProperty("tipo").GetString() == "Receita" && l.GetProperty("valorCents").GetInt64() == 39_900L);
+
+        var email = $"vendedor-{Guid.NewGuid():N}@teste.com.br";
+        await revenda.Dono.Postar("/equipe", new { nome = "Vendedor do Detalhe", email, senha = ApiDeTeste.Senha }, HttpStatusCode.Created);
+        var vendedor = await api.ClienteLogado(email);
+        await vendedor.Pegar($"/vendas/{ids[1]}", HttpStatusCode.UnprocessableEntity);
+    }
 }

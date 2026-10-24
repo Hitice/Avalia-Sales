@@ -27,6 +27,8 @@ export type MinhaRevenda = Esquema['MinhaRevenda']
 export type PaginaDePlacas = Omit<Esquema['PaginaDePlacas'], 'porEstado'> & { porEstado: Partial<Record<EstadoDaPlaca, number>> }
 export type Vendedor = Esquema['VendedorDto']
 export type VendaDaLista = Esquema['VendaDaLista']
+export type DetalheDaVenda = Esquema['DetalheDaVenda']
+export type MeioDePagamento = Esquema['MeioDePagamento']
 export type VendaRegistrada = Esquema['VendaRegistrada']
 export type NovaVendaComItens = Esquema['NovaVendaComItens']
 /** A resposta do POST /vendas/itens. As vendas vêm na ordem dos itens enviados. */

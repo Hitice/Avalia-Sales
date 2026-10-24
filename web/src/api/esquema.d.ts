@@ -4323,7 +4323,28 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DetalheDaVenda"];
+                    };
+                };
+            };
+        };
         put: {
             parameters: {
                 query?: never;
@@ -6400,7 +6421,7 @@ export interface components {
             placa?: components["schemas"]["PlacaDaVendaCancelada"];
         };
         /** @enum {unknown} */
-        CategoriaDeDespesa: "PlacasEMaterial" | "Frete" | "Marketing" | "SoftwareEFerramentas" | "Impostos" | "Taxas" | "Outros";
+        CategoriaDeDespesa: "PlacasEMaterial" | "Frete" | "Marketing" | "SoftwareEFerramentas" | "Impostos" | "Taxas" | "Outros" | "ServicoDePjComNota";
         /**
          * @description Para que o código serve: nem todo código vira placa de avaliação.
          * @default Placa
@@ -6449,12 +6470,35 @@ export interface components {
             criadoEm: string;
             anonimizado: boolean;
         };
+        ClienteDaVenda: {
+            /** Format: uuid */
+            id: string;
+            nome: string;
+            responsavel: string;
+            telefone: string;
+            documento: null | string;
+            email: null | string;
+        };
         ClienteExportado: {
             nome: string;
             responsavel: string;
             telefone: string;
             documento: null | string;
             email: null | string;
+        };
+        CobrancaDaVenda: {
+            situacao: components["schemas"]["SituacaoDaCobranca"];
+            meio: components["schemas"]["MeioDePagamento"];
+            /** Format: int64 */
+            valorCents: number;
+            /** Format: int64 */
+            estornadoCents: number;
+            /** Format: date-time */
+            criadaEm: string;
+            /** Format: date-time */
+            pagaEm: null | string;
+            /** Format: date-time */
+            pixExpiraEm: null | string;
         };
         CobrancaDto: {
             /** Format: uuid */
@@ -6602,6 +6646,25 @@ export interface components {
             tipo: components["schemas"]["TipoDeDestino"];
             lugarNoGoogle: null | string;
             link: null | string;
+        };
+        /**
+         * @description A venda no balcão: placa, produto, cliente, destino e cobrança. A venda é
+         *     gravada antes da cobrança: o Pagar.me fora do ar não segura o vendedor, e a
+         *     cobrança é gerada de novo pela lista de vendas.
+         */
+        DetalheDaVenda: {
+            venda: components["schemas"]["VendaDaLista"];
+            cliente: components["schemas"]["ClienteDaVenda"];
+            cobranca: null | components["schemas"]["CobrancaDaVenda"];
+            itens: components["schemas"]["ItemDoGrupo"][];
+            ordens: components["schemas"]["OrdemDaVenda"][];
+            razao: components["schemas"]["LinhaDaVenda"][];
+            observacaoDoCancelamento: null | string;
+            /** Format: date-time */
+            canceladaEm: null | string;
+            /** Format: date-time */
+            venceEm: null | string;
+            comissaoRepassada: boolean;
         };
         Devolver: {
             /** Format: uuid */
@@ -6832,6 +6895,17 @@ export interface components {
              */
             quantidadeMinima: number;
         };
+        ItemDoGrupo: {
+            /** Format: uuid */
+            id: string;
+            produto: string;
+            codigo: string;
+            /** Format: int32 */
+            quantidade: number;
+            /** Format: int64 */
+            valorCents: number;
+            situacao: components["schemas"]["SituacaoDaVenda"];
+        };
         /** @description O outro cadastro, que sai e passa tudo ao cliente da rota. */
         JuntarClientes: {
             /** Format: uuid */
@@ -6862,6 +6936,16 @@ export interface components {
             dia: string;
             /** Format: int32 */
             total: number;
+        };
+        LinhaDaVenda: {
+            tipo: components["schemas"]["TipoDeLancamento"];
+            descricao: string;
+            /** Format: int64 */
+            valorCents: number;
+            competencia: string;
+            /** Format: date-time */
+            ocorridoEm: string;
+            estorno: boolean;
         };
         LinkDto: {
             /** Format: uuid */
@@ -6999,12 +7083,8 @@ export interface components {
          * @enum {unknown}
          */
         MotivoDaBaixa: "Troca" | "DefeitoDeImpressao" | "Perdida" | "Quebrada" | "NaoImpressa" | "LoteArquivado" | "Encerramento";
-        /**
-         * @description Por que a venda foi desfeita (Pedro, 23/10/2026).
-         * @default ErroDeCadastro
-         * @enum {unknown}
-         */
-        MotivoDoCancelamento: "ErroDeCadastro" | "Inadimplencia" | "Desistencia" | "Defeito" | "Outro";
+        /** @enum {unknown} */
+        MotivoDoCancelamento: "ErroDeCadastro" | "Inadimplencia" | "Desistencia" | "Defeito" | "Outro" | null;
         /** @enum {unknown} */
         NaturezaDaRetirada: "ProLabore" | "DistribuicaoDeLucros" | "Adiantamento";
         NotificacaoDto: {
@@ -7126,6 +7206,18 @@ export interface components {
             chavePix: null | string;
             /** Format: int32 */
             comissaoBps: null | number;
+        };
+        OrdemDaVenda: {
+            /** Format: int64 */
+            numero: number;
+            produto: string;
+            /** Format: int32 */
+            quantidade: number;
+            situacao: components["schemas"]["SituacaoDaOrdem"];
+            /** Format: date-time */
+            criadaEm: string;
+            /** Format: date-time */
+            entregueEm: null | string;
         };
         OrdemDto: {
             /** Format: uuid */

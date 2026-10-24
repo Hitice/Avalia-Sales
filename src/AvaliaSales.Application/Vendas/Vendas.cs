@@ -86,6 +86,29 @@ public sealed record VendaDaLista(
 /// gravada antes da cobrança: o Pagar.me fora do ar não segura o vendedor, e a
 /// cobrança é gerada de novo pela lista de vendas.
 /// </summary>
+/// <summary>A venda aberta na tela dela: o que se vendeu, a quem, por quem, o pagamento, os itens que saíram juntos, as ordens de serviço e o razão.</summary>
+public sealed record DetalheDaVenda(
+    VendaDaLista Venda,
+    ClienteDaVenda Cliente,
+    CobrancaDaVenda? Cobranca,
+    IReadOnlyList<ItemDoGrupo> Itens,
+    IReadOnlyList<OrdemDaVenda> Ordens,
+    IReadOnlyList<LinhaDaVenda> Razao,
+    string? ObservacaoDoCancelamento,
+    DateTimeOffset? CanceladaEm,
+    DateTimeOffset? VenceEm,
+    bool ComissaoRepassada);
+
+public sealed record ClienteDaVenda(Guid Id, string Nome, string Responsavel, string Telefone, string? Documento, string? Email);
+
+public sealed record CobrancaDaVenda(SituacaoDaCobranca Situacao, MeioDePagamento Meio, long ValorCents, long EstornadoCents, DateTimeOffset CriadaEm, DateTimeOffset? PagaEm, DateTimeOffset? PixExpiraEm);
+
+public sealed record ItemDoGrupo(Guid Id, string Produto, string Codigo, int Quantidade, long ValorCents, SituacaoDaVenda Situacao);
+
+public sealed record OrdemDaVenda(long Numero, string Produto, int Quantidade, Domain.Servicos.SituacaoDaOrdem Situacao, DateTimeOffset CriadaEm, DateTimeOffset? EntregueEm);
+
+public sealed record LinhaDaVenda(TipoDeLancamento Tipo, string Descricao, long ValorCents, string Competencia, DateTimeOffset OcorridoEm, bool Estorno);
+
 public sealed class Vendas(
     IBancoDeDados banco,
     IUsuarioAtual usuario,
@@ -617,9 +640,52 @@ public sealed class Vendas(
         }
     }
 
-    public async Task<IReadOnlyList<VendaDaLista>> Listar(CancellationToken ct)
+    /// <summary>
+    /// Uma venda com tudo o que ela tocou. O vendedor só abre a dele e não vê o
+    /// razão; o filtro do revendedor faz o resto.
+    /// </summary>
+    public async Task<DetalheDaVenda> Detalhe(Guid id, CancellationToken ct)
+    {
+        var vendedor = usuario.Papel == Papel.Vendedor;
+        var venda = await banco.Vendas.AsNoTracking().SingleOrDefaultAsync(v => v.Id == id && (!vendedor || v.VendedorId == usuario.UsuarioId), ct)
+            ?? throw new RegraDeNegocioException("Venda não encontrada.");
+        var linha = (await Listar(id, ct)).Single();
+
+        var cliente = await banco.Clientes.AsNoTracking().Where(c => c.Id == venda.ClienteId)
+            .Select(c => new ClienteDaVenda(c.Id, c.Nome, c.Responsavel, c.Telefone, c.Documento, c.Email)).SingleAsync(ct);
+        var cobranca = await banco.Cobrancas.AsNoTracking()
+            .Where(c => c.Origem == OrigemDaCobranca.Venda && c.OrigemId == venda.CobradaPor).OrderByDescending(c => c.CriadaEm)
+            .Select(c => new CobrancaDaVenda(c.Situacao, c.Meio, c.ValorCents, c.EstornadoCents, c.CriadaEm, c.PagaEm, c.PixExpiraEm)).FirstOrDefaultAsync(ct);
+        var itens = venda.GrupoId is { } grupo
+            ? await (from v in banco.Vendas.AsNoTracking()
+                     where v.GrupoId == grupo && v.Id != id
+                     join pr in banco.Produtos on v.ProdutoId equals pr.Id
+                     join p in banco.Placas on v.PlacaId equals p.Id into placas
+                     from p in placas.DefaultIfEmpty()
+                     orderby v.VendidaEm
+                     select new ItemDoGrupo(v.Id, pr.Nome, p == null ? "" : p.Codigo, v.Quantidade, v.ValorCents, v.Situacao)).ToListAsync(ct)
+            : [];
+        var ordens = await banco.OrdensDeServico.AsNoTracking().Where(o => o.VendaId == id).OrderBy(o => o.CriadaEm)
+            .Select(o => new OrdemDaVenda(o.Numero, o.Produto, o.Quantidade, o.Situacao, o.CriadaEm, o.EntregueEm)).ToListAsync(ct);
+        var razao = vendedor ? [] : await banco.Lancamentos.AsNoTracking().Where(l => l.VendaId == id).OrderBy(l => l.OcorridoEm)
+            .Select(l => new LinhaDaVenda(l.Tipo, l.Descricao, l.ValorCents, l.Competencia, l.OcorridoEm, l.EstornaId != null)).ToListAsync(ct);
+        var venceEm = venda.PlacaId is { } placa
+            ? await banco.Placas.AsNoTracking().Where(p => p.Id == placa).Select(p => p.VenceEm).SingleOrDefaultAsync(ct)
+            : null;
+
+        return new DetalheDaVenda(linha, cliente, cobranca, itens, ordens, razao, venda.ObservacaoDoCancelamento, venda.CanceladaEm, venceEm, venda.RepasseId is not null);
+    }
+
+    public Task<IReadOnlyList<VendaDaLista>> Listar(CancellationToken ct) => Listar(null, ct);
+
+    private async Task<IReadOnlyList<VendaDaLista>> Listar(Guid? so, CancellationToken ct)
     {
         var consulta = banco.Vendas.AsNoTracking();
+        if (so is { } apenas)
+        {
+            consulta = consulta.Where(v => v.Id == apenas);
+        }
+
         if (usuario.Papel == Papel.Vendedor)
         {
             consulta = consulta.Where(v => v.VendedorId == usuario.UsuarioId);

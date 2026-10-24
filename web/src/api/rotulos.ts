@@ -1,4 +1,4 @@
-import type { AcaoAuditada, CategoriaDeDespesa, CategoriaDoLote, EstadoDaPlaca, MotivoDaBaixa, MotivoDoCancelamento, Pedido, SituacaoDaCobranca, SituacaoDaOrdem, SituacaoDoContrato, SituacaoDoPedido, SituacaoDoProduto, NaturezaDaRetirada, TipoDeProduto } from './tipos'
+import type { AcaoAuditada, CategoriaDeDespesa, MeioDePagamento, TipoDeLancamento, CategoriaDoLote, EstadoDaPlaca, MotivoDaBaixa, MotivoDoCancelamento, Pedido, SituacaoDaCobranca, SituacaoDaOrdem, SituacaoDoContrato, SituacaoDoPedido, SituacaoDoProduto, NaturezaDaRetirada, TipoDeProduto } from './tipos'
 
 /** Os nomes que a tela mostra para cada situação da API. */
 export const ROTULO_DO_ESTADO: Record<EstadoDaPlaca, string> = {
@@ -46,6 +46,25 @@ export const ROTULO_DO_PEDIDO: Record<SituacaoDoPedido, string> = {
 /** O pedido despachado para retirada espera a revenda buscar a caixa na Avalia. */
 export const rotuloDoPedido = (p: Pick<Pedido, 'situacao' | 'retirada'>) =>
   p.situacao === 'Despachado' && p.retirada ? 'Pronto para retirada' : ROTULO_DO_PEDIDO[p.situacao]
+
+export const ROTULO_DO_LANCAMENTO: Record<TipoDeLancamento, string> = {
+  Receita: 'Receita',
+  TaxaAvalia: 'Parte da Avalia',
+  ComissaoDevida: 'Comissão devida',
+  ComissaoPaga: 'Comissão repassada',
+  CustoDaPlaca: 'Custo da placa',
+  Perda: 'Perda de placa',
+  Despesa: 'Despesa',
+  RetiradaDeSocio: 'Retirada de sócio',
+}
+
+export const ROTULO_DO_MEIO: Record<MeioDePagamento, string> = {
+  Pix: 'Pix',
+  Cartao: 'Cartão',
+  Link: 'Link de pagamento',
+  Dinheiro: 'Dinheiro',
+  OutroPix: 'Outro Pix',
+}
 
 export const ROTULO_DA_ORDEM: Record<SituacaoDaOrdem, string> = {
   AFazer: 'A fazer',
@@ -210,6 +229,7 @@ export const ROTULO_DA_DESPESA: Record<CategoriaDeDespesa, string> = {
   Impostos: 'Impostos',
   Taxas: 'Taxas',
   Outros: 'Outros',
+  ServicoDePjComNota: 'Serviço de PJ com nota',
 }
 
 export const ROTULO_DA_RETIRADA: Record<NaturezaDaRetirada, string> = {
