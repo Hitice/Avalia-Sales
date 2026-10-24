@@ -287,11 +287,10 @@ function contar(alvo) {
 }
 
 /* ---------------------------------------------------------------------------
-   Esteiras: um pulso acende os passos em ordem. "Play" repete.
+   Esteiras: um pulso acende os passos em ordem, cada vez que entram na tela.
    --------------------------------------------------------------------------- */
 function esteira(figura) {
   const passos = [...figura.querySelectorAll('.esteira-linha > li')];
-  const botao = figura.querySelector('[data-rodar]');
   let relogios = [];
 
   const rodar = () => {
@@ -310,8 +309,16 @@ function esteira(figura) {
     });
   };
 
-  botao?.addEventListener('click', rodar);
-  quandoVisivel(figura, rodar, 0.45);
+  // Roda toda vez que a esteira volta à tela, e não só na primeira.
+  if (parado || ! ('IntersectionObserver' in window)) {
+    rodar();
+
+    return;
+  }
+
+  new IntersectionObserver((entradas) => {
+    if (entradas[0].isIntersecting) rodar();
+  }, { threshold: 0.45 }).observe(figura);
 }
 
 /* ---------------------------------------------------------------------------
@@ -585,8 +592,17 @@ function venda(figura) {
     if (evento.detail === 0) destrava();
   });
 
+  // Tocar num cartão leva o celular àquela etapa. No celular, onde os cartões
+  // ficam embaixo do aparelho, a página sobe até ele para mostrar a tela mudando.
+  const empilhado = window.matchMedia('(max-width: 859px)');
+  const semMovimento = window.matchMedia('(prefers-reduced-motion: reduce)');
   figura.querySelectorAll('[data-ir]').forEach((botao) => {
-    botao.addEventListener('click', () => ir(Number(botao.dataset.ir)));
+    botao.addEventListener('click', () => {
+      ir(Number(botao.dataset.ir));
+      if (empilhado.matches) {
+        telefone.scrollIntoView({ behavior: semMovimento.matches ? 'auto' : 'smooth', block: 'center' });
+      }
+    });
   });
 
   ir(0);

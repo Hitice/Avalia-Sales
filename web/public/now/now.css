@@ -3588,3 +3588,65 @@ html:not(.js) .marca fieldset {
 .tela {
   padding-bottom: 4.4rem;
 }
+
+/* O fim de cada fluxo em azul da Avalia, e não no cinza claro. */
+.fluxo-no-branco {
+  border-color: #465fff;
+  background: rgb(70 95 255 / 0.16);
+}
+
+.esteira-linha li.esteira-fim.acesa {
+  border-color: rgb(70 95 255 / 0.9);
+  background: rgb(70 95 255 / 0.16);
+}
+
+.esteira-linha li.esteira-fim.acesa::before {
+  background: #465fff;
+  box-shadow: 0 0 0 4px rgb(70 95 255 / 0.28);
+}
+
+/* Os rótulos das duas paredes abrem para lados opostos: no celular elas ficam
+   coladas e os nomes se sobrepunham. */
+.parede-codigo span {
+  left: auto;
+  right: 0;
+  translate: 0 0;
+}
+
+.parede-banco span {
+  left: 0;
+  translate: 0 0;
+}
+
+/* Toque: o cartão inteiro da etapa leva a ela, e os links do autor têm altura de dedo. */
+.etapa-nome::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.hero-autor a,
+.assina a {
+  display: inline-block;
+  padding-block: 0.7rem;
+}
+
+/* Cada cartão de etapa é um botão para o celular: mão no cursor, borda que
+   acende e o foco do teclado no cartão inteiro. */
+.etapas li {
+  cursor: pointer;
+}
+
+.etapas li:hover:not([aria-current='step']) {
+  border-color: rgb(238 70 188 / 0.45);
+}
+
+.etapas li:has(.etapa-nome:focus-visible) {
+  outline: 2px solid #ee46bc;
+  outline-offset: 2px;
+}
+
+.etapa-nome:focus-visible {
+  outline: none;
+}
