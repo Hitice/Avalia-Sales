@@ -61,9 +61,15 @@ public sealed class GatewayFalso : IGatewayDePagamento
         Task.FromResult(new RecebedorDoGateway(id, "Recebedor de teste", "active"));
 
     public List<string> Cancelados { get; } = [];
+    public Exception? FalhaAoCancelar { get; set; }
 
     public Task CancelarPedido(string pedido, CancellationToken ct)
     {
+        if (FalhaAoCancelar is not null)
+        {
+            throw FalhaAoCancelar;
+        }
+
         Cancelados.Add(pedido);
         foreach (var (codigo, lido) in PorCodigo.Where(p => p.Value.Id == pedido).ToList())
         {

@@ -52,6 +52,10 @@ if (builder.Configuration["Sentry:Dsn"] is { Length: > 0 } dsn)
         o.MaxRequestBodySize = Sentry.Extensibility.RequestSize.None;
         o.TracesSampleRate = builder.Configuration.GetValue("Sentry:AmostraDeRastreio", 0.1);
         o.Environment = builder.Environment.EnvironmentName;
+
+        // Recusa de regra de negócio é resposta 422 ao usuário, e pedido abortado por quem chamou não é falha: os dois só fariam ruído.
+        o.AddExceptionFilterForType<AvaliaSales.Domain.RegraDeNegocioException>();
+        o.AddExceptionFilterForType<OperationCanceledException>();
     });
 }
 

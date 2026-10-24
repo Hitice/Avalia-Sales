@@ -225,7 +225,17 @@ public sealed class Cobrancas(IBancoDeDados banco, IGatewayDePagamento gateway, 
         var pedido = cobranca.PedidoNoGateway ?? (await gateway.BuscarPorCodigo(cobranca.Codigo, ct))?.Id;
         if (pedido is not null)
         {
-            await gateway.CancelarPedido(pedido, ct);
+            try
+            {
+                await gateway.CancelarPedido(pedido, ct);
+            }
+            catch (IntegracaoException recusa) when (recusa.Status is >= 400 and < 500)
+            {
+                // Recusa do Pagar.me é resposta para quem cancela, não falha do sistema: nada foi gravado, a venda segue paga.
+                throw new RegraDeNegocioException(recusa.Message.Contains("Saldo insuficiente", StringComparison.OrdinalIgnoreCase)
+                    ? "O Pagar.me não estornou por falta de saldo. Estorne pelo painel do Pagar.me, que devolve a taxa junto, e cancele a venda aqui de novo."
+                    : "O Pagar.me recusou o cancelamento desta cobrança. Confira no painel do Pagar.me.");
+            }
         }
 
         var lida = cobranca.Situacao == SituacaoDaCobranca.Paga ? SituacaoDaCobranca.Estornada : SituacaoDaCobranca.Cancelada;

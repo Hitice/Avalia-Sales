@@ -38,6 +38,21 @@ public sealed class CancelamentoETesteTest(ApiDeTeste api)
         await Rotinas(DateTimeOffset.UtcNow.AddMinutes(10));
         Assert.Equal(1, await banco.Contar($"select count(*) from lancamentos where venda_id = '{venda}' and tipo = 'Receita' and estorna_id is null"));
 
+        // Sem saldo disponível na conta, o Pagar.me recusa o estorno: a recusa chega clara e nada muda.
+        api.Gateway.FalhaAoCancelar = new Application.IntegracaoException("Pagar.me", 412,
+            "{\"message\": \"This charge cannot be canceled. Error: action_forbidden |  | Saldo insuficiente.\"}");
+        try
+        {
+            var recusa = await revenda.Dono.Postar($"/vendas/{venda}/cancelamento", new { motivo = "Desistencia" }, HttpStatusCode.UnprocessableEntity);
+            Assert.Contains("painel do Pagar.me", recusa.GetProperty("detail").GetString());
+        }
+        finally
+        {
+            api.Gateway.FalhaAoCancelar = null;
+        }
+
+        Assert.Equal(1, await banco.Contar($"select count(*) from vendas where id = '{venda}' and situacao = 'Registrada'"));
+
         await revenda.Dono.Postar($"/vendas/{venda}/cancelamento", new { motivo = "Desistencia", observacao = "Mudou de ideia no 3º dia" }, HttpStatusCode.NoContent);
 
         Assert.Contains(api.Gateway.PorCodigo[cobranca].Id, api.Gateway.Cancelados);
