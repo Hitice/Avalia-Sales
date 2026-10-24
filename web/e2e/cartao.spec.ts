@@ -8,11 +8,12 @@ for (const [numero, esperado] of [['4000 0000 0000 0010', 'Pagamento confirmado'
     const codigo = await placaLivre()
 
     await page.goto('/vender')
+    await page.getByRole('list', { name: 'Itens do catálogo' }).getByRole('button').first().click()
     await page.getByLabel('Ou o link de avaliação do perfil').fill('g.page/r/CartaoDeTeste/review')
-    await page.getByRole('button', { name: 'Configurar' }).click()
     await page.getByLabel('Código da placa').fill(codigo)
     await page.getByRole('button', { name: 'Conferir' }).click()
-    await page.getByRole('button', { name: 'Continuar' }).click()
+    await page.getByRole('button', { name: 'Adicionar à venda' }).click()
+    await page.getByRole('button', { name: /^Continuar/ }).click()
     await page.getByLabel('Empresa').fill('Loja do Cartão')
     await page.getByLabel('Responsável').fill('Rui')
     await page.getByLabel('Telefone com DDD').fill('34988887777')
@@ -20,8 +21,6 @@ for (const [numero, esperado] of [['4000 0000 0000 0010', 'Pagamento confirmado'
     await page.getByLabel('E-mail').fill('rui@loja.com.br')
     await page.getByRole('button', { name: 'Ir para a cobrança' }).click()
 
-    await page.getByRole('combobox').first().click()
-    await page.getByRole('option').first().click()
     await page.getByRole('radio', { name: 'Cartão' }).click()
     await expect(page.getByRole('button', { name: 'Cobrar no cartão' })).toBeDisabled()
     await page.getByLabel('Número do cartão').fill(numero)

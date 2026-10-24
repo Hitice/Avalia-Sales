@@ -131,7 +131,7 @@ Até lá, um arquivo CSS basta.
 
 | Largura | Menu |
 | --- | --- |
-| Celular (abaixo de 768 px) | Barra de baixo com 5 telas do papel (com o Catálogo) e "Mais" em gaveta, ícone `size-4.5` e altura `min-h-13`; some na Nova venda |
+| Celular (abaixo de 768 px) | Barra de baixo com 4 telas do papel (Início, Vender, Vendas e Estoque ou Placas; o Catálogo é a aba Catálogo de Vendas) e "Mais" em gaveta, ícone `size-4.5` e altura `min-h-13`; some na Nova venda |
 | Tablet (768 a 1023 px) | Menu de cima, quebrando linha |
 | Computador (1024 px ou mais) | Painel lateral da altura da janela (`bg-card`, borda à direita, 15rem): a revenda e o papel num bloco `muted`, Nova venda como botão primário, grupos com título, ícone em cada item (lucide) e, no ativo, fundo `accent`, ícone e barra à esquerda na primária; o menu rola por dentro e a conta fica no pé, abrindo para cima |
 
@@ -161,8 +161,10 @@ poucas, como o tipo de desconto ou a forma de pagamento, use
 
 - Alvo de toque de 44 px ou mais; botão primário ao alcance do polegar, no pé
   da tela.
-- Um passo por tela na Nova venda: ler a placa, achar o negócio, escolher o
-  destino, cobrar.
+- Um passo por tela na Nova venda: os itens (a placa abre uma folha de baixo
+  com o QR e o destino; o serviço entra com o pedido mínimo e o passo de
+  quantidade), o cliente, a cobrança de tudo numa vez. O total vai no botão do
+  pé.
 - Leitura de QR pela câmera e NFC pelo navegador (Web NFC, só Chrome do
   Android). No iPhone, só câmera.
 

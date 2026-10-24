@@ -56,12 +56,14 @@ test('jornada entre operadora, revenda e vendedora, e cada um vê só o que é d
   await vendedora.goto('/vendedor/placas')
   const codigo = (await vendedora.getByRole('row').filter({ hasText: 'Em estoque' }).first().locator('td').first().innerText()).trim()
   await vendedora.goto('/vender')
+  // A placa é um item do catálogo: abre a leitura do QR e o destino numa folha.
+  await vendedora.getByRole('list', { name: 'Itens do catálogo' }).getByRole('button').first().click()
   await vendedora.getByRole('tab', { name: 'Link do cliente' }).click()
   await vendedora.getByLabel('Endereço').fill('cardapio.jornada.com.br')
-  await vendedora.getByRole('button', { name: 'Configurar' }).click()
   await vendedora.getByLabel('Código da placa').fill(codigo)
   await vendedora.getByRole('button', { name: 'Conferir' }).click()
-  await vendedora.getByRole('button', { name: 'Continuar' }).click()
+  await vendedora.getByRole('button', { name: 'Adicionar à venda' }).click()
+  await vendedora.getByRole('button', { name: /^Continuar/ }).click()
   await vendedora.getByLabel('Empresa').fill(negocio)
   await vendedora.getByLabel('Responsável').fill('Marta')
   // Documento e telefone novos: a venda reaproveita o cliente por qualquer um dos dois.
@@ -69,8 +71,6 @@ test('jornada entre operadora, revenda e vendedora, e cada um vê só o que é d
   await vendedora.getByLabel('CNPJ ou CPF').fill(cpfNovo())
   await vendedora.getByLabel('E-mail').fill('marta@jornada.com.br')
   await vendedora.getByRole('button', { name: 'Ir para a cobrança' }).click()
-  await vendedora.getByRole('combobox').first().click()
-  await vendedora.getByRole('option').first().click()
   await vendedora.getByRole('button', { name: 'Registrar venda' }).click()
   await expect(vendedora.getByRole('heading', { name: 'Venda registrada' })).toBeVisible()
   // O Pix simulado paga em 20 s e o Worker confere a cobrança pendente: a tela confirma sozinha.
