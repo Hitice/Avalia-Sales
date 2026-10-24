@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { ChevronLeft } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { CircleCheck, ChevronLeft } from 'lucide-react'
+import { ViewTransition, startTransition, useEffect, useState } from 'react'
 import { type UseFormReturn, useForm } from 'react-hook-form'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import { useSessao } from '@/acesso/sessao'
@@ -118,7 +118,8 @@ export function TelaDeNovaVenda() {
       if (lugar && !formularioDoCliente.getValues('empresa').trim()) formularioDoCliente.setValue('empresa', lugar.nome, { shouldDirty: true, shouldValidate: true })
     }
     if (proximo === 'cobranca' && meio === 'Teste' && !testeCabe) setMeio('Pix')
-    setPasso(proximo)
+    // A troca de etapa é uma transição: o <ViewTransition> da etapa desliza 8 px em 150 a 180 ms (index.css).
+    startTransition(() => setPasso(proximo))
   }
 
   /** A seta do topo: um passo para trás; no primeiro, sai para a tela de onde veio. */
@@ -186,7 +187,7 @@ export function TelaDeNovaVenda() {
   return (
     <div className={cn('mx-auto grid gap-4 pb-24 md:pb-0', passo === 'itens' ? 'max-w-3xl' : 'max-w-md')}>
       <div className="flex items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold">Nova venda</h1>
+        <h1 className="text-xl font-medium">Nova venda</h1>
         <Button variant="ghost" size="icon" className="-mr-2 size-11" aria-label="Voltar" onClick={voltar}>
           <ChevronLeft aria-hidden className="size-6" />
         </Button>
@@ -199,7 +200,7 @@ export function TelaDeNovaVenda() {
               type="button"
               aria-current={p.id === passo ? 'step' : undefined}
               onClick={() => irPara(p.id)}
-              className={`min-h-11 w-full border-t-4 pt-1 text-left ${i <= indice ? 'border-primary font-medium' : 'border-muted text-muted-foreground hover:text-foreground'}`}
+              className={cn('flex min-h-11 w-full items-start border-t-2 pt-2 text-left transition-colors duration-150', i <= indice ? 'border-primary font-medium' : 'border-cinza-200 text-muted-foreground hover:text-foreground')}
             >
               {p.rotulo}
             </button>
@@ -207,8 +208,11 @@ export function TelaDeNovaVenda() {
         ))}
       </ol>
 
+      <ViewTransition key={passo} name="etapa">
+      {/* min-w-0: o nome longo truncado no resumo não alarga a coluna (e a página) no celular. */}
+      <div className="min-w-0">
       {passo === 'itens' && (
-        <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_20rem] md:items-start">
+        <div className="grid gap-4 md:lista-e-lateral-80 md:items-start">
           <Card>
             <CardHeader><CardTitle>Catálogo</CardTitle></CardHeader>
             <CardContent className="grid gap-3">
@@ -248,6 +252,8 @@ export function TelaDeNovaVenda() {
         <PassoDaCobranca linhas={linhas} erro={recusaDoCartao ?? vender.error} meio={meio} aoMudarMeio={setMeio} testeCabe={testeCabe}
           cartao={configDoCartao.data ?? null} formularioDoCartao={formularioDoCartao} />
       )}
+      </div>
+      </ViewTransition>
 
       {modal && (
         <ModalDaPlaca
@@ -316,7 +322,7 @@ function PassoDaCobranca({ linhas, erro, meio, aoMudarMeio, testeCabe, cartao, f
         {linhas.length === 0
           ? <Aviso>Nenhum item na venda.</Aviso>
           : (
-              <ul aria-label="Resumo da venda" className="grid gap-1 rounded-lg border p-3 text-sm">
+              <ul aria-label="Resumo da venda" className="grid gap-1 border-y py-3 text-sm">
                 {linhas.map((l) => (
                   <li key={l.id} className="flex justify-between gap-3">
                     <span className="min-w-0 truncate">{nomeDaLinha(l)}</span>
@@ -374,6 +380,13 @@ function Resultado({ registro, linhas, papel, aoRecomecar }: { registro: VendasR
   const consulta = usePagamentoDaVenda(registro.vendas[0].vendaId, !!pix && !vencido)
   const pagamento = consulta.data?.situacao ?? registro.cobranca?.situacao ?? null
   const esperando = !!pix && pagamento === 'Pendente' && !vencido
+  // A tela troca o QR pela confirmação numa transição (200 ms, index.css). O QR
+  // da primeira resposta aparece na hora: só a mudança de situação espera a transição.
+  const [naTela, setNaTela] = useState(pagamento)
+  useEffect(() => {
+    if (pagamento !== naTela) startTransition(() => setNaTela(pagamento))
+  }, [pagamento, naTela])
+  const qrNaTela = !!pix && naTela === 'Pendente' && !vencido
   const primeiraPlaca = registro.vendas.find((v) => v.codigo)
   const temServico = registro.vendas.some((v) => !v.codigo)
 
@@ -386,7 +399,7 @@ function Resultado({ registro, linhas, papel, aoRecomecar }: { registro: VendasR
 
   return (
     <div className="mx-auto grid max-w-md gap-4">
-      <h1 className="text-xl font-semibold">Venda registrada</h1>
+      <h1 className="text-xl font-medium">Venda registrada</h1>
       <Card>
         <CardContent className="grid gap-4 pt-6">
           <ul aria-label="Itens vendidos" className="grid divide-y">
@@ -408,15 +421,24 @@ function Resultado({ registro, linhas, papel, aoRecomecar }: { registro: VendasR
           )}
           {temServico && <p className="text-sm text-muted-foreground">Com o pagamento, a Avalia recebe a ordem do serviço e você acompanha em Serviços.</p>}
           {registro.semCobranca && <Aviso>{registro.semCobranca}</Aviso>}
-          {esperando && (
-            <>
-              <PixNaTela copiaECola={pix} imagemDoGateway={registro.cobranca?.pixQrCodeUrl ?? null} />
-              <p role="status" className="text-center text-sm text-muted-foreground">Esperando o pagamento...</p>
-            </>
-          )}
-          {pix && pagamento === 'Pendente' && vencido && <Aviso>O Pix venceu sem pagamento. Gere outro em Vendas.</Aviso>}
-          {pagamento === 'Paga' && <p role="status" className="text-center text-lg font-semibold">Pagamento confirmado</p>}
-          {pagamento && pagamento !== 'Paga' && pagamento !== 'Pendente' && <Aviso>Pagamento {ROTULO_DO_PAGAMENTO[pagamento].toLowerCase()}.</Aviso>}
+          <ViewTransition name="pix">
+            <div className="grid min-w-0 gap-4 empty:hidden">
+              {qrNaTela && (
+                <>
+                  <PixNaTela copiaECola={pix} imagemDoGateway={registro.cobranca?.pixQrCodeUrl ?? null} />
+                  <p role="status" className="text-center text-sm text-muted-foreground">Esperando o pagamento...</p>
+                </>
+              )}
+              {pix && naTela === 'Pendente' && vencido && <Aviso>O Pix venceu sem pagamento. Gere outro em Vendas.</Aviso>}
+              {naTela === 'Paga' && (
+                <p role="status" className="flex items-center justify-center gap-2 rounded-md border border-sucesso-borda bg-sucesso-fundo p-4 text-md font-medium text-sucesso">
+                  <CircleCheck aria-hidden className="size-5" />
+                  Pagamento confirmado
+                </p>
+              )}
+              {naTela && naTela !== 'Paga' && naTela !== 'Pendente' && <Aviso>Pagamento {ROTULO_DO_PAGAMENTO[naTela].toLowerCase()}.</Aviso>}
+            </div>
+          </ViewTransition>
         </CardContent>
       </Card>
       <div className="grid grid-cols-2 gap-2">

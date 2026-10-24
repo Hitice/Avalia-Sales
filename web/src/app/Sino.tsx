@@ -51,17 +51,17 @@ export function Sino() {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
-          <Bell aria-hidden className="size-5" />
+          <Bell aria-hidden className="size-4.5" />
           <span className="sr-only">Notificações{naoLidas > 0 ? `, ${naoLidas} não lidas` : ''}</span>
           {naoLidas > 0 && (
-            <span aria-hidden className="absolute -top-0.5 -right-0.5 flex min-w-5 items-center justify-center rounded-full bg-destructive px-1 text-xs font-semibold text-primary-foreground tabular-nums">
+            <span aria-hidden className="absolute top-0.5 right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-2xs font-medium text-primary-foreground tabular-nums ring-2 ring-card md:top-0 md:right-0">
               {naoLidas > 99 ? '99+' : naoLidas}
             </span>
           )}
         </Button>
       </DropdownMenuTrigger>
       {/* No celular o sino fica perto da borda: a margem de colisão mantém o menu dentro da tela. */}
-      <DropdownMenuContent align="end" collisionPadding={12} className="w-80 max-w-[calc(100vw-1.5rem)]">
+      <DropdownMenuContent align="end" collisionPadding={12} className="w-80 max-w-(--radix-dropdown-menu-content-available-width)">
         <DropdownMenuLabel className="flex items-center justify-between">
           Notificações
           {(caixa.data?.naoLidas ?? 0) > 0 && (
@@ -74,7 +74,7 @@ export function Sino() {
         <div className="max-h-96 overflow-y-auto">
           {pendencias.map((p) => (
             <DropdownMenuItem key={p.texto} className="items-start gap-2 py-2" onSelect={() => p.link && navegar(p.link)}>
-              <TriangleAlert aria-hidden className="mt-0.5 size-4 shrink-0 text-destructive" />
+              <TriangleAlert aria-hidden className="mt-0.5 size-4 shrink-0 text-atencao" />
               <span className="text-sm">{p.texto}</span>
             </DropdownMenuItem>
           ))}
@@ -91,7 +91,7 @@ export function Sino() {
             >
               <span className="flex items-center gap-2">
                 {!n.lida && <span aria-label="Não lida" className="size-2 shrink-0 rounded-full bg-primary" />}
-                <span className={cn('text-sm', !n.lida && 'font-semibold')}>{n.titulo}</span>
+                <span className={cn('text-sm', !n.lida && 'font-medium')}>{n.titulo}</span>
               </span>
               <span className="text-xs text-muted-foreground">{n.texto}</span>
               <span className="text-xs text-muted-foreground">{n.revendedor ? `${n.revendedor}, ` : ''}{formatarDataHora(n.criadaEm)}</span>

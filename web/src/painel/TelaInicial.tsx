@@ -1,33 +1,52 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router'
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
+import { Bar, BarChart, CartesianGrid, Cell, XAxis, YAxis } from 'recharts'
 import type { VendaDaLista } from '@/api/tipos'
-import { Cabecalho, Carregando, Erro } from '@/componentes/Tela'
+import { Cabecalho, Carregando, Erro, Rolagem, Vazio } from '@/componentes/Tela'
 import { Indicador, Indicadores } from '@/componentes/Indicador'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { formatarCentavos } from '@/dinheiro/dinheiro'
 import { useContaEncerrada } from '@/app/contaEncerrada'
+import { useDre } from '@/financeiro/consultas'
+import { Rosca } from '@/financeiro/Graficos'
 import { usePlacas, useVendas } from './consultas'
+import { nomeDoProduto, rotuloDaVenda, tomDaVenda } from './situacaoDaVenda'
 
 const DIA = 86_400_000
 const diaCurto = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit' })
-const mesCurto = new Intl.DateTimeFormat('pt-BR', { month: 'short' })
-const reaisSemCentavos = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
+const hora = new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit' })
+const diaDaSemana = new Intl.DateTimeFormat('pt-BR', { weekday: 'long' })
+const diaEMes = new Intl.DateTimeFormat('pt-BR', { day: 'numeric', month: 'long' })
 
 const configDasVendas = { vendas: { label: 'Vendas', color: 'var(--chart-1)' } } satisfies ChartConfig
-const configDoRecebido = { reais: { label: 'Recebido', color: 'var(--chart-1)' } } satisfies ChartConfig
 
-/** O resumo do dono: os números do mês e três gráficos das vendas. Avisos e pendências ficam no sino. */
+/** "Sexta, 24 de outubro". */
+function dataPorExtenso(agora: number) {
+  const semana = diaDaSemana.format(agora).replace('-feira', '')
+  return `${semana[0].toUpperCase()}${semana.slice(1)}, ${diaEMes.format(agora)}`
+}
+
+/**
+ * O resumo do dono (esboço aprovado, DESIGN.md): os quatro números do mês, as
+ * vendas dos últimos 30 dias ao lado de para onde foi o dinheiro do mês, e as
+ * vendas de hoje com a situação de cada uma. Avisos e pendências ficam no sino.
+ */
 export function TelaInicial() {
   const encerrada = useContaEncerrada()
   const placas = usePlacas({ pagina: 1 })
   const vendas = useVendas()
+  const dre = useDre(undefined)
   // Fixado na abertura da tela: o relógio não muda entre uma renderização e outra.
   const [agora] = useState(() => Date.now())
   const dados = useMemo(() => montar(vendas.data ?? [], agora), [vendas.data, agora])
   const porEstado = placas.data?.porEstado ?? {}
+  const d = dre.data
+  // No celular a Nova venda já está no título da tela: o vazio não repete o botão.
+  const novaVenda = !encerrada && <Button asChild variant="outline" className="max-lg:hidden"><Link to="/vender">Nova venda</Link></Button>
 
   const numeros = [
     { rotulo: 'Placas em estoque', valor: String(porEstado.EmEstoque ?? 0) },
@@ -38,68 +57,116 @@ export function TelaInicial() {
 
   return (
     <>
-      <Cabecalho titulo="Início">
-        {!encerrada && <Button asChild><Link to="/vender">Nova venda</Link></Button>}
+      <Cabecalho titulo="Início" detalhe={dataPorExtenso(agora)}>
+        {/* No computador a Nova venda está no topo do painel lateral. */}
+        {!encerrada && <Button asChild className="lg:hidden"><Link to="/vender">Nova venda</Link></Button>}
       </Cabecalho>
       <Erro erro={vendas.error} />
       <Indicadores>{numeros.map((n) => <Indicador key={n.rotulo} rotulo={n.rotulo} valor={n.valor} />)}</Indicadores>
-      {vendas.isPending ? <div className="mt-4"><Carregando linhas={2} /></div> : (
-        <div className="mt-4 grid gap-4 xl:grid-cols-2">
-          <Card className="xl:col-span-2">
-            <CardHeader><CardTitle>Vendas nos últimos 30 dias</CardTitle></CardHeader>
-            <CardContent>
-              <ChartContainer config={configDasVendas} className="aspect-auto h-56 w-full">
-                <BarChart accessibilityLayer data={dados.porDia} margin={{ left: -16, right: 4 }}>
-                  <CartesianGrid vertical={false} />
-                  <XAxis dataKey="dia" tickLine={false} axisLine={false} tickMargin={8} minTickGap={24} />
-                  <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={40} />
-                  <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-                  <Bar dataKey="vendas" fill="var(--color-vendas)" radius={[4, 4, 0, 0]} maxBarSize={18} />
-                </BarChart>
-              </ChartContainer>
-              <TabelaOculta titulo="Vendas por dia" linhas={dados.porDia.map((d) => [d.dia, String(d.vendas)])} />
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader><CardTitle>Recebido por mês</CardTitle></CardHeader>
-            <CardContent>
-              <ChartContainer config={configDoRecebido} className="aspect-auto h-56 w-full">
-                <BarChart accessibilityLayer data={dados.porMes} margin={{ left: 4, right: 4 }}>
-                  <CartesianGrid vertical={false} />
-                  <XAxis dataKey="mes" tickLine={false} axisLine={false} tickMargin={8} />
-                  <YAxis tickLine={false} axisLine={false} width={72} tickFormatter={(v: number) => reaisSemCentavos.format(v)} />
-                  <ChartTooltip cursor={false} content={<ChartTooltipContent formatter={(v) => formatarCentavos(Math.round(Number(v) * 100))} />} />
-                  <Bar dataKey="reais" fill="var(--color-reais)" radius={[4, 4, 0, 0]} maxBarSize={36} />
-                </BarChart>
-              </ChartContainer>
-              <TabelaOculta titulo="Recebido por mês" linhas={dados.porMes.map((m) => [m.mes, formatarCentavos(Math.round(m.reais * 100))])} />
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader><CardTitle>Vendas do mês por vendedor</CardTitle></CardHeader>
-            <CardContent>
-              {dados.porVendedor.length === 0
-                ? <p className="text-sm text-muted-foreground">Nenhuma venda no mês.</p>
-                : (
-                    <ChartContainer config={configDasVendas} className="aspect-auto w-full" style={{ height: Math.max(120, dados.porVendedor.length * 40) }}>
-                      <BarChart accessibilityLayer data={dados.porVendedor} layout="vertical" margin={{ left: 4, right: 16 }}>
-                        <CartesianGrid horizontal={false} />
-                        <XAxis type="number" allowDecimals={false} tickLine={false} axisLine={false} />
-                        <YAxis type="category" dataKey="vendedor" tickLine={false} axisLine={false} width={120}
-                          tickFormatter={(nome: string) => (nome.length > 16 ? `${nome.slice(0, 15)}…` : nome)} />
-                        <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-                        <Bar dataKey="vendas" fill="var(--color-vendas)" radius={[0, 4, 4, 0]} maxBarSize={20} />
-                      </BarChart>
-                    </ChartContainer>
-                  )}
-              <TabelaOculta titulo="Vendas por vendedor" linhas={dados.porVendedor.map((v) => [v.vendedor, String(v.vendas)])} />
-            </CardContent>
-          </Card>
-        </div>
-      )}
+      <div className="mt-3 grid gap-3 md:mt-4 md:gap-4 lg:grid-cols-12">
+        <Card className="lg:col-span-7">
+          <CardHeader>
+            <CardTitle>Vendas nos últimos 30 dias</CardTitle>
+            <CardAction className="text-xs text-muted-foreground tabular-nums">{dados.porDia[0].dia} a {dados.porDia[29].dia}</CardAction>
+          </CardHeader>
+          <CardContent>
+            {vendas.isPending ? <Carregando linhas={3} /> : (
+              <>
+                <ChartContainer config={configDasVendas} className="aspect-auto h-48 w-full">
+                  <BarChart accessibilityLayer data={dados.porDia} margin={{ left: -20, right: 16, top: 4 }} barCategoryGap={2}>
+                    <CartesianGrid vertical={false} />
+                    <XAxis dataKey="dia" tickLine={false} axisLine={false} tickMargin={8} interval={0} ticks={[0, 7, 14, 21, 28].map((i) => dados.porDia[i].dia)} />
+                    <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={44} />
+                    <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+                    {/* Dia sem venda fica num traço cinza de 2 px: a falta aparece sem parecer dado. */}
+                    <Bar dataKey="vendas" radius={[2, 2, 0, 0]} maxBarSize={14} minPointSize={2} isAnimationActive={false}>
+                      {dados.porDia.map((p) => <Cell key={p.dia} fill={p.vendas > 0 ? 'var(--color-vendas)' : 'var(--chart-4)'} />)}
+                    </Bar>
+                  </BarChart>
+                </ChartContainer>
+                <TabelaOculta titulo="Vendas por dia" linhas={dados.porDia.map((p) => [p.dia, String(p.vendas)])} />
+              </>
+            )}
+          </CardContent>
+        </Card>
+        {d
+          ? (
+              <Rosca
+                className="lg:col-span-5"
+                titulo="Para onde foi o dinheiro do mês"
+                vazio="Nenhuma entrada no mês."
+                primeira={{ nome: 'Resultado', valorCents: d.resultadoCents }}
+                itens={[
+                  { nome: 'Custo das placas', valorCents: d.custoDasPlacasCents },
+                  { nome: 'Comissões', valorCents: d.comissoesCents },
+                  { nome: 'Taxas', valorCents: d.taxaCents },
+                  { nome: 'Perdas de placa', valorCents: d.perdasCents },
+                  { nome: 'Despesas', valorCents: d.despesasCents },
+                ]}
+              />
+            )
+          : (
+              <Card className="lg:col-span-5">
+                <CardHeader><CardTitle>Para onde foi o dinheiro do mês</CardTitle></CardHeader>
+                <CardContent>{dre.error ? <Erro erro={dre.error} /> : <Carregando linhas={3} />}</CardContent>
+              </Card>
+            )}
+        <Card className="lg:col-span-12">
+          <CardHeader>
+            <CardTitle>Vendas de hoje</CardTitle>
+            <CardAction><Button asChild variant="link" size="sm" className="-my-2 -mr-2.5"><Link to="/painel/vendas">Ver todas</Link></Button></CardAction>
+          </CardHeader>
+          <CardContent>
+            {vendas.isPending ? <Carregando linhas={3} /> : dados.hoje.length === 0 ? <Vazio texto="Nenhuma venda hoje." acao={novaVenda} /> : (
+              <Rolagem>
+                {/* Celular: lista de extrato, cliente em cima e valor à direita; no computador, a tabela do esboço. */}
+                <ul className="-my-1 divide-y md:hidden">
+                  {dados.hoje.map((v) => (
+                    <li key={v.id} className="flex items-center justify-between gap-3 py-3">
+                      <span className="min-w-0">
+                        <span className="block truncate font-medium">{v.cliente}</span>
+                        <span className="block truncate text-xs text-muted-foreground tabular-nums">{hora.format(Date.parse(v.vendidaEm))} · {item(v)}</span>
+                      </span>
+                      <span className="grid shrink-0 justify-items-end gap-1">
+                        <span className="font-medium tabular-nums">{formatarCentavos(v.valorCents)}</span>
+                        <Badge variant={tomDaVenda(v)}>{rotuloDaVenda(v)}</Badge>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                    <Table className="max-md:hidden">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-20">Hora</TableHead>
+                          <TableHead>Cliente</TableHead>
+                          <TableHead>Item</TableHead>
+                          <TableHead className="text-right">Valor</TableHead>
+                          <TableHead className="w-48">Situação</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {dados.hoje.map((v) => (
+                          <TableRow key={v.id}>
+                            <TableCell className="text-muted-foreground tabular-nums">{hora.format(Date.parse(v.vendidaEm))}</TableCell>
+                            <TableCell className="min-w-40 whitespace-normal">{v.cliente}</TableCell>
+                            <TableCell className="min-w-40 whitespace-normal text-muted-foreground">{item(v)}</TableCell>
+                            <TableCell className="text-right tabular-nums">{formatarCentavos(v.valorCents)}</TableCell>
+                            <TableCell><Badge variant={tomDaVenda(v)}>{rotuloDaVenda(v)}</Badge></TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+              </Rolagem>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </>
   )
 }
+
+/** "Placa K7M2PX" ou "10x Kit Mesa". */
+const item = (v: VendaDaLista) => (v.codigo ? `${nomeDoProduto(v)} ${v.codigo}` : nomeDoProduto(v))
 
 /** A mesma informação do gráfico, para leitor de tela. */
 function TabelaOculta({ titulo, linhas }: { titulo: string; linhas: string[][] }) {
@@ -111,7 +178,7 @@ function TabelaOculta({ titulo, linhas }: { titulo: string; linhas: string[][] }
   )
 }
 
-/** Venda cancelada não conta; recebido é o que foi pago, no mês do pagamento. */
+/** Venda cancelada não conta nos números; a lista de hoje mostra todas, cada uma com a situação. */
 function montar(vendas: VendaDaLista[], agora: number) {
   const valendo = vendas.filter((v) => v.situacao === 'Registrada')
   const hoje = new Date(agora)
@@ -123,23 +190,11 @@ function montar(vendas: VendaDaLista[], agora: number) {
     return { dia: diaCurto.format(inicio), vendas: valendo.filter((v) => { const t = Date.parse(v.vendidaEm); return t >= inicio && t < inicio + DIA }).length }
   })
 
-  const porMes = Array.from({ length: 6 }, (_, i) => {
-    const inicio = new Date(hoje.getFullYear(), hoje.getMonth() - (5 - i), 1)
-    const fim = new Date(inicio.getFullYear(), inicio.getMonth() + 1, 1).getTime()
-    const cents = valendo.filter((v) => v.pagamento === 'Paga' && v.pagaEm && Date.parse(v.pagaEm) >= inicio.getTime() && Date.parse(v.pagaEm) < fim)
-      .reduce((s, v) => s + v.valorCents, 0)
-    return { mes: mesCurto.format(inicio).replace('.', ''), reais: cents / 100 }
-  })
-
   const doMes = valendo.filter((v) => Date.parse(v.vendidaEm) >= inicioDoMes)
-  const contagem = new Map<string, number>()
-  for (const v of doMes) contagem.set(v.vendedor, (contagem.get(v.vendedor) ?? 0) + 1)
-  const porVendedor = [...contagem].map(([vendedor, n]) => ({ vendedor, vendas: n })).sort((a, b) => b.vendas - a.vendas).slice(0, 8)
 
   return {
     porDia,
-    porMes,
-    porVendedor,
+    hoje: vendas.filter((v) => Date.parse(v.vendidaEm) >= inicioDoDia).sort((a, b) => Date.parse(b.vendidaEm) - Date.parse(a.vendidaEm)).slice(0, 8),
     vendasNoMes: doMes.length,
     recebidoNoMesCents: doMes.filter((v) => v.pagamento === 'Paga').reduce((s, v) => s + v.valorCents, 0),
   }

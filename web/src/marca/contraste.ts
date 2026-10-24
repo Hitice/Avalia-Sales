@@ -1,6 +1,8 @@
 /** A mesma conta da API (Contraste.cs): luminância relativa da WCAG 2.2. */
 export const BRANCO = '#FFFFFF'
 export const ESCURO = '#120C2B'
+/** O quase preto da escala neutra (tokens.css), para medir se a primária da revenda some nele. */
+export const PRETO = '#18181B'
 
 export const corValida = (cor: string) => /^#[0-9a-f]{6}$/i.test(cor)
 

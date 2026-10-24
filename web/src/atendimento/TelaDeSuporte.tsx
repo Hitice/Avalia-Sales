@@ -21,7 +21,7 @@ export function TelaDeSuporte() {
     <>
       <Cabecalho titulo="Contate o suporte" />
       <p className="-mt-2 mb-4 text-sm text-muted-foreground">{HORARIO_DE_ATENDIMENTO}</p>
-      <div className="grid gap-4 lg:grid-cols-[20rem_minmax(0,1fr)]">
+      <div className="grid gap-4 lg:lateral-e-lista-80">
         <Card className="self-start">
           <CardContent className="grid gap-1 p-2">
             {aberto && <Button variant="ghost" className="justify-start" onClick={() => setAberto(null)}><Plus aria-hidden />Novo chamado</Button>}

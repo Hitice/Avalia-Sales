@@ -122,7 +122,7 @@ export function TelaDaPlaca() {
           {f.leituras.length > 0 && (
             <div className="flex h-24 items-end gap-0.5" role="img" aria-label={`Leituras dos últimos 30 dias: ${f.leituras.reduce((s, l) => s + l.total, 0)}`}>
               {f.leituras.map((l) => (
-                <div key={l.dia} title={`${formatarData(l.dia)}: ${l.total}`} className="flex-1 rounded-t bg-primary" style={{ height: `${(l.total / maior) * 100}%` }} />
+                <div key={l.dia} title={`${formatarData(l.dia)}: ${l.total}`} className="flex-1 rounded-t-sm bg-primary" style={{ height: `${(l.total / maior) * 100}%` }} />
               ))}
             </div>
           )}

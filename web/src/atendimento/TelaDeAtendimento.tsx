@@ -16,7 +16,7 @@ export function TelaDeAtendimento() {
       <p className="-mt-2 mb-4 text-sm text-muted-foreground">
         {esperando} esperando resposta{atrasados > 0 && <span className="font-medium text-destructive">, {atrasados} atrasado{atrasados > 1 ? 's' : ''}</span>}. {HORARIO_DE_ATENDIMENTO}
       </p>
-      <div className="grid gap-4 lg:grid-cols-[22rem_minmax(0,1fr)]">
+      <div className="grid gap-4 lg:lateral-e-lista-88">
         <Card className="self-start">
           <CardContent className="grid gap-1 p-2">
             <EstadoDaConsulta carregando={chamados.isPending} erro={chamados.error} vazio={chamados.data?.length === 0} textoVazio="Nenhum chamado." />

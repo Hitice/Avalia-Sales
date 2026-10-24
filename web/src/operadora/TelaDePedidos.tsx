@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { formatarDataHora, rotuloDoPedido } from '@/api/rotulos'
+import { formatarDataHora, rotuloDoPedido, TOM_DO_PEDIDO } from '@/api/rotulos'
 import type { Pedido } from '@/api/tipos'
 import { AcoesDaLinha } from '@/componentes/AcoesDaLinha'
 import { Cabecalho, Erro, EstadoDaConsulta, Rolagem } from '@/componentes/Tela'
@@ -49,7 +49,7 @@ export function TelaDePedidos() {
                       <TableCell className="text-right tabular-nums">{pedido.quantidade}</TableCell>
                       <TableCell className="text-right tabular-nums">{formatarCentavos(pedido.valorCents)}</TableCell>
                       <TableCell>{formatarDataHora(pedido.criadoEm)}</TableCell>
-                      <TableCell><Badge variant={pedido.situacao === 'Ativado' ? 'default' : 'secondary'}>{rotuloDoPedido(pedido)}</Badge></TableCell>
+                      <TableCell><Badge variant={TOM_DO_PEDIDO[pedido.situacao]}>{rotuloDoPedido(pedido)}</Badge></TableCell>
                       <TableCell>{pedido.lote ?? '-'}</TableCell>
                       <TableCell className="text-right">
                         {pedido.situacao === 'AguardandoPagamento' && (

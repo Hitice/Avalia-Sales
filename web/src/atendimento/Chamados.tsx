@@ -35,8 +35,8 @@ export function SituacaoDoChamadoEtiqueta({ chamado, operadora }: { chamado: Cha
   // O relógio fica fixo na renderização: a lista volta da API a cada aviso ao vivo.
   const [agora] = useState(() => Date.now())
   const p = prazo(chamado, agora)
-  if (operadora && p) return <Badge variant={p.atrasado ? 'destructive' : 'secondary'}>{p.texto}</Badge>
-  return <Badge variant={chamado.situacao === 'Resolvido' ? 'outline' : 'secondary'}>{ROTULO_DA_SITUACAO[chamado.situacao]}</Badge>
+  if (operadora && p) return <Badge variant={p.atrasado ? 'erro' : 'neutro'}>{p.texto}</Badge>
+  return <Badge variant={chamado.situacao === 'Resolvido' ? 'sucesso' : 'atencao'}>{ROTULO_DA_SITUACAO[chamado.situacao]}</Badge>
 }
 
 /** A lista de chamados: a operadora vê a revenda e o prazo; o dono, a situação. */
@@ -100,7 +100,7 @@ export function ConversaDoChamado({ base, id, operadora }: { base: BaseDosChamad
     <div className="grid gap-3">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
-          <h2 className="font-heading text-lg font-semibold">{chamado.assunto}</h2>
+          <h2 className="text-lg font-semibold">{chamado.assunto}</h2>
           <p className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
             Chamado {chamado.numero}{operadora && `, ${chamado.revendedor}`}
             <SituacaoDoChamadoEtiqueta chamado={chamado} operadora={operadora} />
@@ -110,11 +110,11 @@ export function ConversaDoChamado({ base, id, operadora }: { base: BaseDosChamad
           <Button variant="outline" onClick={() => resolver.mutate()} disabled={resolver.isPending}>Fechar</Button>
         )}
       </div>
-      <div className="grid max-h-[28rem] gap-2 overflow-y-auto rounded-lg border bg-card p-3" role="log" aria-label="Mensagens">
+      <div className="grid max-h-112 gap-2 overflow-y-auto rounded-lg border bg-card p-3" role="log" aria-label="Mensagens">
         {mensagens.map((m) => {
           const minha = m.daOperadora === operadora
           return (
-            <div key={m.id} className={cn('max-w-[85%] rounded-lg px-3 py-2 text-sm', minha ? 'justify-self-end bg-primary text-primary-foreground' : 'justify-self-start bg-muted')}>
+            <div key={m.id} className={cn('max-w-5/6 rounded-lg px-3 py-2 text-sm', minha ? 'justify-self-end bg-primary text-primary-foreground' : 'justify-self-start bg-muted')}>
               <p className="whitespace-pre-wrap">{m.texto}</p>
               <p className={cn('mt-1 text-xs', minha ? 'text-primary-foreground/80' : 'text-muted-foreground')}>{m.autor}, {formatarDataHora(m.enviadaEm)}{minha && m.lidaEm ? ', lida' : ''}</p>
             </div>

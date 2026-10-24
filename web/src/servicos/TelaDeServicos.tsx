@@ -1,19 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { chamarApi, enviarJson, mensagemDoErro } from '@/api/cliente'
-import { formatarDataHora, ROTULO_DA_ORDEM } from '@/api/rotulos'
-import type { OrdemDeServico, SituacaoDaOrdem } from '@/api/tipos'
+import { formatarDataHora, ROTULO_DA_ORDEM, TOM_DA_ORDEM } from '@/api/rotulos'
+import type { OrdemDeServico } from '@/api/tipos'
 import { Cabecalho, Erro, EstadoDaConsulta } from '@/componentes/Tela'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-
-const VARIANTE: Record<SituacaoDaOrdem, 'default' | 'secondary' | 'outline' | 'destructive'> = {
-  AFazer: 'secondary',
-  EmAndamento: 'default',
-  Entregue: 'outline',
-  Cancelada: 'destructive',
-}
 
 function useOrdens(caminho: string) {
   return useQuery({ queryKey: ['servicos', caminho], queryFn: () => chamarApi<OrdemDeServico[]>(caminho) })
@@ -91,7 +84,7 @@ function ListaDeOrdens({ ordens, carregando, erro, operadora = false, acoes }: {
                   {operadora && <TableCell>{o.revendedor}</TableCell>}
                   <TableCell className="whitespace-normal">{o.quantidade > 1 ? `${o.quantidade}x ${o.produto}` : o.produto}</TableCell>
                   <TableCell className="whitespace-normal">{o.cliente}</TableCell>
-                  <TableCell><Badge variant={VARIANTE[o.situacao]}>{ROTULO_DA_ORDEM[o.situacao]}</Badge></TableCell>
+                  <TableCell><Badge variant={TOM_DA_ORDEM[o.situacao]}>{ROTULO_DA_ORDEM[o.situacao]}</Badge></TableCell>
                   <TableCell className="tabular-nums">{formatarDataHora(o.entregueEm ?? o.iniciadaEm ?? o.criadaEm)}</TableCell>
                   {acoes && <TableCell className="text-right">{acoes(o)}</TableCell>}
                 </TableRow>

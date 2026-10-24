@@ -1,8 +1,24 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "plugins": ["react", "typescript", "oxc"],
+  "jsPlugins": ["eslint-plugin-better-tailwindcss", "./lint/design-system.js"],
+  "settings": {
+    "better-tailwindcss": { "entryPoint": "src/index.css" }
+  },
   "rules": {
     "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
+    "react/only-export-components": ["warn", { "allowConstantExport": true }],
+    "better-tailwindcss/no-unknown-classes": "error",
+    "better-tailwindcss/no-duplicate-classes": "error",
+    "better-tailwindcss/no-restricted-classes": ["error", {
+      "restrict": [
+        { "pattern": "(^|:)bg-(gradient|linear|radial|conic)-", "message": "Degradê não entra (DESIGN.md): fundo chapado." },
+        { "pattern": "(^|:)(backdrop-)?blur(-|$)", "message": "Desfoque e vidro não entram (DESIGN.md)." },
+        { "pattern": "(^|:)(drop-)?shadow-(?!sm$|md$|lg$|none$)", "message": "Só shadow-sm, shadow-md e shadow-lg, as sombras quase nulas dos tokens (DESIGN.md)." },
+        { "pattern": "(purple|violet|fuchsia|indigo)", "message": "Roxo genérico não entra (DESIGN.md): a cor da marca vem do token." },
+        { "pattern": "-\\[[^\\]]*\\]$|(^|:)\\[[^\\]]+:[^\\]]+\\]$", "message": "Valor solto não entra (DESIGN.md): use a escala, um token ou um utilitário de index.css." }
+      ]
+    }],
+    "design-system/sem-cor-solta": "error"
   }
 }

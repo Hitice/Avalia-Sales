@@ -44,7 +44,7 @@ export function TelaDoErp() {
                       <TableCell className="text-right tabular-nums">{e.quantidade}</TableCell>
                       <TableCell className="text-right tabular-nums">{formatarCentavos(e.valorCents)}</TableCell>
                       <TableCell>
-                        <Badge variant={e.situacao === 'Enviado' ? 'default' : e.situacao === 'Parado' ? 'destructive' : 'secondary'}>{ROTULO[e.situacao]}</Badge>
+                        <Badge variant={e.situacao === 'Enviado' ? 'sucesso' : e.situacao === 'Parado' ? 'erro' : 'atencao'}>{ROTULO[e.situacao]}</Badge>
                         {e.ultimoErro && <p className="mt-1 max-w-64 truncate text-xs text-muted-foreground" title={e.ultimoErro}>{e.tentativas} tentativas: {e.ultimoErro}</p>}
                       </TableCell>
                       <TableCell className="tabular-nums">{e.numeroNoErp ?? '-'}</TableCell>

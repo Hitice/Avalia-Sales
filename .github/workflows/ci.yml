@@ -59,6 +59,8 @@ jobs:
         run: npm run tipos && git diff --exit-code src/api/esquema.d.ts
       - run: npm run typecheck
       - run: npm run lint
+      # O npm test roda os testes de unidade e cada história do Storybook no Chromium, com o axe em modo erro.
+      - run: npx playwright install --with-deps chromium
       - run: npm test
       - run: npx vite build
       # O catálogo vivo precisa compilar: história quebrada falha aqui.

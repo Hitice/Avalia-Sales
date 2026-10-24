@@ -61,7 +61,7 @@ export function TelaDeLotes() {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_18rem]">
+    <div className="grid grid-cols-1 gap-4 xl:lista-e-lateral-72">
       <div>
         <Cabecalho titulo="Lotes" />
         <Erro erro={erroDoArquivo ?? (falha ? mensagemDoErro(falha) : null)} />
@@ -94,7 +94,7 @@ export function TelaDeLotes() {
                           <span className="flex flex-wrap items-center gap-1.5">
                             {lote.titulo ?? '-'}
                             {lote.categoria && lote.categoria !== 'Placa' && <Badge variant="outline">{ROTULO_DA_CATEGORIA[lote.categoria]}</Badge>}
-                            {lote.arquivadoEm && <Badge variant="secondary">Arquivado</Badge>}
+                            {lote.arquivadoEm && <Badge variant="neutro">Arquivado</Badge>}
                           </span>
                         </TableCell>
                         <TableCell className="text-right tabular-nums">{lote.quantidade}</TableCell>

@@ -40,7 +40,7 @@ export function FichaDoCliente({ id, outros, aoFechar }: { id: string; outros: O
 
   return (
     <Dialog open onOpenChange={(aberto) => !aberto && aoFechar()}>
-      <DialogContent className="max-h-[90dvh] overflow-y-auto">
+      <DialogContent className="altura-da-folha overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{c?.nome ?? 'Cliente'}</DialogTitle>
           <DialogDescription>{c ? `Desde ${formatarData(c.criadoEm)}` : ''}</DialogDescription>
@@ -75,9 +75,9 @@ export function FichaDoCliente({ id, outros, aoFechar }: { id: string; outros: O
           </form>
         )}
         {c && c.vendas.length > 0 && (
-          <ul className="grid gap-2 text-sm" aria-label="Vendas do cliente">
+          <ul className="divide-y border-y text-sm" aria-label="Vendas do cliente">
             {c.vendas.map((v) => (
-              <li key={v.vendaId} className="flex justify-between gap-3 rounded-lg border p-2">
+              <li key={v.vendaId} className="flex justify-between gap-3 py-2.5">
                 <span>
                   <span className="block font-medium tabular-nums">{v.codigo ?? v.produto}</span>
                   <span className="text-muted-foreground">{v.situacao === 'Cancelada' ? 'Cancelada' : v.estado ? ROTULO_DO_ESTADO[v.estado as EstadoDaPlaca] : 'Serviço'}{v.venceEm ? `, vence ${formatarData(v.venceEm)}` : ''}</span>

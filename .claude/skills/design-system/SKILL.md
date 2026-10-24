@@ -5,9 +5,16 @@ description: Design system do Avalia Sales, o front React único (painel do reve
 
 # Design system do Avalia Sales
 
+O sistema publicado, com os valores, está em `DESIGN.md` na raiz: ler antes de
+criar tela ou componente. Direção escolhida pelo dono em 24/10/2026 - o padrão
+da categoria (Stripe Dashboard, Linear, Shopify Admin, apps PJ de banco),
+executado sem defeito; proibido o visual de template de IA e o que quebre a
+marca da revenda (`PRODUCT.md`).
+
 Regra central: toda cor, fonte, raio e espaçamento sai de variável CSS.
 Componente não escreve hex nem número mágico. É o que permite trocar a marca do
-revendedor sem mexer em tela.
+revendedor sem mexer em tela. O lint cobra (`npm run lint`, seção Travas do
+`DESIGN.md`).
 
 ## Um front só
 
@@ -33,31 +40,29 @@ variáveis semânticas em `:root` (`--background`, `--foreground`, `--primary`,
 transforma cada uma em classe (`--color-primary: var(--primary)` vira
 `bg-primary`).
 
-A marca do revendedor sobrescreve só essas variáveis:
+A marca do revendedor sobrescreve só as variáveis de marca:
 
 1. O dono escolhe a cor primária e a de destaque na área Marca.
-2. O painel gera os tons a partir delas com
-   [material-color-utilities](https://github.com/material-foundation/material-color-utilities):
-   ```ts
-   import { argbFromHex, themeFromSourceColor } from '@material/material-color-utilities';
-   const tema = themeFromSourceColor(argbFromHex(primaria));
-   ```
-   e converte para os nomes de variável do shadcn.
-3. Antes de salvar, confere contraste de 4,5:1 entre cada par texto e fundo
-   (WCAG 2.2, luminância relativa). A API repete a conferência no Domain: a tela
-   não é a única validação.
-4. A API guarda as variáveis prontas no revendedor e entrega com a sessão.
-5. O app aplica em `:root` logo depois do login. Nada é recompilado.
+2. A tela e a API (`Contraste.cs` no Domain) recusam primária sem 4,5:1 com o
+   texto por cima e destaque com menos de 3:1 sobre branco (WCAG 2.2,
+   luminância relativa). A tela não é a única validação.
+3. A API guarda as cores e o texto sobre a primária e entrega com a sessão.
+4. `variaveisDaMarca` (`web/src/marca/marca.ts`, com o culori em OKLCH) gera
+   `--primary` (a cor inteira), `--primary-foreground` (o texto gravado),
+   `--primary-texto` (a primária escurecida até 4,5:1 sobre branco, para link
+   e ícone ativo), `--chart-1` (escurecida até 3:1, para a série principal),
+   `--ring` e `--destaque` (o destaque, no foco) e `--chart-2` (cinza quando a
+   primária é quase preta). `--primary-hover` segue a primária sozinho.
+5. `aplicarMarca` grava em `:root` logo depois do login. Nada é recompilado.
 
 Não há cor por usuário. Login e área da Avalia usam a marca da plataforma.
 
-As variáveis da revenda saem de `variaveisDaMarca(primaria, destaque)` em
-`marca.ts`, a mesma função que a prévia da tela Marca usa: o fundo do item
-ativo (`--accent`) é o tom 95 da primária na paleta tonal, com o tom 10 por
-cima; o destaque fica com o foco (`--ring`) e o traço. A seleção de texto é a
-primária a 20% e o foco de teclado é contorno sólido de 2 px no `--ring` (o
-"auto" do Safari ignora a cor). Modal abre com o foco nele mesmo, sem contorno
-no primeiro botão.
+A cor da revenda aparece só na ação principal, no ícone do item ativo, na
+seleção de texto (a primária a 20%), no foco (contorno sólido de 2 px no
+`--ring`) e no dado principal do gráfico. O item ativo fica em fundo neutro
+(`--accent` é o cinza-100). Estado nunca usa a cor da marca: vai em selo com
+tom semântico (seção Selos). Modal abre com o foco nele mesmo, sem contorno no
+primeiro botão.
 
 Cabeçalho: logo (ou nome) à esquerda e, à direita, o sino de notificações
 (dono e operadora, com o número de não lidas) e o menu da conta (iniciais
@@ -67,15 +72,17 @@ No computador, o logo fica na célula do topo do painel lateral (mesma largura
 e borda) e o menu da conta passa para o pé do painel; o cabeçalho fica só com
 o sino.
 
-Gráfico: série única em `--chart-1`, nunca a primária crua (escura demais para marca
-de dado), barras finas com ponta arredondada, grade só horizontal, tooltip ao passar
-e a mesma informação numa tabela `sr-only`. Antes de mudar a cor, rodar o validador
-da skill dataviz.
+Gráfico: série principal em `--chart-1`, nunca a primária crua, barras finas com
+ponta de 2 px, dia zerado num traço cinza de 2 px, grade só horizontal, tooltip ao
+passar e a mesma informação numa tabela `sr-only`. Rosca (`Rosca` em
+`financeiro/Graficos.tsx`) com até quatro partes; com `primeira`, essa parte fica
+sempre na cor da marca. Antes de mudar a cor, rodar o validador da skill dataviz.
 
-Carregando: barra no topo (`barra-de-carregando`, o traço correndo, aparece
-depois de 300 ms) enquanto a tela baixa ou uma consulta roda; dentro da tela,
-`Carregando` (blocos pulsando) no lugar da lista e `CarregandoTela` quando nada
-aparece sem o dado. Logo da revenda passa pela caixa de recorte
+Carregando: barra no topo (`barra-de-carregando`, aparece depois de 300 ms)
+enquanto a tela baixa ou uma consulta roda; dentro da tela, `Carregando`
+(linhas de 44 px pulsando) no lugar da lista, só onde a espera é real, e
+`CarregandoTela` quando nada aparece sem o dado. Lista vazia - `Vazio` (ou
+`EstadoDaConsulta` com `acao`): uma linha e, quando houver, uma ação. Logo da revenda passa pela caixa de recorte
 (`RecorteDoLogo`, `react-easy-crop`), horizontal 3:1 ou quadrado, começando
 com a imagem inteira enquadrada.
 
@@ -108,37 +115,52 @@ Até lá, um arquivo CSS basta.
 - Formulário de cadastro com React Hook Form + Zod (`mode: 'onChange'`) e o
   componente `componentes/Campo.tsx`: erro embaixo do campo ao sair dele ou ao
   enviar, `aria-invalid`, e borda verde com o ícone de conferido quando o dado
-  passa (`data-valido`; a classe `contorno-de-campo` do `index.css` põe o traço
-  da marca no foco e mantém o verde e o vermelho por cima dele). Documento,
+  passa (`data-valido`; a classe `contorno-de-campo` do `index.css` põe a borda e
+  o halo de 3 px no `--ring` no foco e mantém o verde e o vermelho por cima dele). Documento,
   telefone e código usam `mascara` (`lib/mascaras.ts`): só dígitos, com a
   pontuação, e a API recebe só os dígitos. As regras de campo (e-mail, telefone, CPF ou CNPJ, dinheiro,
   percentual, senha) moram em `lib/esquemas.ts`, iguais às da API. Endereço usa `componentes/CamposDeEndereco.tsx` (o CEP completo busca rua, bairro, cidade e UF; a consulta só preenche campo vazio). Filtro,
   busca e campo único dentro da linha ficam em estado simples.
 
-## A cara da Avalia sob o white label
+## Selos
 
-- O traço do site da Avalia (`--traco`, linha fina rosa > roxo > azul) é o
-  único ornamento: embaixo do cabeçalho, sob o título da tela (32 px) e no
-  item ativo da barra de baixo. Sempre linha, nunca fundo. A marca da revenda
-  troca o traço pelo degradê destaque > primária (`marca.ts`).
-- Títulos em Inter Display (opsz 32, `font-heading`), a dos títulos do site;
-  corpo na Geist.
-- Telas de entrada (entrar, cadastro, senha, confirmação) na noite da marca
-  (`bg-noite`, #120c2b) com o cartão branco e o traço no topo: antes do login
-  não há marca de revenda.
+Situação vai no `Badge` com tom semântico: `sucesso` (paga, entregue, ativa),
+`atencao` (aguardando, carência, a fazer), `erro` (falhou, cancelada,
+vencida), `info` (anda sozinho: pago, em produção, enviado) e `neutro` (o
+resto), cada um com ponto na cor do texto. O tom sai dos mapas de
+`api/rotulos.ts` (`TOM_DO_ESTADO`, `TOM_DO_PEDIDO`, `TOM_DA_ORDEM`,
+`TOM_DO_PRODUTO`, `TOM_DO_PAGAMENTO`, `TOM_DO_CONTRATO`) e, na venda, de
+`painel/situacaoDaVenda.ts`. `default` (cor da marca) é só contagem.
+
+## Tipo e movimento
+
+- Uma face, Geist, com número tabular em tudo; pesos 400 e 500. Título da
+  tela em 20 px, indicador em 24 px, corpo em 13 px, cabeçalho de tabela e
+  selo em 12 px, eixo e menu em 11 px. A escala padrão do Tailwind está
+  desligada: só as classes de `index.css` existem.
+- Movimento de 150 a 200 ms com saída exponencial (`ease-saida`), CSS primeiro
+  (`transition-colors`, `starting:` para entrada). `<ViewTransition>` do React
+  dentro de `startTransition` só na troca de etapa da Nova venda e na
+  confirmação do Pix; o QR do Pix nunca espera transição. Tudo atrás de
+  `prefers-reduced-motion`.
+- Telas de entrada (entrar, cadastro, senha, confirmação) no fundo claro, com
+  o cartão e o logo da plataforma: antes do login não há marca de revenda.
 
 ## Navegação por tamanho
 
 | Largura | Menu |
 | --- | --- |
-| Celular (abaixo de 768 px) | Barra de baixo com 4 telas do papel (Início, Vender, Vendas e Estoque ou Placas; o Catálogo é a aba Catálogo de Vendas) e "Mais" em gaveta, ícone `size-4.5` e altura `min-h-13`; some na Nova venda |
+| Celular (abaixo de 768 px) | Barra de baixo com 4 telas do papel (Início, Vender, Vendas e Estoque ou Placas; o Catálogo é a aba Catálogo de Vendas) e "Mais" em folha que sobe de baixo, ícone `size-5` (o ativo na cor da marca) e altura `min-h-13`; na Nova venda o botão da venda fica fixo acima dela |
 | Tablet (768 a 1023 px) | Menu de cima, quebrando linha |
-| Computador (1024 px ou mais) | Painel lateral da altura da janela (`bg-card`, borda à direita, 15rem): a revenda e o papel num bloco `muted`, Nova venda como botão primário, grupos com título, ícone em cada item (lucide) e, no ativo, fundo `accent`, ícone e barra à esquerda na primária; o menu rola por dentro e a conta fica no pé, abrindo para cima |
+| Computador (1024 px ou mais) | Painel lateral da altura da janela (`bg-card`, borda à direita, 15rem) com a marca no topo, sobre o fio do cabeçalho de 56 px: a revenda e o papel num bloco com borda, Nova venda como botão primário, grupos com título em 11 px, item de 32 px com ícone (lucide) e, no ativo, fundo `accent`, texto escuro e ícone em `--primary-texto`, sem barra lateral; o menu rola por dentro e a conta fica no pé, abrindo para cima. A Nova venda do título da tela some aqui |
 
-Tabela abaixo de 768 px vira cartão (`components/ui/table.tsx`): a primeira
-coluna é o título, as outras levam o rótulo da coluna em cima do valor e a
-coluna de ações (título só para leitor de tela) ocupa a linha toda. Tela nova
-com tabela não precisa de nada a mais.
+Tabela dentro do cartão vai em `Rolagem` (`componentes/Tela.tsx`). No
+computador ela encosta nas bordas do cartão, com o cabeçalho de 36 px em 12 px
+sobre o cinza-50 como topo do cartão e linhas de 44 px com fio claro. Abaixo
+de 768 px vira cartão (`components/ui/table.tsx`): a primeira coluna é o
+título, as outras levam o rótulo da coluna à esquerda do valor e a coluna de
+ações (título só para leitor de tela) ocupa a linha toda. Tela nova com tabela
+não precisa de nada a mais.
 
 No computador a tabela tem de caber no cartão:
 - Linha com mais de uma ação usa `componentes/AcoesDaLinha`: a principal
@@ -149,6 +171,8 @@ No computador a tabela tem de caber no cartão:
   `xl:grid-cols-[minmax(0,1fr)_20rem]`.
 - O que ainda passar rola dentro do cartão, com a sombra `sombra-de-rolagem`
   na borda. Conferir a 1024 e a 1280 px.
+- Lista dentro de cartão é linha com fio (`divide-y`), nunca caixa com borda:
+  cartão dentro de cartão não existe.
 
 ## Abas e escolha de opção
 
@@ -189,8 +213,13 @@ explicativo nem ajuda de campo que não mude a decisão.
 
 1. Procurar no Storybook e no shadcn: o componente quase sempre existe.
 2. Cor, espaço ou raio novo entra como variável em `tokens.css`, com o papel no
-   nome, nunca como valor solto no componente.
-3. Componente novo nasce com história no Storybook e passa no axe.
+   nome, e vira classe no `@theme inline` de `index.css`; nunca valor solto.
+3. Componente novo nasce com história no Storybook e passa no axe
+   (`npm test` roda cada história no Chromium com o axe em modo erro).
+4. Situação nova ganha o tom no mapa de `api/rotulos.ts`.
+5. Antes de entregar: `npm run lint` com zero erros, `npm test`,
+   `npx storybook build`, os testes de ponta a ponta com axe e o detector do
+   impeccable (`DESIGN.md`, Travas).
 
 ## Bibliotecas
 
@@ -202,7 +231,8 @@ Conferidas na API do GitHub e no npm em 21/10/2026, pelo critério da skill
 | [shadcn/ui](https://github.com/shadcn-ui/ui) | Modelo e CLI dos componentes | 126 mil | copiado |
 | [Radix Primitives](https://github.com/radix-ui/primitives) | Base acessível dos componentes | 19,4 mil | |
 | [Tailwind CSS](https://github.com/tailwindlabs/tailwindcss) | Estilo | 98 mil | 4.x |
-| [material-color-utilities](https://github.com/material-foundation/material-color-utilities) | Tons da marca a partir de uma cor | 2,3 mil | 0.4.0 |
+| [culori](https://github.com/Evercoder/culori) | A cor da marca escurecida em OKLCH até o contraste | | 4.x |
+| [eslint-plugin-better-tailwindcss](https://github.com/schoero/eslint-plugin-better-tailwindcss) | Classe desconhecida e proibida no lint (plugin JS do oxlint) | | |
 | [Storybook](https://github.com/storybookjs/storybook) | Catálogo vivo | 91 mil | 10.6.3 |
 | [axe-core](https://github.com/dequelabs/axe-core) | Acessibilidade | 7,7 mil | `@axe-core/playwright` 4.14.0 |
 | [Playwright](https://github.com/microsoft/playwright) | Teste de ponta a ponta | 98 mil | |
@@ -210,6 +240,10 @@ Conferidas na API do GitHub e no npm em 21/10/2026, pelo critério da skill
 | [react-easy-crop](https://github.com/ValentinH/react-easy-crop) | Recorte do logo | 2,8 mil | 6.2.4 |
 | [Style Dictionary](https://github.com/style-dictionary/style-dictionary) | Tokens em JSON, só se surgir outro consumidor | 4,9 mil | 5.7.0 |
 
-Estado em 22/10/2026: traço, Inter Display, navegação por tamanho e tabela em cartão no celular; axe no Playwright (`web/e2e`) em todas as telas do dono e nos fluxos de venda e convite. Storybook 10 (`npm run storybook`, porta 6006) com o addon de acessibilidade em modo erro e a troca de marca na barra (plataforma ou revenda); histórias de botão, campo, tabela (computador e celular), histórico e NFC. O CI compila o catálogo. Em 21/10/2026 o front tinha as telas das Fases 1 a 3 e a marca do revendedor aplicada nas variáveis (`web/src/marca`). Tokens
-em `web/src/estilos/tokens.css`; toque de 44 px aplicado nos tamanhos de
-`components/ui/button.tsx` e `input.tsx`; anel de foco em cor cheia.
+Estado em 24/10/2026: o padrão da categoria aplicado no shell e em todas as
+telas do dono, do vendedor e da operadora (DESIGN.md); Início no esboço
+aprovado; selos com tons semânticos; tabela encostada no cartão; lint com as
+proibições do DESIGN.md; cada história do Storybook no Chromium com o axe em
+modo erro; axe no Playwright (`web/e2e`) em todas as telas do dono e da
+operadora a 390 e 1440 px e nos fluxos de venda e convite. Toque de 44 px nos
+tamanhos de `components/ui/button.tsx` e `input.tsx`.

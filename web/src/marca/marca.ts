@@ -1,9 +1,9 @@
-import { argbFromHex, hexFromArgb, TonalPalette } from '@material/material-color-utilities'
+import { formatHex, modeOklch, modeRgb, toGamut, useMode as registrarModo } from 'culori/fn'
 import { useQuery } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import { chamarApi, chamarResposta } from '@/api/cliente'
 import { useSessao } from '@/acesso/sessao'
-import { ESCURO } from './contraste'
+import { BRANCO, PRETO, razao, textoSobre } from './contraste'
 
 export type Marca = {
   nomeExibido: string | null
@@ -15,28 +15,48 @@ export type Marca = {
   versao: number
 }
 
-const VARIAVEIS = ['--primary', '--primary-foreground', '--ring', '--destaque', '--destaque-foreground', '--accent', '--accent-foreground', '--chart-1', '--chart-2', '--traco']
+const VARIAVEIS = ['--primary', '--primary-foreground', '--primary-texto', '--ring', '--destaque', '--chart-1', '--chart-2']
+
+// Só o OKLCH e o RGB do culori entram no pacote.
+const oklch = registrarModo(modeOklch)
+registrarModo(modeRgb)
+const noGamaRgb = toGamut('rgb', 'oklch')
 
 /**
- * As variáveis do tema para uma primária e um destaque (skill design-system):
- * componente nenhum muda. O fundo do item ativo (accent) sai do tom 95 da
- * primária na paleta tonal do Material, com o tom 10 por cima, a mesma conta
- * do padrão da plataforma em tokens.css.
+ * A cor escurecida em OKLCH, um centésimo de luminosidade por vez e com o
+ * matiz e o croma de origem, até dar o contraste mínimo sobre branco (WCAG
+ * 2.2): 4,5:1 para texto, 3:1 para ícone e barra de gráfico. Uma cor que já
+ * passa volta como está.
  */
-export function variaveisDaMarca(primaria: string, destaque: string, textoSobrePrimaria?: string | null, textoSobreDestaque?: string | null): Record<string, string> {
-  const tons = TonalPalette.fromInt(argbFromHex(primaria))
+export function legivelSobreBranco(cor: string, minimo: number): string {
+  if (razao(cor, BRANCO) >= minimo) return cor
+  const origem = oklch(cor)
+  if (!origem) return PRETO
+  for (let l = origem.l - 0.01; l > 0; l -= 0.01) {
+    const candidata = formatHex(noGamaRgb({ ...origem, l })).toUpperCase()
+    if (razao(candidata, BRANCO) >= minimo) return candidata
+  }
+  return PRETO
+}
+
+/**
+ * As variáveis do tema para uma primária e um destaque (DESIGN.md): componente
+ * nenhum muda. A primária vai inteira no botão e no item ativo; o texto por
+ * cima é o que a API gravou (branco ou escuro, o de maior contraste); a mesma
+ * cor escurecida até 4,5:1 serve de link e ícone ativo, e até 3:1 de série
+ * principal do gráfico. O destaque fica com o foco de teclado. O resto da
+ * paleta segue neutro; com primária quase preta, a segunda série do gráfico
+ * desce ao cinza para não sumir na primeira.
+ */
+export function variaveisDaMarca(primaria: string, destaque: string, textoSobrePrimaria?: string | null): Record<string, string> {
   return {
     '--primary': primaria,
-    '--primary-foreground': textoSobrePrimaria ?? '#FFFFFF',
+    '--primary-foreground': textoSobrePrimaria ?? textoSobre(primaria),
+    '--primary-texto': legivelSobreBranco(primaria, 4.5),
     '--ring': destaque,
     '--destaque': destaque,
-    '--destaque-foreground': textoSobreDestaque ?? ESCURO,
-    '--accent': hexFromArgb(tons.tone(95)),
-    '--accent-foreground': hexFromArgb(tons.tone(10)),
-    // Série do gráfico: tom 45 do destaque, que fica na faixa de luminosidade mesmo com primária escura.
-    '--chart-1': hexFromArgb(TonalPalette.fromInt(argbFromHex(destaque)).tone(45)),
-    '--chart-2': destaque,
-    '--traco': `linear-gradient(90deg, ${destaque}, ${primaria})`,
+    '--chart-1': legivelSobreBranco(primaria, 3),
+    '--chart-2': razao(primaria, PRETO) < 2 ? 'var(--cinza-500)' : 'var(--preto)',
   }
 }
 
@@ -45,7 +65,7 @@ export function aplicarMarca(marca: Marca | null) {
   const raiz = document.documentElement.style
   VARIAVEIS.forEach((v) => raiz.removeProperty(v))
   if (!marca?.corPrimaria || !marca.corDestaque) return
-  for (const [nome, valor] of Object.entries(variaveisDaMarca(marca.corPrimaria, marca.corDestaque, marca.textoSobrePrimaria, marca.textoSobreDestaque))) {
+  for (const [nome, valor] of Object.entries(variaveisDaMarca(marca.corPrimaria, marca.corDestaque, marca.textoSobrePrimaria))) {
     raiz.setProperty(nome, valor)
   }
 }

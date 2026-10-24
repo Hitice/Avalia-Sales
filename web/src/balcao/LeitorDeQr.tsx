@@ -73,7 +73,7 @@ export function LeitorDeQr({ aoLer, aoFechar }: { aoLer: (codigo: string) => voi
     <div className="grid gap-3">
       {erro
         ? <p role="alert" className="text-sm text-destructive">{erro}</p>
-        : <video ref={video} className="aspect-square w-full rounded-lg bg-black object-cover" muted playsInline aria-label="Câmera lendo o QR" />}
+        : <video ref={video} className="aspect-square w-full rounded-lg bg-foreground object-cover" muted playsInline aria-label="Câmera lendo o QR" />}
       {outroQr && <p className="text-sm text-muted-foreground">Este QR não é de uma placa.</p>}
       <Button variant="outline" onClick={aoFechar}>Digitar o código</Button>
     </div>

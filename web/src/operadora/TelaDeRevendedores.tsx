@@ -46,12 +46,12 @@ export function TelaDeRevendedores() {
                 <TableBody>
                   {revendedores.data.map((r) => (
                     <TableRow key={r.id}>
-                                      <TableCell className="min-w-32 font-medium whitespace-normal">
+                      <TableCell className="min-w-32 font-medium whitespace-normal">
                         <span className="block">{r.nome}</span>
                         {!r.encerradaEm && (r.suspensaEm
                           ? (
                               <span className="flex flex-wrap items-center gap-2">
-                                <Badge variant="destructive">Suspensa{r.motivoDaSuspensao ? `: ${r.motivoDaSuspensao}` : ''}</Badge>
+                                <Badge variant="erro">Suspensa{r.motivoDaSuspensao ? `: ${r.motivoDaSuspensao}` : ''}</Badge>
                                 <Button variant="ghost" size="sm" disabled={suspensao.isPending} onClick={() => suspensao.mutate({ id: r.id, suspender: false })}>Reativar</Button>
                               </span>
                             )
@@ -66,7 +66,7 @@ export function TelaDeRevendedores() {
                                   <Button type="button" variant="ghost" size="sm" onClick={() => setSuspendendo(null)}>Voltar</Button>
                                 </form>
                               )
-                            : <Button variant="ghost" size="sm" className="px-0 text-destructive" onClick={() => setSuspendendo(r.id)}>Suspender</Button>)}
+                            : <Button variant="ghost" size="sm" className="px-0 text-erro hover:bg-transparent hover:text-erro hover:underline" onClick={() => setSuspendendo(r.id)}>Suspender</Button>)}
                       </TableCell>
                       <TableCell className="tabular-nums">{formatarCnpj(r.cnpj)}</TableCell>
                       <TableCell className="tabular-nums">{r.celular ? mascaraTelefone(r.celular) : '-'}</TableCell>
@@ -75,17 +75,17 @@ export function TelaDeRevendedores() {
                         {r.encerradaEm && r.reaberturaPedidaEm
                           ? (
                               <div className="flex flex-wrap items-center gap-2">
-                                <Badge variant="secondary">Reabertura pedida em {formatarData(r.reaberturaPedidaEm)}</Badge>
+                                <Badge variant="atencao">Reabertura pedida em {formatarData(r.reaberturaPedidaEm)}</Badge>
                                 <Button variant="outline" size="sm" disabled={reabertura.isPending} onClick={() => reabertura.mutate({ id: r.id, aprovar: true })}>Aprovar</Button>
                                 <Button variant="ghost" size="sm" disabled={reabertura.isPending} onClick={() => reabertura.mutate({ id: r.id, aprovar: false })}>Recusar</Button>
                               </div>
                             )
                           : r.encerradaEm
-                          ? <Badge variant="outline">Encerrada em {formatarData(r.encerradaEm)}</Badge>
+                          ? <Badge variant="neutro">Encerrada em {formatarData(r.encerradaEm)}</Badge>
                           : r.encerramentoPedidoEm
-                            ? <Badge variant="secondary">Distrato em assinatura</Badge>
+                            ? <Badge variant="atencao">Distrato em assinatura</Badge>
                             : r.contratoAssinadoEm
-                              ? <Badge>Assinado em {formatarData(r.contratoAssinadoEm)}</Badge>
+                              ? <Badge variant="sucesso">Assinado em {formatarData(r.contratoAssinadoEm)}</Badge>
                               : <Button variant="outline" onClick={() => contrato.mutate(r.id)}>Registrar assinado</Button>}
                       </TableCell>
                       <TableCell>

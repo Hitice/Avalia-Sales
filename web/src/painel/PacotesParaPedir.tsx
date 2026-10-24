@@ -19,16 +19,19 @@ export function PacotesParaPedir({ aoPedir }: { aoPedir?: () => void }) {
         <Input aria-label="Cupom de desconto" placeholder="Cupom" className="uppercase" value={cupom} onChange={(e) => setCupom(e.target.value)} />
       </div>
       <EstadoDaConsulta carregando={pacotes.isPending} erro={pacotes.error} vazio={pacotes.data?.length === 0} textoVazio="Nenhum pacote à venda agora." />
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+      {/* Uma linha por pacote, como numa tabela de preço: quantidade, preço por placa, total e o botão. */}
+      <ul aria-label="Pacotes de placas" className="divide-y border-y">
         {pacotes.data?.map((p) => (
-          <div key={p.id} className="grid gap-2 rounded-lg border p-3">
-            <p className="text-lg font-semibold tabular-nums">{p.quantidade} placas</p>
-            <p className="text-sm font-medium tabular-nums">{formatarCentavos(p.custoPorPlacaCents)} por placa</p>
-            <p className="text-xs text-muted-foreground tabular-nums">{formatarCentavos(p.precoCents)} no total</p>
-            <Button disabled={pedir.isPending} onClick={() => pedir.mutate({ pacoteId: p.id, cupom: cupom.trim() || null }, { onSuccess: () => { setCupom(''); aoPedir?.() } })}>Pedir</Button>
-          </div>
+          <li key={p.id} className="flex items-center gap-3 py-3">
+            <span className="grid min-w-0 flex-1 gap-0.5 sm:grid-cols-3 sm:items-center sm:gap-4">
+              <span className="font-medium tabular-nums">{p.quantidade} placas</span>
+              <span className="tabular-nums">{formatarCentavos(p.custoPorPlacaCents)} por placa</span>
+              <span className="text-xs text-muted-foreground tabular-nums sm:text-sm">{formatarCentavos(p.precoCents)} no total</span>
+            </span>
+            <Button variant="outline" disabled={pedir.isPending} onClick={() => pedir.mutate({ pacoteId: p.id, cupom: cupom.trim() || null }, { onSuccess: () => { setCupom(''); aoPedir?.() } })}>Pedir</Button>
+          </li>
         ))}
-      </div>
+      </ul>
     </div>
   )
 }

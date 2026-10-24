@@ -73,7 +73,7 @@ export function TelaDeClientes() {
                     <TableRow key={c.id}>
                       <TableCell>
                         <button type="button" className="text-left font-medium underline-offset-4 hover:underline" onClick={() => setAberto(c.id)}>
-                          {c.nome} {c.anonimizado && <Badge variant="outline">Anonimizado</Badge>}
+                          {c.nome} {c.anonimizado && <Badge variant="neutro">Anonimizado</Badge>}
                         </button>
                         {!c.anonimizado && <p className="text-xs text-muted-foreground">{c.responsavel}{c.email ? `, ${c.email}` : ''}</p>}
                       </TableCell>

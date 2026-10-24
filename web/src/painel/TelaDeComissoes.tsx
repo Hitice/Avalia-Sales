@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router'
 import { mensagemDoErro } from '@/api/cliente'
 import { formatarData, formatarDataHora } from '@/api/rotulos'
 import type { SaldoDeComissao } from '@/api/tipos'
@@ -36,12 +37,13 @@ export function TelaDeComissoes() {
   const [comprovante, setComprovante] = useState('')
 
   return (
-    <div className={`grid grid-cols-1 gap-4 ${escolhido ? 'xl:grid-cols-[minmax(0,1fr)_20rem]' : ''}`}>
+    <div className={`grid grid-cols-1 gap-4 ${escolhido ? 'xl:lista-e-lateral-80' : ''}`}>
       <div className="grid gap-4">
         <Cabecalho titulo="Comissões" />
         <Card>
           <CardContent>
-            <EstadoDaConsulta carregando={saldos.isPending} erro={saldos.error} vazio={saldos.data?.length === 0} textoVazio="Nenhum vendedor na equipe." />
+            <EstadoDaConsulta carregando={saldos.isPending} erro={saldos.error} vazio={saldos.data?.length === 0} textoVazio="Nenhum vendedor na equipe."
+              acao={<Button asChild variant="outline"><Link to="/painel/equipe">Cadastrar vendedor</Link></Button>} />
             {saldos.data && saldos.data.length > 0 && (
               <Rolagem>
                 <Table>

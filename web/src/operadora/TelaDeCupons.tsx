@@ -75,7 +75,7 @@ export function TelaDeCupons() {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
+    <div className="grid grid-cols-1 gap-4 xl:lista-e-lateral-80">
       <div>
         <Cabecalho titulo="Cupons" />
         <Erro erro={erro ? mensagemDoErro(erro) : null} />
@@ -102,7 +102,7 @@ export function TelaDeCupons() {
                         <TableCell className="text-right tabular-nums">{c.descontoBps !== null ? formatarBps(c.descontoBps) : formatarCentavos(c.descontoCents ?? 0)}</TableCell>
                         <TableCell>{c.validoAte ? formatarData(c.validoAte) : 'Sem prazo'}</TableCell>
                         <TableCell className="text-right tabular-nums">{c.usos}{c.usosMaximos ? ` de ${c.usosMaximos}` : ''}</TableCell>
-                        <TableCell><Badge variant={c.ativo ? 'default' : 'outline'}>{c.ativo ? 'Ativo' : 'Desligado'}</Badge></TableCell>
+                        <TableCell><Badge variant={c.ativo ? 'sucesso' : 'neutro'}>{c.ativo ? 'Ativo' : 'Desligado'}</Badge></TableCell>
                         <TableCell>
                           <AcoesDaLinha nome={c.codigo} principal={{ rotulo: 'Editar', aoClicar: () => editar(c) }} outras={[
                             { rotulo: c.ativo ? 'Desligar' : 'Ligar', aoClicar: () => ativar.mutate({ id: c.id, ativo: !c.ativo }) },

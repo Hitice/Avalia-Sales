@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Download, RefreshCw, Send } from 'lucide-react'
 import { useState } from 'react'
 import { chamarApi, enviarJson, mensagemDoErro } from '@/api/cliente'
-import { formatarData, ROTULO_DO_CONTRATO } from '@/api/rotulos'
+import { formatarData, ROTULO_DO_CONTRATO, TOM_DO_CONTRATO } from '@/api/rotulos'
 import type { EstadoDoEncerramento } from '@/api/tipos'
 import { Erro } from '@/componentes/Tela'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -56,7 +56,7 @@ export function EncerramentoDaConta() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           {e.encerradaEm ? 'Conta encerrada' : 'Encerrar conta'}
-          {distrato && !e.encerradaEm && e.pedidoEm && <Badge variant="secondary">{ROTULO_DO_CONTRATO[distrato.situacao ?? 'Rascunho']}</Badge>}
+          {distrato && !e.encerradaEm && e.pedidoEm && <Badge variant={TOM_DO_CONTRATO[distrato.situacao ?? 'Rascunho']}>{ROTULO_DO_CONTRATO[distrato.situacao ?? 'Rascunho']}</Badge>}
         </CardTitle>
       </CardHeader>
       <CardContent className="grid gap-4">

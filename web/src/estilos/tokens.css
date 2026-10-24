@@ -1,54 +1,90 @@
 /*
- * Marca da plataforma. A marca do revendedor sobrescreve só estas variáveis
- * em :root depois do login (skill design-system); componente nenhum escreve
- * cor solta. Cores da marca Avalia: noite #120c2b e laser #ee46bc.
+ * Tokens da plataforma (DESIGN.md). A marca do revendedor sobrescreve só as
+ * variáveis de marca em :root depois do login (marca.ts); componente nenhum
+ * escreve cor solta.
  *
- * Contraste conferido (WCAG 2.2): texto sobre fundo 17:1, texto secundário
- * 5,8:1, branco sobre primária 18,9:1, branco sobre destrutivo 4,8:1, borda de
- * campo 3,4:1 e anel de foco 3,2:1. O laser não serve de texto sobre branco
- * (3,4:1): vai no foco e no destaque, com texto escuro por cima.
+ * Escala neutra fria (zinco) em cinco passos e o quase preto; uma cor de
+ * destaque, a da revenda, só na ação principal, no item ativo, na seleção e no
+ * dado principal do gráfico; estados por cor semântica em par fundo e texto.
+ *
+ * Contraste conferido (WCAG 2.2, luminância relativa): texto sobre fundo 16:1,
+ * texto secundário 5,6:1 sobre branco e 5,2:1 sobre o cinza-100, branco sobre
+ * a primária padrão 6,6:1, texto semântico sobre o fundo semântico 4,8:1 ou
+ * mais, borda de campo 3,4:1.
  */
 :root {
-  --background: oklch(0.985 0.004 277);
-  --foreground: oklch(0.211 0.039 282.5);
+  /* Escala neutra: branco, cinco cinzas e o quase preto. */
+  --cinza-50: oklch(0.985 0 0);
+  --cinza-100: oklch(0.967 0.001 286.375);
+  --cinza-200: oklch(0.92 0.004 286.32);
+  --cinza-400: oklch(0.705 0.015 286.067);
+  --cinza-500: oklch(0.5 0.016 285.9);
+  --cinza-700: oklch(0.37 0.013 285.805);
+  --preto: oklch(0.21 0.006 285.885);
+
+  /* Superfícies e texto. */
+  --background: oklch(1 0 0);
+  --foreground: var(--preto);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.211 0.039 282.5);
+  --card-foreground: var(--preto);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.211 0.039 282.5);
-  --primary: oklch(0.184 0.06 287.9);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.955 0.012 285);
-  --secondary-foreground: oklch(0.184 0.06 287.9);
-  --muted: oklch(0.955 0.012 285);
-  --muted-foreground: oklch(0.5 0.03 285);
-  /*
-   * Fundo claro do item ativo e da linha escolhida: tom 95 da primária na
-   * paleta tonal do Material, com o tom 10 por cima. A revenda ganha a mesma
-   * conta sobre a primária dela (marca.ts).
-   */
-  --accent: #f4eeff;
-  --accent-foreground: #1d1736;
-  --destaque: oklch(0.671 0.234 342.3);
-  --destaque-foreground: oklch(0.184 0.06 287.9);
-  --destructive: oklch(0.53 0.22 27.325);
-  /* Campo conferido: borda e ícone, 4,9:1 sobre branco. */
-  --sucesso: oklch(0.52 0.13 155);
-  --border: oklch(0.91 0.012 285);
+  --popover-foreground: var(--preto);
+  --muted: var(--cinza-100);
+  --muted-foreground: var(--cinza-500);
+  --secondary: var(--cinza-100);
+  --secondary-foreground: var(--preto);
+  /* Item ativo e linha escolhida: fundo neutro; a cor da marca vai no ícone e no texto de destaque. */
+  --accent: var(--cinza-100);
+  --accent-foreground: var(--preto);
+  --border: var(--cinza-200);
+  /* Borda de campo mais escura que a de cartão: 3,4:1 sobre branco. */
   --input: oklch(0.64 0.02 285);
-  --ring: oklch(0.671 0.234 342.3);
-  /* Série única dos gráficos: o roxo do traço. A noite é escura demais para marca de dado (validador da skill dataviz). */
-  --chart-1: #7a3cf0;
-  --chart-2: oklch(0.671 0.234 342.3);
-  --chart-3: oklch(0.568 0.237 270);
-  --chart-4: oklch(0.5 0.03 285);
-  --chart-5: oklch(0.8 0.1 342);
-  --radius: 0.625rem;
+
   /*
-   * O traço da Avalia: linha fina rosa > roxo > azul, o mesmo do site. Só em
-   * linha (cabeçalho, título, item ativo), nunca como fundo. A marca da
-   * revenda troca pelo degradê das cores dela (marca.ts).
+   * Marca. A primária padrão da plataforma é o azul de operação; a revenda
+   * troca pela cor dela (marca.ts). primary-texto é a mesma cor escurecida
+   * até 4,5:1 sobre branco, para link, ícone ativo e número em destaque.
    */
-  --traco: linear-gradient(90deg, #ee46bc 0%, #a646e0 38%, #7a3cf0 58%, #465fff 100%);
-  /* Noite da marca, fundo das telas de entrada. */
-  --noite: #120c2b;
+  --primary: oklch(0.488 0.243 264.376);
+  --primary-foreground: oklch(1 0 0);
+  --primary-texto: oklch(0.488 0.243 264.376);
+  --destaque: oklch(0.488 0.243 264.376);
+  --ring: var(--destaque);
+  /* Botão primário sob o ponteiro: a mesma cor 12% mais escura, segue a marca da revenda sozinha. */
+  --primary-hover: color-mix(in oklch, var(--primary), black 12%);
+
+  /* Estados: texto, fundo e borda de cada um. */
+  --sucesso: oklch(0.527 0.154 150.069);
+  --sucesso-fundo: oklch(0.982 0.018 155.826);
+  --sucesso-borda: oklch(0.925 0.084 155.995);
+  --atencao: oklch(0.555 0.163 48.998);
+  --atencao-fundo: oklch(0.987 0.022 95.277);
+  --atencao-borda: oklch(0.924 0.12 95.746);
+  --erro: oklch(0.505 0.213 27.518);
+  --erro-fundo: oklch(0.971 0.013 17.38);
+  --erro-borda: oklch(0.885 0.062 18.334);
+  --info: oklch(0.5 0.134 242.749);
+  --info-fundo: oklch(0.977 0.013 236.62);
+  --info-borda: oklch(0.901 0.058 230.902);
+  --destructive: var(--erro);
+
+  /* Gráficos: a série principal é a cor da marca; o resto é neutro e, por último, a atenção. */
+  --chart-1: var(--primary);
+  --chart-2: var(--preto);
+  --chart-3: var(--cinza-400);
+  --chart-4: var(--cinza-200);
+  --chart-5: var(--atencao);
+
+  /* Raio pequeno: 6 px em botão, campo e menu; 8 px em cartão e modal; selo redondo. */
+  --radius: 0.375rem;
+
+  /* Sombra quase nula, sempre com deslocamento e desfoque. */
+  --sombra-sm: 0 1px 2px oklch(0 0 0 / 0.04);
+  --sombra-md: 0 2px 8px oklch(0 0 0 / 0.06);
+  --sombra-lg: 0 4px 16px oklch(0 0 0 / 0.08);
+
+  /* Movimento: 150 a 200 ms, saída exponencial; nada passa de 200 ms. */
+  --duracao-curta: 150ms;
+  --duracao-media: 200ms;
+  --curva-saida: cubic-bezier(0.16, 1, 0.3, 1);
 }

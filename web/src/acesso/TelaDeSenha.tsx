@@ -22,7 +22,6 @@ function Moldura({ titulo, children }: { titulo: string; children: React.ReactNo
     <main className="flex min-h-svh flex-col items-center justify-center gap-6 p-4">
       <MarcaAvalia />
       <Card className="relative w-full max-w-sm">
-        <span aria-hidden className="traco absolute inset-x-0 top-0 h-1" />
         <CardHeader><CardTitle className="text-xl"><h1>{titulo}</h1></CardTitle></CardHeader>
         <CardContent>{children}</CardContent>
       </Card>
