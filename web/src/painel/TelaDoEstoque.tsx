@@ -1,8 +1,10 @@
 import { useState } from 'react'
-import { Link } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import { mensagemDoErro } from '@/api/cliente'
-import { formatarData, ROTULO_DO_ESTADO } from '@/api/rotulos'
-import type { EstadoDaPlaca } from '@/api/tipos'
+import { formatarData, ROTULO_DA_BAIXA, ROTULO_DA_CATEGORIA, ROTULO_DO_ESTADO } from '@/api/rotulos'
+import type { EstadoDaPlaca, MotivoDaBaixa } from '@/api/tipos'
+import { AcoesDaLinha } from '@/componentes/AcoesDaLinha'
+import { Badge } from '@/components/ui/badge'
 import { useSessao } from '@/acesso/sessao'
 import { Cabecalho, Erro, EstadoDaConsulta, EtiquetaDoEstado, Rolagem } from '@/componentes/Tela'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -13,9 +15,10 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Textarea } from '@/components/ui/textarea'
-import { useConsignar, useDevolver, useEquipe, usePlacas } from './consultas'
+import { useArquivarLoteDaRevenda, useBaixarPlaca, useConsignar, useDesfazerBaixa, useDevolver, useEquipe, useLotesDaRevenda, usePlacas } from './consultas'
 
-const ESTADOS: EstadoDaPlaca[] = ['EmEstoque', 'Ativa', 'Carencia', 'Vencida', 'Suspensa']
+const ESTADOS: EstadoDaPlaca[] = ['EmEstoque', 'Ativa', 'Carencia', 'Vencida', 'Suspensa', 'Baixada']
+const MOTIVOS = Object.keys(ROTULO_DA_BAIXA) as MotivoDaBaixa[]
 const TODOS = 'todos'
 
 /** O estoque do revendedor e a consignação ao vendedor. O vendedor vê só as dele. */
@@ -25,6 +28,9 @@ export function TelaDoEstoque() {
   const [codigo, setCodigo] = useState('')
   const [pagina, setPagina] = useState(1)
   const placas = usePlacas({ estado, codigo: codigo || undefined, pagina })
+  const navegar = useNavigate()
+  const baixar = useBaixarPlaca()
+  const desfazer = useDesfazerBaixa()
   const total = placas.data?.total ?? 0
   const paginas = Math.max(1, Math.ceil(total / 50))
 
@@ -42,6 +48,7 @@ export function TelaDoEstoque() {
           </Select>
           <Input aria-label="Buscar código" placeholder="Código" className="w-36 uppercase" value={codigo} onChange={(e) => { setCodigo(e.target.value); setPagina(1) }} />
         </div>
+        <Erro erro={baixar.error || desfazer.error ? mensagemDoErro(baixar.error ?? desfazer.error) : null} />
         <Card>
           <CardContent>
             <EstadoDaConsulta carregando={placas.isPending} erro={placas.error} vazio={total === 0} textoVazio="Nenhuma placa." />
@@ -55,16 +62,30 @@ export function TelaDoEstoque() {
                       <TableHead>Com</TableHead>
                       <TableHead>Vence em</TableHead>
                       <TableHead className="text-right">Leituras</TableHead>
+                      {dono && <TableHead><span className="sr-only">Ações</span></TableHead>}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {placas.data?.placas.map((p) => (
                       <TableRow key={p.codigo}>
                         <TableCell><Link className="font-medium tabular-nums underline-offset-4 hover:underline" to={`/placa/${p.codigo}`}>{p.codigo}</Link></TableCell>
-                        <TableCell><EtiquetaDoEstado estado={p.estado} /></TableCell>
+                        <TableCell>
+                          <span className="flex flex-wrap items-center gap-1.5">
+                            <EtiquetaDoEstado estado={p.estado} />
+                            {p.motivoDaBaixa && <span className="text-xs text-muted-foreground">{ROTULO_DA_BAIXA[p.motivoDaBaixa] ?? MOTIVO_DO_SISTEMA[p.motivoDaBaixa]}</span>}
+                          </span>
+                        </TableCell>
                         <TableCell>{p.consignadaANome ?? '-'}</TableCell>
                         <TableCell>{formatarData(p.venceEm)}</TableCell>
                         <TableCell className="text-right tabular-nums">{p.totalLeituras}</TableCell>
+                        {dono && (
+                          <TableCell>
+                            <AcoesDaLinha nome={p.codigo} principal={{ rotulo: 'Ficha', aoClicar: () => navegar(`/placa/${p.codigo}`) }} outras={[
+                              ...(p.estado === 'EmEstoque' ? MOTIVOS.map((m) => ({ rotulo: `Baixa: ${ROTULO_DA_BAIXA[m]}`, destrutiva: true, aoClicar: () => baixar.mutate({ codigo: p.codigo, motivo: m }) })) : []),
+                              p.estado === 'Baixada' && !!p.motivoDaBaixa && p.motivoDaBaixa in ROTULO_DA_BAIXA && { rotulo: 'Desfazer baixa', aoClicar: () => desfazer.mutate(p.codigo) },
+                            ]} />
+                          </TableCell>
+                        )}
                       </TableRow>
                     ))}
                   </TableBody>
@@ -81,8 +102,53 @@ export function TelaDoEstoque() {
           </CardContent>
         </Card>
       </div>
-      {dono && <Consignacao />}
+      {dono && (
+        <div className="grid content-start gap-4">
+          <Consignacao />
+          <LotesDaRevenda />
+        </div>
+      )}
     </div>
+  )
+}
+
+/** Baixa que o dono não escolhe: vem da troca, do lote arquivado ou do encerramento. */
+const MOTIVO_DO_SISTEMA: Record<MotivoDaBaixa, string> = {
+  Troca: 'Trocada',
+  DefeitoDeImpressao: 'Defeito de impressão',
+  Perdida: 'Perdida',
+  Quebrada: 'Quebrada',
+  NaoImpressa: 'Não impressa',
+  LoteArquivado: 'Lote arquivado',
+  Encerramento: 'Conta encerrada',
+}
+
+/** Os lotes que vieram para a revenda: o de teste ou de campanha que não saiu se arquiva aqui. */
+function LotesDaRevenda() {
+  const lotes = useLotesDaRevenda()
+  const arquivar = useArquivarLoteDaRevenda()
+  if (!lotes.data?.length) return null
+
+  return (
+    <Card className="self-start">
+      <CardHeader><CardTitle>Lotes</CardTitle></CardHeader>
+      <CardContent className="grid gap-3">
+        <Erro erro={arquivar.error ? mensagemDoErro(arquivar.error) : null} />
+        {lotes.data.map((l) => (
+          <div key={l.id} className="flex items-start justify-between gap-3 text-sm">
+            <div className="min-w-0">
+              <p className="font-medium tabular-nums">{l.rotulo} {l.categoria !== 'Placa' && <Badge variant="outline">{ROTULO_DA_CATEGORIA[l.categoria]}</Badge>}</p>
+              {l.titulo && <p className="truncate text-muted-foreground">{l.titulo}</p>}
+              <p className="text-muted-foreground tabular-nums">{l.emEstoque} em estoque{l.baixadas > 0 ? `, ${l.baixadas} baixadas` : ''}</p>
+            </div>
+            <Button size="sm" variant={l.arquivadoEm ? 'outline' : 'ghost'} disabled={arquivar.isPending}
+              onClick={() => arquivar.mutate({ id: l.id, arquivado: !l.arquivadoEm })}>
+              {l.arquivadoEm ? 'Desarquivar' : 'Arquivar'}
+            </Button>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
   )
 }
 

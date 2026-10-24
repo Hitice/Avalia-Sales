@@ -2141,6 +2141,105 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/operadora/lotes/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["DescreverLote"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LoteDto"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/operadora/lotes/{id}/arquivado": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ArquivarLote"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/operadora/lotes/{id}/impressao": {
         parameters: {
             query?: never;
@@ -2857,6 +2956,80 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/lotes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LoteDaRevenda"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/lotes/{id}/arquivado": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ArquivarLote"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -4064,6 +4237,64 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/placas/{codigo}/baixa": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    codigo: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["BaixarPlaca"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    codigo: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/estoque/consignacao": {
         parameters: {
             query?: never;
@@ -5232,6 +5463,9 @@ export interface components {
         AnotarOrdem: {
             observacao: null | string;
         };
+        ArquivarLote: {
+            arquivado: boolean;
+        };
         AtivacaoDto: {
             lote: string;
             /** Format: int32 */
@@ -5242,11 +5476,20 @@ export interface components {
         AtivarLote: {
             numero: string;
         };
+        BaixarPlaca: {
+            motivo: components["schemas"]["MotivoDaBaixa"];
+        };
         CaixaDeNotificacoes: {
             notificacoes: components["schemas"]["NotificacaoDto"][];
             /** Format: int32 */
             naoLidas: number;
         };
+        /**
+         * @description Para que o código serve: nem todo código vira placa de avaliação.
+         * @default Placa
+         * @enum {unknown}
+         */
+        CategoriaDoLote: "Placa" | "Cracha" | "Cardapio" | "Teste" | "Outro";
         ChamadoComMensagens: {
             chamado: components["schemas"]["ChamadoDto"];
             mensagens: components["schemas"]["MensagemDto"][];
@@ -5404,6 +5647,10 @@ export interface components {
             meio: components["schemas"]["MeioDoSegundoFator"];
             destino: null | string;
         };
+        DescreverLote: {
+            titulo: null | string;
+            categoria: components["schemas"]["CategoriaDoLote"];
+        };
         /** @description Retirada: a revenda busca a caixa na Avalia, sem envio. */
         DespacharPedido: {
             /** Format: int32 */
@@ -5502,6 +5749,8 @@ export interface components {
         GerarLote: {
             /** Format: int32 */
             quantidade: number;
+            titulo?: null | string;
+            categoria?: components["schemas"]["CategoriaDoLote"];
         };
         GravarCupom: {
             codigo: string;
@@ -5610,6 +5859,27 @@ export interface components {
             /** Format: date-time */
             criadoEm: string;
         };
+        /**
+         * @description O estoque do revendedor e a consignação ao vendedor. A consignação é só
+         *     dentro do revendedor: a Avalia não consigna, o pacote é pago antes.
+         */
+        LoteDaRevenda: {
+            /** Format: uuid */
+            id: string;
+            rotulo: string;
+            titulo: null | string;
+            categoria: components["schemas"]["CategoriaDoLote"];
+            /** Format: int32 */
+            quantidade: number;
+            /** Format: date-time */
+            ativadoEm: null | string;
+            /** Format: date-time */
+            arquivadoEm: null | string;
+            /** Format: int32 */
+            emEstoque: number;
+            /** Format: int32 */
+            baixadas: number;
+        };
         LoteDto: {
             /** Format: uuid */
             id: string;
@@ -5625,6 +5895,14 @@ export interface components {
             despachadoEm: null | string;
             /** Format: date-time */
             ativadoEm: null | string;
+            titulo?: null | string;
+            categoria?: components["schemas"]["CategoriaDoLote"];
+            /** Format: date-time */
+            arquivadoEm?: null | string;
+            /** Format: date-time */
+            baixadoEm?: null | string;
+            /** @default false */
+            podeExcluir: boolean;
         };
         Lugar: {
             id: string;
@@ -5682,6 +5960,11 @@ export interface components {
             revendedor: components["schemas"]["RevendedorDto"];
             contrato: null | components["schemas"]["SituacaoDoContrato"];
         };
+        /**
+         * @description Por que a placa saiu de circulação.
+         * @enum {unknown}
+         */
+        MotivoDaBaixa: "Troca" | "DefeitoDeImpressao" | "Perdida" | "Quebrada" | "NaoImpressa" | "LoteArquivado" | "Encerramento";
         NotificacaoDto: {
             /** Format: uuid */
             id: string;
@@ -5882,6 +6165,7 @@ export interface components {
             totalLeituras: number;
             /** Format: date-time */
             ultimaLeituraEm: null | string;
+            motivoDaBaixa?: null | components["schemas"]["MotivoDaBaixa"];
         };
         PlacaExportada: {
             codigo: string;

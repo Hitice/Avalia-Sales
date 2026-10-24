@@ -7,7 +7,8 @@ namespace AvaliaSales.Application.Placas;
 
 public sealed record PlacaDaLista(
     string Codigo, long Sequencia, EstadoDaPlaca Estado, Guid? ConsignadaA, string? ConsignadaANome,
-    string? Destino, DateTimeOffset? VendidaEm, DateTimeOffset? VenceEm, long TotalLeituras, DateTimeOffset? UltimaLeituraEm);
+    string? Destino, DateTimeOffset? VendidaEm, DateTimeOffset? VenceEm, long TotalLeituras, DateTimeOffset? UltimaLeituraEm,
+    MotivoDaBaixa? MotivoDaBaixa = null);
 
 public sealed record PaginaDePlacas(IReadOnlyList<PlacaDaLista> Placas, int Total, IReadOnlyDictionary<EstadoDaPlaca, int> PorEstado);
 
@@ -17,7 +18,10 @@ public sealed record FiltroDePlacas(EstadoDaPlaca? Estado, Guid? ConsignadaA, st
 /// O estoque do revendedor e a consignação ao vendedor. A consignação é só
 /// dentro do revendedor: a Avalia não consigna, o pacote é pago antes.
 /// </summary>
-public sealed class Estoque(IBancoDeDados banco, IUsuarioAtual usuario, Notificacoes.Notificacoes notificacoes, TimeProvider relogio)
+public sealed record LoteDaRevenda(Guid Id, string Rotulo, string? Titulo, CategoriaDoLote Categoria, int Quantidade, DateTimeOffset? AtivadoEm,
+    DateTimeOffset? ArquivadoEm, int EmEstoque, int Baixadas);
+
+public sealed class Estoque(IBancoDeDados banco, IUsuarioAtual usuario, IRevendedorAtual revendedor, Notificacoes.Notificacoes notificacoes, TimeProvider relogio)
 {
     /// <summary>De uma vez, no máximo isto: o vendedor leva o que cabe na pasta.</summary>
     public const int ConsignacaoMaxima = 20;
@@ -65,7 +69,7 @@ public sealed class Estoque(IBancoDeDados banco, IUsuarioAtual usuario, Notifica
         return new PaginaDePlacas(
             placas.Select(p => new PlacaDaLista(p.Codigo, p.Sequencia, p.Estado(agora), p.ConsignadaA,
                 p.ConsignadaA is { } c ? nomes.GetValueOrDefault(c) : null, p.Destino, p.VendidaEm, p.VenceEm,
-                p.TotalLeituras, p.UltimaLeituraEm)).ToList(),
+                p.TotalLeituras, p.UltimaLeituraEm, p.MotivoDaBaixa)).ToList(),
             filtradas.Count,
             porEstado);
     }
@@ -147,5 +151,87 @@ public sealed class Estoque(IBancoDeDados banco, IUsuarioAtual usuario, Notifica
 
         await banco.SaveChangesAsync(ct);
         return placas.Count;
+    }
+
+    /// <summary>Os lotes que vieram para a revenda, com o que sobra em estoque de cada um.</summary>
+    public async Task<IReadOnlyList<LoteDaRevenda>> Lotes(CancellationToken ct)
+    {
+        var meus = await banco.Lotes.AsNoTracking().Where(l => l.RevendedorId == revendedor.RevendedorId).OrderByDescending(l => l.Numero).ToListAsync(ct);
+        var contagem = await banco.Placas.AsNoTracking()
+            .GroupBy(p => p.LoteId)
+            .Select(g => new { g.Key, EmEstoque = g.Count(p => p.Situacao == SituacaoDaPlaca.EmEstoque), Baixadas = g.Count(p => p.Situacao == SituacaoDaPlaca.Baixada) })
+            .ToDictionaryAsync(x => x.Key, ct);
+        return meus.Select(l => new LoteDaRevenda(l.Id, l.Rotulo, l.Titulo, l.Categoria, l.Quantidade, l.AtivadoEm, l.ArquivadoEm,
+            contagem.GetValueOrDefault(l.Id)?.EmEstoque ?? 0, contagem.GetValueOrDefault(l.Id)?.Baixadas ?? 0)).ToList();
+    }
+
+    /// <summary>
+    /// O lote da revenda fora de uso (teste, campanha que não saiu): as placas
+    /// em estoque dele saem com o motivo "lote arquivado", e desarquivar devolve
+    /// só essas. Vendidas não mudam. Tudo numa gravação só.
+    /// </summary>
+    public async Task<int> ArquivarLote(Guid loteId, bool arquivar, CancellationToken ct)
+    {
+        var lote = await banco.Lotes.SingleOrDefaultAsync(l => l.Id == loteId && l.RevendedorId == revendedor.RevendedorId, ct)
+            ?? throw new RegraDeNegocioException("Lote não encontrado.");
+        var agora = relogio.GetUtcNow();
+        if (arquivar)
+        {
+            lote.Arquivar(agora);
+        }
+        else
+        {
+            lote.Desarquivar();
+        }
+
+        var placas = arquivar
+            ? await banco.Placas.Where(p => p.LoteId == loteId && p.Situacao == SituacaoDaPlaca.EmEstoque && p.VendaId == null).ToListAsync(ct)
+            : await banco.Placas.Where(p => p.LoteId == loteId && p.MotivoDaBaixa == MotivoDaBaixa.LoteArquivado).ToListAsync(ct);
+        foreach (var placa in placas)
+        {
+            if (arquivar)
+            {
+                placa.Baixar(MotivoDaBaixa.LoteArquivado, agora);
+            }
+            else
+            {
+                placa.DesfazerBaixa();
+            }
+        }
+
+        await banco.SaveChangesAsync(ct);
+        return placas.Count;
+    }
+
+    /// <summary>Baixa de placa sem venda: defeito de impressão, perdida, quebrada, não impressa.</summary>
+    public async Task Baixar(string codigo, MotivoDaBaixa motivo, CancellationToken ct)
+    {
+        if (motivo == MotivoDaBaixa.LoteArquivado)
+        {
+            throw new RegraDeNegocioException("Para tirar o lote inteiro, arquive o lote.");
+        }
+
+        var placa = await PlacaDoCodigo(codigo, ct);
+        placa.Baixar(motivo, relogio.GetUtcNow());
+        await banco.SaveChangesAsync(ct);
+    }
+
+    public async Task DesfazerBaixa(string codigo, CancellationToken ct)
+    {
+        var placa = await PlacaDoCodigo(codigo, ct);
+        if (placa.MotivoDaBaixa == MotivoDaBaixa.LoteArquivado)
+        {
+            throw new RegraDeNegocioException("A placa saiu com o lote arquivado. Desarquive o lote.");
+        }
+
+        placa.DesfazerBaixa();
+        await banco.SaveChangesAsync(ct);
+    }
+
+    private async Task<Placa> PlacaDoCodigo(string codigo, CancellationToken ct)
+    {
+        var normalizado = CodigoDaPlaca.Normalizar(codigo);
+        return await banco.Placas.SingleOrDefaultAsync(p => p.Codigo == normalizado, ct)
+            ?? throw new RegraDeNegocioException("Código não encontrado, verifique novamente.");
     }
 }

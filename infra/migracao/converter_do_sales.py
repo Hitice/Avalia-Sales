@@ -34,7 +34,7 @@ COMISSAO_PCT = 25
 CUSTO_PADRAO_CENTS = 600
 PAGAMENTO_NO_SISTEMA_DESDE = "2026-10-11"
 PRODUTO_DA_PLACA = "placa-avaliacao-google"
-TABELAS = {"etiquetas", "staff", "negocios", "produtos"}
+TABELAS = {"etiquetas", "staff", "negocios", "produtos", "lotes_etiquetas"}
 
 COLUNAS = [
     "codigo", "situacao", "destino", "vendida_em", "vence_em", "valor_cents", "custo_cents",
@@ -185,6 +185,38 @@ def converter(banco, mapa, socios, no_ar_a_zero=False, so_mapeados=False, comiss
     return linhas, totais, devida_por_vendedor, avisos
 
 
+def categoria_do_lote(titulo):
+    """Pelo título que a equipe deu no Sales (Pedro, 24/10/2026): teste, crachá e cardápio pelo nome, campanha é placa, o resto é avulso."""
+    t = (titulo or "").strip().lower()
+    if "teste" in t:
+        return "Teste"
+    if "crach" in t:
+        return "Cracha"
+    if "menu" in t or "card" in t:
+        return "Cardapio"
+    return "Placa" if t.startswith("campanha") else "Outro"
+
+
+def lotes_de_origem(banco):
+    """Código, lote do Sales, título, categoria e data: para o --lotes-de-origem. Lote de teste sai para arquivar."""
+    lotes = {l["id"]: l for l in banco.execute("SELECT * FROM lotes_etiquetas")} if "codigo" in [c[1] for c in banco.execute("PRAGMA table_info(lotes_etiquetas)")] else {}
+    linhas = []
+    for e in banco.execute("SELECT codigo, lote_id, sem_placa FROM etiquetas ORDER BY codigo"):
+        lote = lotes.get(e["lote_id"])
+        if lote is None or e["sem_placa"] in (1, "1", True, "true"):
+            continue
+        categoria = categoria_do_lote(lote["titulo"])
+        linhas.append({
+            "codigo": e["codigo"],
+            "lote": lote["codigo"],
+            "titulo": (lote["titulo"] or "").strip(),
+            "categoria": categoria,
+            "criado_em": data_e_hora(lote["created_at"]) or "",
+            "arquivar": "sim" if categoria == "Teste" else "",
+        })
+    return linhas
+
+
 def main():
     argumentos = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     argumentos.add_argument("backup", help="arquivo .sql ou .sql.gz do avalia:exportar")
@@ -197,6 +229,8 @@ def main():
                             help="placa ativa ou suspensa sem venda entra como venda de R$ 0 na data do cadastro, sem vendedor")
     argumentos.add_argument("--comissao-paga", action="store_true",
                             help="toda comissão do Sales já foi paga, mesmo sem comissao_paga_em: nada entra como devida")
+    argumentos.add_argument("--lotes", metavar="ARQUIVO",
+                            help="também grava o CSV do --lotes-de-origem: o lote do Sales de cada código, com título e categoria")
     argumentos.add_argument("--so-os-mapeados", action="store_true",
                             help="venda de quem não está no --vendedor fica com o dono, em vez de ir pelo e-mail do Sales")
     opcoes = argumentos.parse_args()
@@ -209,7 +243,18 @@ def main():
         mapa[antigo.strip().lower()] = novo.strip().lower()
     socios = {s.strip().lower() for s in opcoes.socio}
 
-    linhas, totais, devidas, avisos = converter(carregar(opcoes.backup), mapa, socios, opcoes.no_ar_sem_venda_a_zero, opcoes.so_os_mapeados, opcoes.comissao_paga)
+    banco = carregar(opcoes.backup)
+    linhas, totais, devidas, avisos = converter(banco, mapa, socios, opcoes.no_ar_sem_venda_a_zero, opcoes.so_os_mapeados, opcoes.comissao_paga)
+    if opcoes.lotes:
+        de_origem = lotes_de_origem(banco)
+        with open(opcoes.lotes, "w", newline="", encoding="utf-8") as arquivo:
+            escritor = csv.DictWriter(arquivo, fieldnames=["codigo", "lote", "titulo", "categoria", "criado_em", "arquivar"])
+            escritor.writeheader()
+            escritor.writerows(de_origem)
+        por_lote = Counter((l["lote"], l["categoria"], l["arquivar"]) for l in de_origem)
+        print(f"{len(de_origem)} códigos em {len(por_lote)} lotes em {opcoes.lotes}")
+        for (lote, categoria, arquivar), total in sorted(por_lote.items()):
+            print(f"  {lote}  {categoria:9} {total:4}{'  arquivar' if arquivar else ''}")
     with open(opcoes.saida, "w", newline="", encoding="utf-8") as arquivo:
         escritor = csv.DictWriter(arquivo, fieldnames=COLUNAS)
         escritor.writeheader()

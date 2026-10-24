@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { chamarApi, chamarResposta, enviarJson } from '@/api/cliente'
-import type { Cupom, EnvioAoErp, Lote, Pacote, Pedido, Revendedor } from '@/api/tipos'
+import type { CategoriaDoLote, Cupom, EnvioAoErp, Lote, Pacote, Pedido, Revendedor } from '@/api/tipos'
 
 const chaves = {
   pedidos: ['operadora', 'pedidos'] as const,
@@ -23,7 +23,11 @@ function useGravar<T>(fazer: (dados: T) => Promise<unknown>) {
 export const useRegistrarPagamento = () => useGravar((id: string) => chamarApi(`/operadora/pedidos/${id}/pagamento`, enviarJson('POST', {})))
 export const useIniciarProducao = () => useGravar((id: string) => chamarApi(`/operadora/pedidos/${id}/producao`, enviarJson('POST', {})))
 export const useDespachar = () => useGravar(({ id, lote, retirada }: { id: string; lote: number; retirada: boolean }) => chamarApi(`/operadora/pedidos/${id}/despacho`, enviarJson('POST', { lote, retirada })))
-export const useGerarLote = () => useGravar((quantidade: number) => chamarApi<Lote>('/operadora/lotes', enviarJson('POST', { quantidade })))
+export type DadosDoLote = { titulo: string | null; categoria: CategoriaDoLote }
+export const useGerarLote = () => useGravar((l: DadosDoLote & { quantidade: number }) => chamarApi<Lote>('/operadora/lotes', enviarJson('POST', l)))
+export const useDescreverLote = () => useGravar(({ id, ...l }: DadosDoLote & { id: string }) => chamarApi(`/operadora/lotes/${id}`, enviarJson('PUT', l)))
+export const useArquivarLote = () => useGravar(({ id, arquivado }: { id: string; arquivado: boolean }) => chamarApi(`/operadora/lotes/${id}/arquivado`, enviarJson('PUT', { arquivado })))
+export const useExcluirLote = () => useGravar((id: string) => chamarApi(`/operadora/lotes/${id}`, { method: 'DELETE' }))
 export const useCriarPacote = () => useGravar((p: { quantidade: number; precoCents: number }) => chamarApi('/operadora/pacotes', enviarJson('POST', p)))
 export const useAlterarPacote = () => useGravar(({ id, ...p }: { id: string; quantidade: number; precoCents: number }) => chamarApi(`/operadora/pacotes/${id}`, enviarJson('PUT', p)))
 export const useAtivarPacote = () => useGravar(({ id, ativo }: { id: string; ativo: boolean }) => chamarApi(`/operadora/pacotes/${id}/ativo`, enviarJson('PUT', { ativo })))

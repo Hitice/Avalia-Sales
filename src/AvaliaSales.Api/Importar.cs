@@ -39,6 +39,84 @@ internal static class Importar
         return resultado.JaEmitidos.Count == 0 ? 0 : 2;
     }
 
+    /// <summary>--lotes-de-origem: o CSV do conversor (--lotes) devolve as placas importadas aos lotes de origem.</summary>
+    public static async Task<int> LotesDeOrigem(IServiceProvider servicos, string[] argumentos)
+    {
+        var arquivo = Valor(argumentos, "arquivo");
+        var quem = Valor(argumentos, "revendedor");
+        if (arquivo is null || !File.Exists(arquivo) || string.IsNullOrWhiteSpace(quem))
+        {
+            await Console.Error.WriteLineAsync("Use --revendedor= (CNPJ ou id) e --arquivo= com o CSV dos lotes.");
+            return 1;
+        }
+
+        if (await RevendedorPor(servicos, quem) is not { } revendedorId)
+        {
+            await Console.Error.WriteLineAsync($"Revendedor {quem} não encontrado.");
+            return 1;
+        }
+
+        List<LinhaDeLote> linhas;
+        try
+        {
+            linhas = LerLotes(arquivo);
+        }
+        catch (FormatException erro)
+        {
+            await Console.Error.WriteLineAsync(erro.Message);
+            return 1;
+        }
+
+        using var doRevendedor = servicos.CreateScope();
+        doRevendedor.ServiceProvider.GetRequiredService<AcessoDaRequisicao>().Assumir(revendedorId);
+        var ensaio = argumentos.Contains("--ensaio");
+        var r = await doRevendedor.ServiceProvider.GetRequiredService<Importacao>().RecriarLotes(linhas, ensaio, CancellationToken.None);
+        Console.WriteLine($"""
+            {(r.Gravado ? "LOTES RECRIADOS" : ensaio && r.Recusas.Count == 0 ? "ENSAIO (nada gravado)" : "RECUSADO (nada gravado)")}
+              lotes                 {r.Lotes}
+              placas                {r.Placas}
+              lotes arquivados      {r.Arquivados}
+              placas tiradas        {r.Baixadas} (em estoque, de lote arquivado)
+            """);
+        foreach (var recusa in r.Recusas)
+        {
+            Console.WriteLine($"  {recusa}");
+        }
+
+        return r.Recusas.Count == 0 ? 0 : 2;
+    }
+
+    internal static List<LinhaDeLote> LerLotes(string arquivo)
+    {
+        var todas = Linhas(arquivo).ToList();
+        if (todas.Count < 2)
+        {
+            throw new FormatException("O arquivo precisa do cabeçalho e de ao menos um código.");
+        }
+
+        var cabecalho = todas[0].Valores.Select((c, i) => (Nome: c.Trim().ToLowerInvariant(), i)).ToDictionary(x => x.Nome, x => x.i);
+        foreach (var obrigatoria in new[] { "codigo", "lote" })
+        {
+            if (!cabecalho.ContainsKey(obrigatoria))
+            {
+                throw new FormatException($"Falta a coluna {obrigatoria} no cabeçalho.");
+            }
+        }
+
+        string? Campo(string[] valores, string coluna) =>
+            cabecalho.TryGetValue(coluna, out var i) && i < valores.Length && !string.IsNullOrWhiteSpace(valores[i]) ? valores[i].Trim() : null;
+
+        return todas.Skip(1).Select(l => new LinhaDeLote(
+            l.Numero,
+            Campo(l.Valores, "codigo") ?? string.Empty,
+            Campo(l.Valores, "lote") ?? throw new FormatException($"Linha {l.Numero}: falta o lote."),
+            Campo(l.Valores, "titulo"),
+            Enum.TryParse<Domain.Placas.CategoriaDoLote>(Campo(l.Valores, "categoria") ?? "Placa", ignoreCase: true, out var categoria)
+                ? categoria : throw new FormatException($"Linha {l.Numero}: categoria desconhecida."),
+            Data(Campo(l.Valores, "criado_em"), l.Numero),
+            string.Equals(Campo(l.Valores, "arquivar"), "sim", StringComparison.OrdinalIgnoreCase))).ToList();
+    }
+
     /// <summary>--completar-clientes: o mesmo arquivo do --importar-placas, só para e-mail e lugar no Google.</summary>
     public static async Task<int> CompletarClientes(IServiceProvider servicos, string[] argumentos)
     {

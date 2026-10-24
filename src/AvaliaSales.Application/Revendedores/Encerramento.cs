@@ -130,7 +130,8 @@ public sealed class EfeitosDoEncerramento(IBancoDeDados banco, IContas contas, I
 
         revendedor.Encerrar(quando);
         var baixadas = await banco.Placas.Where(p => p.RevendedorId == revendedor.Id && p.Situacao == SituacaoDaPlaca.EmEstoque)
-            .ExecuteUpdateAsync(s => s.SetProperty(p => p.Situacao, SituacaoDaPlaca.Baixada).SetProperty(p => p.ConsignadaA, (Guid?)null), ct);
+            .ExecuteUpdateAsync(s => s.SetProperty(p => p.Situacao, SituacaoDaPlaca.Baixada).SetProperty(p => p.ConsignadaA, (Guid?)null)
+                .SetProperty(p => p.MotivoDaBaixa, MotivoDaBaixa.Encerramento).SetProperty(p => p.BaixadaEm, (DateTimeOffset?)quando), ct);
         await banco.Vendedores.Where(v => v.RevendedorId == revendedor.Id).ExecuteUpdateAsync(s => s.SetProperty(v => v.Ativo, false), ct);
         await contas.DesativarLogins(revendedor.Id, Papel.Vendedor, ct);
 

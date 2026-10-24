@@ -1,4 +1,4 @@
-import type { AcaoAuditada, EstadoDaPlaca, Pedido, SituacaoDaCobranca, SituacaoDaOrdem, SituacaoDoContrato, SituacaoDoPedido, SituacaoDoProduto, TipoDeProduto } from './tipos'
+import type { AcaoAuditada, CategoriaDoLote, EstadoDaPlaca, MotivoDaBaixa, Pedido, SituacaoDaCobranca, SituacaoDaOrdem, SituacaoDoContrato, SituacaoDoPedido, SituacaoDoProduto, TipoDeProduto } from './tipos'
 
 /** Os nomes que a tela mostra para cada situação da API. */
 export const ROTULO_DO_ESTADO: Record<EstadoDaPlaca, string> = {
@@ -8,6 +8,22 @@ export const ROTULO_DO_ESTADO: Record<EstadoDaPlaca, string> = {
   Vencida: 'Vencida',
   Suspensa: 'Suspensa',
   Baixada: 'Encerrada',
+}
+
+export const ROTULO_DA_CATEGORIA: Record<CategoriaDoLote, string> = {
+  Placa: 'Placa',
+  Cracha: 'Crachá',
+  Cardapio: 'Cardápio',
+  Teste: 'Teste',
+  Outro: 'Avulso',
+}
+
+/** Só os motivos que o dono escolhe; troca, lote arquivado e encerramento vêm do sistema. */
+export const ROTULO_DA_BAIXA: Partial<Record<MotivoDaBaixa, string>> = {
+  DefeitoDeImpressao: 'Defeito de impressão',
+  Quebrada: 'Quebrada',
+  Perdida: 'Perdida',
+  NaoImpressa: 'Não impressa',
 }
 
 export const ROTULO_DO_PEDIDO: Record<SituacaoDoPedido, string> = {

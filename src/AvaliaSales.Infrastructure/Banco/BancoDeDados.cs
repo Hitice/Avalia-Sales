@@ -390,6 +390,9 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
             l.HasIndex(x => x.Numero).IsUnique();
             l.HasIndex(x => x.PedidoId).IsUnique();
             l.Ignore(x => x.Rotulo);
+            l.Ignore(x => x.PodeExcluir);
+            l.Property(x => x.Titulo).HasMaxLength(Lote.TituloMaximo);
+            l.Property(x => x.Categoria).HasConversion<string>().HasMaxLength(12);
             l.HasOne<Revendedor>().WithMany().HasForeignKey(x => x.RevendedorId).OnDelete(DeleteBehavior.Restrict);
         });
 
@@ -473,6 +476,7 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
             p.ToTable("placas");
             p.Property(x => x.Codigo).HasMaxLength(CodigoDaPlaca.Tamanho).IsFixedLength();
             p.Property(x => x.Situacao).HasConversion<string>().HasMaxLength(12);
+            p.Property(x => x.MotivoDaBaixa).HasConversion<string>().HasMaxLength(20);
             p.Property(x => x.Destino).HasMaxLength(Destino.TamanhoMaximo);
             p.Ignore(x => x.FimDaCarencia);
             p.HasIndex(x => x.Codigo).IsUnique();

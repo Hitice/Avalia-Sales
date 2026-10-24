@@ -1591,6 +1591,100 @@
         }
       }
     },
+    "/operadora/lotes/{id}": {
+      "put": {
+        "tags": [
+          "Operadora"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DescreverLote"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoteDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Operadora"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/operadora/lotes/{id}/arquivado": {
+      "put": {
+        "tags": [
+          "Operadora"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArquivarLote"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/operadora/lotes/{id}/impressao": {
       "get": {
         "tags": [
@@ -2100,6 +2194,61 @@
             }
           }
         ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/lotes": {
+      "get": {
+        "tags": [
+          "Revenda"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LoteDaRevenda"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/lotes/{id}/arquivado": {
+      "put": {
+        "tags": [
+          "Revenda"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArquivarLote"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "OK"
@@ -2947,6 +3096,58 @@
           },
           "required": true
         },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/placas/{codigo}/baixa": {
+      "post": {
+        "tags": [
+          "Revenda"
+        ],
+        "parameters": [
+          {
+            "name": "codigo",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BaixarPlaca"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Revenda"
+        ],
+        "parameters": [
+          {
+            "name": "codigo",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK"
@@ -3975,6 +4176,17 @@
           }
         }
       },
+      "ArquivarLote": {
+        "required": [
+          "arquivado"
+        ],
+        "type": "object",
+        "properties": {
+          "arquivado": {
+            "type": "boolean"
+          }
+        }
+      },
       "AtivacaoDto": {
         "required": [
           "lote",
@@ -4010,6 +4222,17 @@
           }
         }
       },
+      "BaixarPlaca": {
+        "required": [
+          "motivo"
+        ],
+        "type": "object",
+        "properties": {
+          "motivo": {
+            "$ref": "#/components/schemas/MotivoDaBaixa"
+          }
+        }
+      },
       "CaixaDeNotificacoes": {
         "required": [
           "notificacoes",
@@ -4028,6 +4251,17 @@
             "format": "int32"
           }
         }
+      },
+      "CategoriaDoLote": {
+        "enum": [
+          "Placa",
+          "Cracha",
+          "Cardapio",
+          "Teste",
+          "Outro"
+        ],
+        "description": "Para que o c\u00F3digo serve: nem todo c\u00F3digo vira placa de avalia\u00E7\u00E3o.",
+        "default": "Placa"
       },
       "ChamadoComMensagens": {
         "required": [
@@ -4656,6 +4890,24 @@
         },
         "description": "O desafio da entrada e para onde foi o c\u00F3digo, quando foi por e-mail (mascarado)."
       },
+      "DescreverLote": {
+        "required": [
+          "titulo",
+          "categoria"
+        ],
+        "type": "object",
+        "properties": {
+          "titulo": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "categoria": {
+            "$ref": "#/components/schemas/CategoriaDoLote"
+          }
+        }
+      },
       "DespacharPedido": {
         "required": [
           "lote"
@@ -5049,6 +5301,15 @@
           "quantidade": {
             "type": "integer",
             "format": "int32"
+          },
+          "titulo": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "categoria": {
+            "$ref": "#/components/schemas/CategoriaDoLote"
           }
         }
       },
@@ -5399,6 +5660,65 @@
           }
         }
       },
+      "LoteDaRevenda": {
+        "required": [
+          "id",
+          "rotulo",
+          "titulo",
+          "categoria",
+          "quantidade",
+          "ativadoEm",
+          "arquivadoEm",
+          "emEstoque",
+          "baixadas"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "rotulo": {
+            "type": "string"
+          },
+          "titulo": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "categoria": {
+            "$ref": "#/components/schemas/CategoriaDoLote"
+          },
+          "quantidade": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "ativadoEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "arquivadoEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "emEstoque": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "baixadas": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "O estoque do revendedor e a consigna\u00E7\u00E3o ao vendedor. A consigna\u00E7\u00E3o \u00E9 s\u00F3\ndentro do revendedor: a Avalia n\u00E3o consigna, o pacote \u00E9 pago antes."
+      },
       "LoteDto": {
         "required": [
           "id",
@@ -5450,6 +5770,33 @@
               "string"
             ],
             "format": "date-time"
+          },
+          "titulo": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "categoria": {
+            "$ref": "#/components/schemas/CategoriaDoLote"
+          },
+          "arquivadoEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "baixadoEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "podeExcluir": {
+            "type": "boolean",
+            "default": false
           }
         }
       },
@@ -5667,6 +6014,18 @@
             ]
           }
         }
+      },
+      "MotivoDaBaixa": {
+        "enum": [
+          "Troca",
+          "DefeitoDeImpressao",
+          "Perdida",
+          "Quebrada",
+          "NaoImpressa",
+          "LoteArquivado",
+          "Encerramento"
+        ],
+        "description": "Por que a placa saiu de circula\u00E7\u00E3o."
       },
       "NotificacaoDto": {
         "required": [
@@ -6421,6 +6780,16 @@
               "string"
             ],
             "format": "date-time"
+          },
+          "motivoDaBaixa": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/MotivoDaBaixa"
+              }
+            ]
           }
         }
       },

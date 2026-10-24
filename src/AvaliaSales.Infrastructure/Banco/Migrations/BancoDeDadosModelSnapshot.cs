@@ -1294,9 +1294,23 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<DateTimeOffset?>("ArquivadoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("arquivado_em");
+
                     b.Property<DateTimeOffset?>("AtivadoEm")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("ativado_em");
+
+                    b.Property<DateTimeOffset?>("BaixadoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("baixado_em");
+
+                    b.Property<string>("Categoria")
+                        .IsRequired()
+                        .HasMaxLength(12)
+                        .HasColumnType("character varying(12)")
+                        .HasColumnName("categoria");
 
                     b.Property<DateTimeOffset>("CriadoEm")
                         .HasColumnType("timestamp with time zone")
@@ -1322,6 +1336,11 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("revendedor_id");
 
+                    b.Property<string>("Titulo")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("titulo");
+
                     b.HasKey("Id")
                         .HasName("pk_lotes");
 
@@ -1345,6 +1364,10 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("BaixadaEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("baixada_em");
 
                     b.Property<Guid?>("ClienteDaTransferenciaId")
                         .HasColumnType("uuid")
@@ -1377,6 +1400,11 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                     b.Property<Guid>("LoteId")
                         .HasColumnType("uuid")
                         .HasColumnName("lote_id");
+
+                    b.Property<string>("MotivoDaBaixa")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("motivo_da_baixa");
 
                     b.Property<Guid>("RevendedorId")
                         .HasColumnType("uuid")

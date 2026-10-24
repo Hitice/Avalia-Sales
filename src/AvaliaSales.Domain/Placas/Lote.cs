@@ -2,6 +2,16 @@ using System.Globalization;
 
 namespace AvaliaSales.Domain.Placas;
 
+/// <summary>Para que o código serve: nem todo código vira placa de avaliação.</summary>
+public enum CategoriaDoLote
+{
+    Placa = 0,
+    Cracha = 1,
+    Cardapio = 2,
+    Teste = 3,
+    Outro = 4,
+}
+
 /// <summary>
 /// Uma tiragem de placas gerada pela operadora. Não pertence a revendedor até
 /// o despacho: é estoque da Avalia, e por isso a tabela não tem RLS. O
@@ -20,11 +30,29 @@ public sealed class Lote
     public DateTimeOffset? DespachadoEm { get; private set; }
     public DateTimeOffset? AtivadoEm { get; private set; }
 
+    public const int TituloMaximo = 120;
+
+    /// <summary>Nome da campanha ou do avulso, como a operadora reconhece o lote.</summary>
+    public string? Titulo { get; private set; }
+
+    public CategoriaDoLote Categoria { get; private set; }
+
+    /// <summary>Lote fora de uso (teste, campanha que não saiu): as placas em estoque dele têm baixa. Pode ser desfeito.</summary>
+    public DateTimeOffset? ArquivadoEm { get; private set; }
+
+    /// <summary>
+    /// O primeiro download do arquivo da gráfica. Depois dele o código pode estar
+    /// impresso, e o lote não pode mais ser excluído, só arquivado.
+    /// </summary>
+    public DateTimeOffset? BaixadoEm { get; private set; }
+
+    public bool PodeExcluir => BaixadoEm is null && DespachadoEm is null && PedidoId is null;
+
     private Lote()
     {
     }
 
-    public Lote(int numero, int quantidade, DateTimeOffset agora)
+    public Lote(int numero, int quantidade, DateTimeOffset agora, string? titulo = null, CategoriaDoLote categoria = CategoriaDoLote.Placa)
     {
         if (quantidade is < 1 or > QuantidadeMaxima)
         {
@@ -34,6 +62,33 @@ public sealed class Lote
         Numero = numero;
         Quantidade = quantidade;
         CriadoEm = agora;
+        Descrever(titulo, categoria);
+    }
+
+    public void Descrever(string? titulo, CategoriaDoLote categoria)
+    {
+        var limpo = string.IsNullOrWhiteSpace(titulo) ? null : titulo.Trim();
+        Titulo = limpo is null || limpo.Length <= TituloMaximo ? limpo : throw new RegraDeNegocioException($"O título tem até {TituloMaximo} caracteres.");
+        Categoria = Enum.IsDefined(categoria) ? categoria : throw new RegraDeNegocioException("Categoria desconhecida.");
+    }
+
+    public void Arquivar(DateTimeOffset agora) => ArquivadoEm ??= agora;
+
+    public void Desarquivar() => ArquivadoEm = null;
+
+    public void RegistrarDownload(DateTimeOffset agora) => BaixadoEm ??= agora;
+
+    /// <summary>
+    /// Um lote de origem do sistema anterior, já do revendedor e ativado: as
+    /// placas importadas voltam para o lote em que foram impressas.
+    /// </summary>
+    public static Lote DeOrigem(int numero, int quantidade, Guid revendedorId, string? titulo, CategoriaDoLote categoria, DateTimeOffset criadoEm, DateTimeOffset agora)
+    {
+        var lote = Importado(numero, quantidade, revendedorId, agora);
+        lote.CriadoEm = criadoEm;
+        lote.BaixadoEm = criadoEm;
+        lote.Descrever(titulo, categoria);
+        return lote;
     }
 
     /// <summary>O número como vai na caixa e na tela: LT-0001.</summary>
@@ -74,6 +129,11 @@ public sealed class Lote
             throw new RegraDeNegocioException($"O lote {Rotulo} já foi despachado.");
         }
 
+        if (ArquivadoEm is not null)
+        {
+            throw new RegraDeNegocioException($"O lote {Rotulo} está arquivado.");
+        }
+
         if (quantidadeDoPedido != Quantidade)
         {
             throw new RegraDeNegocioException($"O lote {Rotulo} tem {Quantidade} placas e o pedido, {quantidadeDoPedido}.");
@@ -93,6 +153,11 @@ public sealed class Lote
         if (DespachadoEm is null || RevendedorId != revendedorId)
         {
             throw new RegraDeNegocioException("Lote não encontrado. Confira o número na caixa.");
+        }
+
+        if (ArquivadoEm is not null)
+        {
+            throw new RegraDeNegocioException($"O lote {Rotulo} está arquivado.");
         }
 
         if (AtivadoEm is not null)

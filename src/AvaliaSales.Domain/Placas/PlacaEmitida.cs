@@ -27,6 +27,8 @@ public sealed class PlacaEmitida
         LoteId = loteId;
     }
 
+    public void MoverParaOLote(Guid loteId) => LoteId = loteId;
+
     public void EntregarA(Guid revendedorId) =>
         RevendedorId = RevendedorId is null || RevendedorId == revendedorId
             ? revendedorId

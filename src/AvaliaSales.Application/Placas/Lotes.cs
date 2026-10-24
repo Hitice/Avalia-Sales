@@ -4,7 +4,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AvaliaSales.Application.Placas;
 
-public sealed record LoteDto(Guid Id, string Rotulo, int Numero, int Quantidade, DateTimeOffset CriadoEm, string? Revendedor, DateTimeOffset? DespachadoEm, DateTimeOffset? AtivadoEm);
+public sealed record LoteDto(Guid Id, string Rotulo, int Numero, int Quantidade, DateTimeOffset CriadoEm, string? Revendedor, DateTimeOffset? DespachadoEm, DateTimeOffset? AtivadoEm,
+    string? Titulo = null, CategoriaDoLote Categoria = CategoriaDoLote.Placa, DateTimeOffset? ArquivadoEm = null, DateTimeOffset? BaixadoEm = null, bool PodeExcluir = false);
+
+public sealed record GerarLote(int Quantidade, string? Titulo = null, CategoriaDoLote Categoria = CategoriaDoLote.Placa);
+
+public sealed record DescreverLote(string? Titulo, CategoriaDoLote Categoria);
 
 public sealed record PlacaParaImprimir(string Codigo, long Sequencia);
 
@@ -25,20 +30,24 @@ public sealed class Lotes(IBancoDeDados banco, TimeProvider relogio)
         var nomes = await banco.Revendedores.AsNoTracking()
             .Where(r => lotes.Select(l => l.RevendedorId).Contains(r.Id))
             .ToDictionaryAsync(r => r.Id, r => r.Nome, ct);
-        return lotes.Select(l => new LoteDto(l.Id, l.Rotulo, l.Numero, l.Quantidade, l.CriadoEm,
-            l.RevendedorId is { } r ? nomes.GetValueOrDefault(r) : null, l.DespachadoEm, l.AtivadoEm)).ToList();
+        return lotes.Select(l => Dto(l, l.RevendedorId is { } r ? nomes.GetValueOrDefault(r) : null)).ToList();
     }
 
-    public async Task<LoteDto> Gerar(int quantidade, CancellationToken ct)
+    private static LoteDto Dto(Lote l, string? revendedor) => new(l.Id, l.Rotulo, l.Numero, l.Quantidade, l.CriadoEm, revendedor,
+        l.DespachadoEm, l.AtivadoEm, l.Titulo, l.Categoria, l.ArquivadoEm, l.BaixadoEm, l.PodeExcluir);
+
+    public Task<LoteDto> Gerar(int quantidade, CancellationToken ct) => Gerar(new GerarLote(quantidade), ct);
+
+    public async Task<LoteDto> Gerar(GerarLote pedido, CancellationToken ct)
     {
         await using var transacao = await banco.Database.BeginTransactionAsync(ct);
         await banco.TravarGeracaoDeLotes(ct);
 
         var numero = (await banco.Lotes.MaxAsync(l => (int?)l.Numero, ct) ?? 0) + 1;
-        var lote = new Lote(numero, quantidade, relogio.GetUtcNow());
+        var lote = new Lote(numero, pedido.Quantidade, relogio.GetUtcNow(), pedido.Titulo, pedido.Categoria);
         var sequencia = await banco.PlacasEmitidas.MaxAsync(p => (long?)p.Sequencia, ct) ?? 0;
 
-        foreach (var codigo in await SortearLivres(quantidade, ct))
+        foreach (var codigo in await SortearLivres(pedido.Quantidade, ct))
         {
             banco.PlacasEmitidas.Add(new PlacaEmitida(codigo, ++sequencia, lote.Id));
         }
@@ -46,14 +55,75 @@ public sealed class Lotes(IBancoDeDados banco, TimeProvider relogio)
         banco.Lotes.Add(lote);
         await banco.SaveChangesAsync(ct);
         await transacao.CommitAsync(ct);
-        return new LoteDto(lote.Id, lote.Rotulo, lote.Numero, lote.Quantidade, lote.CriadoEm, null, null, null);
+        return Dto(lote, null);
     }
 
-    /// <summary>Não guarda imagem: o QR é refeito do código, igual toda vez.</summary>
+    public async Task<LoteDto> Descrever(Guid loteId, DescreverLote pedido, CancellationToken ct)
+    {
+        var lote = await Achar(loteId, ct);
+        lote.Descrever(pedido.Titulo, pedido.Categoria);
+        await banco.SaveChangesAsync(ct);
+        return Dto(lote, null);
+    }
+
+    /// <summary>
+    /// Lote que ainda não foi para revenda nenhuma. O que já está com a revenda
+    /// tem placas dela, isoladas no banco: quem arquiva é o dono, pelo estoque
+    /// (<see cref="Estoque.ArquivarLote"/>).
+    /// </summary>
+    public async Task Arquivar(Guid loteId, bool arquivar, CancellationToken ct)
+    {
+        var lote = await Achar(loteId, ct);
+        if (lote.RevendedorId is not null)
+        {
+            throw new RegraDeNegocioException($"O lote {lote.Rotulo} já está com a revenda: quem arquiva é o dono, pelo estoque.");
+        }
+
+        if (arquivar)
+        {
+            lote.Arquivar(relogio.GetUtcNow());
+        }
+        else
+        {
+            lote.Desarquivar();
+        }
+
+        await banco.SaveChangesAsync(ct);
+    }
+
+    /// <summary>
+    /// Só lote que nunca teve o arquivo baixado nem foi despachado: antes disso
+    /// nenhum código pode estar impresso. Os códigos ficam reservados, para o
+    /// sorteio nunca devolvê-los.
+    /// </summary>
+    public async Task Excluir(Guid loteId, CancellationToken ct)
+    {
+        var lote = await Achar(loteId, ct);
+        if (!lote.PodeExcluir)
+        {
+            throw new RegraDeNegocioException($"O lote {lote.Rotulo} já teve o arquivo baixado ou foi despachado. Arquive em vez de excluir.");
+        }
+
+        var emitidas = await banco.PlacasEmitidas.Where(p => p.LoteId == loteId).ToListAsync(ct);
+        banco.CodigosReservados.AddRange(emitidas.Select(p => new CodigoReservado(p.Codigo, $"Lote {lote.Rotulo} excluído")));
+        banco.PlacasEmitidas.RemoveRange(emitidas);
+        banco.Lotes.Remove(lote);
+        await banco.SaveChangesAsync(ct);
+    }
+
+    private async Task<Lote> Achar(Guid loteId, CancellationToken ct) =>
+        await banco.Lotes.SingleOrDefaultAsync(l => l.Id == loteId, ct) ?? throw new RegraDeNegocioException("Lote não encontrado.");
+
+    /// <summary>Não guarda imagem: o QR é refeito do código, igual toda vez. O primeiro download trava a exclusão.</summary>
     public async Task<ImpressaoDoLote> Impressao(Guid loteId, CancellationToken ct)
     {
-        var lote = await banco.Lotes.AsNoTracking().SingleOrDefaultAsync(l => l.Id == loteId, ct)
-            ?? throw new RegraDeNegocioException("Lote não encontrado.");
+        var lote = await Achar(loteId, ct);
+        if (lote.BaixadoEm is null)
+        {
+            lote.RegistrarDownload(relogio.GetUtcNow());
+            await banco.SaveChangesAsync(ct);
+        }
+
         var placas = await banco.PlacasEmitidas.AsNoTracking().Where(p => p.LoteId == loteId)
             .OrderBy(p => p.Sequencia).Select(p => new PlacaParaImprimir(p.Codigo, p.Sequencia)).ToListAsync(ct);
         return new ImpressaoDoLote(lote.Rotulo, placas);

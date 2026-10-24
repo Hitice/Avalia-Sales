@@ -240,6 +240,16 @@ dono. Sem ele, o importador procura o e-mail do Sales entre os logins da
 plataforma, e um login que não é da equipe (o da operadora, por exemplo)
 ficaria como vendedor.
 
+Para devolver as placas importadas aos lotes em que foram impressas no Sales,
+gere também o arquivo de lotes (`converter_do_sales.py ... --lotes lotes.csv`,
+colunas `codigo,lote,titulo,categoria,criado_em,arquivar`) e rode
+`--lotes-de-origem --revendedor=<CNPJ ou id> --arquivo=...`, primeiro com
+`--ensaio`. Cada lote do Sales vira um lote da revenda com o título "Sales
+LT-0003 - ..." e a categoria pelo título (teste, crachá, cardápio, campanha é
+placa, o resto é avulso); o de teste sai arquivado, com as placas em estoque
+baixadas. O lote único da importação, vazio, deixa de existir. Placa que já está
+num lote com título é recusada, então não move duas vezes.
+
 Para completar e-mail e lugar no Google dos clientes já importados, rode o
 mesmo arquivo com `--completar-clientes` no lugar de `--importar-placas`
 (também com `--ensaio` primeiro). Ele acha o cliente pelo código da placa

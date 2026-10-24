@@ -8,7 +8,7 @@ using Microsoft.Extensions.Options;
 
 namespace AvaliaSales.Api.Rotas;
 
-public sealed record GerarLote(int Quantidade);
+public sealed record ArquivarLote(bool Arquivado);
 
 /// <summary>Retirada: a revenda busca a caixa na Avalia, sem envio.</summary>
 public sealed record DespacharPedido(int Lote, bool Retirada = false);
@@ -56,7 +56,18 @@ public static class RotasDaOperadora
 
         operadora.MapGet("/lotes", (Lotes lotes, CancellationToken ct) => lotes.Listar(ct));
         operadora.MapPost("/lotes", async (GerarLote pedido, Lotes lotes, CancellationToken ct) =>
-            Results.Created("/operadora/lotes", await lotes.Gerar(pedido.Quantidade, ct)));
+            Results.Created("/operadora/lotes", await lotes.Gerar(pedido, ct)));
+        operadora.MapPut("/lotes/{id:guid}", (Guid id, DescreverLote pedido, Lotes lotes, CancellationToken ct) => lotes.Descrever(id, pedido, ct));
+        operadora.MapPut("/lotes/{id:guid}/arquivado", async (Guid id, ArquivarLote pedido, Lotes lotes, CancellationToken ct) =>
+        {
+            await lotes.Arquivar(id, pedido.Arquivado, ct);
+            return Results.NoContent();
+        });
+        operadora.MapDelete("/lotes/{id:guid}", async (Guid id, Lotes lotes, CancellationToken ct) =>
+        {
+            await lotes.Excluir(id, ct);
+            return Results.NoContent();
+        });
         operadora.MapGet("/lotes/{id:guid}/impressao", async (Guid id, FormatoDaImpressao? formato, Lotes lotes, IOptions<OpcoesDaPlataforma> plataforma,
             IConfiguration configuracao, CancellationToken ct) =>
         {

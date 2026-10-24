@@ -7,6 +7,8 @@ using AvaliaSales.Application.Revendedores;
 
 namespace AvaliaSales.Api.Rotas;
 
+public sealed record BaixarPlaca(Domain.Placas.MotivoDaBaixa Motivo);
+
 public sealed record NovoPedido(Guid PacoteId, string? Cupom);
 
 public sealed record DefinirRenovacao(int RenovacaoBps);
@@ -51,6 +53,12 @@ public static class RotasDaRevenda
         dono.MapPost("/pedidos/{id:guid}/cancelamento", async (Guid id, PedidosDePlacas pedidos, CancellationToken ct) =>
         {
             await pedidos.Cancelar(id, ct);
+            return Results.NoContent();
+        });
+        dono.MapGet("/lotes", (Estoque estoque, CancellationToken ct) => estoque.Lotes(ct));
+        dono.MapPut("/lotes/{id:guid}/arquivado", async (Guid id, ArquivarLote pedido, Estoque estoque, CancellationToken ct) =>
+        {
+            await estoque.ArquivarLote(id, pedido.Arquivado, ct);
             return Results.NoContent();
         });
         dono.MapPost("/lotes/ativacao", (AtivarLote pedido, PedidosDePlacas pedidos, CancellationToken ct) => pedidos.Ativar(pedido.Numero, ct));
@@ -159,6 +167,16 @@ public static class RotasDaRevenda
         dono.MapPost("/vendas/{id:guid}/troca-de-placa", async (Guid id, TrocarPlaca pedido, Application.Vendas.Vendas vendas, CancellationToken ct) =>
             Results.Ok(new { Codigo = await vendas.TrocarPlaca(id, pedido.Codigo, ct) }));
 
+        dono.MapPost("/placas/{codigo}/baixa", async (string codigo, BaixarPlaca pedido, Estoque estoque, CancellationToken ct) =>
+        {
+            await estoque.Baixar(codigo, pedido.Motivo, ct);
+            return Results.NoContent();
+        });
+        dono.MapDelete("/placas/{codigo}/baixa", async (string codigo, Estoque estoque, CancellationToken ct) =>
+        {
+            await estoque.DesfazerBaixa(codigo, ct);
+            return Results.NoContent();
+        });
         dono.MapPost("/estoque/consignacao", async (Consignar pedido, Estoque estoque, CancellationToken ct) =>
             Results.Ok(new { Placas = await estoque.Consignar(pedido.VendedorId, pedido.Codigos, pedido.Quantidade, ct) }));
         dono.MapPost("/estoque/devolucao", async (Devolver pedido, Estoque estoque, CancellationToken ct) =>

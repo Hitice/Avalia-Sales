@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { chamarApi, enviarJson } from '@/api/cliente'
-import type { EstadoDaPlaca, MinhaRevenda, Pacote, PaginaDePlacas, Pedido, Repasse, ResumoDoMes, SaldoDeComissao, VendaDaLista, VendaRegistrada, Vendedor } from '@/api/tipos'
+import type { EstadoDaPlaca, LoteDaRevenda, MinhaRevenda, MotivoDaBaixa, Pacote, PaginaDePlacas, Pedido, Repasse, ResumoDoMes, SaldoDeComissao, VendaDaLista, VendaRegistrada, Vendedor } from '@/api/tipos'
 
 export type FiltroDePlacas = { estado?: EstadoDaPlaca; consignadaA?: string; codigo?: string; pagina?: number }
 
@@ -39,6 +39,12 @@ export const useComissaoPadrao = () => useGravar((comissaoBps: number) => chamar
 
 export const useConsignar = () =>
   useGravar((c: { vendedorId: string; codigos?: string[]; quantidade?: number }) => chamarApi<{ placas: number }>('/estoque/consignacao', enviarJson('POST', c)), ['placas'])
+export const useLotesDaRevenda = () => useQuery({ queryKey: ['lotes'], queryFn: () => chamarApi<LoteDaRevenda[]>('/lotes') })
+export const useArquivarLoteDaRevenda = () =>
+  useGravar(({ id, arquivado }: { id: string; arquivado: boolean }) => chamarApi(`/lotes/${id}/arquivado`, enviarJson('PUT', { arquivado })), ['lotes', 'placas'])
+export const useBaixarPlaca = () =>
+  useGravar(({ codigo, motivo }: { codigo: string; motivo: MotivoDaBaixa }) => chamarApi(`/placas/${codigo}/baixa`, enviarJson('POST', { motivo })), ['lotes', 'placas'])
+export const useDesfazerBaixa = () => useGravar((codigo: string) => chamarApi(`/placas/${codigo}/baixa`, { method: 'DELETE' }), ['lotes', 'placas'])
 export const useDevolver = () => useGravar((vendedorId: string) => chamarApi<{ placas: number }>('/estoque/devolucao', enviarJson('POST', { vendedorId })), ['placas'])
 
 export const useCobrarDeNovo = () => useGravar((vendaId: string) => chamarApi<VendaRegistrada>(`/vendas/${vendaId}/cobranca`, enviarJson('POST', {})), ['vendas'])

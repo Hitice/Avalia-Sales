@@ -37,6 +37,11 @@ public sealed record ResultadoDaImportacao(
     long ValorVendidoCents, long CustoCents, int VendedorNaoIdentificado, int ReservasLiberadas, IReadOnlyList<string> Recusas,
     long ComissaoDevidaCents = 0, int ProdutosCriados = 0);
 
+/// <summary>Uma linha do arquivo de lotes de origem: o lote do sistema anterior em que o código foi impresso.</summary>
+public sealed record LinhaDeLote(int Linha, string Codigo, string Lote, string? Titulo, CategoriaDoLote Categoria, DateTimeOffset? CriadoEm, bool Arquivar);
+
+public sealed record ResultadoDosLotes(bool Gravado, int Lotes, int Placas, int Arquivados, int Baixadas, IReadOnlyList<string> Recusas);
+
 /// <summary>O que o complemento dos clientes já importados preencheu; só campo vazio é preenchido.</summary>
 public sealed record ResultadoDoComplemento(bool Gravado, int Linhas, int Clientes, int Emails, int Lugares, IReadOnlyList<string> Recusas);
 
@@ -268,6 +273,95 @@ public sealed class Importacao(IBancoDeDados banco, IRevendedorAtual atual, ICon
         doArquivo[chave] = doBanco ?? novo;
         doArquivo[chave].Completar(null, linha.ClienteEmail, linha.ClienteLugarNoGoogle);
         return doArquivo[chave];
+    }
+
+    /// <summary>
+    /// As placas importadas num lote só voltam para os lotes em que foram
+    /// impressas no sistema anterior, com o título e a categoria de lá; o lote de
+    /// teste sai arquivado. Tudo ou nada, com ensaio. Placa que já está num lote
+    /// com título (já recriado) é recusada, para não mover duas vezes.
+    /// </summary>
+    public async Task<ResultadoDosLotes> RecriarLotes(IReadOnlyList<LinhaDeLote> linhas, bool ensaio, CancellationToken ct)
+    {
+        var revendedorId = atual.RevendedorId ?? throw new InvalidOperationException("Lotes sem revendedor.");
+        var agora = relogio.GetUtcNow();
+        var recusas = new List<string>();
+        await using var transacao = await banco.Database.BeginTransactionAsync(ct);
+        await banco.TravarGeracaoDeLotes(ct);
+        var numero = await banco.Lotes.MaxAsync(l => (int?)l.Numero, ct) ?? 0;
+        int lotes = 0, placas = 0, arquivados = 0, baixadas = 0;
+        var deOndeSairam = new HashSet<Guid>();
+
+        foreach (var grupo in linhas.GroupBy(l => l.Lote.Trim()).OrderBy(g => g.Key, StringComparer.Ordinal))
+        {
+            var codigos = grupo.Select(l => CodigoDaPlaca.Normalizar(l.Codigo)).ToList();
+            var doGrupo = await banco.Placas.Where(p => codigos.Contains(p.Codigo)).ToListAsync(ct);
+            foreach (var faltando in codigos.Except(doGrupo.Select(p => p.Codigo)))
+            {
+                recusas.Add($"{grupo.Key}: a placa {faltando} não está nesta revenda");
+            }
+
+            var lotesAtuais = doGrupo.Select(p => p.LoteId).Distinct().ToList();
+            if (await banco.Lotes.AnyAsync(l => lotesAtuais.Contains(l.Id) && l.Titulo != null, ct))
+            {
+                recusas.Add($"{grupo.Key}: as placas já estão num lote com título");
+                continue;
+            }
+
+            var primeira = grupo.First();
+            var titulo = $"Sales {grupo.Key}" + (string.IsNullOrWhiteSpace(primeira.Titulo) ? string.Empty : $" - {primeira.Titulo.Trim()}");
+            var lote = Lote.DeOrigem(++numero, doGrupo.Count > 0 ? doGrupo.Count : 1, revendedorId,
+                titulo.Length <= Lote.TituloMaximo ? titulo : titulo[..Lote.TituloMaximo], primeira.Categoria, primeira.CriadoEm ?? agora, agora);
+            banco.Lotes.Add(lote);
+            var emitidas = await banco.PlacasEmitidas.Where(p => codigos.Contains(p.Codigo)).ToListAsync(ct);
+            foreach (var placa in doGrupo)
+            {
+                deOndeSairam.Add(placa.LoteId);
+                placa.MoverParaOLote(lote.Id);
+            }
+
+            foreach (var emitida in emitidas)
+            {
+                emitida.MoverParaOLote(lote.Id);
+            }
+
+            if (primeira.Arquivar)
+            {
+                lote.Arquivar(agora);
+                arquivados++;
+                foreach (var livre in doGrupo.Where(p => p.Situacao == SituacaoDaPlaca.EmEstoque && p.VendaId == null))
+                {
+                    livre.Baixar(MotivoDaBaixa.LoteArquivado, agora);
+                    baixadas++;
+                }
+            }
+
+            lotes++;
+            placas += doGrupo.Count;
+        }
+
+        if (recusas.Count == 0)
+        {
+            await banco.SaveChangesAsync(ct);
+
+            // O lote único da importação que ficou vazio deixa de existir.
+            var vazios = await banco.Lotes.Where(l => deOndeSairam.Contains(l.Id) && l.Titulo == null
+                && !banco.PlacasEmitidas.Any(p => p.LoteId == l.Id)).ToListAsync(ct);
+            banco.Lotes.RemoveRange(vazios);
+            await banco.SaveChangesAsync(ct);
+        }
+
+        var gravar = recusas.Count == 0 && !ensaio;
+        if (gravar)
+        {
+            await transacao.CommitAsync(ct);
+        }
+        else
+        {
+            await transacao.RollbackAsync(ct);
+        }
+
+        return new ResultadoDosLotes(gravar, lotes, placas, arquivados, baixadas, recusas);
     }
 
     /// <summary>

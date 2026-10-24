@@ -10,6 +10,28 @@ public enum SituacaoDaPlaca
     Baixada = 4,
 }
 
+/// <summary>Por que a placa saiu de circulação.</summary>
+public enum MotivoDaBaixa
+{
+    /// <summary>Trocada por outra placa na mesma venda.</summary>
+    Troca = 1,
+
+    /// <summary>Saiu errada da gráfica: o acrílico volta com um QR novo, sem perda.</summary>
+    DefeitoDeImpressao = 2,
+
+    Perdida = 3,
+    Quebrada = 4,
+
+    /// <summary>Código gerado que nunca foi impresso.</summary>
+    NaoImpressa = 5,
+
+    /// <summary>O lote foi arquivado; desarquivar devolve a placa ao estoque.</summary>
+    LoteArquivado = 6,
+
+    /// <summary>A revenda encerrou a conta.</summary>
+    Encerramento = 7,
+}
+
 /// <summary>A situação gravada mais o prazo: carência e vencida saem da data, não de coluna.</summary>
 public enum EstadoDaPlaca
 {
@@ -51,6 +73,9 @@ public sealed class Placa : IDoRevendedor
     public long TotalLeituras { get; private set; }
     public DateTimeOffset? UltimaLeituraEm { get; private set; }
     public DateTimeOffset EntrouEm { get; private set; }
+
+    public MotivoDaBaixa? MotivoDaBaixa { get; private set; }
+    public DateTimeOffset? BaixadaEm { get; private set; }
 
     /// <summary>
     /// Quando a placa no ar passou para a revenda da Avalia, no encerramento da
@@ -231,7 +256,46 @@ public sealed class Placa : IDoRevendedor
         Situacao = antiga.Situacao == SituacaoDaPlaca.Suspensa ? SituacaoDaPlaca.Suspensa : SituacaoDaPlaca.Ativa;
         ConsignadaA = null;
         antiga.Situacao = SituacaoDaPlaca.Baixada;
+        antiga.MotivoDaBaixa = Placas.MotivoDaBaixa.Troca;
     }
+
+    /// <summary>
+    /// Baixa de placa que não foi vendida: defeito, perda, quebra, código não
+    /// impresso, lote arquivado. A placa vendida sai pela troca ou pelo cancelamento.
+    /// </summary>
+    public void Baixar(MotivoDaBaixa motivo, DateTimeOffset agora)
+    {
+        if (Situacao != SituacaoDaPlaca.EmEstoque || VendaId is not null)
+        {
+            throw new RegraDeNegocioException($"A placa {Codigo} não está livre no estoque.");
+        }
+
+        if (motivo is Placas.MotivoDaBaixa.Troca or Placas.MotivoDaBaixa.Encerramento || !Enum.IsDefined(motivo))
+        {
+            throw new RegraDeNegocioException("Motivo de baixa inválido para placa em estoque.");
+        }
+
+        Situacao = SituacaoDaPlaca.Baixada;
+        MotivoDaBaixa = motivo;
+        BaixadaEm = agora;
+        ConsignadaA = null;
+    }
+
+    /// <summary>Baixa lançada por engano, ou lote desarquivado: a placa volta ao estoque.</summary>
+    public void DesfazerBaixa()
+    {
+        if (Situacao != SituacaoDaPlaca.Baixada || VendaId is not null || MotivoDaBaixa is null or Placas.MotivoDaBaixa.Troca or Placas.MotivoDaBaixa.Encerramento)
+        {
+            throw new RegraDeNegocioException($"A baixa da placa {Codigo} não pode ser desfeita.");
+        }
+
+        Situacao = SituacaoDaPlaca.EmEstoque;
+        MotivoDaBaixa = null;
+        BaixadaEm = null;
+    }
+
+    /// <summary>Volta ao lote em que foi impressa, quando veio de outro sistema num lote só.</summary>
+    public void MoverParaOLote(Guid loteId) => LoteId = loteId;
 
     /// <summary>Suspender não apaga nada: a placa volta exatamente como estava.</summary>
     public void Alternar() => Situacao = Situacao switch

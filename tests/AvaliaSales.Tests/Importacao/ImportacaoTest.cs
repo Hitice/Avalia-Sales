@@ -49,6 +49,50 @@ public sealed class ImportacaoTest(ApiDeTeste api)
     }
 
     [Fact]
+    public async Task Placas_importadas_voltam_aos_lotes_de_origem_e_o_de_teste_sai_arquivado()
+    {
+        var (revendedorId, _) = await api.CriarRevendedor("Revenda dos Lotes de Origem");
+        var vendida = DateTimeOffset.UtcNow.AddMonths(-1);
+        var (campanha1, campanha2, teste1, testeVendida) = (Codigo(), Codigo(), Codigo(), Codigo());
+        var importada = await Importar(revendedorId, [
+            Linha(2, campanha1, "em_branco"),
+            Linha(3, campanha2, "ativa", vendida, 9_990, "https://padaria.com.br", "11222333000181"),
+            Linha(4, teste1, "em_branco"),
+            Linha(5, testeVendida, "ativa", vendida, 9_990, "https://outra.com.br", "33000167000101"),
+        ], ensaio: false);
+        Assert.True(importada.Gravada, string.Join("; ", importada.Recusas));
+
+        IReadOnlyList<LinhaDeLote> lotes = [
+            new(2, campanha1, "LT-0003", "Campanha Inicial - Udia", Domain.Placas.CategoriaDoLote.Placa, DateTimeOffset.UtcNow.AddMonths(-2), false),
+            new(3, campanha2, "LT-0003", "Campanha Inicial - Udia", Domain.Placas.CategoriaDoLote.Placa, DateTimeOffset.UtcNow.AddMonths(-2), false),
+            new(4, teste1, "LT-0008", "teste novo cdv", Domain.Placas.CategoriaDoLote.Teste, null, true),
+            new(5, testeVendida, "LT-0008", "teste novo cdv", Domain.Placas.CategoriaDoLote.Teste, null, true),
+        ];
+        var ensaio = await RecriarLotes(revendedorId, lotes, ensaio: true);
+        Assert.Equal((false, 2, 4, 1, 1), (ensaio.Gravado, ensaio.Lotes, ensaio.Placas, ensaio.Arquivados, ensaio.Baixadas));
+
+        var feito = await RecriarLotes(revendedorId, lotes, ensaio: false);
+        Assert.True(feito.Gravado, string.Join("; ", feito.Recusas));
+
+        await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
+        Assert.Equal(2, await banco.Contar($"select count(*) from lotes where revendedor_id = '{revendedorId}'"));
+        Assert.Equal(2, await banco.Contar($"select count(*) from lotes l join placas p on p.lote_id = l.id where l.titulo = 'Sales LT-0003 - Campanha Inicial - Udia' and l.categoria = 'Placa'"));
+        Assert.Equal(1, await banco.Contar($"select count(*) from placas p join lotes l on l.id = p.lote_id where l.arquivado_em is not null and p.codigo = '{teste1}' and p.motivo_da_baixa = 'LoteArquivado'"));
+        Assert.Equal(1, await banco.Contar($"select count(*) from placas where codigo = '{testeVendida}' and situacao = 'Ativa'"));
+        Assert.Equal(4, await banco.Contar($"select count(*) from placas_emitidas e join lotes l on l.id = e.lote_id where l.revendedor_id = '{revendedorId}' and l.titulo is not null"));
+
+        // De novo, nada se move duas vezes.
+        Assert.NotEmpty((await RecriarLotes(revendedorId, lotes, ensaio: false)).Recusas);
+    }
+
+    private async Task<ResultadoDosLotes> RecriarLotes(Guid revendedorId, IReadOnlyList<LinhaDeLote> linhas, bool ensaio)
+    {
+        using var escopo = api.Fabrica.Services.CreateScope();
+        escopo.ServiceProvider.GetRequiredService<AcessoDaRequisicao>().Assumir(revendedorId);
+        return await escopo.ServiceProvider.GetRequiredService<Application.Importacao.Importacao>().RecriarLotes(linhas, ensaio, Ct);
+    }
+
+    [Fact]
     public async Task Complemento_preenche_lugar_e_email_dos_clientes_importados_sem_sobrescrever()
     {
         var (revendedorId, _) = await api.CriarRevendedor("Revenda do Complemento");
