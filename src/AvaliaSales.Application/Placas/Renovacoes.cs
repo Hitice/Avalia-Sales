@@ -87,7 +87,7 @@ public sealed class Renovacoes(IBancoDeDados banco, IUsuarioAtual usuario, Cobra
 
         if (usuario.Papel == Papel.Vendedor && vendedor != usuario.UsuarioId)
         {
-            throw new RegraDeNegocioException("Só quem vendeu a placa, ou o dono, renova.");
+            throw new RegraDeNegocioException("Só quem vendeu a placa, ou o revendedor, renova.");
         }
 
         var renovacao = await banco.Renovacoes.SingleOrDefaultAsync(r => r.PlacaId == placa.Id && r.Situacao == SituacaoDaRenovacao.Aberta, ct);

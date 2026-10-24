@@ -31,8 +31,12 @@ test('jornada entre operadora, revenda e vendedora, e cada um vê só o que é d
   await cliente.getByRole('button', { name: 'Pedir' }).first().click()
 
   // 3. A operadora registra o pagamento e despacha esse lote para a revenda A.
-  await operador.goto('/operadora/pedidos')
   const doPedido = () => operador.getByRole('row').filter({ hasText: 'Revenda Demonstração A' }).filter({ has: operador.getByRole('cell', { name: '10', exact: true }) })
+  // O pedido da revenda pode ainda estar sendo gravado: recarrega até ele aparecer.
+  await expect(async () => {
+    await operador.goto('/operadora/pedidos')
+    await expect(doPedido().filter({ hasText: 'Aguardando' }).first()).toBeVisible({ timeout: 2_000 })
+  }).toPass({ timeout: 20_000 })
   await doPedido().filter({ hasText: 'Aguardando' }).first().getByRole('button', { name: 'Registrar pagamento' }).click()
   const pago = doPedido().filter({ hasText: 'Pago' }).first()
   await pago.getByLabel('Lote').click()

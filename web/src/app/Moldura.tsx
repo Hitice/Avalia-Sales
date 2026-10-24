@@ -275,7 +275,8 @@ function contextoDoPerfil(perfil: Perfil | null, nomeExibido: string | null | un
   if (!perfil) return null
   if (perfil.papel === 'Operadora') return { rotulo: 'Operação', nome: 'Avalia Sales' }
   const nome = perfil.revendedor ?? nomeExibido
-  return nome ? { rotulo: perfil.papel, nome } : null
+  // O papel interno é Dono; na tela, sempre Revendedor.
+  return nome ? { rotulo: perfil.papel === 'Dono' ? 'Revendedor' : perfil.papel, nome } : null
 }
 
 /** As iniciais do nome, no círculo do menu da conta. */

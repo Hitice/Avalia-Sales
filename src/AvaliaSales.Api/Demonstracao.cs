@@ -133,7 +133,7 @@ internal static class Demonstracao
         revendedor.DefinirEndereco(new Endereco("Avenida Rondon Pacheco", "1000", null, "Tabajaras", "Uberlândia", "MG", "38400242"));
         banco.Revendedores.Add(revendedor);
         await banco.SaveChangesAsync(ct);
-        await Login(escopo.ServiceProvider, $"Dono {nome}", email, Papel.Dono, revendedor.Id);
+        await Login(escopo.ServiceProvider, $"Revendedor {nome}", email, Papel.Dono, revendedor.Id);
         return revendedor.Id;
     }
 

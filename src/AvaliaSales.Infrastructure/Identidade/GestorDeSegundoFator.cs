@@ -257,6 +257,6 @@ public sealed class GestorDeSegundoFator(BancoDeDados banco, UserManager<Usuario
     private async Task<Usuario> Achar(Guid id)
     {
         var usuario = await usuarios.FindByIdAsync(id.ToString()) ?? throw new RegraDeNegocioException("Login não encontrado.");
-        return Pode(usuario) ? usuario : throw new RegraDeNegocioException("O segundo fator é para o dono e a operadora.");
+        return Pode(usuario) ? usuario : throw new RegraDeNegocioException("O segundo fator é para o revendedor e a operadora.");
     }
 }

@@ -1,6 +1,7 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "plugins": ["react", "typescript", "oxc"],
+  "ignorePatterns": ["public/**"],
   "jsPlugins": ["eslint-plugin-better-tailwindcss", "./lint/design-system.js"],
   "settings": {
     "better-tailwindcss": { "entryPoint": "src/index.css" }

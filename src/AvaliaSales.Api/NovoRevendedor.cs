@@ -52,7 +52,7 @@ internal static class NovoRevendedor
         await using var transacao = await banco.Database.BeginTransactionAsync();
         banco.Revendedores.Add(revendedor);
         await banco.SaveChangesAsync();
-        var criado = await usuarios.CreateAsync(new Usuario { RevendedorId = revendedor.Id, Papel = Papel.Dono, Nome = $"Dono {nome}", UserName = email, Email = email, EmailConfirmed = true }, senha);
+        var criado = await usuarios.CreateAsync(new Usuario { RevendedorId = revendedor.Id, Papel = Papel.Dono, Nome = $"Revendedor {nome}", UserName = email, Email = email, EmailConfirmed = true }, senha);
         if (!criado.Succeeded)
         {
             await Console.Error.WriteLineAsync(string.Join(" ", criado.Errors.Select(e => e.Description)));
@@ -60,7 +60,7 @@ internal static class NovoRevendedor
         }
 
         await transacao.CommitAsync();
-        Console.WriteLine($"Revendedor {revendedor.Nome} criado, dono {email}.");
+        Console.WriteLine($"Revendedor {revendedor.Nome} criado, revendedor {email}.");
         return 0;
     }
 

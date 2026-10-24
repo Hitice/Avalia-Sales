@@ -22,7 +22,7 @@ public sealed class AuditoriaTest(ApiDeTeste api)
         Assert.Equal(["DestinoTrocado", "DestinoDefinido"], historico.Select(h => h.GetProperty("acao").GetString()));
         Assert.Equal("https://cardapio.exemplo.com.br", historico[0].GetProperty("depois").GetString());
         Assert.StartsWith("https://search.google.com/local/writereview", historico[0].GetProperty("antes").GetString(), StringComparison.Ordinal);
-        Assert.StartsWith("Dono", historico[0].GetProperty("quem").GetString(), StringComparison.Ordinal);
+        Assert.StartsWith("Revendedor", historico[0].GetProperty("quem").GetString(), StringComparison.Ordinal);
     }
 
     [Fact]

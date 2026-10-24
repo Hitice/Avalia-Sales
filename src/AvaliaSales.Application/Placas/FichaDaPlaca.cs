@@ -110,7 +110,7 @@ public sealed class FichaDaPlaca(IBancoDeDados banco, IUsuarioAtual usuario, ICo
         var vendeu = placa.VendaId is { } vendaId && await banco.Vendas.AnyAsync(v => v.Id == vendaId && v.VendedorId == usuario.UsuarioId, ct);
         if (!vendeu)
         {
-            throw new RegraDeNegocioException("Só quem vendeu a placa, ou o dono, muda o destino.");
+            throw new RegraDeNegocioException("Só quem vendeu a placa, ou o revendedor, muda o destino.");
         }
     }
 }

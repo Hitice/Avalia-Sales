@@ -22,7 +22,7 @@ public sealed class Cadastro(IBancoDeDados banco, IContas contas)
         revendedor.DefinirEndereco(comando.Endereco?.ParaDominio() ?? throw new RegraDeNegocioException("Informe o endereço da empresa."));
         if (await banco.Revendedores.AnyAsync(r => r.Cnpj == revendedor.Cnpj, ct))
         {
-            throw new RegraDeNegocioException("Este CNPJ já tem cadastro. Entre com o e-mail do dono.");
+            throw new RegraDeNegocioException("Este CNPJ já tem cadastro. Entre com o e-mail do revendedor.");
         }
 
         await using var transacao = await banco.Database.BeginTransactionAsync(ct);

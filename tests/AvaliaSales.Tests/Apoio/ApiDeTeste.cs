@@ -163,7 +163,7 @@ public sealed class ApiDeTeste : IAsyncLifetime
         var email = $"dono-{Guid.NewGuid():N}@teste.com.br";
         var usuarios = escopo.ServiceProvider.GetRequiredService<UserManager<Usuario>>();
         var criado = await usuarios.CreateAsync(
-            new Usuario { RevendedorId = revendedor.Id, Papel = Papel.Dono, Nome = $"Dono {nome}", UserName = email, Email = email, EmailConfirmed = true }, Senha);
+            new Usuario { RevendedorId = revendedor.Id, Papel = Papel.Dono, Nome = $"Revendedor {nome}", UserName = email, Email = email, EmailConfirmed = true }, Senha);
         Assert.True(criado.Succeeded, string.Join("; ", criado.Errors.Select(e => e.Description)));
         return (revendedor.Id, email);
     }

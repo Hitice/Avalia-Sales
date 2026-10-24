@@ -76,7 +76,7 @@ public sealed class Lotes(IBancoDeDados banco, TimeProvider relogio)
         var lote = await Achar(loteId, ct);
         if (lote.RevendedorId is not null)
         {
-            throw new RegraDeNegocioException($"O lote {lote.Rotulo} já está com a revenda: quem arquiva é o dono, pelo estoque.");
+            throw new RegraDeNegocioException($"O lote {lote.Rotulo} já está com a revenda: quem arquiva é o revendedor, pelo estoque.");
         }
 
         if (arquivar)
