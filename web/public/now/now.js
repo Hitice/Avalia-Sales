@@ -481,6 +481,30 @@ function escrever(alvo) {
 }
 
 /* ---------------------------------------------------------------------------
+   Carrossel das integrações: as setas andam um cartão inteiro e se apagam nas
+   pontas. A parada em cartão completo é do CSS (scroll-snap obrigatório).
+   --------------------------------------------------------------------------- */
+function carrossel(caixa) {
+  const trilho = caixa.querySelector('.integracoes');
+  const voltar = caixa.querySelector('[data-carrossel-voltar]');
+  const avancar = caixa.querySelector('[data-carrossel-avancar]');
+  const passo = () => {
+    const cartoes = trilho.children;
+    return cartoes.length > 1 ? cartoes[1].offsetLeft - cartoes[0].offsetLeft : trilho.clientWidth;
+  };
+  const pontas = () => {
+    voltar.disabled = trilho.scrollLeft <= 2;
+    avancar.disabled = trilho.scrollLeft + trilho.clientWidth >= trilho.scrollWidth - 2;
+  };
+
+  voltar.addEventListener('click', () => trilho.scrollBy({ left: -passo() }));
+  avancar.addEventListener('click', () => trilho.scrollBy({ left: passo() }));
+  trilho.addEventListener('scroll', pontas, { passive: true });
+  window.addEventListener('resize', pontas);
+  pontas();
+}
+
+/* ---------------------------------------------------------------------------
    A venda simulada. A etapa vive no data-etapa do telefone; o CSS mostra a
    tela dela, e as animações reiniciam sozinhas quando o atributo muda.
    --------------------------------------------------------------------------- */
@@ -793,6 +817,7 @@ document.querySelectorAll('[data-qr]').forEach(desenharQr);
 document.querySelectorAll('[data-escrever]').forEach(escrever);
 trilha();
 document.querySelectorAll('[data-venda]').forEach(venda);
+document.querySelectorAll('[data-carrossel]').forEach(carrossel);
 document.querySelectorAll('[data-isola]').forEach(isolamento);
 document.querySelectorAll('[data-marca]').forEach(marca);
 document.querySelectorAll('[data-stack]').forEach(stack);

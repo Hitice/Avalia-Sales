@@ -3650,3 +3650,152 @@ html:not(.js) .marca fieldset {
 .etapa-nome:focus-visible {
   outline: none;
 }
+
+/* As integrações num carrossel: um cartão por vez no celular, três no
+   computador. O encaixe é obrigatório e por cartão, então a rolagem só para
+   com cartões inteiros alinhados ao começo. */
+.carrossel {
+  position: relative;
+  margin-top: 1.5rem;
+}
+
+.integracoes {
+  display: flex;
+  gap: 0.9rem;
+  max-width: none;
+  margin: 0;
+  padding: 0 0 0.9rem;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: #3f3f46 transparent;
+}
+
+.integracoes:focus-visible {
+  outline: 2px solid #ee46bc;
+  outline-offset: 4px;
+  border-radius: 1rem;
+}
+
+.integracoes > li,
+.integracoes > li:last-child {
+  display: flex;
+  flex: 0 0 86%;
+  flex-direction: column;
+  gap: 0.9rem;
+  border: 1px solid var(--borda);
+  border-radius: 1rem;
+  padding: 1.15rem 1.2rem 1.2rem;
+  background: var(--cartao-alto);
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
+.integracoes .logo {
+  margin-top: 0;
+}
+
+@media (min-width: 760px) {
+  .integracoes > li,
+  .integracoes > li:last-child {
+    flex-basis: calc((100% - 1.8rem) / 3);
+  }
+}
+
+.carrossel-setas {
+  display: none;
+}
+
+@media (hover: hover) and (min-width: 760px) {
+  .carrossel {
+    margin-top: 0.5rem;
+  }
+
+  .carrossel-setas {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.4rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .carrossel-seta {
+    display: grid;
+    place-items: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border: 1px solid var(--borda);
+    border-radius: 9999px;
+    color: var(--titulo);
+    background: var(--cartao);
+    cursor: pointer;
+    transition: border-color 0.2s, opacity 0.2s;
+  }
+
+  .carrossel-seta:hover {
+    border-color: rgb(238 70 188 / 0.5);
+  }
+
+  .carrossel-seta:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+
+  .carrossel-seta svg {
+    width: 1.1rem;
+    height: 1.1rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .integracoes {
+    scroll-behavior: auto;
+  }
+}
+
+/* Logo da Avalia maior na abertura. */
+.hero-logo {
+  width: clamp(10rem, 17vw, 13.5rem);
+}
+
+/* No computador, o conteúdo em 1080 px. */
+@media (min-width: 1180px) {
+  .documento {
+    max-width: 1080px;
+  }
+}
+
+/* No celular: a frase em duas linhas e as logos da faixa menores. */
+@media (max-width: 759px) {
+  .hero-titulo[data-escrever] {
+    max-width: none;
+    font-size: 7.4vw;
+  }
+
+  .hero-apis ul {
+    gap: 2.25rem;
+    padding-right: 2.25rem;
+  }
+
+  .hero-apis li {
+    gap: 0.5rem;
+    font-size: 0.88rem;
+  }
+
+  .api-ico {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+
+  .api-letra {
+    min-width: 1.25rem;
+    height: 1.25rem;
+    font-size: 0.6rem;
+  }
+}

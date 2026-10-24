@@ -66,7 +66,7 @@
     <img src="/now/img/marca-clara.svg" width="146" height="60" alt="Avalia Sales" class="hero-logo">
     <h1 class="hero-titulo" data-escrever>Plataforma de gestão de produtos 2.0</h1>
     <span class="hero-traco" aria-hidden="true"></span>
-    <p class="hero-autor">Pedro Fernandes · <a href="https://github.com/Hitice" rel="me noopener">GitHub</a> · <a href="https://www.linkedin.com/in/hitice" rel="me noopener">LinkedIn</a></p>
+    <p class="hero-autor">Por - Pedro Fernandes · <a href="https://github.com/Hitice" rel="me noopener">GitHub</a> · <a href="https://www.linkedin.com/in/hitice" rel="me noopener">LinkedIn</a></p>
     <div class="hero-apis">
       <div class="hero-apis-faixa">
         <ul aria-label="Integrações"><li><span class="api-ico i-pagarme" aria-hidden="true"></span>Pagar.me</li><li><span class="api-letra" aria-hidden="true">D4</span>D4Sign</li><li><span class="api-ico i-resend" aria-hidden="true"></span>Resend</li><li><span class="api-ico i-googlemaps" aria-hidden="true"></span>Google Maps</li><li><span class="api-ico i-totvs" aria-hidden="true"></span>Protheus</li><li><span class="api-ico i-sentry" aria-hidden="true"></span>Sentry</li><li><span class="api-letra" aria-hidden="true">BR</span>BrasilAPI</li><li><span class="api-letra" aria-hidden="true">PDF</span>Gotenberg</li><li><span class="api-ico i-githubactions" aria-hidden="true"></span>GitHub Actions</li></ul>
@@ -209,7 +209,12 @@
       </div>
     </figure>
 
-    <ul class="integracoes anima" data-revelar>
+    <div class="carrossel" data-carrossel>
+      <div class="carrossel-setas">
+        <button type="button" class="carrossel-seta" data-carrossel-voltar aria-label="Integração anterior"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6" /></svg></button>
+        <button type="button" class="carrossel-seta" data-carrossel-avancar aria-label="Próxima integração"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg></button>
+      </div>
+    <ul class="integracoes anima" data-revelar aria-label="Integrações" tabindex="0">
       <li>
         <span class="logo i-pagarme" aria-hidden="true"></span>
         <div>
@@ -241,6 +246,7 @@
         </div>
       </li>
     </ul>
+    </div>
     <p class="nota">Complementares: BrasilAPI (CNPJ e CEP), Gotenberg (PDF) e Sentry (erros).</p>
 
     <!-- Modernização -->
