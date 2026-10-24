@@ -48,10 +48,10 @@ public sealed class TestesGratuitos(IBancoDeDados banco, Notificacoes.Notificaco
                 (titulo, texto) = ("Teste acabando", $"{cliente}: o teste da placa {placa.Codigo} acaba em {venda.TesteAte!.Value.ToOffset(TimeSpan.FromHours(-3)):dd/MM}.");
             }
 
-            notificacoes.ParaDono(venda.RevendedorId, titulo, texto, "/painel/vendas");
+            notificacoes.ParaDono(venda.RevendedorId, titulo, texto, "/painel/vendas", venda.Id);
             if (await banco.Vendedores.AnyAsync(v => v.Id == venda.VendedorId, ct))
             {
-                notificacoes.ParaVendedor(venda.RevendedorId, venda.VendedorId, titulo, texto, "/vendedor/inicio");
+                notificacoes.ParaVendedor(venda.RevendedorId, venda.VendedorId, titulo, texto, "/vendedor/inicio", venda.Id);
             }
 
             mudaram++;

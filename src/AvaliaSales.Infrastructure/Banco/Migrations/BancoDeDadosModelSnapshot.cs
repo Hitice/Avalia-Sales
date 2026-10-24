@@ -984,11 +984,18 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("usuario_id");
 
+                    b.Property<Guid?>("VendaId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("venda_id");
+
                     b.HasKey("Id")
                         .HasName("pk_notificacoes");
 
                     b.HasIndex("RevendedorId")
                         .HasDatabaseName("ix_notificacoes_revendedor_id");
+
+                    b.HasIndex("VendaId")
+                        .HasDatabaseName("ix_notificacoes_venda_id");
 
                     b.HasIndex("ParaOperadora", "RevendedorId", "CriadaEm")
                         .HasDatabaseName("ix_notificacoes_para_operadora_revendedor_id_criada_em");

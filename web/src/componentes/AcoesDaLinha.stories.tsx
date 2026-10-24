@@ -20,7 +20,7 @@ function Exemplo({ convidado, comVenda }: { convidado: boolean; comVenda: boolea
           <TableCell>{convidado ? 'Convidado' : 'Ativo'}</TableCell>
           <TableCell>
             <AcoesDaLinha nome="Ju Gomes" principal={{ rotulo: 'Editar', aoClicar: nada }} outras={[
-              convidado && { rotulo: 'Convidar de novo', aoClicar: nada },
+              convidado && { rotulo: 'Convite', aoClicar: nada },
               { rotulo: 'Desativar', aoClicar: nada },
               !comVenda && { rotulo: 'Excluir', destrutiva: true, aoClicar: nada },
             ]} />

@@ -23,15 +23,19 @@ public sealed class Notificacao : IAtendidoPelaOperadora
     /// <summary>Tela que a notificação abre, como /painel/pedidos.</summary>
     public string? Link { get; private set; }
 
+    /// <summary>A venda que abriu a notificação: desfeita a venda, o que ficou sem ler se encerra.</summary>
+    public Guid? VendaId { get; private set; }
+
     public DateTimeOffset CriadaEm { get; private set; }
     public DateTimeOffset? LidaEm { get; private set; }
 
     private Notificacao() => Titulo = Texto = string.Empty;
 
     /// <summary>A operadora informa o revendedor; o revendedor, não: o dele vem do token.</summary>
-    public Notificacao(bool paraOperadora, string titulo, string texto, string? link, DateTimeOffset agora, Guid? revendedor = null)
+    public Notificacao(bool paraOperadora, string titulo, string texto, string? link, DateTimeOffset agora, Guid? revendedor = null, Guid? venda = null)
     {
         ParaOperadora = paraOperadora;
+        VendaId = venda;
         Titulo = Cortar(titulo, TituloMaximo);
         Texto = Cortar(texto, TextoMaximo);
         Link = link;
@@ -42,8 +46,8 @@ public sealed class Notificacao : IAtendidoPelaOperadora
         }
     }
 
-    public static Notificacao ParaUsuario(Guid revendedor, Guid usuario, string titulo, string texto, string? link, DateTimeOffset agora) =>
-        new(false, titulo, texto, link, agora, revendedor) { UsuarioId = usuario };
+    public static Notificacao ParaUsuario(Guid revendedor, Guid usuario, string titulo, string texto, string? link, DateTimeOffset agora, Guid? venda = null) =>
+        new(false, titulo, texto, link, agora, revendedor, venda) { UsuarioId = usuario };
 
     public void MarcarLida(DateTimeOffset agora) => LidaEm ??= agora;
 

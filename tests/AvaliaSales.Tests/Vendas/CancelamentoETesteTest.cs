@@ -63,6 +63,76 @@ public sealed class CancelamentoETesteTest(ApiDeTeste api)
     }
 
     [Fact]
+    public async Task Estorno_pelo_painel_cancela_o_servico_fecha_o_sino_da_venda_e_pede_o_cancelamento_ao_dono()
+    {
+        var revenda = await api.RevendaComEstoque("Revenda do Estorno pelo Painel");
+        var kit = await Cenarios.ProdutoDoCatalogo(revenda.Dono, "kit-mesa", 3_990L);
+        var pedido = new { codigo = "", produtoId = kit, empresa = "Bar do Estorno", responsavel = "Rita", telefone = "11977770024", documento = "11222333000181",
+            email = "bar@estorno.com.br", destino = (object?)null, valorCents = (long?)null, meio = "Pix" };
+        var venda = (await revenda.Dono.Postar("/vendas", pedido, HttpStatusCode.Created)).GetProperty("vendaId").GetGuid();
+        await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
+        var codigo = Guid.Parse(await banco.Texto($"select id::text from cobrancas where origem_id = '{venda}'")).ToString("N");
+        api.Gateway.Mudar(codigo, SituacaoDaCobranca.Paga);
+        await Rotinas(DateTimeOffset.UtcNow.AddMinutes(10));
+        Assert.Equal(1, await banco.Contar($"select count(*) from ordens_de_servico where venda_id = '{venda}' and situacao = 'AFazer'"));
+        Assert.True(await banco.Contar($"select count(*) from notificacoes where venda_id = '{venda}' and lida_em is null") >= 3);
+
+        // O dono estorna pelo painel do Pagar.me; o sistema sabe pelo webhook.
+        api.Gateway.Mudar(codigo, SituacaoDaCobranca.Estornada);
+        var corpo = $$$"""{"id":"hook_{{{Guid.NewGuid():N}}}","type":"charge.refunded","data":{"id":"ch_x","code":"{{{codigo}}}","status":"refunded"}}""";
+        var webhook = await api.Fabrica.CreateClient().PostAsync($"/webhooks/pagarme/{ApiDeTeste.SegredoDoWebhookPagarme}",
+            new StringContent(corpo, System.Text.Encoding.UTF8, "application/json"), Ct);
+        Assert.Equal(HttpStatusCode.OK, webhook.StatusCode);
+        await using (var worker = api.AmbienteDoWorker(api.Gateway, new AssinaturaFalsa()))
+        {
+            using var escopo = worker.CreateScope();
+            await escopo.ServiceProvider.GetRequiredService<ProcessadorDeEventos>().ProcessarPendentes(100_000, Ct);
+        }
+
+        Assert.Equal(1, await banco.Contar($"select count(*) from ordens_de_servico where venda_id = '{venda}' and situacao = 'Cancelada'"));
+        Assert.Equal(0, await banco.Contar($"select count(*) from notificacoes where venda_id = '{venda}' and lida_em is null"));
+        Assert.Equal(1, await banco.Contar("select count(*) from notificacoes where titulo = 'Pagamento estornado' and texto like '%Cancele a venda aqui também.' and lida_em is null"
+            + $" and revendedor_id = (select revendedor_id from vendas where id = '{venda}')"));
+        Assert.Equal(0, await banco.Contar($"select coalesce(sum(valor_cents), 0) from lancamentos where venda_id = '{venda}'"));
+
+        // O cancelamento depois fecha a venda sem pedir outro estorno.
+        var antes = api.Gateway.Cancelados.Count;
+        await revenda.Dono.Postar($"/vendas/{venda}/cancelamento", new { motivo = "Desistencia" }, HttpStatusCode.NoContent);
+        Assert.Equal(antes, api.Gateway.Cancelados.Count);
+        Assert.Equal(1, await banco.Contar($"select count(*) from vendas where id = '{venda}' and situacao = 'Cancelada'"));
+    }
+
+    [Fact]
+    public async Task Venda_do_vendedor_cancelada_avisa_o_vendedor_e_encerra_o_aviso_da_venda_paga()
+    {
+        var revenda = await api.RevendaComEstoque("Revenda do Vendedor Avisado");
+        var email = $"vendedor-{Guid.NewGuid():N}@teste.com.br";
+        var vendedorId = (await revenda.Dono.Postar("/equipe", new { nome = "Teo", email, senha = ApiDeTeste.Senha, comissaoBps = 2_500 }, HttpStatusCode.Created)).GetProperty("id").GetGuid();
+        var teo = await api.ClienteLogado(email);
+        var codigo = revenda.Codigos[3];
+        await revenda.Dono.Postar("/estoque/consignacao", new { vendedorId, codigos = new[] { codigo } });
+        await teo.Postar("/vendas", Cenarios.Venda(codigo, revenda.ProdutoId, "11977770025"), HttpStatusCode.Created);
+        var venda = await VendaDe(revenda.Dono, codigo);
+        await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
+        var cobranca = Guid.Parse(await banco.Texto($"select id::text from cobrancas where origem_id = '{venda}'")).ToString("N");
+        api.Gateway.Mudar(cobranca, SituacaoDaCobranca.Paga);
+        await Rotinas(DateTimeOffset.UtcNow.AddMinutes(10));
+        Assert.Equal(1, await banco.Contar($"select count(*) from notificacoes where venda_id = '{venda}' and usuario_id = '{vendedorId}' and lida_em is null"));
+
+        // Observação longa demais recusa antes de o dinheiro voltar.
+        await revenda.Dono.Postar($"/vendas/{venda}/cancelamento", new { motivo = "Desistencia", observacao = new string('x', 2_000) }, HttpStatusCode.UnprocessableEntity);
+        Assert.DoesNotContain(api.Gateway.PorCodigo[cobranca].Id, api.Gateway.Cancelados);
+
+        await revenda.Dono.Postar($"/vendas/{venda}/cancelamento", new { motivo = "Desistencia" }, HttpStatusCode.NoContent);
+
+        Assert.Equal(0, await banco.Contar($"select count(*) from notificacoes where venda_id = '{venda}' and lida_em is null"));
+        Assert.Equal(1, await banco.Contar($"select count(*) from notificacoes where usuario_id = '{vendedorId}' and titulo = 'Venda cancelada'"
+            + " and texto like '%o cliente desistiu. A comissão foi estornada.' and lida_em is null"));
+        Assert.Equal(0, await banco.Contar("select count(*) from notificacoes where titulo = 'Pagamento estornado'"
+            + $" and revendedor_id = (select revendedor_id from vendas where id = '{venda}')"));
+    }
+
+    [Fact]
     public async Task Pix_em_aberto_e_cancelado_e_a_placa_que_nao_voltou_sai_como_perdida()
     {
         var revenda = await api.RevendaComEstoque("Revenda da Placa Que Não Voltou");

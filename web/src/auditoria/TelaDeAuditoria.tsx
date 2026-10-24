@@ -3,32 +3,28 @@ import { Download } from 'lucide-react'
 import { useState } from 'react'
 import { chamarApi, chamarResposta, mensagemDoErro } from '@/api/cliente'
 import { ROTULO_DA_ACAO, formatarDataHora } from '@/api/rotulos'
-import type { AcaoAuditada, PaginaDeAuditoria, RegistroDeAuditoria } from '@/api/tipos'
+import type { PaginaDeAuditoria, RegistroDeAuditoria } from '@/api/tipos'
 import { Cabecalho, Erro, EstadoDaConsulta } from '@/componentes/Tela'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
 const POR_PAGINA = 20
-const TODAS = 'todas'
 
 /** O que mudou na revenda e quem mudou: destino, venda, comissão, equipe, marca, empresa e links. Só lê; ninguém apaga. */
 export function TelaDeAuditoria() {
   const [referencia, setReferencia] = useState('')
-  const [acao, setAcao] = useState<AcaoAuditada | typeof TODAS>(TODAS)
   const [pagina, setPagina] = useState(1)
   const [erroDaExportacao, setErroDaExportacao] = useState<unknown>(null)
   const [aberto, setAberto] = useState<RegistroDeAuditoria | null>(null)
   const filtro = new URLSearchParams({
     ...(referencia.trim() ? { referencia: referencia.trim().toUpperCase() } : {}),
-    ...(acao !== TODAS ? { acao } : {}),
   })
   const consulta = useQuery({
-    queryKey: ['auditoria', referencia, acao, pagina],
+    queryKey: ['auditoria', referencia, pagina],
     queryFn: () => chamarApi<PaginaDeAuditoria>(`/auditoria?${new URLSearchParams({ ...Object.fromEntries(filtro), pagina: String(pagina) })}`),
   })
   const total = consulta.data?.total ?? 0
@@ -58,13 +54,6 @@ export function TelaDeAuditoria() {
       <div className="mb-4 flex flex-wrap gap-2">
         <Input aria-label="Código da placa ou do link" placeholder="Código da placa" className="w-44 uppercase placeholder:normal-case" value={referencia}
           onChange={(e) => { setReferencia(e.target.value); setPagina(1) }} />
-        <Select value={acao} onValueChange={(v) => { setAcao(v as AcaoAuditada | typeof TODAS); setPagina(1) }}>
-          <SelectTrigger aria-label="Ação" className="w-60"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value={TODAS}>Todas as ações</SelectItem>
-            {(Object.keys(ROTULO_DA_ACAO) as AcaoAuditada[]).map((a) => <SelectItem key={a} value={a}>{ROTULO_DA_ACAO[a]}</SelectItem>)}
-          </SelectContent>
-        </Select>
       </div>
       <Erro erro={erroDaExportacao ? mensagemDoErro(erroDaExportacao) : null} />
       <Card>

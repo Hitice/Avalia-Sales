@@ -74,6 +74,7 @@ public sealed class Vendas(
     Links.Links links,
     Auditoria.Auditoria auditoria,
     IOptions<OpcoesDaPlataforma> plataforma,
+    Notificacoes.Notificacoes notificacoes,
     TimeProvider relogio)
 {
     public async Task<VendaRegistrada> Registrar(NovaVenda pedido, CancellationToken ct)
@@ -360,15 +361,25 @@ public sealed class Vendas(
             await ExigirSemRenovacaoAberta(daVenda, ct);
         }
 
+        // A venda se cancela antes da cobrança: o motivo inválido recusa antes de o dinheiro voltar, e o estorno já a vê cancelada.
         var agora = relogio.GetUtcNow();
+        venda.Cancelar(motivo, observacao, agora);
         var vivas = await banco.Cobrancas.Where(c => c.Origem == OrigemDaCobranca.Venda && c.OrigemId == venda.Id
             && (c.Situacao == SituacaoDaCobranca.Pendente || c.Situacao == SituacaoDaCobranca.Paga)).ToListAsync(ct);
+        var estornou = vivas.Any(c => c.Situacao == SituacaoDaCobranca.Paga);
         foreach (var cobranca in vivas)
         {
             await cobrancas.Cancelar(cobranca, ct);
         }
 
-        venda.Cancelar(motivo, observacao, agora);
+        await notificacoes.EncerrarDaVenda(venda.Id, ct);
+        if (venda.VendedorId != usuario.UsuarioId && await banco.Vendedores.AnyAsync(v => v.Id == venda.VendedorId, ct))
+        {
+            var cliente = await banco.Clientes.AsNoTracking().Where(c => c.Id == venda.ClienteId).Select(c => c.Nome).SingleAsync(ct);
+            var comissao = estornou && venda.ComissaoCents > 0 ? " A comissão foi estornada." : string.Empty;
+            notificacoes.ParaVendedor(venda.RevendedorId, venda.VendedorId, "Venda cancelada", $"{cliente}: {Motivo(motivo)}.{comissao}", "/vendedor/inicio");
+        }
+
         if (venda.PlacaId is { } placaId)
         {
             var placa = await banco.Placas.SingleAsync(p => p.Id == placaId, ct);
@@ -387,6 +398,15 @@ public sealed class Vendas(
         banco.AvisarAoVivo("venda", venda.RevendedorId);
         await banco.SaveChangesAsync(ct);
     }
+
+    private static string Motivo(MotivoDoCancelamento motivo) => motivo switch
+    {
+        MotivoDoCancelamento.ErroDeCadastro => "cancelada por erro de cadastro",
+        MotivoDoCancelamento.Inadimplencia => "cancelada por falta de pagamento",
+        MotivoDoCancelamento.Desistencia => "o cliente desistiu",
+        MotivoDoCancelamento.Defeito => "cancelada por defeito",
+        _ => "venda cancelada",
+    };
 
     /// <summary>A revenda dá a placa: valor e comissão zerados, com a mesma trava da cobrança.</summary>
     public async Task Cortesia(Guid vendaId, CancellationToken ct)

@@ -16,23 +16,42 @@ public sealed class Notificacoes(IBancoDeDados banco, IRevendedorAtual atual, IU
 {
     public const int NaCaixa = 30;
 
-    public void ParaDono(Guid revendedor, string titulo, string texto, string? link)
+    public void ParaDono(Guid revendedor, string titulo, string texto, string? link, Guid? venda = null)
     {
-        banco.Notificacoes.Add(new Notificacao(false, titulo, texto, link, relogio.GetUtcNow(), revendedor));
+        banco.Notificacoes.Add(new Notificacao(false, titulo, texto, link, relogio.GetUtcNow(), revendedor, venda));
         banco.AvisarAoVivo("notificacao", revendedor);
     }
 
     /// <summary>Para uma pessoa da equipe; o aviso ao vivo vai para a revenda, e cada sino filtra o dele.</summary>
-    public void ParaVendedor(Guid revendedor, Guid vendedor, string titulo, string texto, string? link)
+    public void ParaVendedor(Guid revendedor, Guid vendedor, string titulo, string texto, string? link, Guid? venda = null)
     {
-        banco.Notificacoes.Add(Notificacao.ParaUsuario(revendedor, vendedor, titulo, texto, link, relogio.GetUtcNow()));
+        banco.Notificacoes.Add(Notificacao.ParaUsuario(revendedor, vendedor, titulo, texto, link, relogio.GetUtcNow(), venda));
         banco.AvisarAoVivo("notificacao", revendedor);
     }
 
-    public void ParaOperadora(Guid revendedor, string titulo, string texto, string? link)
+    public void ParaOperadora(Guid revendedor, string titulo, string texto, string? link, Guid? venda = null)
     {
-        banco.Notificacoes.Add(new Notificacao(true, titulo, texto, link, relogio.GetUtcNow(), revendedor));
+        banco.Notificacoes.Add(new Notificacao(true, titulo, texto, link, relogio.GetUtcNow(), revendedor, venda));
         banco.AvisarAoVivo("notificacao", revendedor, operadora: true);
+    }
+
+    /// <summary>
+    /// A venda desfeita encerra o que abriu no sino de todos (dono, vendedor e
+    /// operadora): o que ainda não foi lido passa a lido, e fica no histórico.
+    /// </summary>
+    public async Task EncerrarDaVenda(Guid venda, CancellationToken ct)
+    {
+        var agora = relogio.GetUtcNow();
+        var abertas = await banco.Notificacoes.Where(n => n.VendaId == venda && n.LidaEm == null).ToListAsync(ct);
+        foreach (var aberta in abertas)
+        {
+            aberta.MarcarLida(agora);
+        }
+
+        if (abertas.Count > 0)
+        {
+            banco.AvisarAoVivo("notificacao", abertas[0].RevendedorId, operadora: abertas.Any(n => n.ParaOperadora));
+        }
     }
 
     public async Task<CaixaDeNotificacoes> Caixa(CancellationToken ct)

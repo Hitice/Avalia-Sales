@@ -3,6 +3,7 @@ using AvaliaSales.Domain.Financeiro;
 using AvaliaSales.Domain.Pagamentos;
 using AvaliaSales.Domain.Pedidos;
 using AvaliaSales.Domain.Servicos;
+using AvaliaSales.Domain.Vendas;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
@@ -109,11 +110,11 @@ public sealed class EfeitosDaCobranca(IBancoDeDados banco, FilaDeEmails avisos, 
         var cliente = await banco.Clientes.AsNoTracking().Where(c => c.Id == venda.ClienteId).Select(c => c.Nome).SingleAsync(ct);
         var vendedor = (await contas.Nomes([venda.VendedorId], ct)).GetValueOrDefault(venda.VendedorId, "A equipe");
         var valor = $"R$ {venda.ValorCents / 100},{venda.ValorCents % 100:00}";
-        notificacoes.ParaDono(venda.RevendedorId, "Venda paga", $"{vendedor} vendeu {produto.Nome} para {cliente}, {valor}.", "/painel/vendas");
+        notificacoes.ParaDono(venda.RevendedorId, "Venda paga", $"{vendedor} vendeu {produto.Nome} para {cliente}, {valor}.", "/painel/vendas", venda.Id);
         if (await banco.Vendedores.AnyAsync(v => v.Id == venda.VendedorId, ct))
         {
             var comissao = venda.ComissaoCents > 0 ? $" Comissão de R$ {venda.ComissaoCents / 100},{venda.ComissaoCents % 100:00}." : string.Empty;
-            notificacoes.ParaVendedor(venda.RevendedorId, venda.VendedorId, "Venda paga", $"{cliente} pagou {valor}.{comissao}", "/vendedor/inicio");
+            notificacoes.ParaVendedor(venda.RevendedorId, venda.VendedorId, "Venda paga", $"{cliente} pagou {valor}.{comissao}", "/vendedor/inicio", venda.Id);
         }
 
         // Serviço que a Avalia executa: a venda paga vira ordem para a operadora, uma por venda.
@@ -124,8 +125,8 @@ public sealed class EfeitosDaCobranca(IBancoDeDados banco, FilaDeEmails avisos, 
         {
             banco.OrdensDeServico.Add(new Domain.Servicos.OrdemDeServico(venda.RevendedorId, venda.Id, doCatalogo.Id, doCatalogo.Nome, cliente, quando));
             var revendedor = await banco.Revendedores.Where(r => r.Id == venda.RevendedorId).Select(r => r.Nome).SingleAsync(ct);
-            notificacoes.ParaOperadora(venda.RevendedorId, "Serviço a fazer", $"{doCatalogo.Nome} para {cliente}, vendido por {revendedor}.", "/operadora/servicos");
-            notificacoes.ParaDono(venda.RevendedorId, "Serviço na fila da Avalia", $"{doCatalogo.Nome} para {cliente} entrou na fila de execução.", "/links?aba=status");
+            notificacoes.ParaOperadora(venda.RevendedorId, "Serviço a fazer", $"{doCatalogo.Nome} para {cliente}, vendido por {revendedor}.", "/operadora/servicos", venda.Id);
+            notificacoes.ParaDono(venda.RevendedorId, "Serviço na fila da Avalia", $"{doCatalogo.Nome} para {cliente} entrou na fila de execução.", "/links?aba=status", venda.Id);
         }
     }
 
@@ -168,21 +169,39 @@ public sealed class EfeitosDaCobranca(IBancoDeDados banco, FilaDeEmails avisos, 
             banco.Lancamentos.Add(linha.Estorno(cobranca.PorFora ? "recebimento por fora desfeito" : "pagamento estornado no Pagar.me", agora));
         }
 
-        // Serviço sem pagamento não se executa: a ordem ainda aberta sai cancelada; a entregue fica, e a operadora resolve com a revenda.
-        if (cobranca.Origem == OrigemDaCobranca.Venda)
+        if (cobranca.Origem == OrigemDaCobranca.Venda && cobranca.OrigemId is { } vendaId)
         {
-            var abertas = await banco.OrdensDeServico
-                .Where(o => o.VendaId == cobranca.OrigemId && (o.Situacao == SituacaoDaOrdem.AFazer || o.Situacao == SituacaoDaOrdem.EmAndamento))
+            await notificacoes.EncerrarDaVenda(vendaId, ct);
+
+            // Serviço sem pagamento não se executa: a ordem aberta sai cancelada; a entregue fica, e a operadora tira do ar ou acerta com a revenda.
+            var ordens = await banco.OrdensDeServico
+                .Where(o => o.VendaId == vendaId && o.Situacao != SituacaoDaOrdem.Cancelada)
                 .ToListAsync(ct);
-            foreach (var ordem in abertas)
+            foreach (var ordem in ordens)
             {
+                if (ordem.Situacao == SituacaoDaOrdem.Entregue)
+                {
+                    notificacoes.ParaOperadora(ordem.RevendedorId, "Serviço entregue sem pagamento",
+                        $"{ordem.Produto} para {ordem.Cliente}: o pagamento foi estornado depois da entrega. Tire do ar o que foi entregue ou acerte com a revenda.", "/operadora/servicos");
+                    continue;
+                }
+
                 ordem.Cancelar();
                 notificacoes.ParaOperadora(ordem.RevendedorId, "Serviço cancelado", $"{ordem.Produto} para {ordem.Cliente}: o pagamento foi estornado.", "/operadora/servicos");
             }
 
-            if (abertas.Count > 0)
+            if (ordens.Count > 0)
             {
                 banco.AvisarAoVivo("servico", cobranca.RevendedorId, operadora: true);
+            }
+
+            // Estorno que não saiu do cancelamento daqui (painel do Pagar.me, contestação): a venda segue de pé até o dono decidir o destino da placa.
+            var venda = await banco.Vendas.SingleOrDefaultAsync(v => v.Id == vendaId, ct);
+            if (!cobranca.PorFora && venda is { Situacao: SituacaoDaVenda.Registrada })
+            {
+                var cliente = await banco.Clientes.AsNoTracking().Where(c => c.Id == venda.ClienteId).Select(c => c.Nome).SingleAsync(ct);
+                var proximo = venda.PlacaId is null ? "Cancele a venda aqui também." : "Cancele a venda para tirar a placa do ar.";
+                notificacoes.ParaDono(venda.RevendedorId, "Pagamento estornado", $"{cliente}: o pagamento foi estornado no Pagar.me. {proximo}", "/painel/vendas");
             }
         }
 

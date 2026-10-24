@@ -246,6 +246,7 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
             n.Property(x => x.Link).HasMaxLength(200);
             n.HasOne<Revendedor>().WithMany().HasForeignKey(x => x.RevendedorId).OnDelete(DeleteBehavior.Restrict);
             n.HasIndex(x => new { x.ParaOperadora, x.RevendedorId, x.CriadaEm });
+            n.HasIndex(x => x.VendaId);
         });
 
         modelo.Entity<Cobranca>(c =>

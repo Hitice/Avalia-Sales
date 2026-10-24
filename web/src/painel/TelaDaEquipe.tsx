@@ -127,7 +127,7 @@ export function TelaDaEquipe() {
                         <TableCell><Badge variant={v.ativo && !v.convitePendente ? 'default' : 'outline'}>{!v.ativo ? 'Desativado' : v.convitePendente ? 'Convidado' : 'Ativo'}</Badge></TableCell>
                         <TableCell>
                           <AcoesDaLinha nome={v.nome} principal={{ rotulo: 'Editar', aoClicar: () => editar(v) }} outras={[
-                            v.ativo && v.convitePendente && { rotulo: 'Convidar de novo', desabilitada: convidar.isPending, aoClicar: () => convidar.mutate(v.id, { onSuccess: setConvite }) },
+                            v.ativo && v.convitePendente && { rotulo: 'Convite', desabilitada: convidar.isPending, aoClicar: () => convidar.mutate(v.id, { onSuccess: setConvite }) },
                             { rotulo: v.ativo ? 'Desativar' : 'Reativar', aoClicar: () => ativar.mutate({ id: v.id, ativo: !v.ativo }) },
                             v.vendas === 0 && { rotulo: 'Excluir', destrutiva: true, aoClicar: () => excluir.mutate(v.id) },
                           ]} />

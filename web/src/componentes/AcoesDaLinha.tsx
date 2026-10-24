@@ -13,37 +13,40 @@ type Props = {
 }
 
 /**
- * Coluna de ações da tabela. No computador, a ação principal e as outras num
- * menu, para a coluna não passar da largura do cartão; no celular, a linha já
- * é um cartão e as ações ficam numa fileira de botões (table.tsx).
+ * Coluna de ações da tabela: a ação principal e as outras num menu, para a
+ * coluna não passar da largura do cartão. No celular a linha já é um cartão
+ * (table.tsx): com uma só ação a mais, ela fica ao lado da principal; com
+ * mais, vão para o menu, que lado a lado não cabem e um toque errado dá baixa.
  */
 export function AcoesDaLinha({ nome, principal, outras }: Props) {
   const resto = outras.filter((a): a is Acao => !!a)
+  const menu = resto.length > 0 && (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" aria-label={`Mais ações de ${nome}`} title="Mais ações"><Ellipsis aria-hidden /></Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        {resto.map((a) => (
+          <DropdownMenuItem key={a.rotulo} variant={a.destrutiva ? 'destructive' : 'default'} disabled={a.desabilitada} onSelect={a.aoClicar}>
+            {a.rotulo}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
   return (
     <>
-      <div className="flex justify-end gap-2 md:hidden">
-        {[principal, ...resto].map((a) => (
-          <Button key={a.rotulo} variant={a.destrutiva ? 'ghost' : 'outline'} className={a.destrutiva ? 'text-destructive' : undefined}
-            disabled={a.desabilitada} onClick={a.aoClicar}>{a.rotulo}</Button>
-        ))}
+      <div className="flex flex-wrap items-center justify-end gap-2 md:hidden">
+        <Button variant="outline" className="flex-1" disabled={principal.desabilitada} onClick={principal.aoClicar}>{principal.rotulo}</Button>
+        {resto.length === 1
+          ? <Button variant={resto[0].destrutiva ? 'ghost' : 'outline'} className={resto[0].destrutiva ? 'text-destructive' : 'flex-1'}
+              disabled={resto[0].desabilitada} onClick={resto[0].aoClicar}>{resto[0].rotulo}</Button>
+          : menu}
       </div>
       {/* span, e não div: o CSS do cartão no celular estiliza os div da célula de ações. */}
       <span className="flex items-center justify-end gap-2 max-md:hidden">
         <Button variant="outline" disabled={principal.desabilitada} onClick={principal.aoClicar}>{principal.rotulo}</Button>
-        {resto.length > 0 && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" aria-label={`Mais ações de ${nome}`} title="Mais ações"><Ellipsis aria-hidden /></Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {resto.map((a) => (
-                <DropdownMenuItem key={a.rotulo} variant={a.destrutiva ? 'destructive' : 'default'} disabled={a.desabilitada} onSelect={a.aoClicar}>
-                  {a.rotulo}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
+        {menu}
       </span>
     </>
   )
