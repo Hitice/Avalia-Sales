@@ -117,11 +117,10 @@ Todas no mesmo app, liberadas pelo papel do usuário.
 | --- | --- | --- | --- |
 | Entrada, cadastro e senha | Todos | Celular e computador | Entrar, cadastrar a revenda (CNPJ preenche razão social e endereço), confirmar o e-mail, criar e trocar a senha; no pé da entrada, os logos das integrações (Pagar.me, D4Sign, Google Maps, Resend) em cinza |
 | Início | Dono | Computador | Números do mês e gráficos - vendas por dia nos últimos 30 dias, recebido por mês nos últimos 6 e vendas do mês por vendedor |
-| Vendas | Dono | Computador | Lista das vendas, cobrança de novo, cancelamento, cortesia, recebido por fora |
+| Vendas | Dono e vendedor | Computador e celular | Aba Vendas - lista das vendas, com a quantidade do serviço ("10x Kit Mesa") e as vendas feitas juntas marcadas; cobrança de novo, cancelamento, cortesia, recebido por fora. Aba Catálogo - produtos da Avalia com foto, preço sugerido, pedido mínimo e o preço da revenda; o dono ajusta o preço e pede placas; Vender abre a Nova venda com o item escolhido. O endereço /catalogo leva à aba |
 | Clientes | Dono | Computador | Clientes da revenda, exportação dos dados e anonimização (LGPD) |
 | Serviços | Dono e vendedor | Celular | Abas Link (link curto /L/ de qualquer endereço colado), NFC (grava o link curto na tag), Maps (busca o negócio no Google e cria o link curto da avaliação) e Status (só o dono; as ordens dos serviços vendidos que a Avalia executa); o dono edita, desliga e exclui o link |
 | Mapa | Dono | Computador | Lugares vendidos, no Google Maps |
-| Catálogo | Dono e vendedor | Computador e celular | Produtos da Avalia com foto, preço sugerido e o preço da revenda; o dono ajusta o preço e pede placas; a equipe vende daqui (serviço abre a venda sem placa) |
 | Estoque | Dono | Computador | Placas por situação, consignação ao vendedor e ativação de lote |
 | Pedidos | Dono | Computador | Pedidos de placas com a situação (aguardando pagamento, pago, em produção, enviado ou pronto para retirada, entregue) e o link de pagamento |
 | Equipe | Dono | Computador | Criar, editar, desativar e excluir vendedor, comissão própria, convite |
@@ -135,7 +134,7 @@ Todas no mesmo app, liberadas pelo papel do usuário.
 | Meus dados | Todos | Celular e computador | No menu da conta - nome de todos; nome da empresa, celular e endereço do dono (o CNPJ não muda); telefone e chave Pix do vendedor; trocar a senha (pede a atual; os outros aparelhos saem e chega um aviso por e-mail); o dono encerra a conta aqui. O e-mail muda pelo Suporte |
 | Segurança | Dono e operadora | Celular e computador | Ativar o segundo fator (app autenticador ou código no e-mail), com códigos de recuperação. Desativar manda um código novo ao e-mail cadastrado; o do app e os de recuperação também valem |
 | Painel do vendedor | Vendedor | Celular | Vendas do mês, comissão a receber, esperando pagamento e recebida, placas com ele |
-| Nova venda | Dono e vendedor | Celular | Negócio no Google, QR da placa, cliente, cobrança, gravação do NFC; ou venda de serviço, sem placa |
+| Nova venda | Dono e vendedor | Celular | Itens (a placa abre a leitura do QR e o destino; o serviço entra com a quantidade, a partir do pedido mínimo), cliente, cobrança de tudo numa vez e gravação do NFC de cada placa |
 | Ficha da placa | Dono e vendedor | Celular | Destino, vencimento, leituras, histórico, troca, renovação |
 | Pedidos, Lotes, Pacotes e Cupons | Operadora | Computador | Fila de pedidos (produção, despacho do lote pelo envio ou para retirada), geração e impressão de lotes, pacotes e cupons |
 | Catálogo da Avalia | Operadora | Computador | Cadastrar e editar produto, foto com recorte, preço sugerido, desconto da revenda (e a parte da Avalia que sai dele), ordem e situação |
@@ -572,6 +571,7 @@ porque está impresso nas placas vendidas.
 
 | Data | Mudança |
 | --- | --- |
+| 24/10/2026 | Vendas é a casa da venda - o Catálogo vira a aba Catálogo dela (o endereço /catalogo leva para lá) e sai da barra de baixo do celular e do menu lateral. A Nova venda passa a ser escolha de itens com a venda montada na tela: a placa é um item que abre a leitura do QR e o destino; o serviço entra com o pedido mínimo e a quantidade ajustável, nunca abaixo dele; o valor de cada linha pode ser ajustado; tudo sai numa cobrança só (POST /vendas/itens), e o teste gratuito só aparece quando a venda tem só placas. A tela da venda registrada mostra cada placa com o NFC e o link, e o Pix do total. A lista de vendas mostra a quantidade ("10x Kit Mesa") e marca as vendas feitas juntas; a operadora define o pedido mínimo do serviço no Catálogo da Avalia; a ordem de serviço mostra a quantidade. |
 | 24/10/2026 | Venda com vários itens para o mesmo cliente (até 20): cada placa ou serviço é uma venda, com a comissão dela, e juntas formam um grupo com uma cobrança só (POST /vendas/itens). Pago, o razão lança cada venda pelo valor dela; a última do grupo fica com o custo do parcelamento e os centavos do rateio da taxa. Cancelar uma venda do grupo pago devolve só a parte dela (estorno parcial no Pagar.me, ou por fora quando foi recebido por fora); com o Pix do grupo em aberto, o Pix cai inteiro e o resto ganha cobrança nova em Vendas. Serviço vende por quantidade, nunca abaixo do pedido mínimo do catálogo: kit mesa e placa de cardápio a partir de 10; a ordem de serviço leva a quantidade. |
 | 24/10/2026 | Área Financeiro do dono (menu Equipe e dinheiro) - DRE do mês, gráficos, despesas, sócios e retiradas, fechamento do mês. |
 | 24/10/2026 | Despesa com data, descrição, categoria e valor vai ao razão; editar estorna e lança de novo, excluir estorna. |

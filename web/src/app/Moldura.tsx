@@ -29,6 +29,7 @@ type Grupo = { titulo?: string; itens: Item[] }
 /**
  * No celular, a barra de baixo leva as telas de todo dia, ao alcance do
  * polegar; o resto fica no "Mais". No computador, o menu lateral mostra tudo.
+ * O Catálogo é uma aba da tela Vendas: não ocupa lugar aqui.
  */
 const PRINCIPAIS: Record<Papel, Item[]> = {
   Operadora: [
@@ -41,14 +42,12 @@ const PRINCIPAIS: Record<Papel, Item[]> = {
     { para: '/painel/inicio', rotulo: 'Início', icone: Home },
     { para: '/vender', rotulo: 'Vender', icone: PlusCircle },
     { para: '/painel/vendas', rotulo: 'Vendas', icone: Receipt },
-    { para: '/catalogo', rotulo: 'Catálogo', icone: BookOpen },
     { para: '/painel/estoque', rotulo: 'Estoque', icone: Package },
   ],
   Vendedor: [
     { para: '/vendedor/inicio', rotulo: 'Início', icone: Home },
     { para: '/vender', rotulo: 'Vender', icone: PlusCircle },
     { para: '/vendedor/vendas', rotulo: 'Vendas', icone: Receipt },
-    { para: '/catalogo', rotulo: 'Catálogo', icone: BookOpen },
     { para: '/vendedor/placas', rotulo: 'Placas', icone: Package },
   ],
 }
@@ -84,7 +83,6 @@ const MENU: Record<Papel, Grupo[]> = {
       { para: '/painel/mapa', rotulo: 'Mapa', icone: MapPin },
     ] },
     { titulo: 'Produtos', itens: [
-      { para: '/catalogo', rotulo: 'Catálogo', icone: BookOpen },
       { para: '/painel/estoque', rotulo: 'Estoque', icone: Package },
       { para: '/painel/pedidos', rotulo: 'Pedidos', icone: ClipboardList },
     ] },
@@ -108,7 +106,6 @@ const MENU: Record<Papel, Grupo[]> = {
       { para: '/vender', rotulo: 'Nova venda', icone: PlusCircle },
       { para: '/vendedor/placas', rotulo: 'Minhas placas', icone: Package },
       { para: '/vendedor/vendas', rotulo: 'Minhas vendas', icone: Receipt },
-      { para: '/catalogo', rotulo: 'Catálogo', icone: BookOpen },
       { para: '/links', rotulo: 'Serviços', icone: Wrench },
     ] },
   ],

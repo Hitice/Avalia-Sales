@@ -5,7 +5,7 @@ import { mensagemDoErro } from '@/api/cliente'
 import { formatarBps, paraBps, ROTULO_DO_PRODUTO, ROTULO_DO_TIPO } from '@/api/rotulos'
 import type { ItemDoCatalogo } from '@/api/tipos'
 import { useSessao } from '@/acesso/sessao'
-import { Cabecalho, Carregando, Erro } from '@/componentes/Tela'
+import { Carregando, Erro } from '@/componentes/Tela'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -14,14 +14,15 @@ import { Field, FieldDescription, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { formatarCentavos, paraCentavos } from '@/dinheiro/dinheiro'
 import { PacotesParaPedir } from '@/painel/PacotesParaPedir'
-import { useAjustarProduto, useAtivarProduto, useCatalogo, usaPlaca } from './produtos'
+import { useAjustarProduto, useAtivarProduto, useCatalogo } from './produtos'
 
 /**
- * O catálogo da Avalia: foto, o que é, o preço sugerido e o preço da revenda.
- * O dono ajusta o preço dele (nunca abaixo do custo) e pede placas; a equipe
- * vende daqui.
+ * O catálogo da Avalia, na aba Catálogo da tela Vendas: foto, o que é, o
+ * preço sugerido e o preço da revenda. O dono ajusta o preço dele (nunca
+ * abaixo do custo) e pede placas; a equipe vende daqui, com o item já
+ * escolhido na Nova venda.
  */
-export function TelaDoCatalogo() {
+export function Catalogo() {
   const dono = useSessao((s) => s.perfil?.papel === 'Dono')
   const catalogo = useCatalogo()
   const [ajustando, setAjustando] = useState<ItemDoCatalogo | null>(null)
@@ -29,10 +30,12 @@ export function TelaDoCatalogo() {
   const navegar = useNavigate()
 
   return (
-    <>
-      <Cabecalho titulo="Catálogo">
-        {dono && <Button onClick={() => setPedindo(true)}>Pedir placas</Button>}
-      </Cabecalho>
+    <div className="grid gap-4">
+      {dono && (
+        <div className="flex justify-end">
+          <Button variant="outline" onClick={() => setPedindo(true)}>Pedir placas</Button>
+        </div>
+      )}
       {catalogo.isPending && <Carregando linhas={3} />}
       <Erro erro={catalogo.error} />
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -42,6 +45,7 @@ export function TelaDoCatalogo() {
             <CardContent className="grid flex-1 gap-3">
               <div className="flex flex-wrap gap-1.5">
                 <Badge variant="secondary">{ROTULO_DO_TIPO[p.tipo]}</Badge>
+                {p.quantidadeMinima > 1 && <Badge variant="outline">Mínimo {p.quantidadeMinima}</Badge>}
                 {p.situacao !== 'Disponivel' && <Badge variant="destructive">{ROTULO_DO_PRODUTO[p.situacao]}</Badge>}
                 {!p.ativo && <Badge variant="outline">Suspenso</Badge>}
               </div>
@@ -57,8 +61,7 @@ export function TelaDoCatalogo() {
                 {p.comissaoBps !== null && <span className="text-xs text-muted-foreground">Comissão {formatarBps(p.comissaoBps)}</span>}
               </div>
               <div className="mt-auto flex flex-wrap gap-2">
-                <Button className="flex-1" disabled={p.situacao !== 'Disponivel' || !p.ativo}
-                  onClick={() => navegar(usaPlaca(p) ? '/vender' : `/vender?produto=${p.id}`)}>Vender</Button>
+                <Button className="flex-1" disabled={p.situacao !== 'Disponivel' || !p.ativo} onClick={() => navegar(`/vender?produto=${p.id}`)}>Vender</Button>
                 {dono && <Button variant="outline" className="flex-1" onClick={() => setAjustando(p)}>Configurar</Button>}
               </div>
             </CardContent>
@@ -75,7 +78,7 @@ export function TelaDoCatalogo() {
           <PacotesParaPedir aoPedir={() => { setPedindo(false); navegar('/painel/pedidos') }} />
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   )
 }
 

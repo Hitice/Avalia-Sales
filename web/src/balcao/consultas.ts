@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { chamarApi, enviarJson } from '@/api/cliente'
 import type { components } from '@/api/esquema'
-import type { DestinoInformado, Ficha, Lugar, RenovacaoAberta, VendaRegistrada } from '@/api/tipos'
+import type { DestinoInformado, Ficha, Lugar, NovaVendaComItens, RenovacaoAberta, VendaRegistrada, VendasRegistradas } from '@/api/tipos'
 import type { ConfiguracaoDoCartao } from '@/lib/cartao'
 
 export type NovaVenda = components['schemas']['NovaVenda']
@@ -33,6 +33,15 @@ export function useVender() {
   return useMutation({
     mutationFn: (venda: NovaVenda) => chamarApi<VendaRegistrada>('/vendas', enviarJson('POST', venda)),
     onSuccess: () => Promise.all(['vendas', 'placas', 'placa'].map((c) => cliente.invalidateQueries({ queryKey: [c] }))),
+  })
+}
+
+/** A venda com vários itens numa cobrança só; cada placa ou serviço vira uma venda do mesmo grupo. */
+export function useVenderItens() {
+  const cliente = useQueryClient()
+  return useMutation({
+    mutationFn: (venda: NovaVendaComItens) => chamarApi<VendasRegistradas>('/vendas/itens', enviarJson('POST', venda)),
+    onSuccess: () => Promise.all(['vendas', 'placas', 'placa', 'servicos'].map((c) => cliente.invalidateQueries({ queryKey: [c] }))),
   })
 }
 

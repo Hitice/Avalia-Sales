@@ -1,38 +1,38 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ChevronLeft } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { type UseFormReturn, useForm } from 'react-hook-form'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import { useSessao } from '@/acesso/sessao'
 import { mensagemDoErro } from '@/api/cliente'
-import { ROTULO_DO_ESTADO, ROTULO_DO_PAGAMENTO, formatarData } from '@/api/rotulos'
-import type { DestinoInformado, ItemDoCatalogo, Lugar, VendaRegistrada } from '@/api/tipos'
+import { ROTULO_DO_PAGAMENTO, formatarData } from '@/api/rotulos'
+import type { ItemDoCatalogo, VendasRegistradas } from '@/api/tipos'
 import { useCatalogo, usaPlaca } from '@/catalogo/produtos'
+import { Campo } from '@/componentes/Campo'
 import { PixNaTela } from '@/componentes/PixNaTela'
-import { Aviso, Erro } from '@/componentes/Tela'
+import { Aviso, Carregando, Erro } from '@/componentes/Tela'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field, FieldLabel } from '@/components/ui/field'
-import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
-import { formatarCentavos, paraCentavos } from '@/dinheiro/dinheiro'
+import { formatarCentavos } from '@/dinheiro/dinheiro'
 import { type ConfiguracaoDoCartao, cartaoValido, tokenizarCartao, totalParcelado, validadeValida } from '@/lib/cartao'
 import { documentoOpcional, emailOpcional, telefone, texto } from '@/lib/esquemas'
 import { digitos, mascaraDocumento, mascaraTelefone } from '@/lib/mascaras'
+import { cn } from '@/lib/utils'
 import { z } from 'zod'
-import { Campo } from '@/componentes/Campo'
-import { extrairCodigo } from './codigo'
-import { useConfiguracaoDoCartao, useFicha, usePagamentoDaVenda, useVender } from './consultas'
-import { destinoPronto } from './destino'
-import { EscolhaDeDestino } from './EscolhaDeDestino'
-import { LeitorDeQr } from './LeitorDeQr'
 import { CopiarLink, GravarNfc } from './BotoesDeNfc'
+import { Carrinho } from './Carrinho'
+import { type LinhaDaVenda, adicionar, comQuantidade, comValor, itensParaVender, linhaDeServico, nomeDaLinha, paraItens, remover, soPlacas, total, totalDaLinha, codigosNaVenda } from './itens'
+import { extrairCodigo } from './codigo'
+import { useConfiguracaoDoCartao, usePagamentoDaVenda, useVenderItens } from './consultas'
+import { ListaDeItens } from './ListaDeItens'
+import { ModalDaPlaca } from './ModalDaPlaca'
 
-type Passo = 'destino' | 'placa' | 'cliente' | 'cobranca'
+type Passo = 'itens' | 'cliente' | 'cobranca'
 const PASSOS: { id: Passo; rotulo: string }[] = [
-  { id: 'destino', rotulo: 'Negócio' },
-  { id: 'placa', rotulo: 'Placa' },
+  { id: 'itens', rotulo: 'Itens' },
   { id: 'cliente', rotulo: 'Cliente' },
   { id: 'cobranca', rotulo: 'Cobrança' },
 ]
@@ -57,9 +57,7 @@ type Cartao = z.infer<typeof esquemaDoCartao>
 type MeioNaTela = 'Pix' | 'Cartao' | 'Teste'
 
 const CARTAO_VAZIO: Cartao = { numero: '', nome: '', validade: '', cvv: '', parcelas: '1' }
-
 const CLIENTE_VAZIO: Cliente = { empresa: '', responsavel: '', telefone: '', documento: '', email: '' }
-const DESTINO_VAZIO: DestinoInformado = { tipo: 'Google', lugarNoGoogle: null, link: null }
 
 /** Vazio vai como nulo: a API diferencia "não informado" de texto em branco. */
 const clienteParaEnvio = (c: Cliente) => ({
@@ -71,64 +69,78 @@ const clienteParaEnvio = (c: Cliente) => ({
 })
 
 /**
- * A venda no balcão, um passo por tela, com o botão ao alcance do polegar:
- * o negócio no Google (ou o link do cliente), a placa pelo QR, o cliente e a
- * cobrança em Pix. No fim, o NFC é gravado com o mesmo endereço do QR.
+ * A venda no balcão em três passos, com o botão ao alcance do polegar: os
+ * itens (placa pelo QR, com o destino; serviço pela quantidade), o cliente e
+ * a cobrança de tudo numa vez. No fim, o NFC de cada placa é gravado com o
+ * mesmo endereço do QR.
  */
 export function TelaDeNovaVenda() {
   const [parametros] = useSearchParams()
   const navegar = useNavigate()
   const papel = useSessao((s) => s.perfil?.papel)
-  // Serviço vindo do catálogo (?produto=): sem negócio nem placa, direto ao cliente e à cobrança.
   const catalogo = useCatalogo()
-  const servicoId = parametros.get('produto')
-  const servico = catalogo.data?.find((p) => p.id === servicoId && !usaPlaca(p)) ?? null
-  const passos = servicoId ? PASSOS.filter((p) => p.id === 'cliente' || p.id === 'cobranca') : PASSOS
-  const [passo, setPasso] = useState<Passo>(servicoId ? 'cliente' : 'destino')
-  const [codigo, setCodigo] = useState(() => extrairCodigo(parametros.get('codigo') ?? ''))
-  const [digitado, setDigitado] = useState(parametros.get('codigo') ?? '')
+  const itens = itensParaVender(catalogo.data ?? [])
+  const placas = itens.filter(usaPlaca)
+  const [passo, setPasso] = useState<Passo>('itens')
+  const [linhas, setLinhas] = useState<LinhaDaVenda[]>([])
+  const [modal, setModal] = useState<{ item: ItemDoCatalogo; codigo?: string } | null>(null)
   const formularioDoCliente = useForm<Cliente>({ resolver: zodResolver(esquemaDoCliente), mode: 'onChange', defaultValues: CLIENTE_VAZIO })
-  const [destino, setDestino] = useState<DestinoInformado>(DESTINO_VAZIO)
-  const [lugar, setLugar] = useState<Lugar | null>(null)
-  const [produtoId, setProdutoId] = useState('')
-  const [valor, setValor] = useState('')
-  const [venda, setVenda] = useState<VendaRegistrada | null>(null)
-  const vender = useVender()
+  const [vendidas, setVendidas] = useState<{ registro: VendasRegistradas; linhas: LinhaDaVenda[] } | null>(null)
+  const vender = useVenderItens()
   const configDoCartao = useConfiguracaoDoCartao()
   const [meio, setMeio] = useState<MeioNaTela>('Pix')
   const formularioDoCartao = useForm<Cartao>({ resolver: zodResolver(esquemaDoCartao), mode: 'onChange', defaultValues: CARTAO_VAZIO })
   const [tokenizando, setTokenizando] = useState(false)
   const [recusaDoCartao, setRecusaDoCartao] = useState<string | null>(null)
-  const fichaDaPlaca = useFicha(codigo || undefined)
+
+  // Quem chega pela ficha (?codigo=) ou pelo catálogo (?produto=) já entra com o item escolhido, assim que o catálogo responde.
+  const [chegadaTratada, setChegadaTratada] = useState(false)
+  if (!chegadaTratada && catalogo.data) {
+    setChegadaTratada(true)
+    const codigo = extrairCodigo(parametros.get('codigo') ?? '')
+    const produto = itens.find((p) => p.id === parametros.get('produto'))
+    if (produto && usaPlaca(produto)) setModal({ item: produto, codigo: codigo || undefined })
+    else if (produto) setLinhas((l) => adicionar(l, linhaDeServico(produto)))
+    else if (codigo && placas[0]) setModal({ item: placas[0], codigo })
+  }
+
+  const indice = PASSOS.findIndex((p) => p.id === passo)
+  const totalCents = total(linhas)
+  const testeCabe = soPlacas(linhas)
 
   /** Trocar de passo apaga a recusa da última tentativa: ela fala do dado de antes. */
   function irPara(proximo: Passo) {
     vender.reset()
+    setRecusaDoCartao(null)
+    if (proximo === 'cliente') {
+      // O negócio escolhido no Google já dá o nome da empresa, se ainda não foi digitado.
+      const lugar = linhas.find((l) => l.lugar)?.lugar
+      if (lugar && !formularioDoCliente.getValues('empresa').trim()) formularioDoCliente.setValue('empresa', lugar.nome, { shouldDirty: true, shouldValidate: true })
+    }
+    if (proximo === 'cobranca' && meio === 'Teste' && !testeCabe) setMeio('Pix')
     setPasso(proximo)
   }
 
   /** A seta do topo: um passo para trás; no primeiro, sai para a tela de onde veio. */
   function voltar() {
-    if (indice > 0) irPara(passos[indice - 1].id)
+    if (indice > 0) irPara(PASSOS[indice - 1].id)
     else if ((window.history.state as { idx?: number } | null)?.idx) navegar(-1)
     else navegar(papel === 'Vendedor' ? '/vendedor/vendas' : '/painel/vendas')
   }
 
   function recomecar() {
-    irPara(servicoId ? 'cliente' : 'destino')
-    setCodigo('')
-    setDigitado('')
+    irPara('itens')
+    setLinhas([])
     formularioDoCliente.reset(CLIENTE_VAZIO)
-    setDestino(DESTINO_VAZIO)
-    setLugar(null)
-    setValor('')
     setMeio('Pix')
     formularioDoCartao.reset(CARTAO_VAZIO)
-    setVenda(null)
+    setVendidas(null)
   }
 
-  const indice = passos.findIndex((p) => p.id === passo)
-  const produtoEscolhido = servico?.id ?? produtoId
+  function escolher(item: ItemDoCatalogo) {
+    if (usaPlaca(item)) setModal({ item })
+    else setLinhas((l) => adicionar(l, linhaDeServico(item)))
+  }
 
   /** No cartão, tokeniza antes: número e CVV vão ao Pagar.me, e a API recebe só o token. */
   async function registrar() {
@@ -149,41 +161,39 @@ export function TelaDeNovaVenda() {
       }
     }
 
+    const enviadas = linhas
     vender.mutate({
+      itens: paraItens(enviadas),
       ...clienteParaEnvio(formularioDoCliente.getValues()),
-      codigo: servico ? '' : codigo,
-      produtoId: produtoEscolhido,
-      destino: servico ? null : destino,
-      valorCents: valor.trim() ? paraCentavos(valor) : null,
       // O teste gratuito é Pix depois: a cobrança sai quando o cliente decidir.
       meio: meio === 'Teste' ? 'Pix' : meio,
       testeGratuito: meio === 'Teste',
       tokenDoCartao,
       parcelas,
-      quantidade: 1,
     }, {
-      onSuccess: (registrada) => {
+      onSuccess: (registro) => {
         formularioDoCartao.reset(CARTAO_VAZIO)
-        setVenda(registrada)
+        setVendidas({ registro, linhas: enviadas })
       },
     })
   }
 
-  if (venda) return <Resultado venda={venda} aoRecomecar={recomecar} />
+  if (vendidas) return <Resultado registro={vendidas.registro} linhas={vendidas.linhas} papel={papel} aoRecomecar={recomecar} />
 
   const clientePronto = formularioDoCliente.formState.isValid
+  const naVenda = linhas.reduce<Record<string, number>>((mapa, l) => ({ ...mapa, [l.item.id]: (mapa[l.item.id] ?? 0) + l.quantidade }), {})
 
   return (
-    <div className="mx-auto grid max-w-md gap-4 pb-24 md:pb-0">
+    <div className={cn('mx-auto grid gap-4 pb-24 md:pb-0', passo === 'itens' ? 'max-w-3xl' : 'max-w-md')}>
       <div className="flex items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold">{servicoId ? 'Vender serviço' : 'Nova venda'}</h1>
+        <h1 className="text-xl font-semibold">Nova venda</h1>
         <Button variant="ghost" size="icon" className="-mr-2 size-11" aria-label="Voltar" onClick={voltar}>
           <ChevronLeft aria-hidden className="size-6" />
         </Button>
       </div>
       {/* Cada passo abre direto, mesmo com o anterior incompleto: o botão do pé é que confere o que falta. */}
       <ol className="flex gap-1 text-xs" aria-label="Passos">
-        {passos.map((p, i) => (
+        {PASSOS.map((p, i) => (
           <li key={p.id} className="flex-1">
             <button
               type="button"
@@ -197,26 +207,28 @@ export function TelaDeNovaVenda() {
         ))}
       </ol>
 
-      {passo === 'destino' && (
-        <Card>
-          <CardHeader><CardTitle>Para onde a placa leva</CardTitle></CardHeader>
-          <CardContent>
-            <EscolhaDeDestino
-              valor={destino}
-              aoMudar={setDestino}
-              nomeSugerido=""
-              lugar={lugar}
-              aoEscolherLugar={(achado) => {
-                setLugar(achado)
-                if (achado) formularioDoCliente.setValue('empresa', achado.nome, { shouldDirty: true, shouldValidate: true })
-              }}
-            />
-          </CardContent>
-        </Card>
-      )}
-
-      {passo === 'placa' && (
-        <PassoDaPlaca codigo={codigo} digitado={digitado} aoDigitar={setDigitado} aoLer={setCodigo} />
+      {passo === 'itens' && (
+        <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_20rem] md:items-start">
+          <Card>
+            <CardHeader><CardTitle>Catálogo</CardTitle></CardHeader>
+            <CardContent className="grid gap-3">
+              {catalogo.isPending && <Carregando linhas={3} />}
+              <Erro erro={catalogo.error} />
+              {catalogo.data && <ListaDeItens itens={itens} naVenda={naVenda} aoEscolher={escolher} />}
+            </CardContent>
+          </Card>
+          <Card className="md:sticky md:top-20">
+            <CardHeader><CardTitle>Na venda</CardTitle></CardHeader>
+            <CardContent>
+              <Carrinho
+                linhas={linhas}
+                aoRemover={(id) => setLinhas((l) => remover(l, id))}
+                aoMudarQuantidade={(id, q) => setLinhas((l) => comQuantidade(l, id, q))}
+                aoMudarValor={(id, v) => setLinhas((l) => comValor(l, id, v))}
+              />
+            </CardContent>
+          </Card>
+        </div>
       )}
 
       {passo === 'cliente' && (
@@ -233,27 +245,41 @@ export function TelaDeNovaVenda() {
       )}
 
       {passo === 'cobranca' && (
-        <PassoDaCobranca produtoId={produtoEscolhido} aoEscolher={setProdutoId} fixo={servico} valor={valor} aoDigitarValor={setValor} erro={recusaDoCartao ?? vender.error}
-          meio={meio} aoMudarMeio={setMeio} cartao={configDoCartao.data ?? null} formularioDoCartao={formularioDoCartao} />
+        <PassoDaCobranca linhas={linhas} erro={recusaDoCartao ?? vender.error} meio={meio} aoMudarMeio={setMeio} testeCabe={testeCabe}
+          cartao={configDoCartao.data ?? null} formularioDoCartao={formularioDoCartao} />
+      )}
+
+      {modal && (
+        <ModalDaPlaca
+          item={modal.item}
+          opcoes={placas}
+          codigoInicial={modal.codigo}
+          codigosNaVenda={codigosNaVenda(linhas)}
+          aoFechar={() => setModal(null)}
+          aoConfirmar={(linha) => {
+            setLinhas((l) => adicionar(l, linha))
+            setModal(null)
+          }}
+        />
       )}
 
       {/* No celular, preso acima da barra de baixo; no computador, logo abaixo do cartão, na coluna da venda. */}
       <div className="acima-da-barra fixed inset-x-0 z-10 border-t bg-card p-3 md:static md:border-0 md:bg-transparent md:p-0">
-        <div className="mx-auto flex max-w-md gap-2 md:max-w-none">
-          {passo === 'destino' && (
-            <Button size="lg" className="flex-1" disabled={!destinoPronto(destino)} onClick={() => irPara('placa')}>Configurar</Button>
-          )}
-          {passo === 'placa' && (
-            <Button size="lg" className="flex-1" disabled={fichaDaPlaca.data?.estado !== 'EmEstoque'} onClick={() => irPara('cliente')}>Continuar</Button>
+        <div className={cn('mx-auto flex gap-2 md:max-w-none', passo === 'itens' ? 'max-w-3xl' : 'max-w-md')}>
+          {passo === 'itens' && (
+            <Button size="lg" className="flex-1 justify-between" disabled={linhas.length === 0} onClick={() => irPara('cliente')}>
+              <span>Continuar</span>
+              {linhas.length > 0 && <span className="tabular-nums">{linhas.length === 1 ? '1 item' : `${linhas.length} itens`}, {formatarCentavos(totalCents)}</span>}
+            </Button>
           )}
           {passo === 'cliente' && (
-            <Button size="lg" className="flex-1" disabled={!clientePronto} onClick={() => irPara('cobranca')}>Ir para a cobrança</Button>
+            <Button size="lg" className="flex-1" disabled={!clientePronto || linhas.length === 0} onClick={() => irPara('cobranca')}>Ir para a cobrança</Button>
           )}
           {passo === 'cobranca' && (
             <Button
               size="lg"
               className="flex-1"
-              disabled={!produtoEscolhido || vender.isPending || tokenizando || (valor.trim() !== '' && paraCentavos(valor) === null) || (meio === 'Cartao' && !formularioDoCartao.formState.isValid)}
+              disabled={linhas.length === 0 || !clientePronto || vender.isPending || tokenizando || (meio === 'Cartao' && !formularioDoCartao.formState.isValid)}
               onClick={registrar}
             >
               {tokenizando || vender.isPending ? 'Registrando...' : meio === 'Cartao' ? 'Cobrar no cartão' : meio === 'Teste' ? 'Começar o teste' : 'Registrar venda'}
@@ -265,79 +291,21 @@ export function TelaDeNovaVenda() {
   )
 }
 
-/** Ler pelo QR ou digitar; a placa precisa estar no estoque desta revenda. O NFC só é gravado, depois da venda. */
-function PassoDaPlaca({ codigo, digitado, aoDigitar, aoLer }: {
-  codigo: string
-  digitado: string
-  aoDigitar: (texto: string) => void
-  aoLer: (codigo: string) => void
-}) {
-  const [camera, setCamera] = useState(false)
-  const ficha = useFicha(codigo || undefined)
-  const lido = useCallback((c: string) => {
-    setCamera(false)
-    aoDigitar(c)
-    aoLer(c)
-  }, [aoDigitar, aoLer])
-  const emEstoque = ficha.data?.estado === 'EmEstoque'
-
-  return (
-    <Card>
-      <CardHeader><CardTitle>Placa</CardTitle></CardHeader>
-      <CardContent className="grid gap-4">
-        {camera
-          ? <LeitorDeQr aoLer={lido} aoFechar={() => setCamera(false)} />
-          : (
-              <>
-                <Button size="lg" onClick={() => setCamera(true)}>Ler QR</Button>
-                <form
-                  className="flex gap-2"
-                  onSubmit={(e) => {
-                    e.preventDefault()
-                    aoLer(extrairCodigo(digitado))
-                  }}
-                >
-                  <Input aria-label="Código da placa" className="uppercase tabular-nums" placeholder="K7M2PX" value={digitado} onChange={(e) => aoDigitar(e.target.value)} />
-                  <Button type="submit" variant="outline">Conferir</Button>
-                </form>
-                {digitado && !extrairCodigo(digitado) && <p className="text-sm text-destructive">O código tem 6 caracteres.</p>}
-              </>
-            )}
-        {codigo && ficha.isPending && <p role="status" className="text-sm text-muted-foreground">Conferindo {codigo}...</p>}
-        <Erro erro={ficha.error} />
-        {ficha.data && !emEstoque && (
-          <Aviso>A placa {ficha.data.codigo} está {ROTULO_DO_ESTADO[ficha.data.estado].toLowerCase()}. <Link className="underline" to={`/placa/${ficha.data.codigo}`}>Abrir a ficha</Link></Aviso>
-        )}
-        {ficha.data && emEstoque && (
-          <p className="rounded-lg border border-sucesso p-3 text-sm">Placa <span className="font-semibold tabular-nums">{ficha.data.codigo}</span> no estoque{ficha.data.consignadaA ? `, com ${ficha.data.consignadaA}` : ''}.</p>
-        )}
-      </CardContent>
-    </Card>
-  )
-}
-
-function PassoDaCobranca({ produtoId, aoEscolher, fixo, valor, aoDigitarValor, erro, meio, aoMudarMeio, cartao, formularioDoCartao }: {
-  produtoId: string
-  aoEscolher: (id: string) => void
-  /** Serviço escolhido no catálogo: não se troca aqui. */
-  fixo: ItemDoCatalogo | null
-  valor: string
-  aoDigitarValor: (v: string) => void
+function PassoDaCobranca({ linhas, erro, meio, aoMudarMeio, testeCabe, cartao, formularioDoCartao }: {
+  linhas: LinhaDaVenda[]
   erro: unknown
   meio: MeioNaTela
   aoMudarMeio: (m: MeioNaTela) => void
+  /** Teste gratuito só quando tudo na venda é placa. */
+  testeCabe: boolean
   cartao: ConfiguracaoDoCartao | null
   formularioDoCartao: UseFormReturn<Cartao>
 }) {
-  const catalogo = useCatalogo()
-  // No balcão com placa, só o que leva placa e está à venda.
-  const ativos = (catalogo.data ?? []).filter((p) => p.ativo && p.situacao === 'Disponivel' && usaPlaca(p))
-  const escolhido = fixo ?? ativos.find((p) => p.id === produtoId)
-  const base = (valor.trim() ? paraCentavos(valor) : null) ?? escolhido?.precoCents ?? 0
+  const base = total(linhas)
   const opcao = (n: number) => {
     if (n === 1) return `À vista, ${formatarCentavos(base)}`
-    const total = totalParcelado(base, n, cartao?.custoDasParcelasBps ?? [])
-    return `${n}x de ${formatarCentavos(Math.ceil(total / n))} (total ${formatarCentavos(total)})`
+    const totalEmVezes = totalParcelado(base, n, cartao?.custoDasParcelasBps ?? [])
+    return `${n}x de ${formatarCentavos(Math.ceil(totalEmVezes / n))} (total ${formatarCentavos(totalEmVezes)})`
   }
 
   return (
@@ -345,26 +313,27 @@ function PassoDaCobranca({ produtoId, aoEscolher, fixo, valor, aoDigitarValor, e
       <CardHeader><CardTitle>Cobrança</CardTitle></CardHeader>
       <CardContent className="grid gap-4">
         <Erro erro={erro ? mensagemDoErro(erro) : null} />
-        {fixo
-          ? <p className="rounded-lg border p-3 text-sm"><span className="block font-medium">{fixo.nome}</span>{formatarCentavos(fixo.precoCents)}</p>
+        {linhas.length === 0
+          ? <Aviso>Nenhum item na venda.</Aviso>
           : (
-              <Field>
-                <FieldLabel htmlFor="produto">Produto</FieldLabel>
-                <Select value={produtoId} onValueChange={aoEscolher}>
-                  <SelectTrigger id="produto" className="w-full"><SelectValue placeholder={ativos.length ? 'Escolha o produto' : 'O catálogo está vazio'} /></SelectTrigger>
-                  <SelectContent>{ativos.map((p) => <SelectItem key={p.id} value={p.id}>{p.nome} - {formatarCentavos(p.precoCents)}</SelectItem>)}</SelectContent>
-                </Select>
-              </Field>
+              <ul aria-label="Resumo da venda" className="grid gap-1 rounded-lg border p-3 text-sm">
+                {linhas.map((l) => (
+                  <li key={l.id} className="flex justify-between gap-3">
+                    <span className="min-w-0 truncate">{nomeDaLinha(l)}</span>
+                    <span className="tabular-nums">{formatarCentavos(totalDaLinha(l))}</span>
+                  </li>
+                ))}
+                <li className="mt-1 flex justify-between gap-3 border-t pt-2 font-semibold">
+                  <span>Total</span>
+                  <span className="tabular-nums">{formatarCentavos(base)}</span>
+                </li>
+              </ul>
             )}
-        <Field>
-          <FieldLabel htmlFor="valor">Valor cobrado</FieldLabel>
-          <Input id="valor" inputMode="decimal" placeholder={escolhido ? formatarCentavos(escolhido.precoCents) : '0,00'} value={valor} onChange={(e) => aoDigitarValor(e.target.value)} />
-        </Field>
-        {(cartao?.disponivel || !fixo) && (
-          <ToggleGroup aria-label="Forma de pagamento" className="w-full" value={meio} onValueChange={(m) => m && aoMudarMeio(m as MeioNaTela)}>
+        {(cartao?.disponivel || testeCabe) && (
+          <ToggleGroup aria-label="Forma de pagamento" className="w-full" value={meio} onValueChange={(m) => aoMudarMeio(m as MeioNaTela)}>
             <ToggleGroupItem value="Pix">Pix</ToggleGroupItem>
             {cartao?.disponivel && <ToggleGroupItem value="Cartao">Cartão</ToggleGroupItem>}
-            {!fixo && <ToggleGroupItem value="Teste">Teste 7 dias</ToggleGroupItem>}
+            {testeCabe && <ToggleGroupItem value="Teste">Teste 7 dias</ToggleGroupItem>}
           </ToggleGroup>
         )}
         {meio === 'Teste' && <p className="text-sm text-muted-foreground">Sem cobrança agora. Sem pagamento em 7 dias, a placa sai do ar.</p>}
@@ -393,19 +362,20 @@ function PassoDaCobranca({ produtoId, aoEscolher, fixo, valor, aoDigitarValor, e
 }
 
 /**
- * O Pix na tela para o cliente pagar ali, e a confirmação quando o Pagar.me
- * avisa. Pergunta pela venda (vale para placa e serviço) até pagar, falhar ou
- * o Pix vencer; vencido, para de esperar e diz como gerar outro.
+ * O Pix do total na tela para o cliente pagar ali, e a confirmação quando o
+ * Pagar.me avisa. A cobrança é do grupo: perguntar pela primeira venda vale
+ * para todas. Para de esperar quando paga, falha ou o Pix vence.
  */
-function Resultado({ venda, aoRecomecar }: { venda: VendaRegistrada; aoRecomecar: () => void }) {
-  const pix = venda.cobranca?.pixCopiaECola ?? null
-  const servico = venda.codigo === ''
+function Resultado({ registro, linhas, papel, aoRecomecar }: { registro: VendasRegistradas; linhas: LinhaDaVenda[]; papel: string | undefined; aoRecomecar: () => void }) {
+  const pix = registro.cobranca?.pixCopiaECola ?? null
   const [agora, setAgora] = useState(() => Date.now())
-  const expiraEm = venda.cobranca?.pixExpiraEm ? new Date(venda.cobranca.pixExpiraEm).getTime() : null
+  const expiraEm = registro.cobranca?.pixExpiraEm ? new Date(registro.cobranca.pixExpiraEm).getTime() : null
   const vencido = expiraEm !== null && agora > expiraEm
-  const consulta = usePagamentoDaVenda(venda.vendaId, !!pix && !vencido)
-  const pagamento = consulta.data?.situacao ?? venda.cobranca?.situacao ?? null
+  const consulta = usePagamentoDaVenda(registro.vendas[0].vendaId, !!pix && !vencido)
+  const pagamento = consulta.data?.situacao ?? registro.cobranca?.situacao ?? null
   const esperando = !!pix && pagamento === 'Pendente' && !vencido
+  const primeiraPlaca = registro.vendas.find((v) => v.codigo)
+  const temServico = registro.vendas.some((v) => !v.codigo)
 
   // O relógio da tela só anda enquanto espera: é ele que percebe o Pix vencido.
   useEffect(() => {
@@ -419,27 +389,40 @@ function Resultado({ venda, aoRecomecar }: { venda: VendaRegistrada; aoRecomecar
       <h1 className="text-xl font-semibold">Venda registrada</h1>
       <Card>
         <CardContent className="grid gap-4 pt-6">
-          {servico
-            ? <p className="text-sm">Serviço vendido, {formatarCentavos(venda.valorCents)}. Com o pagamento, a Avalia recebe a ordem e você acompanha em Serviços.</p>
-            : <p className="text-sm">Placa <span className="font-semibold tabular-nums">{venda.codigo}</span> no ar até {formatarData(venda.venceEm)}. {formatarCentavos(venda.valorCents)}.</p>}
-          {venda.semCobranca && <Aviso>{venda.semCobranca}</Aviso>}
+          <ul aria-label="Itens vendidos" className="grid divide-y">
+            {registro.vendas.map((venda, i) => {
+              const linha = linhas[i] as LinhaDaVenda | undefined
+              return (
+                <li key={venda.vendaId} className="grid gap-3 py-3 first:pt-0 last:pb-0">
+                  {venda.codigo
+                    ? <p className="text-sm">Placa <span className="font-semibold tabular-nums">{venda.codigo}</span> no ar até {formatarData(venda.venceEm)}. {formatarCentavos(venda.valorCents)}.</p>
+                    : <p className="text-sm">{linha ? nomeDaLinha(linha) : 'Serviço'}, {formatarCentavos(venda.valorCents)}.</p>}
+                  {venda.codigo && <GravarNfc endereco={venda.endereco} />}
+                  {venda.linkCurto && <CopiarLink rotulo={registro.vendas.length > 1 ? `Link de avaliação da ${venda.codigo}` : 'Link de avaliação'} endereco={venda.linkCurto} />}
+                </li>
+              )
+            })}
+          </ul>
+          {registro.vendas.length > 1 && (
+            <p className="flex justify-between border-t pt-3 font-semibold"><span>Total</span><span className="tabular-nums">{formatarCentavos(registro.totalCents)}</span></p>
+          )}
+          {temServico && <p className="text-sm text-muted-foreground">Com o pagamento, a Avalia recebe a ordem do serviço e você acompanha em Serviços.</p>}
+          {registro.semCobranca && <Aviso>{registro.semCobranca}</Aviso>}
           {esperando && (
             <>
-              <PixNaTela copiaECola={pix} imagemDoGateway={venda.cobranca?.pixQrCodeUrl ?? null} />
+              <PixNaTela copiaECola={pix} imagemDoGateway={registro.cobranca?.pixQrCodeUrl ?? null} />
               <p role="status" className="text-center text-sm text-muted-foreground">Esperando o pagamento...</p>
             </>
           )}
           {pix && pagamento === 'Pendente' && vencido && <Aviso>O Pix venceu sem pagamento. Gere outro em Vendas.</Aviso>}
           {pagamento === 'Paga' && <p role="status" className="text-center text-lg font-semibold">Pagamento confirmado</p>}
           {pagamento && pagamento !== 'Paga' && pagamento !== 'Pendente' && <Aviso>Pagamento {ROTULO_DO_PAGAMENTO[pagamento].toLowerCase()}.</Aviso>}
-          {!servico && <GravarNfc endereco={venda.endereco} />}
-          {venda.linkCurto && <CopiarLink rotulo="Link de avaliação" endereco={venda.linkCurto} />}
         </CardContent>
       </Card>
       <div className="grid grid-cols-2 gap-2">
-        {servico
-          ? <Button variant="outline" asChild><Link to="/catalogo">Catálogo</Link></Button>
-          : <Button variant="outline" asChild><Link to={`/placa/${venda.codigo}`}>Abrir a ficha</Link></Button>}
+        {primeiraPlaca
+          ? <Button variant="outline" asChild><Link to={`/placa/${primeiraPlaca.codigo}`}>Abrir a ficha</Link></Button>
+          : <Button variant="outline" asChild><Link to={papel === 'Vendedor' ? '/vendedor/vendas' : '/painel/vendas'}>Vendas</Link></Button>}
         <Button onClick={aoRecomecar}>Nova venda</Button>
       </div>
     </div>

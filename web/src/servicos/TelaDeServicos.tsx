@@ -70,7 +70,7 @@ function ListaDeOrdens({ ordens, carregando, erro, operadora = false, acoes }: {
   return (
     <Card>
       <CardContent className="pt-6">
-        <EstadoDaConsulta carregando={carregando} erro={erro} vazio={ordens?.length === 0} textoVazio="Nenhum serviço ainda. Venda um pelo Catálogo." />
+        <EstadoDaConsulta carregando={carregando} erro={erro} vazio={ordens?.length === 0} textoVazio="Nenhum serviço ainda. Venda um na Nova venda." />
         {ordens && ordens.length > 0 && (
           <Table>
             <TableHeader>
@@ -89,7 +89,7 @@ function ListaDeOrdens({ ordens, carregando, erro, operadora = false, acoes }: {
                 <TableRow key={o.id}>
                   <TableCell className="tabular-nums">{o.numero}</TableCell>
                   {operadora && <TableCell>{o.revendedor}</TableCell>}
-                  <TableCell className="whitespace-normal">{o.produto}</TableCell>
+                  <TableCell className="whitespace-normal">{o.quantidade > 1 ? `${o.quantidade}x ${o.produto}` : o.produto}</TableCell>
                   <TableCell className="whitespace-normal">{o.cliente}</TableCell>
                   <TableCell><Badge variant={VARIANTE[o.situacao]}>{ROTULO_DA_ORDEM[o.situacao]}</Badge></TableCell>
                   <TableCell className="tabular-nums">{formatarDataHora(o.entregueEm ?? o.iniciadaEm ?? o.criadaEm)}</TableCell>

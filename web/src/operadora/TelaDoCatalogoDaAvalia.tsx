@@ -76,7 +76,7 @@ export function TelaDoCatalogoDaAvalia() {
               <div>
                 <p className="text-xs text-muted-foreground">{ROTULO_DO_TIPO[p.tipo]}, ordem {p.ordem}</p>
                 <h2 className="font-heading text-lg font-semibold">{p.nome}</h2>
-                <p className="text-sm tabular-nums">Sugerido {formatarCentavos(p.precoSugeridoCents)}</p>
+                <p className="text-sm tabular-nums">Sugerido {formatarCentavos(p.precoSugeridoCents)}{p.quantidadeMinima > 1 ? `, mínimo ${p.quantidadeMinima}` : ''}</p>
                 {p.tipo !== 'Placa' && (
                   <p className="text-sm text-muted-foreground tabular-nums">
                     Revenda com {formatarBps(p.descontoDaRevendaBps)} de desconto; Avalia recebe {formatarCentavos(p.parteDaAvaliaCents)}
@@ -112,9 +112,15 @@ function FormularioDoProduto({ produto, aoFechar, aoSalvar }: { produto: Produto
   const [preco, setPreco] = useState(produto ? (produto.precoSugeridoCents / 100).toFixed(2).replace('.', ',') : '')
   const [ordem, setOrdem] = useState(String(produto?.ordem ?? 10))
   const [desconto, setDesconto] = useState(formatarBps(produto?.descontoDaRevendaBps ?? 2_000).replace('%', ''))
+  // Pedido mínimo só do serviço vendido por quantidade (kit mesa, placa de cardápio); placa sai uma por código.
+  const [minimo, setMinimo] = useState(String(produto?.quantidadeMinima ?? 1))
+  const minimoValido = tipo !== 'Servico' || Number(minimo) >= 1
   const gravar = useMutation({
     mutationFn: () => {
-      const corpo = { chave, nome, descricao, tipo, precoSugeridoCents: paraCentavos(preco), ordem: Number(ordem) || 0, descontoDaRevendaBps: paraBps(desconto) }
+      const corpo = {
+        chave, nome, descricao, tipo, precoSugeridoCents: paraCentavos(preco), ordem: Number(ordem) || 0, descontoDaRevendaBps: paraBps(desconto),
+        quantidadeMinima: tipo === 'Servico' ? Number(minimo) : 1,
+      }
       return produto ? chamarApi(`/operadora/catalogo/${produto.id}`, enviarJson('PUT', corpo)) : chamarApi('/operadora/catalogo', enviarJson('POST', corpo))
     },
     onSuccess: async () => {
@@ -170,10 +176,16 @@ function FormularioDoProduto({ produto, aoFechar, aoSalvar }: { produto: Produto
               </Field>
             )}
           </div>
+          {tipo === 'Servico' && (
+            <Field>
+              <FieldLabel htmlFor="minimo">Pedido mínimo (unidades)</FieldLabel>
+              <Input id="minimo" inputMode="numeric" className="sm:w-32" aria-invalid={!minimoValido} value={minimo} onChange={(e) => setMinimo(e.target.value.replace(/\D/g, ''))} />
+            </Field>
+          )}
         </form>
         <DialogFooter>
           <Button variant="ghost" onClick={aoFechar}>Cancelar</Button>
-          <Button type="submit" form="produto" disabled={!nome.trim() || paraCentavos(preco) === null || paraBps(desconto) === null || (!produto && !chave.trim()) || gravar.isPending}>Salvar</Button>
+          <Button type="submit" form="produto" disabled={!nome.trim() || paraCentavos(preco) === null || paraBps(desconto) === null || !minimoValido || (!produto && !chave.trim()) || gravar.isPending}>Salvar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
