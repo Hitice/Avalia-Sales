@@ -3462,21 +3462,7 @@ html:not(.js) .marca fieldset {
   animation-duration: 0.7s;
 }
 
-.hero-traco {
-  display: block;
-  width: 10rem;
-  height: 2px;
-  margin: 2rem auto 1.75rem;
-  border-radius: 9999px;
-  background: var(--degrade);
-  transform-origin: left;
-  animation: hero-traco 1.4s var(--sai) 2.2s both;
-}
 
-@keyframes hero-traco {
-  from { transform: scaleX(0); }
-  to { transform: scaleX(1); }
-}
 
 /* A faixa das integrações não reage ao mouse: só passa. */
 .hero-apis {
@@ -3484,11 +3470,6 @@ html:not(.js) .marca fieldset {
   user-select: none;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .hero-traco {
-    animation: none;
-  }
-}
 
 /* Etapas finas, da altura do celular: nome e frase na mesma linha do número,
    a nota técnica embaixo, uma linha cada. */
@@ -3831,4 +3812,9 @@ html:not(.js) .marca fieldset {
   .stack .ico-letra {
     flex: none;
   }
+}
+
+/* Sem o traço, o espaço até a linha do autor fica no próprio título. */
+.hero-titulo[data-escrever] {
+  margin-bottom: 1.75rem;
 }
