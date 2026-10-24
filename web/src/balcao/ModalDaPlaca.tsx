@@ -51,7 +51,7 @@ export function ModalDaPlaca({ item, opcoes, codigoInicial = '', codigosNaVenda,
 
   return (
     <Dialog open onOpenChange={(aberto) => !aberto && aoFechar()}>
-      <DialogContent className="top-auto bottom-0 left-0 altura-da-folha max-w-full translate-x-0 translate-y-0 overflow-y-auto rounded-b-none area-segura-baixo-4 sm:top-1/2 sm:bottom-auto sm:left-1/2 sm:altura-da-folha sm:max-w-md sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-xl sm:pb-4">
+      <DialogContent className="top-auto bottom-0 left-0 altura-da-folha max-w-full translate-x-0 translate-y-0 overflow-y-auto rounded-b-none area-segura-baixo-4 max-sm:border-x-0 max-sm:border-b-0 max-sm:data-open:slide-in-from-bottom-8 max-sm:data-closed:slide-out-to-bottom-8 sm:top-1/2 sm:bottom-auto sm:left-1/2 sm:altura-da-folha sm:max-w-md sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-xl sm:pb-4">
         <DialogHeader>
           <DialogTitle>{produto.nome}</DialogTitle>
           <DialogDescription>{formatarCentavos(produto.precoCents)} por placa. Leia o QR e diga para onde ela leva.</DialogDescription>
@@ -93,7 +93,7 @@ export function ModalDaPlaca({ item, opcoes, codigoInicial = '', codigosNaVenda,
             <Aviso>A placa {ficha.data.codigo} está {ROTULO_DO_ESTADO[ficha.data.estado].toLowerCase()}. <Link className="underline" to={`/placa/${ficha.data.codigo}`}>Abrir a ficha</Link></Aviso>
           )}
           {ficha.data && emEstoque && !repetida && (
-            <p className="rounded-lg border border-sucesso p-3 text-sm">Placa <span className="font-semibold tabular-nums">{ficha.data.codigo}</span> no estoque{ficha.data.consignadaA ? `, com ${ficha.data.consignadaA}` : ''}.</p>
+            <p className="rounded-md border border-sucesso-borda bg-sucesso-fundo p-3 text-sm">Placa <span className="font-semibold tabular-nums">{ficha.data.codigo}</span> no estoque{ficha.data.consignadaA ? `, com ${ficha.data.consignadaA}` : ''}.</p>
           )}
         </section>
 

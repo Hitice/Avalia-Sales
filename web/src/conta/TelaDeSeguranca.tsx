@@ -53,7 +53,7 @@ export function TelaDeSeguranca() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             Autenticação de dois fatores
-            {situacao.data && <Badge variant={ligado ? 'default' : 'outline'}>{!ligado ? 'Desativada' : situacao.data.meio === 'Email' ? 'Por e-mail' : 'App autenticador'}</Badge>}
+            {situacao.data && <Badge variant={ligado ? 'sucesso' : 'neutro'}>{!ligado ? 'Desativada' : situacao.data.meio === 'Email' ? 'Por e-mail' : 'App autenticador'}</Badge>}
           </CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4">

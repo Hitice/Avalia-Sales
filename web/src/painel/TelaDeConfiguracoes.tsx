@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { chamarApi, enviarJson, mensagemDoErro } from '@/api/cliente'
 import type { MeuContrato } from '@/api/tipos'
 import { baixarArquivo } from '@/lib/arquivo'
-import { formatarBps, formatarData, paraBps, ROTULO_DO_CONTRATO } from '@/api/rotulos'
+import { formatarBps, formatarData, paraBps, ROTULO_DO_CONTRATO, TOM_DO_CONTRATO } from '@/api/rotulos'
 import { Badge } from '@/components/ui/badge'
 import { Cabecalho, CarregandoTela, Erro } from '@/componentes/Tela'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -98,7 +98,7 @@ function ContratoDeRevenda() {
 
   return (
     <Card>
-      <CardHeader><CardTitle className="flex items-center gap-2">Contrato de revenda {c?.situacao && <Badge variant={c.situacao === 'Assinado' ? 'default' : 'secondary'}>{ROTULO_DO_CONTRATO[c.situacao]}</Badge>}</CardTitle></CardHeader>
+      <CardHeader><CardTitle className="flex items-center gap-2">Contrato de revenda {c?.situacao && <Badge variant={TOM_DO_CONTRATO[c.situacao]}>{ROTULO_DO_CONTRATO[c.situacao]}</Badge>}</CardTitle></CardHeader>
       <CardContent className="grid gap-4">
         <Erro erro={reenviar.error ?? conferir.error ?? erroDaCopia ? mensagemDoErro(reenviar.error ?? conferir.error ?? erroDaCopia) : null} />
         {conferir.isSuccess && conferir.data?.situacao === 'AguardandoAssinatura' && <Alert><AlertDescription>Ainda sem assinatura na D4Sign.</AlertDescription></Alert>}

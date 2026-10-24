@@ -1,7 +1,7 @@
 import { BookOpen, Layers, Receipt } from 'lucide-react'
 import { Link, useSearchParams } from 'react-router'
 import { mensagemDoErro } from '@/api/cliente'
-import { formatarData, formatarDataHora, ROTULO_DO_CANCELAMENTO, ROTULO_DO_PAGAMENTO } from '@/api/rotulos'
+import { formatarDataHora } from '@/api/rotulos'
 import { useSessao } from '@/acesso/sessao'
 import { useContaEncerrada } from '@/app/contaEncerrada'
 import { Catalogo } from '@/catalogo/Catalogo'
@@ -11,25 +11,10 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import type { VendaDaLista } from '@/api/tipos'
 import { formatarCentavos } from '@/dinheiro/dinheiro'
 import { AcoesDaVenda } from './AcoesDaVenda'
 import { useCobrarDeNovo, useSaldosDeComissao, useVendas } from './consultas'
-
-function rotuloDoPagamento(v: VendaDaLista) {
-  if (v.situacao === 'Cancelada') return v.motivoDoCancelamento ? `Cancelada: ${ROTULO_DO_CANCELAMENTO[v.motivoDoCancelamento]}` : 'Venda cancelada'
-  if (v.cortesia) return 'Cortesia'
-  if (v.testeAte && !v.testeConvertidoEm && v.pagamento !== 'Paga') {
-    return v.testeExpiradoEm ? 'Teste vencido: receber ou devolver' : `Teste até ${formatarData(v.testeAte)}`
-  }
-  if (v.doSistemaAnterior) return 'Paga no sistema anterior'
-  if (v.pagamento === 'Paga' && v.pagoPor === 'Dinheiro') return 'Paga em dinheiro'
-  if (v.pagamento === 'Paga' && v.pagoPor === 'OutroPix') return 'Paga por outro Pix'
-  return v.pagamento ? ROTULO_DO_PAGAMENTO[v.pagamento] : 'Sem cobrança'
-}
-
-/** "10x Kit Mesa" quando o serviço foi vendido por quantidade. */
-const nomeDoProduto = (v: VendaDaLista) => (v.quantidade > 1 ? `${v.quantidade}x ${v.produto}` : v.produto)
+import { nomeDoProduto, rotuloDaVenda, tomDaVenda } from './situacaoDaVenda'
 
 /**
  * A casa da venda: a aba Vendas lista as vendas e a comissão de cada uma (a
@@ -46,7 +31,7 @@ export function TelaDeVendas() {
   return (
     <>
       <Cabecalho titulo={dono ? 'Vendas' : 'Minhas vendas'}>
-        {!encerrada && <Button asChild><Link to="/vender">Nova venda</Link></Button>}
+        {!encerrada && <Button asChild className="lg:hidden"><Link to="/vender">Nova venda</Link></Button>}
       </Cabecalho>
       <Tabs value={aba} onValueChange={irPara} className="gap-4">
         <TabsList className="w-full sm:w-auto">
@@ -61,6 +46,7 @@ export function TelaDeVendas() {
 }
 
 function ListaDeVendas({ dono }: { dono: boolean }) {
+  const encerrada = useContaEncerrada()
   const vendas = useVendas()
   const cobrar = useCobrarDeNovo()
   const saldo = useSaldosDeComissao()
@@ -86,7 +72,8 @@ function ListaDeVendas({ dono }: { dono: boolean }) {
       )}
       <Card>
         <CardContent>
-          <EstadoDaConsulta carregando={vendas.isPending} erro={vendas.error} vazio={vendas.data?.length === 0} textoVazio="Nenhuma venda ainda." />
+          <EstadoDaConsulta carregando={vendas.isPending} erro={vendas.error} vazio={vendas.data?.length === 0} textoVazio="Nenhuma venda ainda."
+            acao={!encerrada && <Button asChild variant="outline"><Link to="/vender">Nova venda</Link></Button>} />
           {vendas.data && vendas.data.length > 0 && (
             <Rolagem>
               <Table>
@@ -120,7 +107,7 @@ function ListaDeVendas({ dono }: { dono: boolean }) {
                       {dono && <TableCell className="min-w-28 whitespace-normal">{v.vendedor}</TableCell>}
                       <TableCell className="text-right tabular-nums">{formatarCentavos(v.valorCents)}</TableCell>
                       <TableCell className="text-right tabular-nums md:max-xl:hidden">{formatarCentavos(v.comissaoCents)}</TableCell>
-                      <TableCell><Badge variant={v.situacao === 'Cancelada' ? 'outline' : v.pagamento === 'Paga' ? 'default' : 'secondary'}>{rotuloDoPagamento(v)}</Badge></TableCell>
+                      <TableCell><Badge variant={tomDaVenda(v)}>{rotuloDaVenda(v)}</Badge></TableCell>
                       <TableCell>
                         <div className="flex items-center justify-end gap-2">
                           {v.situacao === 'Registrada' && !v.cortesia && !v.doSistemaAnterior && (v.pagamento === null || v.pagamento === 'Falhou' || v.pagamento === 'Cancelada') && (

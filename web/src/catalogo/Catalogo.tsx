@@ -2,7 +2,7 @@ import { ImageOff } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { mensagemDoErro } from '@/api/cliente'
-import { formatarBps, paraBps, ROTULO_DO_PRODUTO, ROTULO_DO_TIPO } from '@/api/rotulos'
+import { formatarBps, paraBps, ROTULO_DO_PRODUTO, TOM_DO_PRODUTO, ROTULO_DO_TIPO } from '@/api/rotulos'
 import type { ItemDoCatalogo } from '@/api/tipos'
 import { useSessao } from '@/acesso/sessao'
 import { Carregando, Erro } from '@/componentes/Tela'
@@ -46,8 +46,8 @@ export function Catalogo() {
               <div className="flex flex-wrap gap-1.5">
                 <Badge variant="secondary">{ROTULO_DO_TIPO[p.tipo]}</Badge>
                 {p.quantidadeMinima > 1 && <Badge variant="outline">Mínimo {p.quantidadeMinima}</Badge>}
-                {p.situacao !== 'Disponivel' && <Badge variant="destructive">{ROTULO_DO_PRODUTO[p.situacao]}</Badge>}
-                {!p.ativo && <Badge variant="outline">Suspenso</Badge>}
+                {p.situacao !== 'Disponivel' && <Badge variant={TOM_DO_PRODUTO[p.situacao]}>{ROTULO_DO_PRODUTO[p.situacao]}</Badge>}
+                {!p.ativo && <Badge variant="neutro">Suspenso</Badge>}
               </div>
               <div>
                 <h2 className="text-lg font-semibold">{p.nome}</h2>

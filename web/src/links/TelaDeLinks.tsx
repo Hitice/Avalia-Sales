@@ -115,7 +115,7 @@ function ListaDeLinks({ aoEditar }: { aoEditar: (l: LinkCurto) => void }) {
                 <p className="font-medium">{l.titulo}</p>
                 <p className="truncate text-xs text-muted-foreground">{l.destino}</p>
               </div>
-              <Badge variant={l.ativo ? 'default' : 'outline'}>{l.ativo ? `${l.cliques} ${l.cliques === 1 ? 'clique' : 'cliques'}` : 'Desligado'}</Badge>
+              <Badge variant={l.ativo ? 'sucesso' : 'neutro'}>{l.ativo ? `${l.cliques} ${l.cliques === 1 ? 'clique' : 'cliques'}` : 'Desligado'}</Badge>
             </div>
             <CopiarLink rotulo="Link curto" endereco={l.endereco} />
             {dono && (

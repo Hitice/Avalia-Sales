@@ -4,6 +4,7 @@ import type { ItemDoCatalogo } from '@/api/tipos'
 import { usaPlaca } from '@/catalogo/produtos'
 import { Badge } from '@/components/ui/badge'
 import { formatarCentavos } from '@/dinheiro/dinheiro'
+import { cn } from '@/lib/utils'
 import { quantidadeMinima } from './itens'
 
 /**
@@ -20,7 +21,7 @@ export function ListaDeItens({ itens, naVenda, aoEscolher }: {
   if (itens.length === 0) return <p className="text-sm text-muted-foreground">O catálogo está vazio.</p>
 
   return (
-    <ul aria-label="Itens do catálogo" className="grid gap-2">
+    <ul aria-label="Itens do catálogo" className="-mx-2 grid gap-0.5">
       {itens.map((item) => {
         const placa = usaPlaca(item)
         const minimo = quantidadeMinima(item)
@@ -30,7 +31,7 @@ export function ListaDeItens({ itens, naVenda, aoEscolher }: {
             <button
               type="button"
               onClick={() => aoEscolher(item)}
-              className="flex min-h-16 w-full items-center gap-3 rounded-lg border p-2 text-left transition-colors hover:bg-muted focus-visible:bg-muted"
+              className={cn('flex min-h-16 w-full items-center gap-3 rounded-md p-2 text-left transition-colors duration-150 hover:bg-cinza-50 focus-visible:bg-cinza-50 active:bg-muted', quantos > 0 && 'bg-accent hover:bg-accent')}
             >
               <Miniatura item={item} />
               <span className="grid min-w-0 flex-1">

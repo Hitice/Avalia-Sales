@@ -74,7 +74,7 @@ export function TelaDePacotes() {
                         <TableCell className="text-right tabular-nums">{pacote.quantidade}</TableCell>
                         <TableCell className="text-right tabular-nums">{formatarCentavos(pacote.precoCents)}</TableCell>
                         <TableCell className="text-right tabular-nums">{formatarCentavos(pacote.custoPorPlacaCents)}</TableCell>
-                        <TableCell><Badge variant={pacote.ativo ? 'default' : 'outline'}>{pacote.ativo ? 'À venda' : 'Fora de venda'}</Badge></TableCell>
+                        <TableCell><Badge variant={pacote.ativo ? 'sucesso' : 'neutro'}>{pacote.ativo ? 'À venda' : 'Fora de venda'}</Badge></TableCell>
                         <TableCell>
                           <AcoesDaLinha nome={`pacote de ${pacote.quantidade} placas`} principal={{ rotulo: 'Editar', aoClicar: () => editar(pacote) }} outras={[
                             { rotulo: pacote.ativo ? 'Tirar de venda' : 'Pôr à venda', aoClicar: () => ativar.mutate({ id: pacote.id, ativo: !pacote.ativo }) },

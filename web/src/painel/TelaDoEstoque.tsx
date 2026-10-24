@@ -51,7 +51,8 @@ export function TelaDoEstoque() {
         <Erro erro={baixar.error || desfazer.error ? mensagemDoErro(baixar.error ?? desfazer.error) : null} />
         <Card>
           <CardContent>
-            <EstadoDaConsulta carregando={placas.isPending} erro={placas.error} vazio={total === 0} textoVazio="Nenhuma placa." />
+            <EstadoDaConsulta carregando={placas.isPending} erro={placas.error} vazio={total === 0} textoVazio="Nenhuma placa."
+              acao={dono && !estado && !codigo && <Button asChild variant="outline"><Link to="/painel/pedidos">Pedir placas</Link></Button>} />
             {total > 0 && (
               <Rolagem>
                 <Table>

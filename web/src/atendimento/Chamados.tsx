@@ -35,8 +35,8 @@ export function SituacaoDoChamadoEtiqueta({ chamado, operadora }: { chamado: Cha
   // O relógio fica fixo na renderização: a lista volta da API a cada aviso ao vivo.
   const [agora] = useState(() => Date.now())
   const p = prazo(chamado, agora)
-  if (operadora && p) return <Badge variant={p.atrasado ? 'destructive' : 'secondary'}>{p.texto}</Badge>
-  return <Badge variant={chamado.situacao === 'Resolvido' ? 'outline' : 'secondary'}>{ROTULO_DA_SITUACAO[chamado.situacao]}</Badge>
+  if (operadora && p) return <Badge variant={p.atrasado ? 'erro' : 'neutro'}>{p.texto}</Badge>
+  return <Badge variant={chamado.situacao === 'Resolvido' ? 'sucesso' : 'atencao'}>{ROTULO_DA_SITUACAO[chamado.situacao]}</Badge>
 }
 
 /** A lista de chamados: a operadora vê a revenda e o prazo; o dono, a situação. */

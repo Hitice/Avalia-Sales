@@ -76,6 +76,7 @@
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary-texto: var(--primary-texto);
+  --color-primary-hover: var(--primary-hover);
 
   --color-sucesso: var(--sucesso);
   --color-sucesso-fundo: var(--sucesso-fundo);
@@ -97,7 +98,8 @@
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
 
-  /* Raio: sm 4 px (teclado, selo quadrado), md e lg 6 px (botão, campo, menu), xl 8 px (cartão, modal). */
+  /* Raio: xs 2 px (marca de legenda, ponta de barra), sm 4 px (teclado, selo quadrado), md e lg 6 px (botão, campo, menu), xl 8 px (cartão, modal). */
+  --radius-xs: 0.125rem;
   --radius-sm: 0.25rem;
   --radius-md: var(--radius);
   --radius-lg: var(--radius);
@@ -109,6 +111,8 @@
   --shadow-sm: var(--sombra-sm);
   --shadow-md: var(--sombra-md);
   --shadow-lg: var(--sombra-lg);
+
+  --ease-saida: var(--curva-saida);
 
   /*
    * Escala de texto: 11 (eixo de gráfico e teclado), 12 (cabeçalho de tabela,
@@ -181,6 +185,28 @@
 }
 
 /*
+ * Tabela no cartão (computador): encosta nas bordas (Rolagem), o cabeçalho
+ * dela vira o topo do cartão e a última linha, o pé. Com título no cartão, o
+ * título ganha o fio de baixo e a tabela começa logo nele. Fora de @layer: o
+ * py-4 do cartão é utilitário e venceria qualquer camada.
+ */
+@media (width >= 48rem) {
+  [data-slot=card]:has(> [data-slot=card-content]:first-child > [data-slot=rolagem]:first-child) {
+    padding-top: 0;
+  }
+  [data-slot=card]:has(> [data-slot=card-content]:last-child > [data-slot=rolagem]:last-child) {
+    padding-bottom: 0;
+  }
+  [data-slot=card]:has(> [data-slot=card-content] > [data-slot=rolagem]:first-child) > [data-slot=card-header] {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: calc(var(--spacing) * 3);
+  }
+  [data-slot=card-header] + [data-slot=card-content]:has(> [data-slot=rolagem]:first-child) {
+    margin-top: calc(var(--spacing) * -4);
+  }
+}
+
+/*
  * O botão fixo da Nova venda: no celular, logo acima da barra de baixo (13 de
  * altura mais a área segura do aparelho); a partir de md não há barra.
  */
@@ -232,7 +258,9 @@
 
 /* Célula da tabela em cartão (celular): o título da coluna vem do data-rotulo. */
 @utility rotulo-da-celula {
+  /* Também no --tw-content: os before:* do Tailwind repõem content com ele e, vindo depois, apagariam o rótulo. */
   &::before {
+    --tw-content: attr(data-rotulo);
     content: attr(data-rotulo);
   }
 }
@@ -307,13 +335,14 @@
   animation-duration: 160ms;
 }
 ::view-transition-old(etapa) {
-  animation: 150ms ease-out both sair-da-etapa;
+  animation: var(--duracao-curta) var(--curva-saida) both sair-da-etapa;
 }
 ::view-transition-new(etapa) {
-  animation: 180ms ease-out both entrar-na-etapa;
+  animation: 180ms var(--curva-saida) both entrar-na-etapa;
 }
 ::view-transition-old(pix), ::view-transition-new(pix) {
-  animation-duration: 200ms;
+  animation-duration: var(--duracao-media);
+  animation-timing-function: var(--curva-saida);
 }
 @keyframes sair-da-etapa {
   to { opacity: 0; transform: translateX(-8px); }

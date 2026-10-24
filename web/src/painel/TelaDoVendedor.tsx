@@ -1,14 +1,15 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
-import { ROTULO_DO_PAGAMENTO, formatarData } from '@/api/rotulos'
+import { formatarData } from '@/api/rotulos'
 import { useSessao } from '@/acesso/sessao'
-import { Cabecalho, Erro } from '@/componentes/Tela'
+import { Cabecalho, Carregando, Erro, Vazio } from '@/componentes/Tela'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatarCentavos } from '@/dinheiro/dinheiro'
 import { usePlacas, useSaldosDeComissao, useVendas } from './consultas'
 import { Indicador, Indicadores } from '@/componentes/Indicador'
+import { rotuloDaVenda, tomDaVenda } from './situacaoDaVenda'
 
 /**
  * O painel do vendedor: o que vendeu no mês, a comissão a receber (venda paga,
@@ -43,27 +44,36 @@ export function TelaDoVendedor() {
   return (
     <>
       <Cabecalho titulo={nome ? `Olá, ${nome.split(' ')[0]}` : 'Início'}>
-        <Button asChild><Link to="/vender">Nova venda</Link></Button>
+        <Button asChild className="lg:hidden"><Link to="/vender">Nova venda</Link></Button>
       </Cabecalho>
       <Erro erro={vendas.error ?? saldos.error} />
       <Indicadores colunas={3}>
         {numeros.map((n) => <Indicador key={n.rotulo} rotulo={n.rotulo} valor={n.valor} destaque={n.destaque} />)}
       </Indicadores>
-      {saldo?.ultimoRepasse && <p className="mt-3 text-sm text-muted-foreground">Último repasse em {formatarData(saldo.ultimoRepasse)}.</p>}
-      <Card className="mt-4">
-        <CardHeader><CardTitle>Últimas vendas</CardTitle></CardHeader>
-        <CardContent className="grid gap-2">
-          {validas.length === 0 && <p className="text-sm text-muted-foreground">Nenhuma venda ainda.</p>}
-          {validas.slice(0, 5).map((v) => (
-            <Link key={v.id} to={`/placa/${v.codigo}`} className="flex items-center justify-between gap-3 rounded-lg border p-3 text-sm hover:bg-muted">
-              <span className="min-w-0">
-                <span className="block truncate font-medium">{v.cliente}</span>
-                <span className="text-muted-foreground">{formatarData(v.vendidaEm)} - comissão {formatarCentavos(v.comissaoCents)}</span>
-              </span>
-              <Badge variant={v.pagamento === 'Paga' ? 'default' : 'outline'}>{v.pagamento ? ROTULO_DO_PAGAMENTO[v.pagamento] : 'Sem cobrança'}</Badge>
-            </Link>
-          ))}
-          {validas.length > 5 && <Button variant="ghost" asChild><Link to="/vendedor/vendas">Ver todas</Link></Button>}
+      {saldo?.ultimoRepasse && <p className="mt-3 text-xs text-muted-foreground">Último repasse em {formatarData(saldo.ultimoRepasse)}.</p>}
+      <Card className="mt-3 md:mt-4">
+        <CardHeader>
+          <CardTitle>Últimas vendas</CardTitle>
+          {validas.length > 5 && <CardAction><Button asChild variant="link" size="sm" className="-my-2 -mr-2.5"><Link to="/vendedor/vendas">Ver todas</Link></Button></CardAction>}
+        </CardHeader>
+        <CardContent>
+          {vendas.isPending ? <Carregando linhas={3} /> : validas.length === 0
+            ? <Vazio texto="Nenhuma venda ainda." acao={<Button asChild variant="outline"><Link to="/vender">Nova venda</Link></Button>} />
+            : (
+                <ul className="-my-1 divide-y">
+                  {validas.slice(0, 5).map((v) => (
+                    <li key={v.id}>
+                      <Link to={v.codigo ? `/placa/${v.codigo}` : '/vendedor/vendas'} className="-mx-2 flex min-h-14 items-center justify-between gap-3 rounded-md px-2 py-2.5 transition-colors duration-150 hover:bg-cinza-50">
+                        <span className="min-w-0">
+                          <span className="block truncate font-medium">{v.cliente}</span>
+                          <span className="block truncate text-xs text-muted-foreground tabular-nums">{formatarData(v.vendidaEm)}, comissão {formatarCentavos(v.comissaoCents)}</span>
+                        </span>
+                        <Badge variant={tomDaVenda(v)}>{rotuloDaVenda(v)}</Badge>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
         </CardContent>
       </Card>
     </>

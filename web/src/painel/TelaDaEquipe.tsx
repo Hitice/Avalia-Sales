@@ -124,7 +124,7 @@ export function TelaDaEquipe() {
                         </TableCell>
                         <TableCell className="text-right tabular-nums">{formatarBps(v.comissaoEfetivaBps)}{v.comissaoBps === null && <span className="text-muted-foreground"> (padrão)</span>}</TableCell>
                         <TableCell className="text-right tabular-nums">{v.vendas}</TableCell>
-                        <TableCell><Badge variant={v.ativo && !v.convitePendente ? 'default' : 'outline'}>{!v.ativo ? 'Desativado' : v.convitePendente ? 'Convidado' : 'Ativo'}</Badge></TableCell>
+                        <TableCell><Badge variant={!v.ativo ? 'neutro' : v.convitePendente ? 'atencao' : 'sucesso'}>{!v.ativo ? 'Desativado' : v.convitePendente ? 'Convidado' : 'Ativo'}</Badge></TableCell>
                         <TableCell>
                           <AcoesDaLinha nome={v.nome} principal={{ rotulo: 'Editar', aoClicar: () => editar(v) }} outras={[
                             v.ativo && v.convitePendente && { rotulo: 'Convite', desabilitada: convidar.isPending, aoClicar: () => convidar.mutate(v.id, { onSuccess: setConvite }) },

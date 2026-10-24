@@ -21,34 +21,50 @@ function TabelaOculta({ titulo, linhas }: { titulo: string; linhas: string[][] }
   )
 }
 
-/** Pizza em rosca de até quatro partes, com a legenda ao lado: nome, valor e percentual de cada parte. */
-export function Rosca({ titulo, itens, vazio }: { titulo: string; itens: Fatia[]; vazio: string }) {
-  const partes = fatias(itens)
+/**
+ * Pizza em rosca de até quatro partes, com a legenda ao lado: nome, valor e
+ * percentual de cada parte. Com `primeira`, essa parte fica sempre na cor da
+ * marca (chart-1) e o percentual dela vai no centro; o resto divide as outras
+ * três cores, da maior para a menor.
+ */
+export function Rosca({ titulo, itens, vazio, primeira, className }: { titulo: string; itens: Fatia[]; vazio: string; primeira?: Fatia; className?: string }) {
+  const fixa = primeira && primeira.valorCents > 0 ? primeira : null
+  // Com `primeira`, a cor da marca é dela: sem ela no mês (zero ou negativa), a cor fica sem uso, e não vai para outra parte.
+  const deslocamento = primeira && !fixa ? 1 : 0
+  const partes = fixa ? [fixa, ...fatias(itens, 3)] : fatias(itens, 4 - deslocamento)
   const total = partes.reduce((s, p) => s + p.valorCents, 0)
   const dados = partes.map((p, i) => ({ chave: `f${i}`, nome: p.nome, valor: p.valorCents, fill: `var(--color-f${i})` }))
-  const config = Object.fromEntries(dados.map((d, i) => [d.chave, { label: d.nome, color: CORES[i] }])) satisfies ChartConfig
+  const config = Object.fromEntries(dados.map((d, i) => [d.chave, { label: d.nome, color: CORES[i + deslocamento] }])) satisfies ChartConfig
 
   return (
-    <Card>
+    <Card className={className}>
       <CardHeader><CardTitle>{titulo}</CardTitle></CardHeader>
       <CardContent>
         {partes.length === 0 ? <p className="text-sm text-muted-foreground">{vazio}</p> : (
-          <div className="grid items-center gap-4 sm:lateral-e-lista-40">
-            <ChartContainer config={config} className="mx-auto aspect-square h-40">
-              <PieChart>
-                <ChartTooltip content={<ChartTooltipContent hideLabel nameKey="chave" formatter={(valor, _nome, item) => (
-                  <span className="flex w-full justify-between gap-3"><span>{(item.payload as { nome: string }).nome}</span><span className="tabular-nums">{formatarCentavos(Number(valor))}</span></span>
-                )} />} />
-                <Pie data={dados} dataKey="valor" nameKey="nome" innerRadius="58%" outerRadius="100%" strokeWidth={2} stroke="var(--card)" isAnimationActive={false} />
-              </PieChart>
-            </ChartContainer>
+          <div className="grid items-center gap-5 sm:lateral-e-lista-32">
+            <div className="relative mx-auto size-32">
+              <ChartContainer config={config} className="aspect-square size-32">
+                <PieChart>
+                  <ChartTooltip content={<ChartTooltipContent hideLabel nameKey="chave" formatter={(valor, _nome, item) => (
+                    <span className="flex w-full justify-between gap-3"><span>{(item.payload as { nome: string }).nome}</span><span className="tabular-nums">{formatarCentavos(Number(valor))}</span></span>
+                  )} />} />
+                  <Pie data={dados} dataKey="valor" nameKey="nome" innerRadius="76%" outerRadius="100%" strokeWidth={2} stroke="var(--card)" isAnimationActive={false} />
+                </PieChart>
+              </ChartContainer>
+              {fixa && (
+                <p aria-hidden className="pointer-events-none absolute inset-0 grid place-content-center text-center leading-tight">
+                  <span className="text-2xs text-muted-foreground">{fixa.nome}</span>
+                  <span className="text-sm font-medium tabular-nums">{percentual(fixa.valorCents, total)}</span>
+                </p>
+              )}
+            </div>
             <ul className="grid gap-2 text-sm">
               {dados.map((d, i) => (
                 <li key={d.chave} className="flex items-center gap-2">
-                  <span aria-hidden className={`size-2.5 shrink-0 rounded-sm ${QUADRADOS[i]}`} />
+                  <span aria-hidden className={`size-2 shrink-0 rounded-xs ${QUADRADOS[i + deslocamento]}`} />
                   <span className="min-w-0 flex-1 truncate">{d.nome}</span>
-                  <span className="tabular-nums">{formatarCentavos(d.valor)}</span>
-                  <span className="w-10 text-right text-muted-foreground tabular-nums">{percentual(d.valor, total)}</span>
+                  <span className="font-medium tabular-nums">{formatarCentavos(d.valor)}</span>
+                  <span className="w-9 text-right text-muted-foreground tabular-nums">{percentual(d.valor, total)}</span>
                 </li>
               ))}
             </ul>
@@ -83,8 +99,8 @@ export function Historico({ meses }: { meses: MesDoHistorico[] }) {
                 <span className="tabular-nums">{formatarCentavos(Math.round(Number(valor) * 100))}</span>
               </span>
             )} />} />
-            <Bar dataKey="recebido" fill="var(--color-recebido)" radius={[4, 4, 0, 0]} maxBarSize={18} />
-            <Bar dataKey="resultado" fill="var(--color-resultado)" radius={[4, 4, 0, 0]} maxBarSize={18} />
+            <Bar dataKey="recebido" fill="var(--color-recebido)" radius={[2, 2, 0, 0]} maxBarSize={16} />
+            <Bar dataKey="resultado" fill="var(--color-resultado)" radius={[2, 2, 0, 0]} maxBarSize={16} />
           </BarChart>
         </ChartContainer>
         <div className="mt-2 flex justify-center gap-4 text-xs text-muted-foreground">

@@ -110,7 +110,7 @@ export function BuscaNoGoogle({ nomeSugerido, escolhido, lugar, aoEscolher }: {
       <Erro erro={buscar.error ? mensagemDoErro(buscar.error) : null} />
       {buscar.data?.length === 0 && <p className="text-sm text-muted-foreground">Nada encontrado. Inclua a cidade.</p>}
       {lugar && escolhido === lugar.id && !buscar.data && (
-        <p className="rounded-lg border border-sucesso p-3 text-sm"><span className="block font-medium">{lugar.nome}</span>{lugar.endereco}</p>
+        <p className="rounded-md border border-sucesso-borda bg-sucesso-fundo p-3 text-sm"><span className="block font-medium">{lugar.nome}</span>{lugar.endereco}</p>
       )}
       {buscar.data && buscar.data.length > 0 && (
         <ul className="grid gap-2" aria-label="Negócios encontrados">
@@ -119,7 +119,7 @@ export function BuscaNoGoogle({ nomeSugerido, escolhido, lugar, aoEscolher }: {
               <button
                 type="button"
                 aria-pressed={escolhido === achado.id}
-                className={cn('min-h-11 w-full rounded-lg border p-3 text-left text-sm', escolhido === achado.id ? 'border-sucesso bg-accent' : 'hover:bg-muted')}
+                className={cn('min-h-11 w-full rounded-md border p-3 text-left text-sm transition-colors duration-150', escolhido === achado.id ? 'border-sucesso-borda bg-sucesso-fundo' : 'hover:bg-cinza-50')}
                 onClick={() => aoEscolher(achado)}
               >
                 <span className="block font-medium">{achado.nome}</span>

@@ -81,6 +81,59 @@ export const ROTULO_DO_CONTRATO: Record<SituacaoDoContrato, string> = {
   Cancelado: 'Cancelado',
 }
 
+/**
+ * O tom do selo de cada situação (DESIGN.md): verde quando está resolvido a
+ * favor (pago, entregue, no ar), âmbar quando espera alguém, vermelho quando
+ * falhou ou acabou mal, azul quando anda sozinho, neutro no resto.
+ */
+export type Tom = 'sucesso' | 'atencao' | 'erro' | 'info' | 'neutro'
+
+export const TOM_DO_ESTADO: Record<EstadoDaPlaca, Tom> = {
+  EmEstoque: 'neutro',
+  Ativa: 'sucesso',
+  Carencia: 'atencao',
+  Vencida: 'erro',
+  Suspensa: 'atencao',
+  Baixada: 'neutro',
+}
+
+export const TOM_DO_PEDIDO: Record<SituacaoDoPedido, Tom> = {
+  AguardandoPagamento: 'atencao',
+  Pago: 'info',
+  EmProducao: 'info',
+  Despachado: 'info',
+  Ativado: 'sucesso',
+  Cancelado: 'erro',
+}
+
+export const TOM_DA_ORDEM: Record<SituacaoDaOrdem, Tom> = {
+  AFazer: 'atencao',
+  EmAndamento: 'info',
+  Entregue: 'sucesso',
+  Cancelada: 'erro',
+}
+
+export const TOM_DO_PRODUTO: Record<SituacaoDoProduto, Tom> = {
+  Disponivel: 'sucesso',
+  Esgotado: 'atencao',
+  ForaDeLinha: 'neutro',
+}
+
+export const TOM_DO_PAGAMENTO: Record<SituacaoDaCobranca, Tom> = {
+  Pendente: 'atencao',
+  Paga: 'sucesso',
+  Cancelada: 'erro',
+  Falhou: 'erro',
+  Estornada: 'neutro',
+}
+
+export const TOM_DO_CONTRATO: Record<SituacaoDoContrato, Tom> = {
+  Rascunho: 'neutro',
+  AguardandoAssinatura: 'atencao',
+  Assinado: 'sucesso',
+  Cancelado: 'erro',
+}
+
 const data = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
 const dataHora = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
 

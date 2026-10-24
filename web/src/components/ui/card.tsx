@@ -3,8 +3,9 @@ import { cn } from "cn"
 
 /**
  * Cartão do painel (DESIGN.md): borda de 1 px, raio de 8 px, sem sombra; o
- * espaço interno é 4 (16 px) ou, em `size="sm"`, 3 (12 px). Cartão dentro de
- * cartão não existe: a tabela entra direto no cartão, sem moldura.
+ * espaço interno é 16 px no celular e 16 por 20 px no computador, ou 12 px em
+ * `size="sm"`. Cartão dentro de cartão não existe: a tabela entra direto no
+ * cartão, encostada nas bordas (Rolagem), e o cabeçalho dela vira o topo.
  */
 function Card({
   className,
@@ -29,7 +30,7 @@ function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="card-header"
       className={cn(
-        "group/card-header grid auto-rows-min items-start gap-1 px-4 group-data-[size=sm]/card:px-3 has-data-[slot=card-action]:colunas-titulo-e-acao has-data-[slot=card-description]:grid-rows-2 [.border-b]:pb-4",
+        "group/card-header grid auto-rows-min items-start gap-1 px-4 md:px-5 group-data-[size=sm]/card:px-3 has-data-[slot=card-action]:colunas-titulo-e-acao has-data-[slot=card-description]:grid-rows-2 [.border-b]:pb-4",
         className
       )}
       {...props}
@@ -42,7 +43,7 @@ function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="card-title"
       className={cn(
-        "text-sm leading-5 font-medium",
+        "text-sm leading-5 font-medium text-foreground",
         className
       )}
       {...props}
@@ -77,7 +78,7 @@ function CardContent({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card-content"
-      className={cn("px-4 group-data-[size=sm]/card:px-3", className)}
+      className={cn("px-4 md:px-5 group-data-[size=sm]/card:px-3", className)}
       {...props}
     />
   )

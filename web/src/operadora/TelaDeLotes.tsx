@@ -94,7 +94,7 @@ export function TelaDeLotes() {
                           <span className="flex flex-wrap items-center gap-1.5">
                             {lote.titulo ?? '-'}
                             {lote.categoria && lote.categoria !== 'Placa' && <Badge variant="outline">{ROTULO_DA_CATEGORIA[lote.categoria]}</Badge>}
-                            {lote.arquivadoEm && <Badge variant="secondary">Arquivado</Badge>}
+                            {lote.arquivadoEm && <Badge variant="neutro">Arquivado</Badge>}
                           </span>
                         </TableCell>
                         <TableCell className="text-right tabular-nums">{lote.quantidade}</TableCell>

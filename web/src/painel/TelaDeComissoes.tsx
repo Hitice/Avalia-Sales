@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router'
 import { mensagemDoErro } from '@/api/cliente'
 import { formatarData, formatarDataHora } from '@/api/rotulos'
 import type { SaldoDeComissao } from '@/api/tipos'
@@ -41,7 +42,8 @@ export function TelaDeComissoes() {
         <Cabecalho titulo="Comissões" />
         <Card>
           <CardContent>
-            <EstadoDaConsulta carregando={saldos.isPending} erro={saldos.error} vazio={saldos.data?.length === 0} textoVazio="Nenhum vendedor na equipe." />
+            <EstadoDaConsulta carregando={saldos.isPending} erro={saldos.error} vazio={saldos.data?.length === 0} textoVazio="Nenhum vendedor na equipe."
+              acao={<Button asChild variant="outline"><Link to="/painel/equipe">Cadastrar vendedor</Link></Button>} />
             {saldos.data && saldos.data.length > 0 && (
               <Rolagem>
                 <Table>

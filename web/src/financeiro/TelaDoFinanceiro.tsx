@@ -136,7 +136,7 @@ export function TelaDoFinanceiro() {
         </Select>
         {d && <Fechamento competencia={d.competencia} fechado={d.fechado} />}
       </Cabecalho>
-      {d?.fechado && <p className="mb-3 text-sm text-muted-foreground"><Badge variant="secondary">Fechado</Badge> em {formatarData(d.fechadoEm)}</p>}
+      {d?.fechado && <p className="mb-3 text-sm text-muted-foreground"><Badge variant="neutro">Fechado</Badge> em {formatarData(d.fechadoEm)}</p>}
       <Erro erro={dre.error} />
       <Tabs defaultValue="resultado">
         <TabsList className="mb-3 w-full sm:w-auto">

@@ -151,18 +151,18 @@ export function Moldura() {
   return (
     <div className="min-h-svh">
       <div role="progressbar" aria-label="Carregando" aria-hidden={!carregando} className={cn('barra-de-carregando fixed inset-x-0 top-0 z-30 h-1 transition-opacity', carregando ? 'opacity-100 delay-300' : 'opacity-0 delay-0')} />
-      <header className="sticky top-0 z-10 bg-card">
+      <header className="sticky top-0 z-10 border-b bg-card">
         <div className={cn('mx-auto flex h-14 max-w-7xl items-center gap-3 px-4', lateral && 'lg:max-w-none lg:pr-6 lg:pl-0')}>
           {/* O logo leva à tela inicial do papel, como nos sites. No computador, é o topo do painel lateral. */}
           <NavLink
             to={inicio}
             aria-label={!logo && marca?.nomeExibido ? `${marca.nomeExibido}, início` : 'Início'}
-            className={cn('flex min-w-0 shrink-0 items-center rounded-md', lateral && 'lg:h-full lg:w-60 lg:rounded-none lg:border-r lg:px-5')}
+            className={cn('flex min-w-0 shrink-0 items-center rounded-md', lateral && 'lg:h-14.25 lg:w-60 lg:self-start lg:rounded-none lg:border-r lg:border-b lg:border-b-card lg:px-5')}
           >
             {logo
               ? <img src={logo} alt="" className="h-8 w-auto max-w-32 object-contain lg:max-w-48" />
               : marca?.nomeExibido
-                ? <span className="min-w-0 truncate text-lg font-semibold">{marca.nomeExibido}</span>
+                ? <span className="min-w-0 truncate text-md font-medium">{marca.nomeExibido}</span>
                 : (
                     <>
                       <img src="/marca/gauge.svg" alt="" width={61} height={32} className={cn('h-8 w-auto', lateral && 'lg:hidden')} />
@@ -186,16 +186,16 @@ export function Moldura() {
       </header>
       <div className={cn(lateral && 'lg:grid lg:lateral-e-lista-60')}>
         {/* Abaixo do cabeçalho (h-14 e o traço), da altura do resto da janela: o menu rola por dentro e a conta fica no pé. */}
-        <div className={cn('sticky top-14.5 hidden altura-sob-cabecalho flex-col border-r bg-card', lateral && 'lg:flex')}>
+        <div className={cn('sticky top-14.25 hidden altura-sob-cabecalho flex-col border-r bg-card', lateral && 'lg:flex')}>
           {contexto && (
-            <div className="mx-3 mt-4 rounded-lg bg-muted px-3 py-2">
-              <p className="text-xs font-medium text-muted-foreground">{contexto.rotulo}</p>
-              <p className="truncate text-sm font-semibold" title={contexto.nome}>{contexto.nome}</p>
+            <div className="mx-3 mt-2 rounded-md border px-2.5 py-1.5">
+              <p className="text-2xs text-muted-foreground">{contexto.rotulo}</p>
+              <p className="truncate text-sm" title={contexto.nome}>{contexto.nome}</p>
             </div>
           )}
-          <nav aria-label="Menu lateral" className="min-h-0 flex-1 overflow-y-auto px-3 py-4">
+          <nav aria-label="Menu lateral" className="min-h-0 flex-1 overflow-y-auto px-3 pt-3 pb-4">
             {novaVenda && (
-              <Button asChild size="lg" className="mb-4 w-full">
+              <Button asChild className="mb-4 w-full">
                 <NavLink to={novaVenda.para}>
                   <novaVenda.icone aria-hidden />
                   {novaVenda.rotulo}
@@ -204,18 +204,18 @@ export function Moldura() {
             )}
             {gruposDoLateral.map((grupo, i) => (
               <div key={grupo.titulo ?? i} className="mb-4 grid gap-0.5 last:mb-0">
-                {grupo.titulo && <p className="px-3 pb-1 text-xs font-medium text-muted-foreground">{grupo.titulo}</p>}
+                {grupo.titulo && <p className="px-2 pb-1 text-2xs font-medium text-muted-foreground">{grupo.titulo}</p>}
                 {grupo.itens.map((item) => <ItemDoMenu key={item.para} item={item} />)}
               </div>
             ))}
           </nav>
-          <div className="border-t p-3">
+          <div className="border-t px-3 py-2">
             <MenuDaConta aoSair={sair} noRodape />
           </div>
         </div>
         <div className="min-w-0">
           <AvisoDeContaEncerrada />
-          <main className={cn('mx-auto min-w-0 max-w-7xl p-4', lateral && 'lg:max-w-6xl lg:px-6 lg:pt-6', naVenda ? 'pb-40 md:pb-24' : 'pb-24 md:pb-4')}>
+          <main className={cn('mx-auto min-w-0 max-w-7xl p-4 md:px-6 md:pt-6', lateral && 'lg:max-w-6xl lg:px-8', naVenda ? 'pb-40 md:pb-24' : 'pb-24 md:pb-8')}>
             {travado ? <ConfirmeOEmail email={perfil.email} /> : encerrada && soComAContaAtiva(caminho) ? <Navigate to="/painel/inicio" replace /> : <Outlet />}
           </main>
         </div>
@@ -227,16 +227,16 @@ export function Moldura() {
               <NavLink
                 key={para}
                 to={para}
-                className={({ isActive }) => cn('group relative flex min-h-13 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 text-xs', isActive ? 'font-medium text-foreground' : 'text-muted-foreground')}
+                className={({ isActive }) => cn('group relative flex min-h-13 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 text-2xs transition-colors duration-150', isActive ? 'font-medium text-foreground' : 'text-muted-foreground')}
               >
                 <span aria-hidden className="absolute inset-x-3 top-0 h-0.5 rounded-full bg-primary opacity-0 group-aria-[current=page]:opacity-100" />
-                <Icone aria-hidden className="size-4.5" />
+                <Icone aria-hidden className="size-5 group-aria-[current=page]:text-primary-texto" />
                 {rotulo}
               </NavLink>
             ))}
             {outros.length > 0 && (
-              <button type="button" onClick={() => setMais(true)} className="flex min-h-13 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 text-xs text-muted-foreground">
-                <Menu aria-hidden className="size-4.5" />
+              <button type="button" onClick={() => setMais(true)} className="flex min-h-13 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 text-2xs text-muted-foreground">
+                <Menu aria-hidden className="size-5" />
                 Mais
               </button>
             )}
@@ -244,7 +244,7 @@ export function Moldura() {
         </nav>
       )}
       <Dialog open={mais} onOpenChange={setMais}>
-        <DialogContent className="top-auto bottom-0 left-0 altura-da-folha max-w-full translate-x-0 translate-y-0 overflow-y-auto rounded-b-none area-segura-baixo-4 sm:max-w-full">
+        <DialogContent className="top-auto bottom-0 left-0 altura-da-folha max-w-full translate-x-0 translate-y-0 overflow-y-auto rounded-b-none border-x-0 border-b-0 area-segura-baixo-4 data-open:slide-in-from-bottom-8 data-closed:slide-out-to-bottom-8 sm:max-w-full">
           <DialogTitle>Mais</DialogTitle>
           <nav aria-label="Mais telas" className="grid gap-1">
             {outros.map((item) => (
@@ -252,9 +252,9 @@ export function Moldura() {
                 key={item.para}
                 to={item.para}
                 onClick={() => setMais(false)}
-                className={({ isActive }) => cn('flex min-h-12 items-center gap-3 rounded-md px-3 text-base', isActive ? 'bg-accent font-medium text-accent-foreground' : 'hover:bg-muted')}
+                className={({ isActive }) => cn('group flex min-h-12 items-center gap-3 rounded-md px-3 text-base', isActive ? 'bg-accent font-medium text-accent-foreground' : 'hover:bg-muted')}
               >
-                <item.icone aria-hidden className="size-5 text-muted-foreground" />
+                <item.icone aria-hidden className="size-5 text-muted-foreground group-aria-[current=page]:text-primary-texto" />
                 {item.rotulo}
               </NavLink>
             ))}
@@ -262,8 +262,9 @@ export function Moldura() {
         </DialogContent>
       </Dialog>
       {/* Avisos ao vivo: leitor de tela anuncia sem tirar o foco de onde está. */}
-      <div aria-live="polite" className="pointer-events-none fixed inset-x-0 top-16 z-20 md:top-28 flex justify-center px-4">
-        {aviso && <p className="rounded-lg bg-foreground px-4 py-2 text-sm text-background shadow-lg">{aviso}</p>}
+      {/* No celular, logo abaixo do cabeçalho (o pé tem a barra e o botão da venda); no computador, no canto de baixo. Entra em 200 ms pelo @starting-style. */}
+      <div aria-live="polite" className="pointer-events-none fixed inset-x-0 top-16 z-20 flex justify-center px-4 md:top-auto md:right-6 md:bottom-6 md:left-auto md:justify-end md:px-0">
+        {aviso && <p className="rounded-md bg-foreground px-3.5 py-2.5 text-sm text-background shadow-lg transition duration-200 ease-saida starting:translate-y-1 starting:opacity-0">{aviso}</p>}
       </div>
     </div>
   )
@@ -287,20 +288,20 @@ function iniciais(nome: string | undefined) {
 function MenuDaConta({ aoSair, noRodape = false }: { aoSair: () => void; noRodape?: boolean }) {
   const perfil = useSessao((s) => s.perfil)
   const navegar = useNavigate()
-  const circulo = <span aria-hidden className="flex size-8 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-semibold text-accent-foreground">{iniciais(perfil?.nome)}</span>
+  const circulo = <span aria-hidden className="flex size-7 shrink-0 items-center justify-center rounded-full border bg-muted text-2xs font-medium text-foreground">{iniciais(perfil?.nome)}</span>
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         {noRodape
           ? (
-              <button type="button" className="flex min-h-12 w-full items-center gap-2.5 rounded-lg px-2 text-left hover:bg-muted aria-expanded:bg-muted">
+              <button type="button" className="flex min-h-11 w-full items-center gap-2.5 rounded-md px-2 text-left transition-colors duration-150 hover:bg-muted aria-expanded:bg-muted">
                 {circulo}
                 {/* O nome lido é "Conta de Fulano" e contém o nome visível, como pede a WCAG 2.5.3. */}
                 <span className="sr-only">Conta de </span>
                 <span className="grid min-w-0 flex-1">
-                  <span className="truncate text-sm font-medium">{perfil?.nome}</span>
-                  <span aria-hidden className="truncate text-xs text-muted-foreground">{perfil?.email}</span>
+                  <span className="truncate text-xs font-medium">{perfil?.nome}</span>
+                  <span aria-hidden className="truncate text-2xs text-muted-foreground">{perfil?.email}</span>
                 </span>
                 <ChevronsUpDown aria-hidden className="size-4 shrink-0 text-muted-foreground" />
               </button>
@@ -329,18 +330,17 @@ function MenuDaConta({ aoSair, noRodape = false }: { aoSair: () => void; noRodap
   )
 }
 
-/** Item do menu lateral e do de cima: ícone, rótulo e, no ativo, fundo accent, ícone na primária e a barra da primária à esquerda. */
+/** Item do menu lateral e do de cima: ícone e rótulo; no ativo, fundo neutro, texto escuro e o ícone na cor da marca. */
 function ItemDoMenu({ item }: { item: Item }) {
   return (
     <NavLink
       to={item.para}
       className={({ isActive }) => cn(
-        'group relative flex min-h-9 shrink-0 items-center gap-2.5 rounded-md px-3 text-sm transition-colors',
-        isActive ? 'bg-accent font-medium text-accent-foreground' : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+        'group flex min-h-9 shrink-0 items-center gap-2.5 rounded-md px-2 text-sm transition-colors duration-150 lg:min-h-8',
+        isActive ? 'bg-accent font-medium text-accent-foreground' : 'text-cinza-700 hover:bg-muted hover:text-foreground',
       )}
     >
-      <span aria-hidden className="absolute inset-y-1.5 left-0 w-1 rounded-r-full bg-primary opacity-0 group-aria-[current=page]:opacity-100" />
-      <item.icone aria-hidden className="size-4 shrink-0 group-aria-[current=page]:text-primary" />
+      <item.icone aria-hidden className="size-4 shrink-0 group-aria-[current=page]:text-primary-texto" />
       {item.rotulo}
     </NavLink>
   )

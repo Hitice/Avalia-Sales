@@ -50,6 +50,8 @@
   --primary-texto: oklch(0.488 0.243 264.376);
   --destaque: oklch(0.488 0.243 264.376);
   --ring: var(--destaque);
+  /* Botão primário sob o ponteiro: a mesma cor 12% mais escura, segue a marca da revenda sozinha. */
+  --primary-hover: color-mix(in oklch, var(--primary), black 12%);
 
   /* Estados: texto, fundo e borda de cada um. */
   --sucesso: oklch(0.527 0.154 150.069);
@@ -80,4 +82,9 @@
   --sombra-sm: 0 1px 2px oklch(0 0 0 / 0.04);
   --sombra-md: 0 2px 8px oklch(0 0 0 / 0.06);
   --sombra-lg: 0 4px 16px oklch(0 0 0 / 0.08);
+
+  /* Movimento: 150 a 200 ms, saída exponencial; nada passa de 200 ms. */
+  --duracao-curta: 150ms;
+  --duracao-media: 200ms;
+  --curva-saida: cubic-bezier(0.16, 1, 0.3, 1);
 }

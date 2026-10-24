@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { mensagemDoErro } from '@/api/cliente'
-import { formatarDataHora, rotuloDoPedido } from '@/api/rotulos'
+import { formatarDataHora, rotuloDoPedido, TOM_DO_PEDIDO } from '@/api/rotulos'
 import { Cabecalho, Erro, EstadoDaConsulta, Rolagem } from '@/componentes/Tela'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -58,7 +58,7 @@ export function TelaDePedidosDePlacas() {
                           {formatarCentavos(p.valorCents)}
                           {p.cupom && <span className="block text-xs text-muted-foreground">cupom {p.cupom}, menos {formatarCentavos(p.descontoCents)}</span>}
                         </TableCell>
-                        <TableCell><Badge variant={p.situacao === 'Ativado' ? 'default' : p.situacao === 'Cancelado' ? 'outline' : 'secondary'}>{rotuloDoPedido(p)}</Badge></TableCell>
+                        <TableCell><Badge variant={TOM_DO_PEDIDO[p.situacao]}>{rotuloDoPedido(p)}</Badge></TableCell>
                         <TableCell>{p.lote ?? '-'}</TableCell>
                         <TableCell className="text-right">
                           {p.situacao === 'AguardandoPagamento' && (
