@@ -23,7 +23,16 @@ permissions:
 jobs:
   deploy:
     # Desligado até o VPS existir: ligue com a variável DEPLOY_ATIVO=true no repositório.
-    if: vars.DEPLOY_ATIVO == 'true' && (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success')
+    # O runner fica no servidor e o repositório é público: só publica o CI verde
+    # de um push no main deste repositório. Um pull request de fork também gera
+    # workflow_run do CI, com a branch que o fork quiser, e não pode chegar aqui.
+    if: >-
+      vars.DEPLOY_ATIVO == 'true' && (
+        github.event_name == 'workflow_dispatch' || (
+          github.event.workflow_run.conclusion == 'success' &&
+          github.event.workflow_run.event == 'push' &&
+          github.event.workflow_run.head_branch == 'main' &&
+          github.event.workflow_run.head_repository.full_name == github.repository))
     runs-on: [self-hosted, linux, avalia-sales]
     environment:
       name: producao
@@ -42,6 +51,16 @@ jobs:
 
       - name: Imagens da versão
         run: docker compose -f docker-compose.producao.yml --env-file "$ENV_FILE" build
+
+      # Cópia do banco antes de qualquer migration desta versão. Com o contêiner de
+      # backup de pé, cópia que falha segura a publicação.
+      - name: Cópia do banco antes de subir
+        run: |
+          if docker compose -f docker-compose.producao.yml --env-file "$ENV_FILE" ps --status running --services | grep -qx backup; then
+            docker compose -f docker-compose.producao.yml --env-file "$ENV_FILE" exec -T backup sh /backup.sh agora
+          else
+            echo "::warning::Contêiner de backup parado: publicação sem cópia antes."
+          fi
 
       # migrar roda antes de API e Worker (depends_on); migration é só aditiva, então a versão anterior continua lendo o banco.
       - name: Subir

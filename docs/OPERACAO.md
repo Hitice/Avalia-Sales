@@ -124,8 +124,10 @@ Arquitetura e decisões no [SDD](SDD.md); cada decisão estrutural em
 
 Merge no `main` com o CI verde dispara o workflow Deploy, que espera a
 aprovação no ambiente `producao`. Ele compila as imagens marcadas com o commit
-(`VERSAO`), sobe (o `migrar` roda antes da API) e confere
-`https://DOMINIO/api/health` por até 150 s.
+(`VERSAO`), faz uma cópia do banco pelo contêiner `backup` (cópia que falha
+segura a publicação), sobe (o `migrar` roda antes da API) e confere
+`https://DOMINIO/api/health` por até 150 s. Só publica o CI de um push no
+`main` deste repositório: pull request de fork não chega ao runner do VPS.
 
 - Migration só aditiva: a versão anterior continua lendo o banco depois da
   migração, e é isso que torna a volta segura.
@@ -145,9 +147,10 @@ o workflow compila de novo.
 
 - O contêiner `backup` grava `avalia_sales-AAAAMMDDTHHMMSSZ.dump` às 02:00 de
   Brasília em `PASTA_DE_BACKUP` e apaga os mais velhos que `BACKUP_DIAS`.
-- Com `BACKUP_PARA` e o Resend configurado, a cópia também vai anexada para essa
-  caixa, que é o destino fora do VPS. Acima de 28 MB o e-mail sai sem anexo,
-  avisando: aí é hora de outro destino (armazenamento de objetos).
+- Sem `BACKUP_PARA`, as cópias ficam só no disco do VPS: protegem de engano
+  (migration, exclusão), não da perda do servidor. Com `BACKUP_PARA` e o Resend,
+  a cópia vai anexada por e-mail até 28 MB. O destino fora do VPS que fica é
+  um bucket de armazenamento de objetos (pendência em docs/SDD.md).
 - Cópia na hora: `docker compose -f docker-compose.producao.yml --env-file /srv/avalia-sales/.env exec backup sh /backup.sh agora`.
 - Teste a restauração todo mês, num banco à parte:
 

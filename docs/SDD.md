@@ -706,13 +706,16 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
 - Pacote inicial do front com 460 kB (React, Router, Query, Zod e o
   formulário de entrada); o polyfill de QR (44 kB e 1,1 MB de WebAssembly) só
   baixa no aparelho sem `BarcodeDetector`.
-- Ensaio de restauração do backup no VPS.
-- SonarCloud e Sentry - configurar o token e o DSN.
+- Ensaio de restauração do backup no VPS, e uma cópia fora dele (bucket de armazenamento de objetos, criptografada).
+- SonarCloud - criar o projeto, desligar a análise automática e gravar `SONAR_TOKEN`, `SONAR_ORGANIZACAO` e `SONAR_PROJETO`.
+- Revisão de arquitetura, o que ficou - conciliação periódica de chargeback com o Pagar.me (hoje só o webhook), `/q/` sem 502 enquanto a API reinicia (resolver no Nginx ou imagem pronta antes de trocar), aviso de fora quando a plataforma cai, renovação da sessão disputada entre abas, limite de memória e CPU por contêiner, segredos fora do log do Nginx.
 
 ## 13. Registro de mudanças
 
 | Data | Mudança |
 | --- | --- |
+| 24/10/2026 | Revisão de arquitetura, primeiro lote - o Deploy só roda para o CI de push no `main` deste repositório (`workflow_run.event`, `head_branch` e `head_repository`), porque o runner fica no VPS e o repositório é público; cópia do banco antes de subir (`backup.sh agora` devolve erro quando falha); cada rotina do Worker no próprio escopo e `try` (`Rotinas.Rodar`); a cobrança nasce dentro de uma transação com trava de aplicação pela origem (`IBancoDeDados.TravarOrigemDaCobranca`) e recusa a segunda cobrança viva da mesma venda; migration `RazaoSoDeInsercaoNoBanco` (REVOKE UPDATE, DELETE em `lancamentos` do papel da aplicação); gzip no Nginx; job `qualidade` do SonarCloud com C#, TypeScript e a cobertura dos testes da API (`dotnet-coverage`). |
+| 24/10/2026 | `GET /vendas/{id}` (`Vendas.Detalhe`, `DetalheDaVenda`) - a venda com cliente, cobrança, itens do grupo, ordens de serviço e razão; o vendedor só abre a dele e não recebe o razão. Categoria de despesa `ServicoDePjComNota`. |
 | 24/10/2026 | Sentry com a versão publicada: `Sentry__Release` e `VITE_SENTRY_RELEASE` recebem `avalia-sales@<commit>` do Compose (API, Worker e front), para o erro apontar a versão e o commit suspeito. |
 | 24/10/2026 | Front - `Moldura` no computador vira painel lateral da altura da janela (grade de `15rem` e conteúdo até `max-w-6xl`): logo na célula do topo do cabeçalho, bloco da revenda e do papel, Nova venda como botão, grupos e o menu da conta (`MenuDaConta`) no pé; até o tablet nada muda. `MarcaAvalia` aceita `className`. História `Negócio/Moldura` no Storybook sem API (cache do TanStack Query e roteador em memória), com o parâmetro `semMargem` no `preview.tsx`. |
 | 24/10/2026 | Financeiro do dono - rotas `/financeiro/dre`, `/historico`, `/meses`, `/fechamentos` (e `/{competencia}/reabertura`), `/despesas`, `/socios`, `/retiradas` (CRUD); casos de uso `Dre`, `Despesas`, `Socios`, `Fechamentos`, `CustoDasPlacas`; regra de apropriação em `Domain/Financeiro/Reconhecimento`. Migration `FinanceiroDoDono` (tabelas `despesas`, `socios`, `retiradas`, `fechamentos` com RLS, colunas `lancamentos.categoria` e `placa_id`, gatilho do mês fechado, e as perdas e cortesias já existentes lançadas no razão). Tela `web/src/financeiro`. |

@@ -72,9 +72,25 @@ public sealed class Cobrancas(IBancoDeDados banco, IGatewayDePagamento gateway, 
         var total = Parcelamento.Total(comando.ValorCents, comando.Meio, comando.Parcelas);
         var parte = Parcelamento.ParteLiquida(comando.ParteDaAvaliaCents, comando.Meio, comando.Parcelas);
         var cobranca = new Cobranca(comando.Origem, comando.OrigemId, comando.Meio, total, revendedor.TaxaAvaliaBps, parte);
-        banco.Cobrancas.Add(cobranca);
-        banco.Vinculos.Add(new VinculoExterno(VinculoExterno.Pagarme, cobranca.Codigo, revendedorId));
-        await banco.SaveChangesAsync(ct);
+        await using (var transacao = await banco.Database.BeginTransactionAsync(ct))
+        {
+            // Dois toques ou duas abas cobrando a mesma venda ao mesmo tempo: a trava
+            // da origem enfileira os dois, e o segundo encontra a cobrança do primeiro.
+            if (comando.OrigemId is { } origem)
+            {
+                await banco.TravarOrigemDaCobranca(origem, ct);
+                if (await banco.Cobrancas.AnyAsync(c => c.Origem == comando.Origem && c.OrigemId == origem
+                        && (c.Situacao == SituacaoDaCobranca.Pendente || c.Situacao == SituacaoDaCobranca.Paga), ct))
+                {
+                    throw new RegraDeNegocioException("Já existe cobrança em aberto ou paga para esta venda.");
+                }
+            }
+
+            banco.Cobrancas.Add(cobranca);
+            banco.Vinculos.Add(new VinculoExterno(VinculoExterno.Pagarme, cobranca.Codigo, revendedorId));
+            await banco.SaveChangesAsync(ct);
+            await transacao.CommitAsync(ct);
+        }
 
         var divisao = cobranca.Divisao;
 

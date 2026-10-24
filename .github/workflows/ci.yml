@@ -119,11 +119,27 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # SonarCloud só com o segredo SONAR_TOKEN e as variáveis SONAR_ORGANIZACAO e
-  # SONAR_PROJETO; sem eles, o passo avisa e sai sem falhar.
+  # SONAR_PROJETO; sem eles, o passo avisa e sai sem falhar. Analisa o C# e o
+  # TypeScript do front, com a cobertura dos testes da API (rodam aqui contra um
+  # Postgres de verdade, como no job api). Não bloqueia o merge: o portão de
+  # qualidade aparece no SonarCloud e no pull request.
   qualidade:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     env:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      AVALIA_SALES_PG_ADMIN: Host=localhost;Username=postgres;Password=postgres;Database=postgres
     steps:
       - uses: actions/checkout@v7
         with:
@@ -138,10 +154,14 @@ jobs:
             exit 0
           fi
           dotnet tool install --global dotnet-sonarscanner --version 11.3.0
+          dotnet tool install --global dotnet-coverage --version 18.12.0
           dotnet sonarscanner begin /o:"${{ vars.SONAR_ORGANIZACAO }}" /k:"${{ vars.SONAR_PROJETO }}" \
             /d:sonar.host.url=https://sonarcloud.io /d:sonar.token="$SONAR_TOKEN" \
-            /d:sonar.exclusions="**/Migrations/**,web/**"
-          dotnet build -c Release
+            /d:sonar.cs.vscoveragexml.reportsPaths=coverage.xml \
+            /d:sonar.exclusions="**/Migrations/**,**/bin/**,**/obj/**,web/node_modules/**,web/dist/**,web/storybook-static/**,web/public/**,web/src/api/esquema.d.ts,web/openapi.json,docs/contrato/**" \
+            /d:sonar.coverage.exclusions="web/**,tests/**,infra/**"
+          dotnet build -c Release --no-incremental
+          dotnet-coverage collect "dotnet test --no-build -c Release" -f xml -o coverage.xml
           dotnet sonarscanner end /d:sonar.token="$SONAR_TOKEN"
 
   # Código que muda sem o PDD ou o SDD acompanhar não entra. Refatoração sem

@@ -62,6 +62,9 @@ public interface IBancoDeDados
     /// <summary>Trava da transação: dois lotes gerados juntos não pegam o mesmo número.</summary>
     Task TravarGeracaoDeLotes(CancellationToken ct);
 
+    /// <summary>Trava de aplicação, até o fim da transação, pela origem da cobrança: duas cobranças da mesma venda não nascem juntas.</summary>
+    Task TravarOrigemDaCobranca(Guid origemId, CancellationToken ct);
+
     Task<Lote?> TravarLote(int numero, CancellationToken ct);
 
     Task<Placa?> TravarPlaca(string codigo, CancellationToken ct);

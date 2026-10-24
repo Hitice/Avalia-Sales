@@ -60,16 +60,18 @@ copiar() {
   else
     rm -f "$arquivo.parcial"
     echo "backup falhou" >&2
+    return 1
   fi
   find /backups -name 'avalia_sales-*.dump' -mtime +"${BACKUP_DIAS:-14}" -delete
 }
 
+# "agora" é a cópia antes de cada publicação: falhar aqui segura o deploy.
 if [ "${1:-}" = agora ]; then
   copiar
-  exit 0
+  exit $?
 fi
 
 while true; do
   esperar
-  copiar
+  copiar || true
 done

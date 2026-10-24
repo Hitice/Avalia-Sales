@@ -9,7 +9,7 @@ web
 ## Users
 
 - **Vendedor** - equipe da revenda. Vende no balcão do cliente pelo celular, em pé e com pressa: escolhe o item, lê o QR da placa, grava o NFC, cadastra o cliente e cobra por Pix ou cartão na hora.
-- **Dono da revenda** - empresa que revende. No computador e no celular: compra placas, convida e comissiona a equipe, define preço, acompanha vendas, estoque, mapa, comissões e o financeiro.
+- **Revendedor** - empresa que revende. No computador e no celular: compra placas, convida e comissiona a equipe, define preço, acompanha vendas, estoque, mapa, comissões e o financeiro.
 - **Operadora** - a empresa que opera a plataforma (hoje a Avalia). Produz e despacha lotes, cuida do catálogo, executa os serviços vendidos, atende chamados e audita as revendas.
 - **Cliente final** - o comércio que compra a placa. Não usa o painel: paga o Pix na tela do vendedor e usa a placa no negócio.
 
@@ -24,7 +24,7 @@ O físico inicia e o digital continua: a placa sai de um estoque com código ún
 ## Operating Context
 
 - Venda no balcão, no celular, muitas vezes ao sol e com o cliente esperando o Pix na tela.
-- Gestão no computador e no celular pelo dono; operação diária pela operadora no computador.
+- Gestão no computador e no celular pelo revendedor; operação diária pela operadora no computador.
 - Integrações - Pagar.me (Pix, cartão, split, estorno), Google Places e Maps, D4Sign (contrato), Resend (e-mail).
 - Multi-cliente - a plataforma atende várias redes; a Avalia é a cliente 1, e cada revenda aplica a própria marca (logo e cores) por tokens.
 
@@ -33,15 +33,15 @@ O físico inicia e o digital continua: a placa sai de um estoque com código ún
 - Em produção em sales.avaliaone.com.br; regras em docs/PDD.md e arquitetura em docs/SDD.md.
 - Venda com vários itens numa cobrança só, pedido mínimo por produto, teste gratuito de 7 dias, cancelamento com motivo e estorno, lotes, estoque, consignação, comissões, repasses, razão, auditoria, chamados, notificações.
 - Front - React 19, Vite, Tailwind 4, shadcn/ui, TanStack Query; Storybook e Playwright (com axe) na verificação.
-- Telas da operação priorizam velocidade e leitura; a plataforma pesa igual o celular do vendedor e o painel do dono.
-- Undecided - o nome e a marca próprios da plataforma (diferentes de Avalia) ainda serão definidos; até lá, nada de identidade definitiva.
+- Telas da operação priorizam velocidade e leitura; a plataforma pesa igual o celular do vendedor e o painel do revendedor.
+- Nome da plataforma - Avalia Sales, decidido por Pedro Fernandes em 24/10/2026.
 
 ## Brand Commitments
 
-- Nome e marca próprios da plataforma, a definir. A marca de cada revenda entra por tokens (white label) e não pode quebrar contraste nem layout.
+- A plataforma se chama Avalia Sales. A marca de cada revenda entra por tokens (white label) e não pode quebrar contraste nem layout.
 - Tom - preciso, direto, prático; português técnico, frases curtas, sem travessão, sem superlativo nem promessa sem evidência.
-- Pedido do dono (24/10/2026) - visual profissional e refinado, telas mais dinâmicas, e proteção contra os defeitos visuais que código gerado por IA costuma criar.
-- Direção visual escolhida pelo dono (24/10/2026) - o padrão da categoria, executado sem defeito e sem ironia: convenção de painel de operação, nada de mundo temático. Régua de acabamento - Stripe Dashboard (dinheiro, tabelas, estados de pagamento), Linear (velocidade, tipografia, movimento curto), Shopify Admin (operação de loja no celular e no computador) e os apps PJ de banco digital (Nubank PJ, Inter Empresas, Mercado Pago: Pix, saldo e extrato no celular).
+- Pedido de Pedro Fernandes (24/10/2026) - visual profissional e refinado, telas mais dinâmicas, e proteção contra os defeitos visuais que código gerado por IA costuma criar.
+- Direção visual escolhida por Pedro Fernandes (24/10/2026) - o padrão da categoria, executado sem defeito e sem ironia: convenção de painel de operação, nada de mundo temático. Régua de acabamento - Stripe Dashboard (dinheiro, tabelas, estados de pagamento), Linear (velocidade, tipografia, movimento curto), Shopify Admin (operação de loja no celular e no computador) e os apps PJ de banco digital (Nubank PJ, Inter Empresas, Mercado Pago: Pix, saldo e extrato no celular).
 - Proibido - visual de template de IA (gradiente, vidro, brilho, roxo genérico, cartão dentro de cartão, ícone em quadradinho colorido) e qualquer coisa que quebre a marca da revenda (cor que some, contraste baixo, layout que briga com o logo).
 
 ## Evidence on Hand
@@ -60,4 +60,4 @@ O físico inicia e o digital continua: a placa sai de um estoque com código ún
 
 ## Accessibility & Inclusion
 
-Manter o que existe: testes de acessibilidade com axe nas telas do dono e da operadora a 390 e 1440 px, alvos de toque de 44 px e foco visível. Sem meta formal além disso.
+Manter o que existe: testes de acessibilidade com axe nas telas do revendedor e da operadora a 390 e 1440 px, alvos de toque de 44 px e foco visível. Sem meta formal além disso.

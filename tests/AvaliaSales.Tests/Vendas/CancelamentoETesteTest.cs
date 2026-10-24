@@ -1,3 +1,4 @@
+using System.Net.Http.Json;
 using System.Net;
 using System.Text.Json;
 using AvaliaSales.Domain.Pagamentos;
@@ -172,5 +173,20 @@ public sealed class CancelamentoETesteTest(ApiDeTeste api)
         await revenda.Dono.Postar($"/vendas/{venda}/recebimento", new { meio = "Dinheiro" }, HttpStatusCode.NoContent);
         Assert.Equal(1, await banco.Contar($"select count(*) from placas where codigo = '{codigo}' and situacao = 'Ativa' and vence_em > now() + interval '11 months 25 days'"));
         Assert.Equal(1, await banco.Contar($"select count(*) from vendas where id = '{venda}' and teste_convertido_em is not null"));
+    }
+
+    [Fact]
+    public async Task Dois_pedidos_de_cobranca_ao_mesmo_tempo_geram_uma_cobranca_so()
+    {
+        var revenda = await api.RevendaComEstoque("Revenda dos Dois Toques");
+        var registrada = await revenda.Dono.Postar("/vendas", Cenarios.Venda(revenda.Codigos[0], revenda.ProdutoId, "11977770031", testeGratuito: true), HttpStatusCode.Created);
+        var venda = registrada.GetProperty("vendaId").GetGuid();
+
+        var toques = await Task.WhenAll(Enumerable.Range(0, 4).Select(_ => revenda.Dono.PostAsJsonAsync($"/vendas/{venda}/cobranca", new { }, Ct)));
+        Assert.Contains(toques, r => r.StatusCode == HttpStatusCode.OK);
+        Assert.All(toques, r => Assert.True(r.StatusCode is HttpStatusCode.OK or HttpStatusCode.UnprocessableEntity, r.StatusCode.ToString()));
+
+        await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
+        Assert.Equal(1, await banco.Contar($"select count(*) from cobrancas where origem_id = '{venda}' and situacao in ('Pendente', 'Paga')"));
     }
 }

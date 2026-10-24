@@ -1,6 +1,15 @@
 # Um domínio para todos os revendedores. ${DOMINIO} vem do ambiente (envsubst da imagem oficial).
 server_tokens off;
 
+# Texto comprimido na ida: o JS do app passa de 450 kB. Imagem e fonte já vêm
+# comprimidas e ficam de fora.
+gzip on;
+gzip_vary on;
+gzip_proxied any;
+gzip_comp_level 5;
+gzip_min_length 1024;
+gzip_types text/plain text/css application/javascript application/json application/manifest+json image/svg+xml application/xml;
+
 map $http_upgrade $conexao_upgrade {
   default upgrade;
   ''      close;
