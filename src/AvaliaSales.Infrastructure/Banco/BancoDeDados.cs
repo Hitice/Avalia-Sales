@@ -53,6 +53,10 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
     public DbSet<Cupom> Cupons => Set<Cupom>();
     public DbSet<Lancamento> Lancamentos => Set<Lancamento>();
     public DbSet<Repasse> Repasses => Set<Repasse>();
+    public DbSet<Despesa> Despesas => Set<Despesa>();
+    public DbSet<Socio> Socios => Set<Socio>();
+    public DbSet<Retirada> Retiradas => Set<Retirada>();
+    public DbSet<FechamentoDoMes> Fechamentos => Set<FechamentoDoMes>();
     public DbSet<Renovacao> Renovacoes => Set<Renovacao>();
     public DbSet<EnvioAoErp> EnviosAoErp => Set<EnvioAoErp>();
     public DbSet<LogoDoRevendedor> Logos => Set<LogoDoRevendedor>();
@@ -310,7 +314,62 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
 
         ConfigurarFase1(modelo);
         ConfigurarFase2(modelo);
+        ConfigurarFinanceiro(modelo);
         FiltrarPorRevendedor(modelo);
+    }
+
+    /// <summary>Despesas, sócios, retiradas e fechamento do mês: a área Financeiro do dono, com RLS.</summary>
+    private static void ConfigurarFinanceiro(ModelBuilder modelo)
+    {
+        modelo.Entity<Lancamento>(l =>
+        {
+            l.Property(x => x.Categoria).HasMaxLength(30);
+            l.HasIndex(x => new { x.RevendedorId, x.PlacaId }).HasFilter("placa_id is not null");
+        });
+
+        modelo.Entity<Despesa>(d =>
+        {
+            d.ToTable("despesas");
+            d.Property(x => x.Descricao).HasMaxLength(Despesa.DescricaoMaxima).IsRequired();
+            d.Property(x => x.Categoria).HasConversion<string>().HasMaxLength(30);
+            d.Ignore(x => x.Competencia);
+            d.HasOne<Revendedor>().WithMany().HasForeignKey(x => x.RevendedorId).OnDelete(DeleteBehavior.Restrict);
+            d.HasOne<Lancamento>().WithMany().HasForeignKey(x => x.LancamentoId).OnDelete(DeleteBehavior.Restrict);
+            d.HasIndex(x => new { x.RevendedorId, x.Data });
+        });
+
+        modelo.Entity<Socio>(s =>
+        {
+            s.ToTable("socios");
+            s.Property(x => x.Nome).HasMaxLength(Socio.NomeMaximo).IsRequired();
+            s.Property(x => x.Cpf).HasMaxLength(11).IsFixedLength();
+            s.HasOne<Revendedor>().WithMany().HasForeignKey(x => x.RevendedorId).OnDelete(DeleteBehavior.Restrict);
+            s.HasIndex(x => new { x.RevendedorId, x.Nome });
+        });
+
+        modelo.Entity<Retirada>(r =>
+        {
+            r.ToTable("retiradas");
+            r.Property(x => x.Natureza).HasConversion<string>().HasMaxLength(30);
+            r.Property(x => x.Observacao).HasMaxLength(Retirada.ObservacaoMaxima);
+            r.Ignore(x => x.Competencia);
+            r.HasOne<Revendedor>().WithMany().HasForeignKey(x => x.RevendedorId).OnDelete(DeleteBehavior.Restrict);
+            r.HasOne<Socio>().WithMany().HasForeignKey(x => x.SocioId).OnDelete(DeleteBehavior.Restrict);
+            r.HasOne<Lancamento>().WithMany().HasForeignKey(x => x.LancamentoId).OnDelete(DeleteBehavior.Restrict);
+            r.HasIndex(x => new { x.RevendedorId, x.Data });
+            r.HasIndex(x => x.SocioId);
+        });
+
+        modelo.Entity<FechamentoDoMes>(f =>
+        {
+            f.ToTable("fechamentos");
+            f.Property(x => x.Competencia).HasMaxLength(7).IsFixedLength();
+            f.Property(x => x.MotivoDaReabertura).HasMaxLength(FechamentoDoMes.MotivoMaximo);
+            f.HasOne<Revendedor>().WithMany().HasForeignKey(x => x.RevendedorId).OnDelete(DeleteBehavior.Restrict);
+
+            // Um fechamento em vigor por mês; o reaberto fica como histórico.
+            f.HasIndex(x => new { x.RevendedorId, x.Competencia }).IsUnique().HasFilter("reaberto_em is null");
+        });
     }
 
     private static void ConfigurarFase2(ModelBuilder modelo)

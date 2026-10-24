@@ -3424,6 +3424,468 @@
         }
       }
     },
+    "/financeiro/dre": {
+      "get": {
+        "tags": [
+          "Financeiro"
+        ],
+        "parameters": [
+          {
+            "name": "competencia",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DreDoMes"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/financeiro/historico": {
+      "get": {
+        "tags": [
+          "Financeiro"
+        ],
+        "parameters": [
+          {
+            "name": "ate",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MesDoHistorico"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/financeiro/meses": {
+      "get": {
+        "tags": [
+          "Financeiro"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MesDoFinanceiro"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/financeiro/fechamentos": {
+      "post": {
+        "tags": [
+          "Financeiro"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FecharMes"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/financeiro/fechamentos/{competencia}/reabertura": {
+      "post": {
+        "tags": [
+          "Financeiro"
+        ],
+        "parameters": [
+          {
+            "name": "competencia",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReabrirMes"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/financeiro/despesas": {
+      "get": {
+        "tags": [
+          "Financeiro"
+        ],
+        "parameters": [
+          {
+            "name": "competencia",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DespesaDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Financeiro"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NovaDespesa"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/financeiro/despesas/{id}": {
+      "put": {
+        "tags": [
+          "Financeiro"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NovaDespesa"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DespesaDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Financeiro"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/financeiro/socios": {
+      "get": {
+        "tags": [
+          "Financeiro"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SocioDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Financeiro"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NovoSocio"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/financeiro/socios/{id}": {
+      "put": {
+        "tags": [
+          "Financeiro"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NovoSocio"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SocioDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Financeiro"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/financeiro/retiradas": {
+      "get": {
+        "tags": [
+          "Financeiro"
+        ],
+        "parameters": [
+          {
+            "name": "competencia",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RetiradaDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Financeiro"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NovaRetirada"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/financeiro/retiradas/{id}": {
+      "put": {
+        "tags": [
+          "Financeiro"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NovaRetirada"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetiradaDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Financeiro"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/placas": {
       "get": {
         "tags": [
@@ -4327,7 +4789,12 @@
           "ClienteExcluido",
           "ClientesJuntados",
           "VendaCorrigida",
-          "RepasseDesfeito"
+          "RepasseDesfeito",
+          "MesFechado",
+          "MesReaberto",
+          "SocioCadastrado",
+          "SocioAlterado",
+          "SocioExcluido"
         ]
       },
       "AjustarProduto": {
@@ -4626,6 +5093,17 @@
             "$ref": "#/components/schemas/PlacaDaVendaCancelada"
           }
         }
+      },
+      "CategoriaDeDespesa": {
+        "enum": [
+          "PlacasEMaterial",
+          "Frete",
+          "Marketing",
+          "SoftwareEFerramentas",
+          "Impostos",
+          "Taxas",
+          "Outros"
+        ]
       },
       "CategoriaDoLote": {
         "enum": [
@@ -5320,6 +5798,52 @@
         },
         "description": "Retirada: a revenda busca a caixa na Avalia, sem envio."
       },
+      "DespesaDaCategoria": {
+        "required": [
+          "categoria",
+          "valorCents"
+        ],
+        "type": "object",
+        "properties": {
+          "categoria": {
+            "$ref": "#/components/schemas/CategoriaDeDespesa"
+          },
+          "valorCents": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "DespesaDto": {
+        "required": [
+          "id",
+          "data",
+          "descricao",
+          "categoria",
+          "valorCents"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "data": {
+            "type": "string",
+            "format": "date"
+          },
+          "descricao": {
+            "type": "string"
+          },
+          "categoria": {
+            "$ref": "#/components/schemas/CategoriaDeDespesa"
+          },
+          "valorCents": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
       "DestinoInformado": {
         "required": [
           "tipo",
@@ -5357,6 +5881,104 @@
             "format": "uuid"
           }
         }
+      },
+      "DreDoMes": {
+        "required": [
+          "competencia",
+          "fechado",
+          "fechadoEm",
+          "vendas",
+          "vendidoCents",
+          "recebidoCents",
+          "receitaReconhecidaCents",
+          "aReconhecerCents",
+          "taxaCents",
+          "comissoesCents",
+          "custoDasPlacasCents",
+          "perdasCents",
+          "despesasCents",
+          "despesasPorCategoria",
+          "resultadoCents",
+          "retiradasCents",
+          "retiradasPorNatureza"
+        ],
+        "type": "object",
+        "properties": {
+          "competencia": {
+            "type": "string"
+          },
+          "fechado": {
+            "type": "boolean"
+          },
+          "fechadoEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "vendas": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "vendidoCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "recebidoCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "receitaReconhecidaCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "aReconhecerCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "taxaCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "comissoesCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "custoDasPlacasCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "perdasCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "despesasCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "despesasPorCategoria": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DespesaDaCategoria"
+            }
+          },
+          "resultadoCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "retiradasCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "retiradasPorNatureza": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RetiradaDaNatureza"
+            }
+          }
+        },
+        "description": "O resultado do m\u00EAs. Vendido \u00E9 o valor das vendas registradas no m\u00EAs que\nseguem de p\u00E9; recebido \u00E9 o caixa (pagamentos menos estornos); receita\nreconhecida \u00E9 a parte do m\u00EAs. Taxa, comiss\u00E3o, custo, perda e despesa v\u00EAm\nem positivo e saem da receita reconhecida; retirada de s\u00F3cio fica abaixo\ndo resultado, porque n\u00E3o \u00E9 despesa."
       },
       "EmpresaConsultada": {
         "required": [
@@ -5584,6 +6206,17 @@
               "string"
             ],
             "format": "date-time"
+          }
+        }
+      },
+      "FecharMes": {
+        "required": [
+          "competencia"
+        ],
+        "type": "object",
+        "properties": {
+          "competencia": {
+            "type": "string"
           }
         }
       },
@@ -6483,6 +7116,50 @@
           }
         }
       },
+      "MesDoFinanceiro": {
+        "required": [
+          "competencia",
+          "fechado",
+          "fechadoEm"
+        ],
+        "type": "object",
+        "properties": {
+          "competencia": {
+            "type": "string"
+          },
+          "fechado": {
+            "type": "boolean"
+          },
+          "fechadoEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "MesDoHistorico": {
+        "required": [
+          "competencia",
+          "recebidoCents",
+          "resultadoCents"
+        ],
+        "type": "object",
+        "properties": {
+          "competencia": {
+            "type": "string"
+          },
+          "recebidoCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "resultadoCents": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
       "MeuContrato": {
         "required": [
           "situacao",
@@ -6560,6 +7237,13 @@
         "description": "Por que a venda foi desfeita (Pedro, 23/10/2026).",
         "default": "ErroDeCadastro"
       },
+      "NaturezaDaRetirada": {
+        "enum": [
+          "ProLabore",
+          "DistribuicaoDeLucros",
+          "Adiantamento"
+        ]
+      },
       "NotificacaoDto": {
         "required": [
           "id",
@@ -6603,6 +7287,31 @@
           }
         }
       },
+      "NovaDespesa": {
+        "required": [
+          "data",
+          "descricao",
+          "categoria",
+          "valorCents"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "string",
+            "format": "date"
+          },
+          "descricao": {
+            "type": "string"
+          },
+          "categoria": {
+            "$ref": "#/components/schemas/CategoriaDeDespesa"
+          },
+          "valorCents": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
       "NovaMensagem": {
         "required": [
           "texto"
@@ -6611,6 +7320,39 @@
         "properties": {
           "texto": {
             "type": "string"
+          }
+        }
+      },
+      "NovaRetirada": {
+        "required": [
+          "socioId",
+          "data",
+          "natureza",
+          "valorCents",
+          "observacao"
+        ],
+        "type": "object",
+        "properties": {
+          "socioId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "data": {
+            "type": "string",
+            "format": "date"
+          },
+          "natureza": {
+            "$ref": "#/components/schemas/NaturezaDaRetirada"
+          },
+          "valorCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "observacao": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -6874,6 +7616,24 @@
             "format": "date-time"
           },
           "comprovante": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "NovoSocio": {
+        "required": [
+          "nome",
+          "cpf"
+        ],
+        "type": "object",
+        "properties": {
+          "nome": {
+            "type": "string"
+          },
+          "cpf": {
             "type": [
               "null",
               "string"
@@ -7541,6 +8301,17 @@
           }
         }
       },
+      "ReabrirMes": {
+        "required": [
+          "motivo"
+        ],
+        "type": "object",
+        "properties": {
+          "motivo": {
+            "type": "string"
+          }
+        }
+      },
       "ReceberPorFora": {
         "required": [
           "meio"
@@ -7775,6 +8546,64 @@
             "items": {
               "$ref": "#/components/schemas/LancamentoDto"
             }
+          }
+        }
+      },
+      "RetiradaDaNatureza": {
+        "required": [
+          "natureza",
+          "valorCents"
+        ],
+        "type": "object",
+        "properties": {
+          "natureza": {
+            "$ref": "#/components/schemas/NaturezaDaRetirada"
+          },
+          "valorCents": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "RetiradaDto": {
+        "required": [
+          "id",
+          "socioId",
+          "socio",
+          "data",
+          "natureza",
+          "valorCents",
+          "observacao"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "socioId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "socio": {
+            "type": "string"
+          },
+          "data": {
+            "type": "string",
+            "format": "date"
+          },
+          "natureza": {
+            "$ref": "#/components/schemas/NaturezaDaRetirada"
+          },
+          "valorCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "observacao": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -8028,6 +8857,34 @@
           }
         }
       },
+      "SocioDto": {
+        "required": [
+          "id",
+          "nome",
+          "cpf",
+          "retiradas"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nome": {
+            "type": "string"
+          },
+          "cpf": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "retiradas": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "SuspenderRevenda": {
         "required": [
           "motivo"
@@ -8053,7 +8910,11 @@
           "Receita",
           "TaxaAvalia",
           "ComissaoDevida",
-          "ComissaoPaga"
+          "ComissaoPaga",
+          "CustoDaPlaca",
+          "Perda",
+          "Despesa",
+          "RetiradaDeSocio"
         ],
         "description": "O que o lan\u00E7amento registra, do ponto de vista do revendedor."
       },
@@ -8583,6 +9444,9 @@
     },
     {
       "name": "Balc\u00E3o"
+    },
+    {
+      "name": "Financeiro"
     },
     {
       "name": "Chamados"

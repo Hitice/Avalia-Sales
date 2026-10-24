@@ -96,7 +96,8 @@ public sealed class Vendas(
     Auditoria.Auditoria auditoria,
     IOptions<OpcoesDaPlataforma> plataforma,
     Notificacoes.Notificacoes notificacoes,
-    TimeProvider relogio)
+    TimeProvider relogio,
+    Financeiro.CustoDasPlacas custoDasPlacas)
 {
     public const int ItensMaximos = 20;
 
@@ -481,7 +482,10 @@ public sealed class Vendas(
             if (placaVolta != PlacaDaVendaCancelada.VoltaAoEstoque)
             {
                 placa.Baixar(placaVolta == PlacaDaVendaCancelada.NaoVoltou ? MotivoDaBaixa.Perdida : MotivoDaBaixa.Quebrada, agora);
+                custoDasPlacas.Baixada(placa, agora);
             }
+
+            await custoDasPlacas.VendaCancelada(venda, agora, ct);
         }
         else
         {
@@ -509,6 +513,7 @@ public sealed class Vendas(
         await ExigirSemCobrancaViva(venda, "Venda com cobrança em aberto ou paga.", ct);
         var valorAntes = venda.ValorCents;
         venda.TornarCortesia();
+        custoDasPlacas.Cortesia(venda, relogio.GetUtcNow());
         await RegistrarNaPlaca(venda, AcaoAuditada.VendaEmCortesia, $"{valorAntes} centavos", ct);
         banco.AvisarAoVivo("venda", venda.RevendedorId);
         await banco.SaveChangesAsync(ct);
@@ -541,6 +546,7 @@ public sealed class Vendas(
         }
 
         nova.ReceberVendaDe(antiga, motivo, relogio.GetUtcNow());
+        custoDasPlacas.Baixada(antiga, relogio.GetUtcNow());
         venda.TrocarPlaca(nova.Id);
         // Nas duas placas: a ficha de cada uma conta para onde a venda foi ou de onde veio.
         auditoria.Registrar(AcaoAuditada.PlacaTrocada, $"Placa {antiga.Codigo} ({antiga.MotivoDaBaixa})", antiga.Codigo, antiga.Codigo, nova.Codigo);

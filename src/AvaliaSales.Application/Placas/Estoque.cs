@@ -21,7 +21,8 @@ public sealed record FiltroDePlacas(EstadoDaPlaca? Estado, Guid? ConsignadaA, st
 public sealed record LoteDaRevenda(Guid Id, string Rotulo, string? Titulo, CategoriaDoLote Categoria, int Quantidade, DateTimeOffset? AtivadoEm,
     DateTimeOffset? ArquivadoEm, int EmEstoque, int Baixadas);
 
-public sealed class Estoque(IBancoDeDados banco, IUsuarioAtual usuario, IRevendedorAtual revendedor, Notificacoes.Notificacoes notificacoes, TimeProvider relogio)
+public sealed class Estoque(IBancoDeDados banco, IUsuarioAtual usuario, IRevendedorAtual revendedor, Notificacoes.Notificacoes notificacoes,
+    Financeiro.CustoDasPlacas custoDasPlacas, TimeProvider relogio)
 {
     /// <summary>De uma vez, no máximo isto: o vendedor leva o que cabe na pasta.</summary>
     public const int ConsignacaoMaxima = 20;
@@ -212,7 +213,9 @@ public sealed class Estoque(IBancoDeDados banco, IUsuarioAtual usuario, IRevende
         }
 
         var placa = await PlacaDoCodigo(codigo, ct);
-        placa.Baixar(motivo, relogio.GetUtcNow());
+        var agora = relogio.GetUtcNow();
+        placa.Baixar(motivo, agora);
+        custoDasPlacas.Baixada(placa, agora);
         await banco.SaveChangesAsync(ct);
     }
 
@@ -225,6 +228,7 @@ public sealed class Estoque(IBancoDeDados banco, IUsuarioAtual usuario, IRevende
         }
 
         placa.DesfazerBaixa();
+        await custoDasPlacas.BaixaDesfeita(placa, relogio.GetUtcNow(), ct);
         await banco.SaveChangesAsync(ct);
     }
 

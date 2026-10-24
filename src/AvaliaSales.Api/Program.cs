@@ -247,6 +247,7 @@ app.MapearCatalogo();
 app.MapearLinks();
 app.MapearOperadora();
 app.MapearRevenda();
+app.MapearFinanceiro();
 app.MapearEquipe();
 app.MapearMarca();
 app.MapearChat();

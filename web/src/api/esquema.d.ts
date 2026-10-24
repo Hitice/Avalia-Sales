@@ -4619,6 +4619,543 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/financeiro/dre": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    competencia?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DreDoMes"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/financeiro/historico": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    ate?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MesDoHistorico"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/financeiro/meses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MesDoFinanceiro"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/financeiro/fechamentos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["FecharMes"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/financeiro/fechamentos/{competencia}/reabertura": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    competencia: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ReabrirMes"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/financeiro/despesas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    competencia?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DespesaDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["NovaDespesa"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/financeiro/despesas/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["NovaDespesa"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DespesaDto"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/financeiro/socios": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SocioDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["NovoSocio"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/financeiro/socios/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["NovoSocio"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SocioDto"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/financeiro/retiradas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    competencia?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RetiradaDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["NovaRetirada"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/financeiro/retiradas/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["NovaRetirada"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RetiradaDto"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/placas": {
         parameters: {
             query?: never;
@@ -5789,7 +6326,7 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /** @enum {unknown} */
-        AcaoAuditada: "DestinoDefinido" | "DestinoTrocado" | "PlacaSuspensa" | "PlacaNoAr" | "PlacaTrocada" | "VendaCancelada" | "VendaEmCortesia" | "RecebidoPorFora" | "RecebimentoDesfeito" | "VendedorCadastrado" | "VendedorAlterado" | "VendedorDesativado" | "VendedorReativado" | "VendedorExcluido" | "ComissaoPadraoAlterada" | "ProdutoAlterado" | "RepasseRegistrado" | "ClienteAnonimizado" | "MarcaAlterada" | "LinkAlterado" | "LinkExcluido" | "SegundoFatorLigado" | "SegundoFatorDesligado" | "EmpresaAlterada" | "EncerramentoPedido" | "EncerramentoDesistido" | "ContaEncerrada" | "ReaberturaPedida" | "ClienteAlterado" | "ClienteExcluido" | "ClientesJuntados" | "VendaCorrigida" | "RepasseDesfeito";
+        AcaoAuditada: "DestinoDefinido" | "DestinoTrocado" | "PlacaSuspensa" | "PlacaNoAr" | "PlacaTrocada" | "VendaCancelada" | "VendaEmCortesia" | "RecebidoPorFora" | "RecebimentoDesfeito" | "VendedorCadastrado" | "VendedorAlterado" | "VendedorDesativado" | "VendedorReativado" | "VendedorExcluido" | "ComissaoPadraoAlterada" | "ProdutoAlterado" | "RepasseRegistrado" | "ClienteAnonimizado" | "MarcaAlterada" | "LinkAlterado" | "LinkExcluido" | "SegundoFatorLigado" | "SegundoFatorDesligado" | "EmpresaAlterada" | "EncerramentoPedido" | "EncerramentoDesistido" | "ContaEncerrada" | "ReaberturaPedida" | "ClienteAlterado" | "ClienteExcluido" | "ClientesJuntados" | "VendaCorrigida" | "RepasseDesfeito" | "MesFechado" | "MesReaberto" | "SocioCadastrado" | "SocioAlterado" | "SocioExcluido";
         AjustarProduto: {
             /** Format: int64 */
             precoCents: number;
@@ -5860,6 +6397,8 @@ export interface components {
             observacao?: null | string;
             placa?: components["schemas"]["PlacaDaVendaCancelada"];
         };
+        /** @enum {unknown} */
+        CategoriaDeDespesa: "PlacasEMaterial" | "Frete" | "Marketing" | "SoftwareEFerramentas" | "Impostos" | "Taxas" | "Outros";
         /**
          * @description Para que o código serve: nem todo código vira placa de avaliação.
          * @default Placa
@@ -6041,6 +6580,21 @@ export interface components {
             /** @default false */
             retirada: boolean;
         };
+        DespesaDaCategoria: {
+            categoria: components["schemas"]["CategoriaDeDespesa"];
+            /** Format: int64 */
+            valorCents: number;
+        };
+        DespesaDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: date */
+            data: string;
+            descricao: string;
+            categoria: components["schemas"]["CategoriaDeDespesa"];
+            /** Format: int64 */
+            valorCents: number;
+        };
         /** @description O destino como vem da tela. O link colado vence a busca: foi a pessoa que o trouxe do perfil. */
         DestinoInformado: {
             tipo: components["schemas"]["TipoDeDestino"];
@@ -6050,6 +6604,45 @@ export interface components {
         Devolver: {
             /** Format: uuid */
             vendedorId: string;
+        };
+        /**
+         * @description O resultado do mês. Vendido é o valor das vendas registradas no mês que
+         *     seguem de pé; recebido é o caixa (pagamentos menos estornos); receita
+         *     reconhecida é a parte do mês. Taxa, comissão, custo, perda e despesa vêm
+         *     em positivo e saem da receita reconhecida; retirada de sócio fica abaixo
+         *     do resultado, porque não é despesa.
+         */
+        DreDoMes: {
+            competencia: string;
+            fechado: boolean;
+            /** Format: date-time */
+            fechadoEm: null | string;
+            /** Format: int32 */
+            vendas: number;
+            /** Format: int64 */
+            vendidoCents: number;
+            /** Format: int64 */
+            recebidoCents: number;
+            /** Format: int64 */
+            receitaReconhecidaCents: number;
+            /** Format: int64 */
+            aReconhecerCents: number;
+            /** Format: int64 */
+            taxaCents: number;
+            /** Format: int64 */
+            comissoesCents: number;
+            /** Format: int64 */
+            custoDasPlacasCents: number;
+            /** Format: int64 */
+            perdasCents: number;
+            /** Format: int64 */
+            despesasCents: number;
+            despesasPorCategoria: components["schemas"]["DespesaDaCategoria"][];
+            /** Format: int64 */
+            resultadoCents: number;
+            /** Format: int64 */
+            retiradasCents: number;
+            retiradasPorNatureza: components["schemas"]["RetiradaDaNatureza"][];
         };
         EmpresaConsultada: {
             razaoSocial: string;
@@ -6106,6 +6699,9 @@ export interface components {
             distrato: null | components["schemas"]["MeuContrato"];
             /** Format: date-time */
             reaberturaPedidaEm: null | string;
+        };
+        FecharMes: {
+            competencia: string;
         };
         FichaDoCliente: {
             /** Format: uuid */
@@ -6370,6 +6966,19 @@ export interface components {
             /** Format: date-time */
             lidaEm: null | string;
         };
+        MesDoFinanceiro: {
+            competencia: string;
+            fechado: boolean;
+            /** Format: date-time */
+            fechadoEm: null | string;
+        };
+        MesDoHistorico: {
+            competencia: string;
+            /** Format: int64 */
+            recebidoCents: number;
+            /** Format: int64 */
+            resultadoCents: number;
+        };
         MeuContrato: {
             situacao: components["schemas"]["SituacaoDoContrato"];
             signatarioEmail: string;
@@ -6394,6 +7003,8 @@ export interface components {
          * @enum {unknown}
          */
         MotivoDoCancelamento: "ErroDeCadastro" | "Inadimplencia" | "Desistencia" | "Defeito" | "Outro";
+        /** @enum {unknown} */
+        NaturezaDaRetirada: "ProLabore" | "DistribuicaoDeLucros" | "Adiantamento";
         NotificacaoDto: {
             /** Format: uuid */
             id: string;
@@ -6405,8 +7016,26 @@ export interface components {
             lida: boolean;
             revendedor: null | string;
         };
+        NovaDespesa: {
+            /** Format: date */
+            data: string;
+            descricao: string;
+            categoria: components["schemas"]["CategoriaDeDespesa"];
+            /** Format: int64 */
+            valorCents: number;
+        };
         NovaMensagem: {
             texto: string;
+        };
+        NovaRetirada: {
+            /** Format: uuid */
+            socioId: string;
+            /** Format: date */
+            data: string;
+            natureza: components["schemas"]["NaturezaDaRetirada"];
+            /** Format: int64 */
+            valorCents: number;
+            observacao: null | string;
         };
         NovaSenha: {
             token: null | string;
@@ -6481,6 +7110,10 @@ export interface components {
             /** Format: date-time */
             ate: null | string;
             comprovante: null | string;
+        };
+        NovoSocio: {
+            nome: string;
+            cpf: null | string;
         };
         /** @description Sem senha, o vendedor recebe o convite e cria a dele. */
         NovoVendedor: {
@@ -6668,6 +7301,9 @@ export interface components {
             /** Format: int32 */
             quantidadeMinima: number;
         };
+        ReabrirMes: {
+            motivo: string;
+        };
         ReceberPorFora: {
             meio: components["schemas"]["MeioDePagamento"];
         };
@@ -6734,6 +7370,24 @@ export interface components {
             liquidoCents: number;
             lancamentos: components["schemas"]["LancamentoDto"][];
         };
+        RetiradaDaNatureza: {
+            natureza: components["schemas"]["NaturezaDaRetirada"];
+            /** Format: int64 */
+            valorCents: number;
+        };
+        RetiradaDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            socioId: string;
+            socio: string;
+            /** Format: date */
+            data: string;
+            natureza: components["schemas"]["NaturezaDaRetirada"];
+            /** Format: int64 */
+            valorCents: number;
+            observacao: null | string;
+        };
         RevendedorDto: {
             /** Format: uuid */
             id: string;
@@ -6799,6 +7453,14 @@ export interface components {
             meio: null | components["schemas"]["MeioDoSegundoFator"];
             emailConfirmado: boolean;
         };
+        SocioDto: {
+            /** Format: uuid */
+            id: string;
+            nome: string;
+            cpf: null | string;
+            /** Format: int32 */
+            retiradas: number;
+        };
         SuspenderRevenda: {
             motivo: null | string;
         };
@@ -6808,7 +7470,7 @@ export interface components {
          * @description O que o lançamento registra, do ponto de vista do revendedor.
          * @enum {unknown}
          */
-        TipoDeLancamento: "Receita" | "TaxaAvalia" | "ComissaoDevida" | "ComissaoPaga";
+        TipoDeLancamento: "Receita" | "TaxaAvalia" | "ComissaoDevida" | "ComissaoPaga" | "CustoDaPlaca" | "Perda" | "Despesa" | "RetiradaDeSocio";
         /** @enum {unknown} */
         TipoDeProduto: "Placa" | "PlacaComServico" | "Servico";
         TokenEmitido: {

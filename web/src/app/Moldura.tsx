@@ -4,6 +4,7 @@ import {
   ChevronDown, ChevronsUpDown, LogOut, Palette, Settings, PlusCircle, Receipt, Server, ShieldCheck, Store, TicketPercent, UserRound, Users,
   UsersRound, Wrench,
 } from 'lucide-react'
+import { ChartPie } from 'lucide-react'
 import { useState } from 'react'
 import { NavLink, Navigate, Outlet, useLocation, useNavigate, useNavigation } from 'react-router'
 import { ConfirmeOEmail } from '@/acesso/ConfirmeOEmail'
@@ -90,6 +91,7 @@ const MENU: Record<Papel, Grupo[]> = {
     { titulo: 'Equipe e dinheiro', itens: [
       { para: '/painel/equipe', rotulo: 'Equipe', icone: UsersRound },
       { para: '/painel/comissoes', rotulo: 'Comissões', icone: HandCoins },
+      { para: '/painel/financeiro', rotulo: 'Financeiro', icone: ChartPie },
       { para: '/painel/razao', rotulo: 'Razão', icone: Landmark },
     ] },
     { titulo: 'Conta', itens: [

@@ -209,6 +209,11 @@ Dinheiro em centavos (`bigint`, colunas `_cents`), taxa em pontos base
 | `revendedores` (colunas novas) | Endereço (`endereco_logradouro`, `_numero`, `_complemento`, `_bairro`, `_cidade`, `_uf`, `_cep`, tipo próprio do EF), `encerramento_pedido_em` e `encerrada_em` (data efetiva do distrato) | - |
 | `placas` (colunas novas) | `transferida_em`, `cliente_da_transferencia_id` e `valor_da_venda_cents`: o que a renovação precisa da venda que ficou na revenda antiga | Políticas `transferencia_no_encerramento` (UPDATE) e `_leitura` (SELECT), também em `clientes` e `links`, valendo só com `app.transferencia` (ADR 0019) |
 | `contratos` (tipo novo) | `Distrato` | - |
+| `lancamentos` (tipos e colunas novos) | Tipos `CustoDaPlaca`, `Perda`, `Despesa`, `RetiradaDeSocio`; `categoria` (categoria da despesa ou natureza da retirada) e `placa_id` (perda e cortesia) | Gatilho `lancamento_em_mes_aberto`: linha em mês fechado vai ao mês corrente (ADR 0020). Despesa, retirada e perda usam origem nova por versão, para o índice único (origem, tipo) aceitar a correção |
+| `despesas` | Data, descrição, categoria, valor e a linha do razão em vigor (`lancamento_id`) | RLS |
+| `socios` | Sócio do contrato social: nome e CPF opcional | RLS; não se exclui com retirada |
+| `retiradas` | Sócio, data, natureza, valor, observação e a linha do razão em vigor | RLS |
+| `fechamentos` | Mês fechado: competência, fechado em e por, reaberto em e por, motivo | RLS; um em vigor por mês (índice único com `reaberto_em is null`) |
 | `auditoria_da_operadora` | Usuário, ação (método e rota com os parâmetros), referência (id ou código da rota), corpo enviado em JSON (até 2.000 caracteres), ocorrido em | Sem RLS: não é de revenda; só as rotas `/operadora/auditoria` leem |
 
 Se a venda está paga, quem diz é a cobrança mais recente com origem nela, e
@@ -683,6 +688,8 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
 | 21/10/2026 | `@hookform/resolvers` 5.9 e não 6.0 | A 6.0.0 declara versões conflitantes de uma dependência opcional e não instala sem forçar |
 | 22/10/2026 | Contrato e distrato em PDF pelo Gotenberg, a partir de HTML | O layout aprovado é HTML; o Chromium fica isolado, sem rede (ADR 0018) |
 | 22/10/2026 | Transferência de clientes por função e política de RLS próprias | Mudar o revendedor de uma linha só dentro da função, sem depender de superusuário (ADR 0019) |
+| 24/10/2026 | Mês fechado garantido por gatilho no banco, que passa a linha atrasada ao mês corrente | Linhas do razão nascem em vários pontos; o pagamento de fim de mês processado depois do fechamento não pode travar o Worker (ADR 0020) |
+| 24/10/2026 | Custo da placa vendida e apropriação lidos do razão na DRE, e não lançados | A receita da venda já traz a venda e o estorno; nada a mais no caminho do pagamento |
 | 21/10/2026 | Nenhuma biblioteca de idempotência pronta | A mais citada tinha 329 estrelas e nenhum commit desde 11/2024; o Postgres já garante unicidade |
 
 ## 12. Pendências técnicas
@@ -707,6 +714,7 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
 | Data | Mudança |
 | --- | --- |
 | 24/10/2026 | Front - `Moldura` no computador vira painel lateral da altura da janela (grade de `15rem` e conteúdo até `max-w-6xl`): logo na célula do topo do cabeçalho, bloco da revenda e do papel, Nova venda como botão, grupos e o menu da conta (`MenuDaConta`) no pé; até o tablet nada muda. `MarcaAvalia` aceita `className`. História `Negócio/Moldura` no Storybook sem API (cache do TanStack Query e roteador em memória), com o parâmetro `semMargem` no `preview.tsx`. |
+| 24/10/2026 | Financeiro do dono - rotas `/financeiro/dre`, `/historico`, `/meses`, `/fechamentos` (e `/{competencia}/reabertura`), `/despesas`, `/socios`, `/retiradas` (CRUD); casos de uso `Dre`, `Despesas`, `Socios`, `Fechamentos`, `CustoDasPlacas`; regra de apropriação em `Domain/Financeiro/Reconhecimento`. Migration `FinanceiroDoDono` (tabelas `despesas`, `socios`, `retiradas`, `fechamentos` com RLS, colunas `lancamentos.categoria` e `placa_id`, gatilho do mês fechado, e as perdas e cortesias já existentes lançadas no razão). Tela `web/src/financeiro`. |
 | 24/10/2026 | `Cobrancas.Cancelar` traduz a recusa 4xx do Pagar.me (`412 action_forbidden, Saldo insuficiente`) em `RegraDeNegocioException` (422); 5xx e tempo esgotado seguem como erro. O Sentry da API ignora `RegraDeNegocioException` (422) e `OperationCanceledException` (pedido abortado por quem chamou). |
 | 24/10/2026 | `GET /vendas/{id}/pagamento` (`PagamentoDaVenda`: situação e vencimento do Pix da cobrança mais recente), consultado a cada 5 s pela tela de resultado até pagar, falhar ou vencer. |
 | 24/10/2026 | Testes que rodam rotinas do Worker (ERP, Retomadas, eventos) processam a fila inteira do banco dos testes: com limite de 50, o pedido do teste ficava atrás dos criados por outros testes e o CI falhava conforme a ordem. |
