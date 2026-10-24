@@ -230,6 +230,10 @@ com `--no-ar-sem-venda-a-zero` ela entra como venda de R$ 0 na data do
 cadastro, com o dono e sem comissão, e segue lendo sem vencimento. O destino de
 toda placa passa como está no Sales.
 
+Com `--comissao-paga`, nenhuma comissão entra como devida: serve quando o
+acerto com os vendedores foi feito fora do Sales e o `comissao_paga_em` ficou
+vazio.
+
 Com `--so-os-mapeados`, a venda de quem não está no `--vendedor` fica com o
 dono. Sem ele, o importador procura o e-mail do Sales entre os logins da
 plataforma, e um login que não é da equipe (o da operadora, por exemplo)
