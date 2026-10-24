@@ -23,6 +23,7 @@ na data do cadastro, sem vendedor (fica com o dono) e sem comissão.
 
 import argparse
 import csv
+import re
 import gzip
 import sqlite3
 import sys
@@ -39,7 +40,10 @@ COLUNAS = [
     "codigo", "situacao", "destino", "vendida_em", "vence_em", "valor_cents", "custo_cents",
     "cliente_nome", "cliente_responsavel", "cliente_telefone", "cliente_documento",
     "vendedor_email", "produto", "produto_preco_cents", "comissao_devida_cents", "total_leituras",
+    "cliente_email", "cliente_lugar_no_google",
 ]
+EMAIL = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+LUGAR_NO_DESTINO = re.compile(r"[?&]placeid=([A-Za-z0-9_-]+)")
 
 
 def comandos(texto):
@@ -105,6 +109,14 @@ def data_e_hora(valor):
     return None if not valor else str(valor).replace(" ", "T")[:19] + "+00:00"
 
 
+def lugar_no_google(negocio, destino):
+    """O place_id do negócio no Sales; sem ele, o do link de avaliação (placeid=...). O g.page não traz."""
+    if negocio is not None and coluna(negocio, "place_id"):
+        return negocio["place_id"].strip()
+    achado = LUGAR_NO_DESTINO.search(destino or "")
+    return achado.group(1) if achado else ""
+
+
 def converter(banco, mapa, socios, no_ar_a_zero=False, so_mapeados=False, comissao_paga=False):
     staff = {s["id"]: s for s in banco.execute("SELECT * FROM staff")}
     negocios = {n["id"]: n for n in banco.execute("SELECT * FROM negocios")} if banco.execute("SELECT count(*) FROM negocios").fetchone()[0] else {}
@@ -137,6 +149,7 @@ def converter(banco, mapa, socios, no_ar_a_zero=False, so_mapeados=False, comiss
         chave = coluna(e, "produto") or PRODUTO_DA_PLACA
         produto = produtos.get(chave)
         negocio = negocios.get(coluna(e, "negocio_id"))
+        email_do_cliente = ((coluna(negocio, "email") if negocio is not None else None) or "").strip().lower()
         email = mapa.get(email_antigo, "" if so_mapeados else email_antigo) if vendedor else ""
 
         linhas.append({
@@ -156,6 +169,8 @@ def converter(banco, mapa, socios, no_ar_a_zero=False, so_mapeados=False, comiss
             "produto_preco_cents": (produto["preco_cents"] if produto else "") if vendida else "",
             "comissao_devida_cents": devida or "",
             "total_leituras": e["total_acessos"] or 0,
+            "cliente_email": email_do_cliente if vendida and EMAIL.match(email_do_cliente) else "",
+            "cliente_lugar_no_google": lugar_no_google(negocio, e["destino"]) if vendida else "",
         })
 
         totais[situacao] += 1

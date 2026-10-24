@@ -198,6 +198,7 @@ colunas em qualquer ordem; só `codigo` e `situacao` são obrigatórias):
 | `produto_preco_cents` | Preço da revenda para o produto, se ela ainda não o tinha |
 | `comissao_devida_cents` | Comissão de venda paga ainda não repassada; vira saldo do vendedor, que precisa ser da equipe, no mês da importação |
 | `total_leituras` | Leituras acumuladas |
+| `cliente_email`, `cliente_lugar_no_google` | E-mail e place_id do Google do cliente; o lugar põe o cliente no mapa. Só preenchem campo vazio |
 
 A placa importada entra num lote próprio, já ativado no revendedor; a venda
 importada mantém o valor de origem, fica sem cobrança e sem comissão (já
@@ -238,6 +239,13 @@ Com `--so-os-mapeados`, a venda de quem não está no `--vendedor` fica com o
 dono. Sem ele, o importador procura o e-mail do Sales entre os logins da
 plataforma, e um login que não é da equipe (o da operadora, por exemplo)
 ficaria como vendedor.
+
+Para completar e-mail e lugar no Google dos clientes já importados, rode o
+mesmo arquivo com `--completar-clientes` no lugar de `--importar-placas`
+(também com `--ensaio` primeiro). Ele acha o cliente pelo código da placa
+vendida, só preenche campo vazio e pode rodar de novo. O conversor tira o lugar
+do `place_id` do negócio no Sales ou do `placeid=` do link de avaliação; link
+`g.page` não traz o lugar.
 
 Conta encerrada não recebe importação, nem em ensaio: a operadora aprova a
 reabertura em Revendedores antes.

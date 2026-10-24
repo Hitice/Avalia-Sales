@@ -39,6 +39,63 @@ internal static class Importar
         return resultado.JaEmitidos.Count == 0 ? 0 : 2;
     }
 
+    /// <summary>--completar-clientes: o mesmo arquivo do --importar-placas, só para e-mail e lugar no Google.</summary>
+    public static async Task<int> CompletarClientes(IServiceProvider servicos, string[] argumentos)
+    {
+        var arquivo = Valor(argumentos, "arquivo");
+        var quem = Valor(argumentos, "revendedor");
+        if (arquivo is null || !File.Exists(arquivo) || string.IsNullOrWhiteSpace(quem))
+        {
+            await Console.Error.WriteLineAsync("Use --revendedor= (CNPJ ou id) e --arquivo= com o CSV das placas.");
+            return 1;
+        }
+
+        if (await RevendedorPor(servicos, quem) is not { } revendedorId)
+        {
+            await Console.Error.WriteLineAsync($"Revendedor {quem} não encontrado.");
+            return 1;
+        }
+
+        List<LinhaDePlaca> linhas;
+        try
+        {
+            linhas = LerPlacas(arquivo);
+        }
+        catch (FormatException erro)
+        {
+            await Console.Error.WriteLineAsync(erro.Message);
+            return 1;
+        }
+
+        using var doRevendedor = servicos.CreateScope();
+        doRevendedor.ServiceProvider.GetRequiredService<AcessoDaRequisicao>().Assumir(revendedorId);
+        var ensaio = argumentos.Contains("--ensaio");
+        var r = await doRevendedor.ServiceProvider.GetRequiredService<Importacao>().CompletarClientes(linhas, ensaio, CancellationToken.None);
+        Console.WriteLine($"""
+            {(r.Gravado ? "COMPLETADO" : ensaio && r.Recusas.Count == 0 ? "ENSAIO (nada gravado)" : "RECUSADO (nada gravado)")}
+              linhas                {r.Linhas}
+              clientes              {r.Clientes}
+              e-mails preenchidos   {r.Emails}
+              lugares preenchidos   {r.Lugares}
+            """);
+        foreach (var recusa in r.Recusas)
+        {
+            Console.WriteLine($"  {recusa}");
+        }
+
+        return r.Recusas.Count == 0 ? 0 : 2;
+    }
+
+    private static async Task<Guid?> RevendedorPor(IServiceProvider servicos, string quem)
+    {
+        using var escopo = servicos.CreateScope();
+        var banco = escopo.ServiceProvider.GetRequiredService<BancoDeDados>();
+        var cnpj = new string(quem.Where(char.IsAsciiDigit).ToArray());
+        return Guid.TryParse(quem, out var id)
+            ? await banco.Revendedores.Where(r => r.Id == id).Select(r => (Guid?)r.Id).SingleOrDefaultAsync()
+            : await banco.Revendedores.Where(r => r.Cnpj == cnpj).Select(r => (Guid?)r.Id).SingleOrDefaultAsync();
+    }
+
     public static async Task<int> ImportarPlacas(IServiceProvider servicos, string[] argumentos)
     {
         var arquivo = Valor(argumentos, "arquivo");
@@ -49,21 +106,10 @@ internal static class Importar
             return 1;
         }
 
-        Guid revendedorId;
-        using (var escopo = servicos.CreateScope())
+        if (await RevendedorPor(servicos, quem) is not { } revendedorId)
         {
-            var banco = escopo.ServiceProvider.GetRequiredService<BancoDeDados>();
-            var cnpj = new string(quem.Where(char.IsAsciiDigit).ToArray());
-            var achado = Guid.TryParse(quem, out var id)
-                ? await banco.Revendedores.Where(r => r.Id == id).Select(r => (Guid?)r.Id).SingleOrDefaultAsync()
-                : await banco.Revendedores.Where(r => r.Cnpj == cnpj).Select(r => (Guid?)r.Id).SingleOrDefaultAsync();
-            if (achado is not { } encontrado)
-            {
-                await Console.Error.WriteLineAsync($"Revendedor {quem} não encontrado.");
-                return 1;
-            }
-
-            revendedorId = encontrado;
+            await Console.Error.WriteLineAsync($"Revendedor {quem} não encontrado.");
+            return 1;
         }
 
         List<LinhaDePlaca> linhas;
@@ -152,7 +198,9 @@ internal static class Importar
             Centavos(Campo(l.Valores, "total_leituras"), l.Numero) ?? 0,
             Campo(l.Valores, "produto"),
             Centavos(Campo(l.Valores, "produto_preco_cents"), l.Numero),
-            Centavos(Campo(l.Valores, "comissao_devida_cents"), l.Numero))).ToList();
+            Centavos(Campo(l.Valores, "comissao_devida_cents"), l.Numero),
+            Campo(l.Valores, "cliente_email"),
+            Campo(l.Valores, "cliente_lugar_no_google"))).ToList();
     }
 
     /// <summary>CSV com aspas e vírgula dentro do campo, pelo leitor do próprio .NET.</summary>

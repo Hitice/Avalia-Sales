@@ -49,6 +49,44 @@ public sealed class ImportacaoTest(ApiDeTeste api)
     }
 
     [Fact]
+    public async Task Complemento_preenche_lugar_e_email_dos_clientes_importados_sem_sobrescrever()
+    {
+        var (revendedorId, _) = await api.CriarRevendedor("Revenda do Complemento");
+        var vendida = DateTimeOffset.UtcNow.AddMonths(-1);
+        var (comLugar, semNada) = (Codigo(), Codigo());
+        var importada = await Importar(revendedorId, [
+            Linha(2, comLugar, "ativa", vendida, 9_990, "https://padaria.com.br", "11222333000181") with { ClienteLugarNoGoogle = "ChIJLugarAntigo" },
+            Linha(3, semNada, "ativa", vendida, 9_990, "https://outra.com.br", "33000167000101"),
+        ], ensaio: false);
+        Assert.True(importada.Gravada, string.Join("; ", importada.Recusas));
+
+        IReadOnlyList<LinhaDePlaca> complemento = [
+            new(2, comLugar, "ativa", null, null, null, null, null, null, null, null, null, null, 0, ClienteLugarNoGoogle: "ChIJOutro", ClienteEmail: "padaria@exemplo.com.br"),
+            new(3, semNada, "ativa", null, null, null, null, null, null, null, null, null, null, 0, ClienteLugarNoGoogle: "ChIJNovo"),
+        ];
+        using (var escopo = api.Fabrica.Services.CreateScope())
+        {
+            escopo.ServiceProvider.GetRequiredService<AcessoDaRequisicao>().Assumir(revendedorId);
+            var ensaio = await escopo.ServiceProvider.GetRequiredService<Application.Importacao.Importacao>().CompletarClientes(complemento, ensaio: true, Ct);
+            Assert.Equal((false, 1, 1), (ensaio.Gravado, ensaio.Emails, ensaio.Lugares));
+        }
+
+        await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
+        Assert.Equal(0, await banco.Contar($"select count(*) from clientes where revendedor_id = '{revendedorId}' and email is not null"));
+
+        using (var escopo = api.Fabrica.Services.CreateScope())
+        {
+            escopo.ServiceProvider.GetRequiredService<AcessoDaRequisicao>().Assumir(revendedorId);
+            var feito = await escopo.ServiceProvider.GetRequiredService<Application.Importacao.Importacao>().CompletarClientes(complemento, ensaio: false, Ct);
+            Assert.Equal((true, 2, 1, 1), (feito.Gravado, feito.Clientes, feito.Emails, feito.Lugares));
+        }
+
+        // O lugar que veio na importação fica; o vazio é preenchido.
+        Assert.Equal(1, await banco.Contar($"select count(*) from clientes where revendedor_id = '{revendedorId}' and lugar_no_google = 'ChIJLugarAntigo' and email = 'padaria@exemplo.com.br'"));
+        Assert.Equal(1, await banco.Contar($"select count(*) from clientes where revendedor_id = '{revendedorId}' and lugar_no_google = 'ChIJNovo'"));
+    }
+
+    [Fact]
     public async Task Arquivo_com_data_sem_hora_chega_ao_banco()
     {
         var (revendedorId, _) = await api.CriarRevendedor("Revenda da Data sem Hora");

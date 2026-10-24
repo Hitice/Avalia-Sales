@@ -27,13 +27,18 @@ public sealed record LinhaDePlaca(
     long TotalLeituras,
     string? Produto = null,
     long? ProdutoPrecoCents = null,
-    long? ComissaoDevidaCents = null);
+    long? ComissaoDevidaCents = null,
+    string? ClienteEmail = null,
+    string? ClienteLugarNoGoogle = null);
 
 /// <summary>Os totais para bater com o relatório do sistema de origem, ao centavo.</summary>
 public sealed record ResultadoDaImportacao(
     bool Gravada, int Linhas, int EmEstoque, int NoAr, int Suspensas, int Baixadas, int Vendidas,
     long ValorVendidoCents, long CustoCents, int VendedorNaoIdentificado, int ReservasLiberadas, IReadOnlyList<string> Recusas,
     long ComissaoDevidaCents = 0, int ProdutosCriados = 0);
+
+/// <summary>O que o complemento dos clientes já importados preencheu; só campo vazio é preenchido.</summary>
+public sealed record ResultadoDoComplemento(bool Gravado, int Linhas, int Clientes, int Emails, int Lugares, IReadOnlyList<string> Recusas);
 
 /// <summary>
 /// A importação das placas de outro sistema para um revendedor, como as do
@@ -261,7 +266,64 @@ public sealed class Importacao(IBancoDeDados banco, IRevendedorAtual atual, ICon
         }
 
         doArquivo[chave] = doBanco ?? novo;
+        doArquivo[chave].Completar(null, linha.ClienteEmail, linha.ClienteLugarNoGoogle);
         return doArquivo[chave];
+    }
+
+    /// <summary>
+    /// Completa e-mail e lugar no Google dos clientes de placas já importadas,
+    /// achados pelo código da placa vendida. Não sobrescreve nada e pode rodar de
+    /// novo; o ensaio desfaz sempre.
+    /// </summary>
+    public async Task<ResultadoDoComplemento> CompletarClientes(IReadOnlyList<LinhaDePlaca> linhas, bool ensaio, CancellationToken ct)
+    {
+        await using var transacao = await banco.Database.BeginTransactionAsync(ct);
+        var recusas = new List<string>();
+        var vistos = new HashSet<Guid>();
+        int emails = 0, lugares = 0;
+        foreach (var linha in linhas.Where(l => !string.IsNullOrWhiteSpace(l.ClienteEmail) || !string.IsNullOrWhiteSpace(l.ClienteLugarNoGoogle)))
+        {
+            var codigo = CodigoDaPlaca.Normalizar(linha.Codigo);
+            var clienteId = await (
+                from p in banco.Placas
+                join v in banco.Vendas on p.VendaId equals v.Id
+                where p.Codigo == codigo
+                select (Guid?)v.ClienteId).FirstOrDefaultAsync(ct);
+            if (clienteId is not { } id)
+            {
+                recusas.Add($"Linha {linha.Linha}: a placa {linha.Codigo} não tem venda aqui");
+                continue;
+            }
+
+            var cliente = await banco.Clientes.SingleAsync(c => c.Id == id, ct);
+            var (tinhaEmail, tinhaLugar) = (cliente.Email is not null, cliente.LugarNoGoogle is not null);
+            try
+            {
+                cliente.Completar(null, linha.ClienteEmail, linha.ClienteLugarNoGoogle);
+            }
+            catch (RegraDeNegocioException recusa)
+            {
+                recusas.Add($"Linha {linha.Linha}: {recusa.Message}");
+                continue;
+            }
+
+            emails += !tinhaEmail && cliente.Email is not null ? 1 : 0;
+            lugares += !tinhaLugar && cliente.LugarNoGoogle is not null ? 1 : 0;
+            vistos.Add(id);
+        }
+
+        var gravar = recusas.Count == 0 && !ensaio;
+        await banco.SaveChangesAsync(ct);
+        if (gravar)
+        {
+            await transacao.CommitAsync(ct);
+        }
+        else
+        {
+            await transacao.RollbackAsync(ct);
+        }
+
+        return new ResultadoDoComplemento(gravar, linhas.Count, vistos.Count, emails, lugares, recusas);
     }
 
     private async Task<Guid?> Vendedor(string? email, Dictionary<string, Guid?> achados, CancellationToken ct)

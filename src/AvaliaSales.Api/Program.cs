@@ -186,6 +186,12 @@ if (args.Contains("--reservar-codigos"))
     return;
 }
 
+if (args.Contains("--completar-clientes"))
+{
+    Environment.ExitCode = await Importar.CompletarClientes(app.Services, args);
+    return;
+}
+
 if (args.Contains("--importar-placas"))
 {
     Environment.ExitCode = await Importar.ImportarPlacas(app.Services, args);
