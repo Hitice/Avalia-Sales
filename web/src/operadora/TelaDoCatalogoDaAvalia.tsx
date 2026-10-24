@@ -70,8 +70,8 @@ export function TelaDoCatalogoDaAvalia() {
         {produtos.data?.map((p) => (
           <Card key={p.id} className="overflow-hidden pt-0">
             {p.fotoUrl
-              ? <img src={p.fotoUrl} alt={p.nome} className="aspect-[4/3] w-full bg-muted object-cover" />
-              : <div aria-hidden className="flex aspect-[4/3] items-center justify-center bg-muted text-muted-foreground"><ImageOff className="size-8" /></div>}
+              ? <img src={p.fotoUrl} alt={p.nome} className="aspect-4/3 w-full bg-muted object-cover" />
+              : <div aria-hidden className="flex aspect-4/3 items-center justify-center bg-muted text-muted-foreground"><ImageOff className="size-8" /></div>}
             <CardContent className="grid gap-3">
               <div>
                 <p className="text-xs text-muted-foreground">{ROTULO_DO_TIPO[p.tipo]}, ordem {p.ordem}</p>

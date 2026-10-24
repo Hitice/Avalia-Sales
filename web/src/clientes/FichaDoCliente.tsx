@@ -40,7 +40,7 @@ export function FichaDoCliente({ id, outros, aoFechar }: { id: string; outros: O
 
   return (
     <Dialog open onOpenChange={(aberto) => !aberto && aoFechar()}>
-      <DialogContent className="max-h-[90dvh] overflow-y-auto">
+      <DialogContent className="altura-da-folha overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{c?.nome ?? 'Cliente'}</DialogTitle>
           <DialogDescription>{c ? `Desde ${formatarData(c.criadoEm)}` : ''}</DialogDescription>

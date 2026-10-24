@@ -110,11 +110,11 @@ export function ConversaDoChamado({ base, id, operadora }: { base: BaseDosChamad
           <Button variant="outline" onClick={() => resolver.mutate()} disabled={resolver.isPending}>Fechar</Button>
         )}
       </div>
-      <div className="grid max-h-[28rem] gap-2 overflow-y-auto rounded-lg border bg-card p-3" role="log" aria-label="Mensagens">
+      <div className="grid max-h-112 gap-2 overflow-y-auto rounded-lg border bg-card p-3" role="log" aria-label="Mensagens">
         {mensagens.map((m) => {
           const minha = m.daOperadora === operadora
           return (
-            <div key={m.id} className={cn('max-w-[85%] rounded-lg px-3 py-2 text-sm', minha ? 'justify-self-end bg-primary text-primary-foreground' : 'justify-self-start bg-muted')}>
+            <div key={m.id} className={cn('max-w-5/6 rounded-lg px-3 py-2 text-sm', minha ? 'justify-self-end bg-primary text-primary-foreground' : 'justify-self-start bg-muted')}>
               <p className="whitespace-pre-wrap">{m.texto}</p>
               <p className={cn('mt-1 text-xs', minha ? 'text-primary-foreground/80' : 'text-muted-foreground')}>{m.autor}, {formatarDataHora(m.enviadaEm)}{minha && m.lidaEm ? ', lida' : ''}</p>
             </div>

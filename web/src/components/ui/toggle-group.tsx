@@ -26,7 +26,7 @@ function ToggleGroup({
       type="single"
       data-slot="toggle-group"
       value={value}
-      className={cn("inline-flex h-11 w-fit items-center justify-center rounded-lg bg-muted p-[3px] text-muted-foreground md:h-9", className)}
+      className={cn("inline-flex h-11 w-fit items-center justify-center rounded-lg bg-muted p-0.75 text-muted-foreground md:h-9", className)}
       onValueChange={(valor: string) => {
         if (valor) onValueChange(valor)
       }}
@@ -45,7 +45,7 @@ function ToggleGroupItem({
     <ToggleGroupPrimitive.Item
       data-slot="toggle-group-item"
       className={cn(
-        "inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 rounded-md border border-transparent px-1.5 py-0.5 text-sm font-medium whitespace-nowrap text-muted-foreground transition-all hover:text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:outline-1 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50",
+        "inline-flex h-full flex-1 items-center justify-center gap-1.5 rounded-md border border-transparent px-1.5 py-0.5 text-sm font-medium whitespace-nowrap text-muted-foreground transition-all hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring focus-visible:outline-1 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50",
         "data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-sm",
         className
       )}

@@ -61,7 +61,7 @@ export function TelaDeLotes() {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_18rem]">
+    <div className="grid grid-cols-1 gap-4 xl:lista-e-lateral-72">
       <div>
         <Cabecalho titulo="Lotes" />
         <Erro erro={erroDoArquivo ?? (falha ? mensagemDoErro(falha) : null)} />

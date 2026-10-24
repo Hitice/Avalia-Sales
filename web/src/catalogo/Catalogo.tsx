@@ -85,10 +85,10 @@ export function Catalogo() {
 function Foto({ produto }: { produto: ItemDoCatalogo }) {
   const [falhou, setFalhou] = useState(false)
   if (!produto.fotoUrl || falhou) {
-    return <div aria-hidden className="flex aspect-[4/3] items-center justify-center bg-muted text-muted-foreground"><ImageOff className="size-8" /></div>
+    return <div aria-hidden className="flex aspect-4/3 items-center justify-center bg-muted text-muted-foreground"><ImageOff className="size-8" /></div>
   }
 
-  return <img src={produto.fotoUrl} alt={produto.nome} loading="lazy" className="aspect-[4/3] w-full bg-muted object-cover" onError={() => setFalhou(true)} />
+  return <img src={produto.fotoUrl} alt={produto.nome} loading="lazy" className="aspect-4/3 w-full bg-muted object-cover" onError={() => setFalhou(true)} />
 }
 
 function AjustarPreco({ produto, aoFechar }: { produto: ItemDoCatalogo; aoFechar: () => void }) {

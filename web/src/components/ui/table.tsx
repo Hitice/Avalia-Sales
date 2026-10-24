@@ -124,7 +124,7 @@ function TableCell({ className, ...props }: React.ComponentProps<"td">) {
         "max-md:first:pb-2 max-md:first:text-base max-md:first:font-semibold",
         // O rótulo flutua à esquerda e o valor, inteiro (mesmo com mais de um pedaço), fica à direita.
         "max-md:data-[rotulo]:flow-root max-md:data-[rotulo]:py-1.5 max-md:data-[rotulo]:text-right",
-        "max-md:before:float-left max-md:before:pr-4 max-md:before:text-left max-md:before:text-sm max-md:before:font-normal max-md:before:text-muted-foreground max-md:before:content-[attr(data-rotulo)]",
+        "max-md:before:float-left max-md:before:pr-4 max-md:before:text-left max-md:before:text-sm max-md:before:font-normal max-md:before:text-muted-foreground max-md:rotulo-da-celula",
         // Computador: botões lado a lado quebram para a linha de baixo antes de a tabela passar da largura do cartão.
         "md:[&>div.flex]:flex-wrap",
         "max-md:[&:not([data-rotulo]):not(:first-child)]:pt-3 max-md:[&:not([data-rotulo]):not(:first-child)>div]:grid max-md:[&:not([data-rotulo]):not(:first-child)>div]:auto-cols-fr max-md:[&:not([data-rotulo]):not(:first-child)>div]:grid-flow-col",

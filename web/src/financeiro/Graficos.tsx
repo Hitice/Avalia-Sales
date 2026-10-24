@@ -7,6 +7,8 @@ import { type Fatia, fatias, mesCurto, percentual } from './fatias'
 
 /** Quatro cores no máximo, todas dos tokens de gráfico; "Outros", quando há, fica no cinza (--chart-4). */
 const CORES = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)']
+/* O quadradinho da legenda, na mesma ordem: classe de token, nunca cor em style. */
+const QUADRADOS = ['bg-chart-1', 'bg-chart-2', 'bg-chart-3', 'bg-chart-4']
 const reaisSemCentavos = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0, notation: 'compact' })
 
 /** A mesma informação do gráfico, para leitor de tela. */
@@ -31,7 +33,7 @@ export function Rosca({ titulo, itens, vazio }: { titulo: string; itens: Fatia[]
       <CardHeader><CardTitle>{titulo}</CardTitle></CardHeader>
       <CardContent>
         {partes.length === 0 ? <p className="text-sm text-muted-foreground">{vazio}</p> : (
-          <div className="grid items-center gap-4 sm:grid-cols-[10rem_minmax(0,1fr)]">
+          <div className="grid items-center gap-4 sm:lateral-e-lista-40">
             <ChartContainer config={config} className="mx-auto aspect-square h-40">
               <PieChart>
                 <ChartTooltip content={<ChartTooltipContent hideLabel nameKey="chave" formatter={(valor, _nome, item) => (
@@ -43,7 +45,7 @@ export function Rosca({ titulo, itens, vazio }: { titulo: string; itens: Fatia[]
             <ul className="grid gap-2 text-sm">
               {dados.map((d, i) => (
                 <li key={d.chave} className="flex items-center gap-2">
-                  <span aria-hidden className="size-2.5 shrink-0 rounded-full" style={{ background: CORES[i] }} />
+                  <span aria-hidden className={`size-2.5 shrink-0 rounded-sm ${QUADRADOS[i]}`} />
                   <span className="min-w-0 flex-1 truncate">{d.nome}</span>
                   <span className="tabular-nums">{formatarCentavos(d.valor)}</span>
                   <span className="w-10 text-right text-muted-foreground tabular-nums">{percentual(d.valor, total)}</span>
@@ -87,7 +89,7 @@ export function Historico({ meses }: { meses: MesDoHistorico[] }) {
         </ChartContainer>
         <div className="mt-2 flex justify-center gap-4 text-xs text-muted-foreground">
           {Object.entries(configDoHistorico).map(([chave, c]) => (
-            <span key={chave} className="flex items-center gap-1.5"><span aria-hidden className="size-2.5 rounded-sm" style={{ background: c.color }} />{c.label}</span>
+            <span key={chave} className="flex items-center gap-1.5"><span aria-hidden className={`size-2.5 rounded-sm ${chave === 'recebido' ? 'bg-chart-1' : 'bg-chart-2'}`} />{c.label}</span>
           ))}
         </div>
         <TabelaOculta titulo="Recebido e resultado por mês" linhas={meses.map((m) => [mesCurto(m.competencia), formatarCentavos(m.recebidoCents), formatarCentavos(m.resultadoCents)])} />

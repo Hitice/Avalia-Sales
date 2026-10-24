@@ -184,9 +184,9 @@ export function Moldura() {
           {itens.map((item) => <ItemDoMenu key={item.para} item={item} />)}
         </nav>
       </header>
-      <div className={cn(lateral && 'lg:grid lg:grid-cols-[15rem_minmax(0,1fr)]')}>
+      <div className={cn(lateral && 'lg:grid lg:lateral-e-lista-60')}>
         {/* Abaixo do cabeçalho (h-14 e o traço), da altura do resto da janela: o menu rola por dentro e a conta fica no pé. */}
-        <div className={cn('sticky top-14.5 hidden h-[calc(100svh-3.625rem)] flex-col border-r bg-card', lateral && 'lg:flex')}>
+        <div className={cn('sticky top-14.5 hidden altura-sob-cabecalho flex-col border-r bg-card', lateral && 'lg:flex')}>
           {contexto && (
             <div className="mx-3 mt-4 rounded-lg bg-muted px-3 py-2">
               <p className="text-xs font-medium text-muted-foreground">{contexto.rotulo}</p>
@@ -221,7 +221,7 @@ export function Moldura() {
         </div>
       </div>
       {!travado && (
-        <nav aria-label="Menu principal" className="fixed inset-x-0 bottom-0 z-10 border-t bg-card pb-[env(safe-area-inset-bottom)] md:hidden">
+        <nav aria-label="Menu principal" className="fixed inset-x-0 bottom-0 z-10 border-t bg-card area-segura-baixo md:hidden">
           <div className="flex">
             {principais.map(({ para, rotulo, icone: Icone }) => (
               <NavLink
@@ -244,7 +244,7 @@ export function Moldura() {
         </nav>
       )}
       <Dialog open={mais} onOpenChange={setMais}>
-        <DialogContent className="top-auto bottom-0 left-0 max-h-[85svh] max-w-full translate-x-0 translate-y-0 overflow-y-auto rounded-b-none pb-[max(1rem,env(safe-area-inset-bottom))] sm:max-w-full">
+        <DialogContent className="top-auto bottom-0 left-0 altura-da-folha max-w-full translate-x-0 translate-y-0 overflow-y-auto rounded-b-none area-segura-baixo-4 sm:max-w-full">
           <DialogTitle>Mais</DialogTitle>
           <nav aria-label="Mais telas" className="grid gap-1">
             {outros.map((item) => (

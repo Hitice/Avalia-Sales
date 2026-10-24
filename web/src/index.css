@@ -207,9 +207,34 @@
   grid-template-columns: calc(var(--spacing) * --value(integer)) minmax(0, 1fr);
 }
 
-/* Folha de baixo do celular: até 85% da altura visível, o resto rola dentro. */
+/* Folha de baixo do celular e modal alto: até 90% da altura visível, o resto rola dentro. */
 @utility altura-da-folha {
-  max-height: 85svh;
+  max-height: 90svh;
+}
+
+/* Modal no celular: a largura da janela menos a margem de 1rem de cada lado. */
+@utility largura-com-margem {
+  max-width: calc(100% - 2rem);
+}
+
+/* Painel lateral do computador: da base do cabeçalho (3.5rem e a borda) ao pé da janela. */
+@utility altura-sob-cabecalho {
+  height: calc(100svh - 3.5625rem);
+}
+
+/* Grades de duas colunas com conteúdo medido: ícone e texto (alerta), título e ação (cartão). */
+@utility colunas-icone-e-texto {
+  grid-template-columns: auto 1fr;
+}
+@utility colunas-titulo-e-acao {
+  grid-template-columns: 1fr auto;
+}
+
+/* Célula da tabela em cartão (celular): o título da coluna vem do data-rotulo. */
+@utility rotulo-da-celula {
+  &::before {
+    content: attr(data-rotulo);
+  }
 }
 
 /* Xadrez atrás de imagem com transparência (logo), para ver o que fica vazio. */

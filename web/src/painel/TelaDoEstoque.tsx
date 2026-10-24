@@ -35,7 +35,7 @@ export function TelaDoEstoque() {
   const paginas = Math.max(1, Math.ceil(total / 50))
 
   return (
-    <div className={dono ? 'grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]' : 'grid gap-4'}>
+    <div className={dono ? 'grid grid-cols-1 gap-4 xl:lista-e-lateral-80' : 'grid gap-4'}>
       <div>
         <Cabecalho titulo={dono ? 'Estoque' : 'Minhas placas'} />
         <div className="mb-3 flex flex-wrap gap-2">

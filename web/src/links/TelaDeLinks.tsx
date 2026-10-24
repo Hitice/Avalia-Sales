@@ -77,14 +77,14 @@ export function TelaDeLinks() {
           {dono && <TabsTrigger value="status"><ListChecks aria-hidden />Status</TabsTrigger>}
         </TabsList>
 
-        <TabsContent value="link" className="grid grid-cols-1 gap-4 lg:grid-cols-[22rem_minmax(0,1fr)]">
+        <TabsContent value="link" className="grid grid-cols-1 gap-4 lg:lateral-e-lista-88">
           <FormularioDeLink key={editando?.id ?? 'novo'} editando={editando} aoTerminar={() => setEditando(null)} />
           <ListaDeLinks aoEditar={setEditando} />
         </TabsContent>
 
         <TabsContent value="nfc" className="lg:max-w-2xl"><GravarNasTags /></TabsContent>
 
-        <TabsContent value="maps" className="grid grid-cols-1 gap-4 lg:grid-cols-[22rem_minmax(0,1fr)]">
+        <TabsContent value="maps" className="grid grid-cols-1 gap-4 lg:lateral-e-lista-88">
           <LinkDoGoogle />
           <ListaDeLinks aoEditar={(l) => { setEditando(l); irPara('link') }} />
         </TabsContent>

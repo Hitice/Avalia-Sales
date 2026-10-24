@@ -53,7 +53,7 @@ export function ConfirmeOEmail({ email }: { email: string }) {
   }
 
   return (
-    <div className="flex min-h-[70svh] items-center justify-center">
+    <div className="flex items-center justify-center py-16">
       <Card className="relative w-full max-w-md">
         <CardHeader>
           <CardTitle className="text-xl"><h1>Confirme seu e-mail</h1></CardTitle>

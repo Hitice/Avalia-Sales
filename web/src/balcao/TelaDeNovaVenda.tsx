@@ -208,7 +208,7 @@ export function TelaDeNovaVenda() {
       </ol>
 
       {passo === 'itens' && (
-        <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_20rem] md:items-start">
+        <div className="grid gap-4 md:lista-e-lateral-80 md:items-start">
           <Card>
             <CardHeader><CardTitle>Catálogo</CardTitle></CardHeader>
             <CardContent className="grid gap-3">

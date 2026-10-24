@@ -100,7 +100,7 @@ function FormularioDaMarca({ marca, salvo, setSalvo }: { marca: Marca; salvo: bo
   )
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[20rem_1fr]">
+    <div className="grid gap-4 lg:lateral-e-lista-80">
       <div className="grid gap-4 self-start">
         <Cabecalho titulo="Marca" />
         <Card>
@@ -140,7 +140,7 @@ function FormularioDaMarca({ marca, salvo, setSalvo }: { marca: Marca; salvo: bo
             <div className="flex h-12 items-center gap-3 bg-card px-3">
               {logo ? <img src={logo} alt="" className="h-7 w-auto max-w-28 object-contain" /> : <span className="font-semibold">{nome || 'Avalia Sales'}</span>}
             </div>
-            <div className="grid grid-cols-[9rem_1fr] gap-4 p-3">
+            <div className="grid lateral-e-lista-36 gap-4 p-3">
               <div className="grid content-start gap-0.5 text-sm">
                 <span className="relative flex min-h-8 items-center gap-2 rounded-md bg-accent px-2.5 font-medium text-accent-foreground">
                   <span className="absolute inset-y-1.5 left-0 w-0.5 rounded-full bg-primary" />

@@ -17,7 +17,7 @@ const mascara = (arquivo: string, proporcao: number): CSSProperties => ({
 /** Rodapé da tela de entrada, preso ao pé da página: integrações, direitos e a versão. */
 export function Rodape() {
   return (
-    <footer className="fixed inset-x-0 bottom-0 flex flex-col items-center gap-2 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] text-center text-xs text-muted-foreground">
+    <footer className="fixed inset-x-0 bottom-0 flex flex-col items-center gap-2 px-4 area-segura-baixo-3 text-center text-xs text-muted-foreground">
       <ul aria-label="Integrações" className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
         {PARCEIROS.map((p) => (
           <li key={p.arquivo} className="flex items-center gap-1">

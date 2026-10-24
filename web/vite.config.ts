@@ -3,6 +3,8 @@ import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
+import { storybookTest } from '@storybook/addon-vitest/vitest-plugin'
+import { playwright } from '@vitest/browser-playwright'
 import { type Plugin, defineConfig } from 'vite'
 
 /**
@@ -59,10 +61,33 @@ export default defineConfig({
     },
   },
   test: {
-    // Os testes de ponta a ponta (e2e/) rodam no Playwright, não no Vitest.
-    include: ['src/**/*.test.{ts,tsx}'],
-    environment: 'jsdom',
-    setupFiles: ['./src/testes/preparar.ts'],
-    css: false,
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: 'unidade',
+          // Os testes de ponta a ponta (e2e/) rodam no Playwright, não no Vitest.
+          include: ['src/**/*.test.{ts,tsx}'],
+          environment: 'jsdom',
+          setupFiles: ['./src/testes/preparar.ts'],
+          css: false,
+        },
+      },
+      {
+        // Cada história do Storybook vira um teste no Chromium de verdade, com o
+        // axe do addon de acessibilidade em modo erro: violação séria falha o npm test.
+        extends: true,
+        plugins: [storybookTest({ configDir: path.join(import.meta.dirname, '.storybook') })],
+        test: {
+          name: 'historias',
+          browser: {
+            enabled: true,
+            headless: true,
+            provider: playwright({}),
+            instances: [{ browser: 'chromium' }],
+          },
+        },
+      },
+    ],
   },
 })

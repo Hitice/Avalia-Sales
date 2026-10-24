@@ -51,7 +51,7 @@ export function ModalDaPlaca({ item, opcoes, codigoInicial = '', codigosNaVenda,
 
   return (
     <Dialog open onOpenChange={(aberto) => !aberto && aoFechar()}>
-      <DialogContent className="top-auto bottom-0 left-0 max-h-[92svh] max-w-full translate-x-0 translate-y-0 overflow-y-auto rounded-b-none pb-[max(1rem,env(safe-area-inset-bottom))] sm:top-1/2 sm:bottom-auto sm:left-1/2 sm:max-h-[90svh] sm:max-w-md sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-xl sm:pb-4">
+      <DialogContent className="top-auto bottom-0 left-0 altura-da-folha max-w-full translate-x-0 translate-y-0 overflow-y-auto rounded-b-none area-segura-baixo-4 sm:top-1/2 sm:bottom-auto sm:left-1/2 sm:altura-da-folha sm:max-w-md sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-xl sm:pb-4">
         <DialogHeader>
           <DialogTitle>{produto.nome}</DialogTitle>
           <DialogDescription>{formatarCentavos(produto.precoCents)} por placa. Leia o QR e diga para onde ela leva.</DialogDescription>
