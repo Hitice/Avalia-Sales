@@ -57,6 +57,7 @@ public sealed class VendaDesfeitaTest(ApiDeTeste api)
         var codigo = revenda.Codigos[1];
         await bia.Postar("/vendas", Cenarios.Venda(codigo, revenda.ProdutoId, "11977770003"), HttpStatusCode.Created);
         var venda = await VendaDe(revenda.Dono, codigo);
+        var tabela = (await bia.Pegar("/vendas")).EnumerateArray().Single().GetProperty("valorCents").GetInt64();
         await VencerPix(revenda.Id);
 
         Assert.Equal(HttpStatusCode.Forbidden, (await bia.PostAsync($"/vendas/{venda}/cortesia", null, Ct)).StatusCode);
@@ -69,6 +70,10 @@ public sealed class VendaDesfeitaTest(ApiDeTeste api)
         await bia.Postar($"/vendas/{venda}/cobranca", new { }, HttpStatusCode.UnprocessableEntity);
         await bia.Postar($"/vendas/{venda}/recebimento", new { meio = "Dinheiro" }, HttpStatusCode.UnprocessableEntity);
         Assert.Equal(HttpStatusCode.Redirect, (await Anonimo().GetAsync($"/q/{codigo}", Ct)).StatusCode);
+
+        // Cortesia renova pela tabela da venda, e não por R$ 0,01.
+        var renovacao = await revenda.Dono.Postar($"/placas/{codigo}/renovacao", new { });
+        Assert.Equal((tabela * 6_000 + 5_000) / 10_000, renovacao.GetProperty("valorCents").GetInt64());
     }
 
     [Fact]

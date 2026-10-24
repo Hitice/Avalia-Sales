@@ -2150,7 +2150,9 @@ export interface paths {
         };
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    formato?: components["schemas"]["FormatoDaImpressao"];
+                };
                 header?: never;
                 path: {
                     id: string;
@@ -5495,6 +5497,8 @@ export interface components {
             leituras: components["schemas"]["LeituraDto"][];
             historico: components["schemas"]["RegistroDto"][];
         };
+        /** @enum {unknown} */
+        FormatoDaImpressao: "SvgEPng" | "Svg" | "Png" | null;
         GerarLote: {
             /** Format: int32 */
             quantidade: number;

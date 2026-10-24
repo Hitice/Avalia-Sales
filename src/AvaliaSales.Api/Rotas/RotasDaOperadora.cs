@@ -57,11 +57,11 @@ public static class RotasDaOperadora
         operadora.MapGet("/lotes", (Lotes lotes, CancellationToken ct) => lotes.Listar(ct));
         operadora.MapPost("/lotes", async (GerarLote pedido, Lotes lotes, CancellationToken ct) =>
             Results.Created("/operadora/lotes", await lotes.Gerar(pedido.Quantidade, ct)));
-        operadora.MapGet("/lotes/{id:guid}/impressao", async (Guid id, Lotes lotes, IOptions<OpcoesDaPlataforma> plataforma,
+        operadora.MapGet("/lotes/{id:guid}/impressao", async (Guid id, FormatoDaImpressao? formato, Lotes lotes, IOptions<OpcoesDaPlataforma> plataforma,
             IConfiguration configuracao, CancellationToken ct) =>
         {
             var impressao = await lotes.Impressao(id, ct);
-            var zip = ArquivoDeImpressao.Gerar(impressao, plataforma.Value.UrlPublica, configuracao["Lotes:PastaLocal"]);
+            var zip = ArquivoDeImpressao.Gerar(impressao, plataforma.Value.UrlPublica, configuracao["Lotes:PastaLocal"], formato ?? FormatoDaImpressao.SvgEPng);
             return Results.File(zip, "application/zip", $"lote-{impressao.Rotulo.ToLowerInvariant()}.zip");
         });
 

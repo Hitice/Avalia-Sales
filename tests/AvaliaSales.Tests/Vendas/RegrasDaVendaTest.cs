@@ -48,7 +48,10 @@ public sealed class RegrasDaVendaTest
 
     [Theory]
     [InlineData("(11) 98765-4321", "11987654321")]
-    [InlineData("+55 11 98765-4321", "5511987654321")]
+    [InlineData("+55 11 98765-4321", "11987654321")]
+    [InlineData("55 34 3232-1010", "3432321010")]
+    [InlineData("034992224360", "34992224360")]
+    [InlineData("(55) 99876-5432", "55998765432")]
     public void Telefone_fica_so_com_digitos(string telefone, string esperado) =>
         Assert.Equal(esperado, Telefones.Normalizar(telefone, obrigatorio: true));
 

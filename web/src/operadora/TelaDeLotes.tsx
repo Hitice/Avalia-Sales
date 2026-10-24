@@ -7,7 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { baixarImpressao, useGerarLote, useLotes } from './consultas'
+import { AcoesDaLinha } from '@/componentes/AcoesDaLinha'
+import { baixarImpressao, type FormatoDaImpressao, useGerarLote, useLotes } from './consultas'
 
 /** A tiragem das placas: gerar o lote e baixar o arquivo da gráfica. */
 export function TelaDeLotes() {
@@ -16,10 +17,10 @@ export function TelaDeLotes() {
   const [quantidade, setQuantidade] = useState('20')
   const [erroDoArquivo, setErroDoArquivo] = useState<string | null>(null)
 
-  async function baixar(lote: Parameters<typeof baixarImpressao>[0]) {
+  async function baixar(lote: Parameters<typeof baixarImpressao>[0], formato?: FormatoDaImpressao) {
     setErroDoArquivo(null)
     try {
-      await baixarImpressao(lote)
+      await baixarImpressao(lote, formato)
     } catch (erro) {
       setErroDoArquivo(mensagemDoErro(erro))
     }
@@ -54,7 +55,10 @@ export function TelaDeLotes() {
                         <TableCell>{formatarDataHora(lote.criadoEm)}</TableCell>
                         <TableCell className="min-w-32 whitespace-normal">{lote.revendedor ?? 'Livre'}</TableCell>
                         <TableCell>{formatarDataHora(lote.ativadoEm)}</TableCell>
-                        <TableCell className="text-right"><Button variant="outline" onClick={() => baixar(lote)}>Baixar impressão</Button></TableCell>
+                        <TableCell className="text-right">
+                          <AcoesDaLinha nome={lote.rotulo} principal={{ rotulo: 'Baixar impressão', aoClicar: () => baixar(lote) }}
+                            outras={[{ rotulo: 'Só SVG', aoClicar: () => baixar(lote, 'Svg') }, { rotulo: 'Só PNG', aoClicar: () => baixar(lote, 'Png') }]} />
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

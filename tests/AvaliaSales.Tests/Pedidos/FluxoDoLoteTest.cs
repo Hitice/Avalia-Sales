@@ -144,8 +144,31 @@ public sealed class FluxoDoLoteTest(ApiDeTeste api)
         Assert.Equal(3, zip.Entries.Count(e => e.Name.EndsWith(".svg", StringComparison.Ordinal)));
         Assert.Equal(3, zip.Entries.Count(e => e.Name.EndsWith(".png", StringComparison.Ordinal)));
         using var csv = new StreamReader(zip.GetEntry($"{pasta}/{pasta}.csv")!.Open());
-        var linhas = (await csv.ReadToEndAsync(TestContext.Current.CancellationToken)).Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        var linhas = (await csv.ReadToEndAsync(TestContext.Current.CancellationToken)).Split("\r\n", StringSplitOptions.RemoveEmptyEntries);
         Assert.Equal("codigo,photo", linhas[0]);
         Assert.Equal(4, linhas.Length);
+
+        // A arte da gráfica: um caminho só, em milímetros, fundo transparente e a marca no vão.
+        using var svg = new StreamReader(zip.Entries.First(e => e.Name.EndsWith(".svg", StringComparison.Ordinal)).Open());
+        var desenho = await svg.ReadToEndAsync(TestContext.Current.CancellationToken);
+        Assert.Contains("width=\"30mm\"", desenho, StringComparison.Ordinal);
+        Assert.Contains("fill=\"none\"", desenho, StringComparison.Ordinal);
+        Assert.Single(System.Text.RegularExpressions.Regex.Matches(desenho, "fill-rule=\"evenodd\""));
+        Assert.Contains("<g id=\"logo\"", desenho, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Impressao_so_em_svg_aponta_o_csv_para_o_svg()
+    {
+        var operadora = await api.ClienteLogado(await api.CriarOperadora());
+        var lote = await operadora.Postar("/operadora/lotes", new { quantidade = 2 }, HttpStatusCode.Created);
+
+        var resposta = await operadora.GetAsync($"/operadora/lotes/{lote.GetProperty("id").GetGuid()}/impressao?formato=Svg", TestContext.Current.CancellationToken);
+
+        using var zip = new System.IO.Compression.ZipArchive(await resposta.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken));
+        Assert.Equal(2, zip.Entries.Count(e => e.Name.EndsWith(".svg", StringComparison.Ordinal)));
+        Assert.DoesNotContain(zip.Entries, e => e.Name.EndsWith(".png", StringComparison.Ordinal));
+        using var csv = new StreamReader(zip.Entries.Single(e => e.Name.EndsWith(".csv", StringComparison.Ordinal)).Open());
+        Assert.EndsWith(".svg", (await csv.ReadToEndAsync(TestContext.Current.CancellationToken)).Split("\r\n", StringSplitOptions.RemoveEmptyEntries)[1], StringComparison.Ordinal);
     }
 }

@@ -16,5 +16,6 @@
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Impressao\Modelos\*" LogicalName="modelos/%(Filename)%(Extension)" />
+    <EmbeddedResource Include="Impressao\Marca\*" LogicalName="marca/%(Filename)%(Extension)" />
   </ItemGroup>
 </Project>

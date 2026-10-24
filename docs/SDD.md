@@ -706,6 +706,7 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
 
 | Data | Mudança |
 | --- | --- |
+| 24/10/2026 | `Telefones.Normalizar` tira o 55 (só com 12 ou 13 dígitos, porque 55 também é DDD) e o 0; migration `TelefoneSemPrefixo` normaliza clientes, vendedores e revendedores, passando o RLS revendedor a revendedor. `Renovacoes.BaseDaRenovacao`. `Impressao/ArteDoQr` e `Impressao/Png` (PNG RGBA sem biblioteca de imagem; a marca embutida em `Impressao/Marca`); `GET /operadora/lotes/{id}/impressao?formato=SvgEPng|Svg|Png`, CSV com CRLF. Mapa: cidade pelo `addressComponents` do Places, no navegador. |
 | 23/10/2026 | Importação com `cliente_email` e `cliente_lugar_no_google`; `--completar-clientes` preenche os dois nos clientes já importados (só campo vazio), para o mapa achar os lugares. |
 | 23/10/2026 | `--importar-placas` lê a data sem hora (meia-noite em Brasília) e a grava em UTC; antes o Postgres recusava o fuso -03:00 e o arquivo inteiro caía no salvamento. |
 | 23/10/2026 | `converter_do_sales.py --no-ar-sem-venda-a-zero` - placa ativa ou suspensa sem venda no Sales entra como venda de R$ 0 na data do cadastro, sem vendedor; `--so-os-mapeados` deixa com o dono a venda de quem não está no `--vendedor`. |

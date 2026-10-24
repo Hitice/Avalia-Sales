@@ -529,6 +529,7 @@ porque está impresso nas placas vendidas.
 
 | Data | Mudança |
 | --- | --- |
+| 24/10/2026 | Telefone sem o 55 do país e sem o 0 da operadora: "+55 34 9…" e "34 9…" são o mesmo cliente. Renovação de cortesia e de venda de R$ 0 sai pelo percentual sobre a tabela da venda, e não por R$ 0,01. Arte do QR igual à da gráfica do Sales (caminho único, 30 mm, fundo transparente), com o miolo vazado e a marca pequena, branca e chapada; download em SVG e PNG, só SVG ou só PNG. Mapa com uma aba por cidade, aberto na que tem mais lugares. |
 | 23/10/2026 | Estorno de venda de serviço (pelo Pagar.me ou recebimento por fora desfeito) cancela a ordem de serviço ainda não entregue e avisa a operadora no sino; a entregue fica como está. |
 | 23/10/2026 | Recebedor do Pagar.me aceito com `rp_` ou `re_`, na revenda e no recebedor da Avalia: a conta da Avalia gera `re_`. A revenda Avalia usa o mesmo recebedor da operadora, e o pedido de placas dela tem o pagamento registrado pela operadora, sem passar pelo Pagar.me. |
 | 23/10/2026 | Parcelado de 2x a 12x com o custo do cartão por conta do cliente, com a parcela e o total na Nova venda. No Pix e à vista, a Avalia recebe a parte dela sem a fatia dela na tarifa. Perfil no Google com placa passa a 20% de desconto da revenda, como os outros serviços. |

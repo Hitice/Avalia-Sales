@@ -36,8 +36,11 @@ export const useReabertura = () => useGravar(({ id, aprovar }: { id: string; apr
   chamarApi(`/operadora/revendedores/${id}/reabertura`, aprovar ? enviarJson('POST', {}) : { method: 'DELETE' }))
 
 /** O ZIP da gráfica vem com o token, então é baixado pela chamada e entregue ao navegador como arquivo. */
-export async function baixarImpressao(lote: Lote) {
-  const resposta = await chamarResposta(`/operadora/lotes/${lote.id}/impressao`)
+/** SVG para o Corel, PNG para a mala direta; os dois por padrão. */
+export type FormatoDaImpressao = 'SvgEPng' | 'Svg' | 'Png'
+
+export async function baixarImpressao(lote: Lote, formato: FormatoDaImpressao = 'SvgEPng') {
+  const resposta = await chamarResposta(`/operadora/lotes/${lote.id}/impressao?formato=${formato}`)
   const url = URL.createObjectURL(await resposta.blob())
   const link = document.createElement('a')
   link.href = url

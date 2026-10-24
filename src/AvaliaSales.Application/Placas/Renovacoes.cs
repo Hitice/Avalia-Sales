@@ -3,6 +3,7 @@ using AvaliaSales.Domain;
 using AvaliaSales.Domain.Acesso;
 using AvaliaSales.Domain.Pagamentos;
 using AvaliaSales.Domain.Placas;
+using AvaliaSales.Domain.Vendas;
 using Microsoft.EntityFrameworkCore;
 
 namespace AvaliaSales.Application.Placas;
@@ -79,7 +80,7 @@ public sealed class Renovacoes(IBancoDeDados banco, IUsuarioAtual usuario, Cobra
             ?? throw new RegraDeNegocioException("Código não encontrado, verifique novamente.");
         var venda = placa.VendaId is { } vendaId && placa.TransferidaEm is null ? await banco.Vendas.SingleAsync(v => v.Id == vendaId, ct) : null;
         var (clienteId, valorDaVenda, vendedor) = venda is not null
-            ? (venda.ClienteId, venda.ValorCents, (Guid?)venda.VendedorId)
+            ? (venda.ClienteId, await BaseDaRenovacao(venda, ct), (Guid?)venda.VendedorId)
             : placa is { ClienteDaTransferenciaId: { } transferido, ValorDaVendaCents: { } valor }
                 ? (transferido, valor, null)
                 : throw new RegraDeNegocioException("Placa sem venda não tem o que renovar.");
@@ -100,4 +101,14 @@ public sealed class Renovacoes(IBancoDeDados banco, IUsuarioAtual usuario, Cobra
 
         return (placa, clienteId, renovacao);
     }
+
+    /// <summary>
+    /// O valor sobre o qual o percentual da renovação incide: o da venda; na cortesia e na
+    /// venda de R$ 0 que veio do sistema anterior, a tabela da época, ou o preço de hoje do
+    /// produto. Sem isso a renovação saía por R$ 0,01.
+    /// </summary>
+    private async Task<long> BaseDaRenovacao(Venda venda, CancellationToken ct) =>
+        venda.ValorCents > 0 ? venda.ValorCents
+        : venda.TabelaCents > 0 ? venda.TabelaCents
+        : await banco.Produtos.Where(p => p.Id == venda.ProdutoId).Select(p => p.PrecoCents).SingleAsync(ct);
 }

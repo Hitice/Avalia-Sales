@@ -1605,6 +1605,13 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "formato",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/FormatoDaImpressao"
+            }
           }
         ],
         "responses": {
@@ -5024,6 +5031,14 @@
             }
           }
         }
+      },
+      "FormatoDaImpressao": {
+        "enum": [
+          "SvgEPng",
+          "Svg",
+          "Png",
+          null
+        ]
       },
       "GerarLote": {
         "required": [
