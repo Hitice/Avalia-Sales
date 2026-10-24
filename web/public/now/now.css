@@ -767,6 +767,21 @@ tbody td { color: var(--texto-2); }
 .rodape-papel { display: block; font-size: 0.875rem; color: var(--texto-2); }
 
 
+/* ----- Stack logo abaixo das telas ----- */
+
+.stack { padding-bottom: 40px; }
+.stack-grade { display: grid; gap: 20px; padding: 24px 0 0; border-top: 1px solid var(--borda); }
+.stack-grade dt { margin-bottom: 8px; font-size: 0.8125rem; font-weight: 500; color: var(--texto-3); }
+.tecs-grandes { gap: 8px 18px; font-size: 0.875rem; color: var(--texto-2); }
+.tecs-grandes .ico { width: 18px; height: 18px; }
+.tecs-grandes .ico-letra { font-size: 8px; }
+@media (min-width: 960px) {
+  .stack-grade { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 24px; }
+  .tecs-grandes { flex-direction: column; flex-wrap: nowrap; }
+}
+
+.seta-de-ir { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
 /* ----- Logos da stack: máscara na cor do texto, todas no mesmo quadro de 16 px ----- */
 
 .tecs { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 2px; font-size: 0.8125rem; color: var(--texto-3); }
@@ -790,6 +805,7 @@ tbody td { color: var(--texto-2); }
 .i-letsencrypt { --ico: url('/now/icons/letsencrypt.svg'); }
 .i-githubactions { --ico: url('/now/icons/githubactions.svg'); }
 .i-sentry { --ico: url('/now/icons/sentry.svg'); }
+.i-vite { --ico: url('/now/icons/vite.svg'); }
 
 /* ----- Movimento reduzido ----- */
 

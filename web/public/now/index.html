@@ -51,13 +51,14 @@
       <img src="/marca/avaliasales.svg" width="117" height="48" alt="">
     </a>
     <nav class="topo-nav" aria-label="Seções">
-      <a href="#venda">Venda</a>
+      <a href="#stack">Stack</a>
       <a href="#solucao">Solução</a>
+      <a href="#venda">Venda</a>
       <a href="#decisoes">Decisões</a>
       <a href="#qualidade">Qualidade</a>
       <a href="#integracoes">Integrações</a>
     </nav>
-    <a class="botao botao-cheio botao-pequeno" href="https://sales.avaliaone.com.br" rel="noopener">Abrir a plataforma</a>
+    <a class="botao botao-cheio botao-pequeno" href="https://sales.avaliaone.com.br" rel="noopener">Plataforma<svg class="seta-de-ir" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" /></svg></a>
   </div>
 </header>
 
@@ -67,12 +68,8 @@
   <section class="abertura largura" aria-labelledby="titulo">
     <div class="abertura-texto">
       <h1 id="titulo">Plataforma de gestão e revenda de produtos</h1>
-      <p class="abertura-lead">Uma rede de revendas vende placas com QR Code e NFC e serviços digitais pelo celular. O cliente paga por Pix ou cartão na hora, e estoque, comissões e financeiro fecham no mesmo sistema.</p>
+      <p class="abertura-lead">Uma rede de revendas vende placas com QR Code e NFC e serviços digitais pelo celular. O cliente paga por Pix ou cartão na hora, e estoque, comissões e financeiro são controlados no mesmo sistema.</p>
       <p class="abertura-autor"><strong>Pedro Fernandes</strong> projetou, desenvolveu e opera a plataforma, do produto à infraestrutura.</p>
-      <p class="acoes">
-        <a class="botao botao-cheio" href="https://sales.avaliaone.com.br" rel="noopener">Abrir a plataforma</a>
-        <a class="botao botao-linha" href="https://github.com/Hitice/Avalia-Sales" rel="noopener">Ler o código no GitHub</a>
-      </p>
       <p class="abertura-estado" data-producao><span class="ponto" data-estado="lendo" aria-hidden="true"></span><span data-producao-texto>Em produção em sales.avaliaone.com.br, com o código aberto.</span></p>
     </div>
 
@@ -81,6 +78,33 @@
       <img class="tela-celular" src="/now/img/vendedor-vender-390.webp" width="390" height="844" decoding="async" alt="Nova venda no celular do vendedor: catálogo com placas e serviços, preço e pedido mínimo">
       <figcaption>Telas da plataforma com dados de demonstração.</figcaption>
     </figure>
+  </section>
+
+  <!-- Stack: logo abaixo das telas, antes do resumo -->
+  <section id="stack" class="stack largura" aria-labelledby="stack-titulo">
+    <h2 id="stack-titulo" class="vh">Stack e integrações</h2>
+    <dl class="stack-grade">
+      <div>
+        <dt>Back-end</dt>
+        <dd><ul class="tecs tecs-grandes"><li><span class="ico i-dotnet" aria-hidden="true"></span>C# e .NET</li><li><span class="ico i-dotnet" aria-hidden="true"></span>ASP.NET Core</li><li><span class="ico i-dotnet" aria-hidden="true"></span>EF Core</li><li><span class="ico i-dotnet" aria-hidden="true"></span>SignalR</li></ul></dd>
+      </div>
+      <div>
+        <dt>Front-end</dt>
+        <dd><ul class="tecs tecs-grandes"><li><span class="ico i-react" aria-hidden="true"></span>React</li><li><span class="ico i-typescript" aria-hidden="true"></span>TypeScript</li><li><span class="ico i-reactquery" aria-hidden="true"></span>TanStack Query</li><li><span class="ico i-tailwindcss" aria-hidden="true"></span>Tailwind CSS</li><li><span class="ico i-vite" aria-hidden="true"></span>Vite</li></ul></dd>
+      </div>
+      <div>
+        <dt>Dados</dt>
+        <dd><ul class="tecs tecs-grandes"><li><span class="ico i-postgresql" aria-hidden="true"></span>PostgreSQL</li></ul></dd>
+      </div>
+      <div>
+        <dt>Infraestrutura</dt>
+        <dd><ul class="tecs tecs-grandes"><li><span class="ico i-linux" aria-hidden="true"></span>Linux</li><li><span class="ico i-docker" aria-hidden="true"></span>Docker Compose</li><li><span class="ico i-nginx" aria-hidden="true"></span>Nginx</li><li><span class="ico i-letsencrypt" aria-hidden="true"></span>Let's Encrypt</li><li><span class="ico i-githubactions" aria-hidden="true"></span>GitHub Actions</li><li><span class="ico i-sentry" aria-hidden="true"></span>Sentry</li></ul></dd>
+      </div>
+      <div>
+        <dt>Integrações</dt>
+        <dd><ul class="tecs tecs-grandes"><li><span class="ico ico-letra" aria-hidden="true">P</span>Pagar.me</li><li><span class="ico i-resend" aria-hidden="true"></span>Resend</li><li><span class="ico i-googlemaps" aria-hidden="true"></span>Google Maps</li><li><span class="ico ico-letra" aria-hidden="true">D4</span>D4Sign</li><li><span class="ico i-totvs" aria-hidden="true"></span>Protheus</li></ul></dd>
+      </div>
+    </dl>
   </section>
 
   <!-- Em um minuto -->
@@ -102,11 +126,87 @@
     </dl>
   </section>
 
+  <!-- Solução integrada -->
+  <section id="solucao" class="secao largura" aria-labelledby="solucao-titulo">
+    <header class="secao-topo">
+      <h2 id="solucao-titulo">Arquitetura da solução</h2>
+      <p>Front-end, API, banco de dados, integrações e infraestrutura, com contrato tipado entre as camadas.</p>
+    </header>
+
+    <figure class="mapa">
+      <figcaption class="vh">Como as partes da plataforma se conectam</figcaption>
+      <div class="mapa-grade">
+        <div class="mapa-coluna">
+          <p class="mapa-lugar">Navegador</p>
+          <div class="no">
+            <strong>Telas</strong>
+            <span>App do vendedor e painéis do revendedor e da operadora.</span>
+            <ul class="tecs"><li><span class="ico i-react" aria-hidden="true"></span>React</li><li><span class="ico i-typescript" aria-hidden="true"></span>TypeScript</li><li><span class="ico i-reactquery" aria-hidden="true"></span>TanStack Query</li><li><span class="ico i-tailwindcss" aria-hidden="true"></span>Tailwind CSS</li></ul>
+          </div>
+        </div>
+
+        <div class="mapa-ligacao" aria-hidden="true"><span>HTTPS e JSON, tipos gerados do contrato</span></div>
+
+        <div class="mapa-coluna">
+          <p class="mapa-lugar">Aplicação</p>
+          <div class="no">
+            <strong>API</strong>
+            <span>Regras de negócio, autenticação e avisos ao vivo.</span>
+            <ul class="tecs"><li><span class="ico i-dotnet" aria-hidden="true"></span>ASP.NET Core</li><li><span class="ico i-dotnet" aria-hidden="true"></span>EF Core</li><li><span class="ico i-dotnet" aria-hidden="true"></span>SignalR</li></ul>
+          </div>
+          <div class="no">
+            <strong>Worker</strong>
+            <span>Filas, eventos de pagamento, e-mails e retentativas.</span>
+            <ul class="tecs"><li><span class="ico i-dotnet" aria-hidden="true"></span>.NET Worker Service</li></ul>
+          </div>
+        </div>
+
+        <div class="mapa-ligacao" aria-hidden="true"><span>SQL com a revenda na sessão</span></div>
+
+        <div class="mapa-coluna">
+          <p class="mapa-lugar">Dados e serviços</p>
+          <div class="no">
+            <strong>PostgreSQL</strong>
+            <span>Dados isolados por revenda, razão financeiro e filas.</span>
+            <ul class="tecs"><li><span class="ico i-postgresql" aria-hidden="true"></span>PostgreSQL</li></ul>
+            <small>Row-level security e LISTEN/NOTIFY</small>
+          </div>
+          <div class="no">
+            <strong>Integrações</strong>
+            <span>Pagamento, e-mail, mapas, CNPJ, PDF, assinatura e ERP.</span>
+            <ul class="tecs"><li><span class="ico ico-letra" aria-hidden="true">P</span>Pagar.me</li><li><span class="ico i-resend" aria-hidden="true"></span>Resend</li><li><span class="ico i-googlemaps" aria-hidden="true"></span>Google</li><li><span class="ico ico-letra" aria-hidden="true">D4</span>D4Sign</li><li><span class="ico i-totvs" aria-hidden="true"></span>Protheus</li></ul>
+          </div>
+        </div>
+      </div>
+      <div class="mapa-base"><strong>Servidor próprio</strong><ul class="tecs"><li><span class="ico i-linux" aria-hidden="true"></span>Linux</li><li><span class="ico i-docker" aria-hidden="true"></span>Docker Compose</li><li><span class="ico i-nginx" aria-hidden="true"></span>Nginx</li><li><span class="ico i-letsencrypt" aria-hidden="true"></span>Let's Encrypt</li><li><span class="ico i-githubactions" aria-hidden="true"></span>GitHub Actions</li><li><span class="ico i-sentry" aria-hidden="true"></span>Sentry</li></ul></div>
+    </figure>
+
+    <details class="aprofundar">
+      <summary>Camadas do código</summary>
+      <div class="aprofundar-corpo">
+        <div class="tabela">
+          <table>
+            <caption class="vh">Camadas do código e a responsabilidade de cada uma</caption>
+            <thead><tr><th scope="col">Projeto</th><th scope="col">Responsabilidade</th></tr></thead>
+            <tbody>
+              <tr><th scope="row">Domain</th><td>Entidades e regras de negócio, sem dependência de pacote</td></tr>
+              <tr><th scope="row">Application</th><td>Casos de uso e as interfaces das integrações</td></tr>
+              <tr><th scope="row">Infrastructure</th><td>EF Core, migrations, clientes HTTP e simuladores</td></tr>
+              <tr><th scope="row">Api e Worker</th><td>ASP.NET Core e o processamento em segundo plano</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>Retentativa automática de HTTP só em métodos seguros, para uma cobrança não ser reenviada por engano.</p>
+        <p class="evidencia"><a href="https://github.com/Hitice/Avalia-Sales/blob/main/docs/SDD.md" rel="noopener">Arquitetura (SDD)</a></p>
+      </div>
+    </details>
+  </section>
+
   <!-- Venda -->
   <section id="venda" class="secao largura" aria-labelledby="venda-titulo">
     <header class="secao-topo">
-      <h2 id="venda-titulo">Uma venda do balcão até a avaliação no Google</h2>
-      <p>O vendedor resolve tudo no celular, com o cliente na frente. Cada passo diz o que acontece na tela e, abaixo, o mecanismo.</p>
+      <h2 id="venda-titulo">Fluxo de venda</h2>
+      <p>Venda feita no celular do vendedor, no ponto de venda. Em cada etapa, o que acontece na tela e o mecanismo técnico.</p>
     </header>
 
     <div class="venda" data-venda>
@@ -195,7 +295,7 @@
             <span class="passo-numero" aria-hidden="true">2</span>
             <span class="passo-texto"><strong>Placa</strong>A câmera lê o QR da placa e a vincula ao cliente.</span>
           </button>
-          <p class="passo-tec">Leitor nativo do navegador, com um leitor em WebAssembly quando ele falta.</p>
+          <p class="passo-tec">BarcodeDetector nativo, com fallback em WebAssembly.</p>
         </li>
         <li>
           <button type="button" class="passo" data-ir="3" aria-pressed="false">
@@ -209,7 +309,7 @@
             <span class="passo-numero" aria-hidden="true">4</span>
             <span class="passo-texto"><strong>Confirmação</strong>O pagamento aparece na tela do vendedor sem recarregar.</span>
           </button>
-          <p class="passo-tec">O aviso do Pagar.me é gravado e conferido na origem; a tela recebe por SignalR.</p>
+          <p class="passo-tec">O webhook do Pagar.me é gravado e conferido na origem; a tela recebe por SignalR.</p>
         </li>
         <li>
           <button type="button" class="passo" data-ir="5" aria-pressed="false">
@@ -223,93 +323,17 @@
             <span class="passo-numero" aria-hidden="true">6</span>
             <span class="passo-texto"><strong>Ativação</strong>A placa passa a levar à avaliação do cliente no Google.</span>
           </button>
-          <p class="passo-tec">Destino trocável sem reimprimir a placa; NFC gravado pelo próprio celular.</p>
+          <p class="passo-tec">Redirecionamento configurável sem reimprimir a placa; gravação NFC pelo Web NFC.</p>
         </li>
       </ol>
     </div>
-  </section>
-
-  <!-- Solução integrada -->
-  <section id="solucao" class="secao largura" aria-labelledby="solucao-titulo">
-    <header class="secao-topo">
-      <h2 id="solucao-titulo">Uma solução inteira, do celular ao servidor</h2>
-      <p>Front-end, API, banco, integrações e infraestrutura foram construídos juntos, com um contrato entre cada parte.</p>
-    </header>
-
-    <figure class="mapa">
-      <figcaption class="vh">Como as partes da plataforma se conectam</figcaption>
-      <div class="mapa-grade">
-        <div class="mapa-coluna">
-          <p class="mapa-lugar">Navegador</p>
-          <div class="no">
-            <strong>Telas</strong>
-            <span>Celular do vendedor, painel do revendedor e da operadora.</span>
-            <ul class="tecs"><li><span class="ico i-react" aria-hidden="true"></span>React</li><li><span class="ico i-typescript" aria-hidden="true"></span>TypeScript</li><li><span class="ico i-reactquery" aria-hidden="true"></span>TanStack Query</li><li><span class="ico i-tailwindcss" aria-hidden="true"></span>Tailwind CSS</li></ul>
-          </div>
-        </div>
-
-        <div class="mapa-ligacao" aria-hidden="true"><span>HTTPS e JSON, tipos gerados do contrato</span></div>
-
-        <div class="mapa-coluna">
-          <p class="mapa-lugar">Aplicação</p>
-          <div class="no">
-            <strong>API</strong>
-            <span>Regras de negócio, autenticação e avisos ao vivo.</span>
-            <ul class="tecs"><li><span class="ico i-dotnet" aria-hidden="true"></span>ASP.NET Core</li><li><span class="ico i-dotnet" aria-hidden="true"></span>EF Core</li><li><span class="ico i-dotnet" aria-hidden="true"></span>SignalR</li></ul>
-          </div>
-          <div class="no">
-            <strong>Worker</strong>
-            <span>Filas, eventos de pagamento, e-mails e retentativas.</span>
-            <ul class="tecs"><li><span class="ico i-dotnet" aria-hidden="true"></span>.NET Worker Service</li></ul>
-          </div>
-        </div>
-
-        <div class="mapa-ligacao" aria-hidden="true"><span>SQL com a revenda na sessão</span></div>
-
-        <div class="mapa-coluna">
-          <p class="mapa-lugar">Dados e serviços</p>
-          <div class="no">
-            <strong>PostgreSQL</strong>
-            <span>Dados isolados por revenda, razão financeiro e filas.</span>
-            <ul class="tecs"><li><span class="ico i-postgresql" aria-hidden="true"></span>PostgreSQL</li></ul>
-            <small>Row-level security e LISTEN/NOTIFY</small>
-          </div>
-          <div class="no">
-            <strong>Integrações</strong>
-            <span>Pagamento, e-mail, mapas, CNPJ, PDF, assinatura e ERP.</span>
-            <ul class="tecs"><li><span class="ico ico-letra" aria-hidden="true">P</span>Pagar.me</li><li><span class="ico i-resend" aria-hidden="true"></span>Resend</li><li><span class="ico i-googlemaps" aria-hidden="true"></span>Google</li><li><span class="ico ico-letra" aria-hidden="true">D4</span>D4Sign</li><li><span class="ico i-totvs" aria-hidden="true"></span>Protheus</li></ul>
-          </div>
-        </div>
-      </div>
-      <div class="mapa-base"><strong>Servidor próprio</strong><ul class="tecs"><li><span class="ico i-linux" aria-hidden="true"></span>Linux</li><li><span class="ico i-docker" aria-hidden="true"></span>Docker Compose</li><li><span class="ico i-nginx" aria-hidden="true"></span>Nginx</li><li><span class="ico i-letsencrypt" aria-hidden="true"></span>Let's Encrypt</li><li><span class="ico i-githubactions" aria-hidden="true"></span>GitHub Actions</li><li><span class="ico i-sentry" aria-hidden="true"></span>Sentry</li></ul></div>
-    </figure>
-
-    <details class="aprofundar">
-      <summary>Camadas do código</summary>
-      <div class="aprofundar-corpo">
-        <div class="tabela">
-          <table>
-            <caption class="vh">Camadas do código e a responsabilidade de cada uma</caption>
-            <thead><tr><th scope="col">Projeto</th><th scope="col">Responsabilidade</th></tr></thead>
-            <tbody>
-              <tr><th scope="row">Domain</th><td>Entidades e regras de negócio, sem dependência de pacote</td></tr>
-              <tr><th scope="row">Application</th><td>Casos de uso e as interfaces das integrações</td></tr>
-              <tr><th scope="row">Infrastructure</th><td>EF Core, migrations, clientes HTTP e simuladores</td></tr>
-              <tr><th scope="row">Api e Worker</th><td>ASP.NET Core e o processamento em segundo plano</td></tr>
-            </tbody>
-          </table>
-        </div>
-        <p>Retentativa automática de HTTP só em métodos seguros, para uma cobrança não ser reenviada por engano.</p>
-        <p class="evidencia"><a href="https://github.com/Hitice/Avalia-Sales/blob/main/docs/SDD.md" rel="noopener">Arquitetura (SDD)</a></p>
-      </div>
-    </details>
   </section>
 
   <!-- Decisões -->
   <section id="decisoes" class="secao largura" aria-labelledby="decisoes-titulo">
     <header class="secao-topo">
       <h2 id="decisoes-titulo">Decisões técnicas e resolutivas</h2>
-      <p>Cada uma tem registro no repositório, com contexto, opções e consequências.</p>
+      <p>Cada decisão tem um ADR no repositório, com contexto, alternativas e consequências.</p>
     </header>
 
     <ul class="decisoes">
@@ -326,7 +350,7 @@
       </li>
       <li>
         <h3>Pagamento confirmado na origem, no gateway</h3>
-        <p>A venda só é dada como paga depois que o sistema consulta a cobrança no Pagar.me.</p>
+        <p>A venda só é confirmada depois que o sistema consulta a cobrança no Pagar.me.</p>
         <details class="aprofundar">
           <summary>Como funciona</summary>
           <div class="aprofundar-corpo">
@@ -347,8 +371,8 @@
         </details>
       </li>
       <li>
-        <h3>Telas rápidas, com as integrações em segundo plano</h3>
-        <p>A tela do vendedor não espera e-mail, ERP ou contrato: a API grava, responde, e o Worker faz o resto.</p>
+        <h3>Processamento assíncrono das integrações</h3>
+        <p>A API grava e responde sem aguardar e-mail, ERP ou contrato; o Worker processa as filas.</p>
         <details class="aprofundar">
           <summary>Como funciona</summary>
           <div class="aprofundar-corpo">
@@ -358,7 +382,7 @@
         </details>
       </li>
       <li class="decisao-marca">
-        <h3>A marca de cada revenda, com contraste calculado</h3>
+        <h3>White label com contraste calculado</h3>
         <p>Cada revenda aplica logo e cor nas telas. A plataforma escolhe a cor do texto do botão e escurece o destaque até a leitura passar no critério do WCAG.</p>
 
         <figure class="marca" data-marca>
@@ -388,7 +412,7 @@
       </li>
       <li>
         <h3>Migração incremental (strangler fig) com a operação ativa</h3>
-        <p>A plataforma nova assumiu as funções do sistema anterior rota a rota, e os dados vieram por uma importação ensaiada.</p>
+        <p>A plataforma nova assumiu as funções do sistema anterior rota a rota, e os dados foram migrados por importação validada em ensaio.</p>
         <details class="aprofundar">
           <summary>Como funciona</summary>
           <div class="aprofundar-corpo">
@@ -415,12 +439,12 @@
       </li>
       <li>
         <h3>Publicação controlada</h3>
-        <p>O deploy só roda com o CI verde e aprovação manual, sobe as imagens do commit e confere a saúde da API pelo domínio. A volta é publicar de novo o commit anterior.</p>
+        <p>O deploy só roda com o CI verde e aprovação manual, sobe as imagens do commit e confere a saúde da API pelo domínio. Rollback por nova publicação do commit anterior.</p>
         <a href="https://github.com/Hitice/Avalia-Sales/blob/main/.github/workflows/deploy.yml" rel="noopener">Fluxo de publicação</a>
       </li>
       <li>
         <h3>Contrato entre front e API</h3>
-        <p>Os tipos do front saem do contrato OpenAPI da API, e o CI falha se estiverem desatualizados. Aviso do compilador conta como erro.</p>
+        <p>Os tipos do front saem do contrato OpenAPI da API, e o CI falha se estiverem desatualizados. Warnings do compilador são tratados como erro.</p>
         <a href="https://github.com/Hitice/Avalia-Sales/blob/main/.github/workflows/ci.yml" rel="noopener">Verificações do CI</a>
       </li>
       <li>
@@ -453,12 +477,12 @@
         <tbody>
           <tr><th scope="row"><span class="servico"><span class="ico ico-letra" aria-hidden="true">P</span>Pagar.me</span></th><td>Pix, cartão, split por recebedor e estorno total ou parcial</td><td><span class="estado estado-ok">Em produção</span></td></tr>
           <tr><th scope="row"><span class="servico"><span class="ico i-resend" aria-hidden="true"></span>Resend</span></th><td>E-mails transacionais com fila e retentativa</td><td><span class="estado estado-ok">Em produção</span></td></tr>
-          <tr><th scope="row"><span class="servico"><span class="ico i-googlemaps" aria-hidden="true"></span>Google Places API e Maps API</span></th><td>Achar o negócio do cliente e o mapa das vendas</td><td><span class="estado estado-ok">Em produção</span></td></tr>
+          <tr><th scope="row"><span class="servico"><span class="ico i-googlemaps" aria-hidden="true"></span>Google Places API e Maps API</span></th><td>Localização do estabelecimento e mapa de vendas</td><td><span class="estado estado-ok">Em produção</span></td></tr>
           <tr><th scope="row"><span class="servico"><span class="ico ico-letra" aria-hidden="true">BR</span>BrasilAPI</span></th><td>Razão social e endereço por CNPJ e CEP</td><td><span class="estado estado-ok">Em produção</span></td></tr>
           <tr><th scope="row"><span class="servico"><span class="ico ico-letra" aria-hidden="true">PDF</span>Gotenberg</span></th><td>Contrato e distrato em PDF, num contêiner sem rede</td><td><span class="estado estado-ok">Em produção</span></td></tr>
           <tr><th scope="row"><span class="servico"><span class="ico i-sentry" aria-hidden="true"></span>Sentry</span></th><td>Erros com a versão publicada</td><td><span class="estado estado-ok">Em produção</span></td></tr>
           <tr><th scope="row"><span class="servico"><span class="ico ico-letra" aria-hidden="true">D4</span>D4Sign</span></th><td>Assinatura eletrônica do contrato de revenda</td><td><span class="estado estado-espera">Sandbox</span></td></tr>
-          <tr><th scope="row"><span class="servico"><span class="ico i-totvs" aria-hidden="true"></span>Protheus</span></th><td>Pedido de placas pago vira pedido de venda no ERP</td><td><span class="estado estado-neutro">Pronto para homologação</span></td></tr>
+          <tr><th scope="row"><span class="servico"><span class="ico i-totvs" aria-hidden="true"></span>Protheus</span></th><td>Pedido de placas pago gerado como pedido de venda no ERP</td><td><span class="estado estado-neutro">Pronto para homologação</span></td></tr>
         </tbody>
       </table>
     </div>
@@ -466,7 +490,7 @@
 
   <!-- Acesso -->
   <section class="fecho largura" aria-labelledby="fecho-titulo">
-    <h2 id="fecho-titulo">Conhecer a plataforma</h2>
+    <h2 id="fecho-titulo">Acesso</h2>
     <p>Plataforma em operação. Solicite uma demonstração ou implante a partir do código no GitHub.</p>
     <p class="acoes">
       <a class="botao botao-cheio" href="https://www.linkedin.com/in/hitice" rel="me noopener">Solicitar demonstração</a>
