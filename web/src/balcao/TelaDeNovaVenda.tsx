@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ChevronLeft } from 'lucide-react'
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { type UseFormReturn, useForm } from 'react-hook-form'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import { useSessao } from '@/acesso/sessao'
@@ -23,7 +23,7 @@ import { digitos, mascaraDocumento, mascaraTelefone } from '@/lib/mascaras'
 import { z } from 'zod'
 import { Campo } from '@/componentes/Campo'
 import { extrairCodigo } from './codigo'
-import { useConfiguracaoDoCartao, useFicha, useVender } from './consultas'
+import { useConfiguracaoDoCartao, useFicha, usePagamentoDaVenda, useVender } from './consultas'
 import { destinoPronto } from './destino'
 import { EscolhaDeDestino } from './EscolhaDeDestino'
 import { LeitorDeQr } from './LeitorDeQr'
@@ -173,7 +173,7 @@ export function TelaDeNovaVenda() {
   const clientePronto = formularioDoCliente.formState.isValid
 
   return (
-    <div className="mx-auto grid max-w-md gap-4 pb-24">
+    <div className="mx-auto grid max-w-md gap-4 pb-24 md:pb-0">
       <div className="flex items-center justify-between gap-2">
         <h1 className="text-xl font-semibold">{servicoId ? 'Vender serviço' : 'Nova venda'}</h1>
         <Button variant="ghost" size="icon" className="-mr-2 size-11" aria-label="Voltar" onClick={voltar}>
@@ -236,8 +236,9 @@ export function TelaDeNovaVenda() {
           meio={meio} aoMudarMeio={setMeio} cartao={configDoCartao.data ?? null} formularioDoCartao={formularioDoCartao} />
       )}
 
-      <div className="acima-da-barra fixed inset-x-0 z-10 border-t bg-card p-3 md:p-4">
-        <div className="mx-auto flex max-w-md gap-2">
+      {/* No celular, preso acima da barra de baixo; no computador, logo abaixo do cartão, na coluna da venda. */}
+      <div className="acima-da-barra fixed inset-x-0 z-10 border-t bg-card p-3 md:static md:border-0 md:bg-transparent md:p-0">
+        <div className="mx-auto flex max-w-md gap-2 md:max-w-none">
           {passo === 'destino' && (
             <Button size="lg" className="flex-1" disabled={!destinoPronto(destino)} onClick={() => irPara('placa')}>Configurar</Button>
           )}
@@ -390,12 +391,27 @@ function PassoDaCobranca({ produtoId, aoEscolher, fixo, valor, aoDigitarValor, e
   )
 }
 
-/** O Pix na tela para o cliente pagar ali, e a confirmação quando o Pagar.me avisa. */
+/**
+ * O Pix na tela para o cliente pagar ali, e a confirmação quando o Pagar.me
+ * avisa. Pergunta pela venda (vale para placa e serviço) até pagar, falhar ou
+ * o Pix vencer; vencido, para de esperar e diz como gerar outro.
+ */
 function Resultado({ venda, aoRecomecar }: { venda: VendaRegistrada; aoRecomecar: () => void }) {
   const pix = venda.cobranca?.pixCopiaECola ?? null
   const servico = venda.codigo === ''
-  const ficha = useFicha(servico ? undefined : venda.codigo, !!pix)
-  const pagamento = ficha.data?.venda?.pagamento ?? venda.cobranca?.situacao ?? null
+  const [agora, setAgora] = useState(() => Date.now())
+  const expiraEm = venda.cobranca?.pixExpiraEm ? new Date(venda.cobranca.pixExpiraEm).getTime() : null
+  const vencido = expiraEm !== null && agora > expiraEm
+  const consulta = usePagamentoDaVenda(venda.vendaId, !!pix && !vencido)
+  const pagamento = consulta.data?.situacao ?? venda.cobranca?.situacao ?? null
+  const esperando = !!pix && pagamento === 'Pendente' && !vencido
+
+  // O relógio da tela só anda enquanto espera: é ele que percebe o Pix vencido.
+  useEffect(() => {
+    if (!esperando) return
+    const relogio = window.setInterval(() => setAgora(Date.now()), 15_000)
+    return () => window.clearInterval(relogio)
+  }, [esperando])
 
   return (
     <div className="mx-auto grid max-w-md gap-4">
@@ -406,12 +422,13 @@ function Resultado({ venda, aoRecomecar }: { venda: VendaRegistrada; aoRecomecar
             ? <p className="text-sm">Serviço vendido, {formatarCentavos(venda.valorCents)}. Com o pagamento, a Avalia recebe a ordem e você acompanha em Serviços.</p>
             : <p className="text-sm">Placa <span className="font-semibold tabular-nums">{venda.codigo}</span> no ar até {formatarData(venda.venceEm)}. {formatarCentavos(venda.valorCents)}.</p>}
           {venda.semCobranca && <Aviso>{venda.semCobranca}</Aviso>}
-          {pix && pagamento !== 'Paga' && (
+          {esperando && (
             <>
               <PixNaTela copiaECola={pix} imagemDoGateway={venda.cobranca?.pixQrCodeUrl ?? null} />
               <p role="status" className="text-center text-sm text-muted-foreground">Esperando o pagamento...</p>
             </>
           )}
+          {pix && pagamento === 'Pendente' && vencido && <Aviso>O Pix venceu sem pagamento. Gere outro em Vendas.</Aviso>}
           {pagamento === 'Paga' && <p role="status" className="text-center text-lg font-semibold">Pagamento confirmado</p>}
           {pagamento && pagamento !== 'Paga' && pagamento !== 'Pendente' && <Aviso>Pagamento {ROTULO_DO_PAGAMENTO[pagamento].toLowerCase()}.</Aviso>}
           {!servico && <GravarNfc endereco={venda.endereco} />}

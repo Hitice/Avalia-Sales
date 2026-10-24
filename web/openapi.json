@@ -3720,6 +3720,36 @@
         }
       }
     },
+    "/vendas/{id}/pagamento": {
+      "get": {
+        "tags": [
+          "Balc\u00E3o"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagamentoDaVenda"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/vendas/{id}/troca-de-placa": {
       "post": {
         "tags": [
@@ -6848,6 +6878,33 @@
             "type": "boolean"
           }
         }
+      },
+      "PagamentoDaVenda": {
+        "required": [
+          "situacao",
+          "pixExpiraEm"
+        ],
+        "type": "object",
+        "properties": {
+          "situacao": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SituacaoDaCobranca"
+              }
+            ]
+          },
+          "pixExpiraEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        },
+        "description": "A cobran\u00E7a mais recente da venda, para a tela que espera o Pix."
       },
       "PaginaDaOperadora": {
         "required": [

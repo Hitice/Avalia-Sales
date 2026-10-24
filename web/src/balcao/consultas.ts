@@ -17,6 +17,17 @@ export function useFicha(codigo: string | undefined, acompanhar = false) {
   })
 }
 
+type PagamentoDaVenda = components['schemas']['PagamentoDaVenda']
+
+/** O pagamento da venda (placa ou serviço), refeito a cada 5 s enquanto a tela espera o Pix. */
+export function usePagamentoDaVenda(vendaId: string, acompanhar: boolean) {
+  return useQuery({
+    queryKey: ['vendas', vendaId, 'pagamento'],
+    queryFn: () => chamarApi<PagamentoDaVenda>(`/vendas/${vendaId}/pagamento`),
+    refetchInterval: acompanhar ? 5_000 : false,
+  })
+}
+
 export function useVender() {
   const cliente = useQueryClient()
   return useMutation({

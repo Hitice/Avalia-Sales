@@ -28,6 +28,9 @@ public sealed record NovaVenda(
     int Parcelas = 1,
     bool TesteGratuito = false);
 
+/// <summary>A cobrança mais recente da venda, para a tela que espera o Pix.</summary>
+public sealed record PagamentoDaVenda(SituacaoDaCobranca? Situacao, DateTimeOffset? PixExpiraEm);
+
 /// <summary>Só o que muda: valor digitado errado, vendedor errado.</summary>
 public sealed record CorrigirVenda(long? ValorCents = null, Guid? VendedorId = null);
 
@@ -251,6 +254,15 @@ public sealed class Vendas(
         await cobrancas.DesfazerPorFora(cobranca, ct);
         await RegistrarNaPlaca(venda, AcaoAuditada.RecebimentoDesfeito, null, ct);
         await banco.SaveChangesAsync(ct);
+    }
+
+    /// <summary>A situação do pagamento, para placa e para serviço: a tela de resultado pergunta aqui até pagar ou o Pix vencer.</summary>
+    public async Task<PagamentoDaVenda> Pagamento(Guid vendaId, CancellationToken ct)
+    {
+        var venda = await AcharVenda(vendaId, ct);
+        var ultima = await banco.Cobrancas.AsNoTracking().Where(c => c.Origem == OrigemDaCobranca.Venda && c.OrigemId == venda.Id)
+            .OrderByDescending(c => c.CriadaEm).Select(c => new { c.Situacao, c.PixExpiraEm }).FirstOrDefaultAsync(ct);
+        return new PagamentoDaVenda(ultima?.Situacao, ultima?.PixExpiraEm);
     }
 
     /// <summary>

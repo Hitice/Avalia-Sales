@@ -4976,6 +4976,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/vendas/{id}/pagamento": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagamentoDaVenda"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/vendas/{id}/troca-de-placa": {
         parameters: {
             query?: never;
@@ -6401,6 +6438,12 @@ export interface components {
             /** Format: int64 */
             custoPorPlacaCents: number;
             ativo: boolean;
+        };
+        /** @description A cobrança mais recente da venda, para a tela que espera o Pix. */
+        PagamentoDaVenda: {
+            situacao: null | components["schemas"]["SituacaoDaCobranca"];
+            /** Format: date-time */
+            pixExpiraEm: null | string;
         };
         PaginaDaOperadora: {
             registros: components["schemas"]["RegistroDaOperadoraDto"][];
