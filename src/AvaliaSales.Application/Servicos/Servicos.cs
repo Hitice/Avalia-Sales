@@ -35,6 +35,19 @@ public sealed class Servicos(IBancoDeDados banco, IRevendedorAtual atual, Notifi
 
     public Task Cancelar(Guid id, CancellationToken ct) => Mudar(id, (o, _) => o.Cancelar(), "Serviço cancelado", "A Avalia cancelou", ct);
 
+    /// <summary>Cancelada por estorno não volta: sem pagamento, o serviço não se executa.</summary>
+    public async Task Reabrir(Guid id, CancellationToken ct)
+    {
+        var ordem = await banco.OrdensDeServico.SingleOrDefaultAsync(o => o.Id == id, ct) ?? throw new RegraDeNegocioException("Ordem não encontrada.");
+        if (ordem.Situacao == SituacaoDaOrdem.Cancelada && !await banco.Cobrancas.AnyAsync(c => c.Origem == Domain.Pagamentos.OrigemDaCobranca.Venda
+                && c.OrigemId == ordem.VendaId && c.Situacao == Domain.Pagamentos.SituacaoDaCobranca.Paga, ct))
+        {
+            throw new RegraDeNegocioException("A venda deste serviço não está paga.");
+        }
+
+        await Mudar(id, (o, _) => o.Reabrir(), "Serviço reaberto", "A Avalia reabriu", ct);
+    }
+
     public async Task Anotar(Guid id, string? observacao, CancellationToken ct)
     {
         (await Achar(id, ct)).Anotar(observacao);

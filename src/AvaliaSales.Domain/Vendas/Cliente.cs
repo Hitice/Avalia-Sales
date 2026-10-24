@@ -75,6 +75,25 @@ public sealed class Cliente : IDoRevendedor
         AnonimizadoEm = agora;
     }
 
+    /// <summary>
+    /// Edição pelo dono: tudo pode mudar, com as mesmas validações do balcão.
+    /// O telefone fica opcional só para o cliente importado que veio sem ele.
+    /// </summary>
+    public void Alterar(string nome, string responsavel, string? telefone, string? documento, string? email, string? lugarNoGoogle)
+    {
+        if (AnonimizadoEm is not null)
+        {
+            throw new RegraDeNegocioException("Cliente anonimizado não se edita.");
+        }
+
+        Nome = Texto(nome, "Empresa");
+        Responsavel = Texto(responsavel, "Responsável");
+        Telefone = Telefones.Normalizar(telefone, obrigatorio: Telefone.Length > 0) ?? string.Empty;
+        Documento = Documentos.Normalizar(documento, obrigatorio: false);
+        Email = Emails.Normalizar(email);
+        LugarNoGoogle = string.IsNullOrWhiteSpace(lugarNoGoogle) ? null : lugarNoGoogle.Trim();
+    }
+
     /// <summary>O balcão não sobrescreve o que já estava preenchido.</summary>
     public void Completar(string? documento, string? email, string? lugarNoGoogle)
     {

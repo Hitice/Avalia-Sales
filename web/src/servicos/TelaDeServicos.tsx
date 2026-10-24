@@ -30,7 +30,7 @@ export function TelaDeServicosDaOperadora() {
   const ordens = useOrdens('/operadora/servicos')
   const consultas = useQueryClient()
   const mudar = useMutation({
-    mutationFn: ({ id, acao }: { id: string; acao: 'iniciar' | 'entregar' | 'cancelar' }) => chamarApi(`/operadora/servicos/${id}/${acao}`, enviarJson('POST', {})),
+    mutationFn: ({ id, acao }: { id: string; acao: 'iniciar' | 'entregar' | 'cancelar' | 'reabrir' }) => chamarApi(`/operadora/servicos/${id}/${acao}`, enviarJson('POST', {})),
     onSuccess: () => consultas.invalidateQueries({ queryKey: ['servicos'] }),
   })
   const aFazer = ordens.data?.filter((o) => o.situacao === 'AFazer').length ?? 0
@@ -49,6 +49,9 @@ export function TelaDeServicosDaOperadora() {
                 <Button disabled={mudar.isPending} onClick={() => mudar.mutate({ id: o.id, acao: 'entregar' })}>Entregar</Button>
                 <Button variant="ghost" className="text-destructive" disabled={mudar.isPending} onClick={() => mudar.mutate({ id: o.id, acao: 'cancelar' })}>Cancelar</Button>
               </>
+            )}
+            {(o.situacao === 'Entregue' || o.situacao === 'Cancelada') && (
+              <Button variant="ghost" disabled={mudar.isPending} onClick={() => mudar.mutate({ id: o.id, acao: 'reabrir' })}>Reabrir</Button>
             )}
           </div>
         )}

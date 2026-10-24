@@ -59,6 +59,7 @@ public sealed class PedidosDePlacas(
     /// <summary>Sem contrato de revenda assinado, não há pedido. O cupom é conferido e gasto aqui.</summary>
     public async Task<PedidoDto> Criar(Guid pacoteId, string? codigoDoCupom, CancellationToken ct)
     {
+        (await banco.Revendedores.SingleAsync(r => r.Id == atual.RevendedorId, ct)).ExigirAtiva();
         var revendedor = await banco.Revendedores.SingleAsync(r => r.Id == atual.RevendedorId, ct);
         if (revendedor.ContratoAssinadoEm is null)
         {

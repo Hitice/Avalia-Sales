@@ -4,6 +4,7 @@ using AvaliaSales.Application.Placas;
 using AvaliaSales.Domain;
 using AvaliaSales.Domain.Acesso;
 using AvaliaSales.Domain.Auditoria;
+using AvaliaSales.Domain.Financeiro;
 using AvaliaSales.Domain.Pagamentos;
 using AvaliaSales.Domain.Placas;
 using AvaliaSales.Domain.Vendas;
@@ -26,6 +27,9 @@ public sealed record NovaVenda(
     string? TokenDoCartao = null,
     int Parcelas = 1,
     bool TesteGratuito = false);
+
+/// <summary>Só o que muda: valor digitado errado, vendedor errado.</summary>
+public sealed record CorrigirVenda(long? ValorCents = null, Guid? VendedorId = null);
 
 /// <summary>O que acontece com a placa da venda desfeita.</summary>
 public enum PlacaDaVendaCancelada
@@ -76,6 +80,7 @@ public sealed class Vendas(
             throw new RegraDeNegocioException("Escolha Pix ou cartão.");
         }
 
+        (await banco.Revendedores.SingleAsync(r => r.Id == atual.RevendedorId, ct)).ExigirAtiva();
         var (produto, doCatalogo) = await ProdutoDaVenda(pedido.ProdutoId, ct);
         var (vendedorId, comissaoBps) = await QuemVende(produto.ComissaoBps, ct);
         var agora = relogio.GetUtcNow();
@@ -249,6 +254,79 @@ public sealed class Vendas(
     }
 
     /// <summary>
+    /// Corrige a venda registrada errada, pelo dono, antes do repasse. O valor
+    /// só muda sem cobrança viva nem paga: o que foi cobrado fica como foi. O
+    /// vendedor muda também na venda paga: a comissão devida sai de um (estorno
+    /// no razão) e entra no outro, pela regra de comissão dele.
+    /// </summary>
+    public async Task Corrigir(Guid vendaId, CorrigirVenda pedido, CancellationToken ct)
+    {
+        var venda = await AcharVenda(vendaId, ct);
+        ExigirDaPlataforma(venda);
+        if (venda.Situacao == SituacaoDaVenda.Cancelada)
+        {
+            throw new RegraDeNegocioException("Venda cancelada não se corrige.");
+        }
+
+        if (venda.RepasseId is not null)
+        {
+            throw new RegraDeNegocioException("A comissão desta venda já foi repassada ao vendedor.");
+        }
+
+        var agora = relogio.GetUtcNow();
+        var antes = $"{venda.ValorCents} centavos, vendedor {venda.VendedorId}";
+        if (pedido.ValorCents is { } valor && valor != venda.ValorCents)
+        {
+            await ExigirSemCobrancaViva(venda, "Venda com cobrança em aberto ou paga: o valor fica como foi cobrado.", ct);
+            venda.CorrigirValor(valor);
+        }
+
+        if (pedido.VendedorId is { } novo && novo != venda.VendedorId)
+        {
+            var vendedor = await banco.Vendedores.AsNoTracking().SingleOrDefaultAsync(v => v.Id == novo, ct);
+            int bps;
+            if (vendedor is not null)
+            {
+                var doProduto = await banco.Produtos.Where(p => p.Id == venda.ProdutoId).Select(p => p.ComissaoBps).SingleAsync(ct);
+                var padrao = await banco.Revendedores.Where(r => r.Id == venda.RevendedorId).Select(r => r.ComissaoPadraoBps).SingleAsync(ct);
+                bps = vendedor.ComissaoBps ?? doProduto ?? padrao;
+            }
+            else if (novo == usuario.UsuarioId)
+            {
+                // O dono assume a venda: vende sem comissão, como no balcão.
+                bps = 0;
+            }
+            else
+            {
+                throw new RegraDeNegocioException("Vendedor não encontrado.");
+            }
+
+            var estornadas = banco.Lancamentos.Where(l => l.EstornaId != null).Select(l => l.EstornaId);
+            var devidas = await banco.Lancamentos.Where(l => l.VendaId == venda.Id && l.Tipo == TipoDeLancamento.ComissaoDevida && l.EstornaId == null
+                && !estornadas.Contains(l.Id)).ToListAsync(ct);
+            foreach (var linha in devidas)
+            {
+                banco.Lancamentos.Add(linha.Estorno("venda passada a outro vendedor", agora));
+            }
+
+            venda.TrocarVendedor(novo, bps);
+
+            // Venda paga: a comissão do vendedor certo passa a ser devida, mesmo quando a de antes era zero (o dono vendia).
+            var paga = await banco.Cobrancas.Where(c => c.Origem == OrigemDaCobranca.Venda && c.OrigemId == venda.Id && c.Situacao == SituacaoDaCobranca.Paga)
+                .Select(c => (Guid?)c.Id).FirstOrDefaultAsync(ct);
+            if (paga is { } cobrancaId && venda.ComissaoCents > 0)
+            {
+                var item = venda.PlacaId is { } placaId ? "placa " + await banco.Placas.Where(p => p.Id == placaId).Select(p => p.Codigo).SingleAsync(ct) : "venda de serviço";
+                banco.Lancamentos.Add(new Lancamento(TipoDeLancamento.ComissaoDevida, cobrancaId, -venda.ComissaoCents, $"Comissão da {item}", agora, venda.Id, novo));
+            }
+        }
+
+        await RegistrarNaPlaca(venda, AcaoAuditada.VendaCorrigida, $"{venda.ValorCents} centavos, vendedor {venda.VendedorId}", ct, antes);
+        banco.AvisarAoVivo("venda", venda.RevendedorId);
+        await banco.SaveChangesAsync(ct);
+    }
+
+    /// <summary>
     /// Desfaz a venda com o motivo. A cobrança viva é cancelada antes: o Pix em
     /// aberto deixa de poder ser pago, o pago volta ao cliente pelo Pagar.me e o
     /// recebido por fora é desfeito, com o estorno no razão (inclusive da
@@ -348,16 +426,16 @@ public sealed class Vendas(
         return nova.Codigo;
     }
 
-    private async Task RegistrarNaPlaca(Venda venda, AcaoAuditada acao, string? depois, CancellationToken ct)
+    private async Task RegistrarNaPlaca(Venda venda, AcaoAuditada acao, string? depois, CancellationToken ct, string? antes = null)
     {
         if (venda.PlacaId is not { } placaId)
         {
-            auditoria.Registrar(acao, "Venda de serviço", venda.Id.ToString(), null, depois);
+            auditoria.Registrar(acao, "Venda de serviço", venda.Id.ToString(), antes, depois);
             return;
         }
 
         var codigo = await banco.Placas.Where(p => p.Id == placaId).Select(p => p.Codigo).SingleAsync(ct);
-        auditoria.Registrar(acao, $"Venda da placa {codigo}", codigo, null, depois);
+        auditoria.Registrar(acao, $"Venda da placa {codigo}", codigo, antes, depois);
     }
 
     /// <summary>

@@ -30,6 +30,11 @@ public enum AcaoAuditada
     EncerramentoDesistido,
     ContaEncerrada,
     ReaberturaPedida,
+    ClienteAlterado,
+    ClienteExcluido,
+    ClientesJuntados,
+    VendaCorrigida,
+    RepasseDesfeito,
 }
 
 /// <summary>

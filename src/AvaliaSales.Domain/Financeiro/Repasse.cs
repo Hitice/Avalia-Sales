@@ -16,6 +16,12 @@ public sealed class Repasse : IDoRevendedor
     public DateTimeOffset PagoEm { get; private set; }
     public string? Comprovante { get; private set; }
 
+    /// <summary>Repasse registrado por engano e desfeito: as vendas voltam a esperar o próximo.</summary>
+    public DateTimeOffset? DesfeitoEm { get; private set; }
+
+    public void Desfazer(DateTimeOffset agora) =>
+        DesfeitoEm = DesfeitoEm is null ? agora : throw new RegraDeNegocioException("Este repasse já foi desfeito.");
+
     private Repasse()
     {
     }

@@ -9,7 +9,8 @@ namespace AvaliaSales.Application.Financeiro;
 
 public sealed record SaldoDeComissao(Guid VendedorId, string Vendedor, string? ChavePix, long DevidaCents, long RepassadaCents, long AbertaCents, DateTimeOffset? UltimoRepasse);
 
-public sealed record RepasseDto(Guid Id, Guid VendedorId, string Vendedor, long ValorCents, int Vendas, DateTimeOffset AteVendaEm, DateTimeOffset PagoEm, string? Comprovante);
+public sealed record RepasseDto(Guid Id, Guid VendedorId, string Vendedor, long ValorCents, int Vendas, DateTimeOffset AteVendaEm, DateTimeOffset PagoEm, string? Comprovante,
+    DateTimeOffset? DesfeitoEm = null);
 
 public sealed record NovoRepasse(Guid VendedorId, DateTimeOffset? Ate, string? Comprovante);
 
@@ -48,7 +49,7 @@ public sealed class Comissoes(IBancoDeDados banco, IUsuarioAtual usuario, IConta
             .Where(r => usuario.Papel != Papel.Vendedor || r.VendedorId == usuario.UsuarioId)
             .OrderByDescending(r => r.PagoEm).Take(200).ToListAsync(ct);
         var nomes = await contas.Nomes(repasses.Select(r => r.VendedorId), ct);
-        return repasses.Select(r => new RepasseDto(r.Id, r.VendedorId, nomes.GetValueOrDefault(r.VendedorId, ""), r.ValorCents, r.Vendas, r.AteVendaEm, r.PagoEm, r.Comprovante)).ToList();
+        return repasses.Select(r => new RepasseDto(r.Id, r.VendedorId, nomes.GetValueOrDefault(r.VendedorId, ""), r.ValorCents, r.Vendas, r.AteVendaEm, r.PagoEm, r.Comprovante, r.DesfeitoEm)).ToList();
     }
 
     /// <summary>
@@ -92,5 +93,40 @@ public sealed class Comissoes(IBancoDeDados banco, IUsuarioAtual usuario, IConta
         await banco.SaveChangesAsync(ct);
         await transacao.CommitAsync(ct);
         return new RepasseDto(repasse.Id, vendedor.Id, vendedor.Nome, valor, vendas.Count, ate, agora, repasse.Comprovante);
+    }
+
+    /// <summary>
+    /// Desfaz o último repasse do vendedor, registrado por engano: a comissão
+    /// paga é estornada no razão e as vendas voltam ao próximo repasse. Só o
+    /// último, porque o seguinte foi calculado contando com ele.
+    /// </summary>
+    public async Task Desfazer(Guid repasseId, CancellationToken ct)
+    {
+        await using var transacao = await banco.Database.BeginTransactionAsync(ct);
+        var repasse = await banco.Repasses.SingleOrDefaultAsync(r => r.Id == repasseId, ct) ?? throw new RegraDeNegocioException("Repasse não encontrado.");
+        await banco.TravarVendedor(repasse.VendedorId, ct);
+        if (await banco.Repasses.AnyAsync(r => r.VendedorId == repasse.VendedorId && r.DesfeitoEm == null && r.PagoEm > repasse.PagoEm, ct))
+        {
+            throw new RegraDeNegocioException("Só o último repasse do vendedor se desfaz.");
+        }
+
+        var agora = relogio.GetUtcNow();
+        repasse.Desfazer(agora);
+        foreach (var linha in await banco.Lancamentos.Where(l => l.OrigemId == repasse.Id && l.Tipo == TipoDeLancamento.ComissaoPaga && l.EstornaId == null).ToListAsync(ct))
+        {
+            banco.Lancamentos.Add(linha.Estorno("repasse desfeito", agora));
+        }
+
+        foreach (var venda in await banco.Vendas.Where(v => v.RepasseId == repasse.Id).ToListAsync(ct))
+        {
+            venda.DesmarcarRepasse(repasse.Id);
+        }
+
+        auditoria.Registrar(AcaoAuditada.RepasseDesfeito, "Repasse", repasse.Id.ToString(), $"{repasse.ValorCents} centavos", null);
+        banco.AvisarAoVivo("comissao", repasse.RevendedorId);
+        notificacoes.ParaVendedor(repasse.RevendedorId, repasse.VendedorId, "Repasse desfeito",
+            $"O repasse de R$ {repasse.ValorCents / 100},{repasse.ValorCents % 100:00} foi desfeito pela revenda.", "/vendedor/inicio");
+        await banco.SaveChangesAsync(ct);
+        await transacao.CommitAsync(ct);
     }
 }

@@ -789,6 +789,10 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .HasColumnType("character varying(120)")
                         .HasColumnName("comprovante");
 
+                    b.Property<DateTimeOffset?>("DesfeitoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("desfeito_em");
+
                     b.Property<DateTimeOffset>("PagoEm")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("pago_em");
@@ -1638,6 +1642,11 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("marca_alterada_em");
 
+                    b.Property<string>("MotivoDaSuspensao")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("motivo_da_suspensao");
+
                     b.Property<string>("Nome")
                         .IsRequired()
                         .HasMaxLength(120)
@@ -1665,6 +1674,10 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                     b.Property<int>("RenovacaoBps")
                         .HasColumnType("integer")
                         .HasColumnName("renovacao_bps");
+
+                    b.Property<DateTimeOffset?>("SuspensaEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("suspensa_em");
 
                     b.Property<int>("TaxaAvaliaBps")
                         .HasColumnType("integer")

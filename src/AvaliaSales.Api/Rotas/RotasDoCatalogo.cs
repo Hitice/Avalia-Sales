@@ -58,6 +58,7 @@ public static class RotasDoCatalogo
         servicos.MapGet("/", (Servicos s, CancellationToken ct) => s.Listar(ct));
         servicos.MapPost("/{id:guid}/iniciar", async (Guid id, Servicos s, CancellationToken ct) => { await s.Iniciar(id, ct); return Results.NoContent(); });
         servicos.MapPost("/{id:guid}/entregar", async (Guid id, Servicos s, CancellationToken ct) => { await s.Entregar(id, ct); return Results.NoContent(); });
+        servicos.MapPost("/{id:guid}/reabrir", async (Guid id, Servicos s, CancellationToken ct) => { await s.Reabrir(id, ct); return Results.NoContent(); });
         servicos.MapPost("/{id:guid}/cancelar", async (Guid id, Servicos s, CancellationToken ct) => { await s.Cancelar(id, ct); return Results.NoContent(); });
         servicos.MapPut("/{id:guid}/observacao", async (Guid id, AnotarOrdem pedido, Servicos s, CancellationToken ct) =>
         {

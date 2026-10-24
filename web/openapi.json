@@ -1031,6 +1031,29 @@
         }
       }
     },
+    "/operadora/servicos/{id}/reabrir": {
+      "post": {
+        "tags": [
+          "Servi\u00E7os"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/operadora/servicos/{id}/cancelar": {
       "post": {
         "tags": [
@@ -1705,6 +1728,60 @@
             "in": "query",
             "schema": {
               "$ref": "#/components/schemas/FormatoDaImpressao"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/operadora/revendedores/{id}/suspensao": {
+      "post": {
+        "tags": [
+          "Operadora"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SuspenderRevenda"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Operadora"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
             }
           }
         ],
@@ -2721,6 +2798,29 @@
         }
       }
     },
+    "/repasses/{id}": {
+      "delete": {
+        "tags": [
+          "Revenda"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/razao": {
       "get": {
         "tags": [
@@ -2905,6 +3005,121 @@
         }
       }
     },
+    "/clientes/{id}": {
+      "get": {
+        "tags": [
+          "Revenda"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FichaDoCliente"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Revenda"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlterarCliente"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Revenda"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/clientes/{id}/juncao": {
+      "post": {
+        "tags": [
+          "Revenda"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JuntarClientes"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/clientes/{id}/dados": {
       "get": {
         "tags": [
@@ -2966,6 +3181,39 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/vendas/{id}": {
+      "put": {
+        "tags": [
+          "Revenda"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CorrigirVenda"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
           }
         }
       }
@@ -4022,7 +4270,12 @@
           "EncerramentoPedido",
           "EncerramentoDesistido",
           "ContaEncerrada",
-          "ReaberturaPedida"
+          "ReaberturaPedida",
+          "ClienteAlterado",
+          "ClienteExcluido",
+          "ClientesJuntados",
+          "VendaCorrigida",
+          "RepasseDesfeito"
         ]
       },
       "AjustarProduto": {
@@ -4053,6 +4306,49 @@
         "properties": {
           "ativo": {
             "type": "boolean"
+          }
+        }
+      },
+      "AlterarCliente": {
+        "required": [
+          "nome",
+          "responsavel",
+          "telefone",
+          "documento",
+          "email",
+          "lugarNoGoogle"
+        ],
+        "type": "object",
+        "properties": {
+          "nome": {
+            "type": "string"
+          },
+          "responsavel": {
+            "type": "string"
+          },
+          "telefone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "documento": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "lugarNoGoogle": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -4641,6 +4937,26 @@
           }
         }
       },
+      "CorrigirVenda": {
+        "type": "object",
+        "properties": {
+          "valorCents": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          },
+          "vendedorId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        },
+        "description": "S\u00F3 o que muda: valor digitado errado, vendedor errado."
+      },
       "CupomDto": {
         "required": [
           "id",
@@ -5219,6 +5535,67 @@
           }
         }
       },
+      "FichaDoCliente": {
+        "required": [
+          "id",
+          "nome",
+          "responsavel",
+          "telefone",
+          "documento",
+          "email",
+          "lugarNoGoogle",
+          "criadoEm",
+          "anonimizado",
+          "vendas"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nome": {
+            "type": "string"
+          },
+          "responsavel": {
+            "type": "string"
+          },
+          "telefone": {
+            "type": "string"
+          },
+          "documento": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "lugarNoGoogle": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "criadoEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "anonimizado": {
+            "type": "boolean"
+          },
+          "vendas": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VendaDoCliente"
+            }
+          }
+        }
+      },
       "FichaDto": {
         "required": [
           "codigo",
@@ -5548,6 +5925,19 @@
           }
         },
         "description": "Um produto como a revenda v\u00EA: o do cat\u00E1logo da Avalia com o pre\u00E7o dela.\nId \u00E9 o do produto da Avalia. O produto antigo, de antes\ndo cat\u00E1logo, n\u00E3o aparece: s\u00F3 as vendas feitas com ele continuam apontando para ele."
+      },
+      "JuntarClientes": {
+        "required": [
+          "outro"
+        ],
+        "type": "object",
+        "properties": {
+          "outro": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "description": "O outro cadastro, que sai e passa tudo ao cliente da rota."
       },
       "LancamentoDto": {
         "required": [
@@ -7134,6 +7524,13 @@
               "null",
               "string"
             ]
+          },
+          "desfeitoEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         }
       },
@@ -7265,6 +7662,19 @@
               "string"
             ],
             "format": "date-time"
+          },
+          "suspensaEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "motivoDaSuspensao": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -7409,6 +7819,20 @@
           },
           "emailConfirmado": {
             "type": "boolean"
+          }
+        }
+      },
+      "SuspenderRevenda": {
+        "required": [
+          "motivo"
+        ],
+        "type": "object",
+        "properties": {
+          "motivo": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -7678,6 +8102,59 @@
             "format": "date-time"
           }
         }
+      },
+      "VendaDoCliente": {
+        "required": [
+          "vendaId",
+          "codigo",
+          "produto",
+          "situacao",
+          "estado",
+          "vendidaEm",
+          "venceEm",
+          "valorCents"
+        ],
+        "type": "object",
+        "properties": {
+          "vendaId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "codigo": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "produto": {
+            "type": "string"
+          },
+          "situacao": {
+            "$ref": "#/components/schemas/SituacaoDaVenda"
+          },
+          "estado": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "vendidaEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "venceEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "valorCents": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "description": "Estado - o EstadoDaPlaca de hoje, por nome; nulo na venda de servi\u00E7o."
       },
       "VendaExportada": {
         "required": [

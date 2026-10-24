@@ -8,7 +8,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { mascaraTelefone } from '@/lib/mascaras'
-import { useContratoAssinado, useDefinirRecebedor, useReabertura, useRevendedores } from './consultas'
+import { useContratoAssinado, useDefinirRecebedor, useReabertura, useRevendedores, useSuspensao } from './consultas'
 
 const formatarCnpj = (c: string | null) => c ? c.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5') : '-'
 
@@ -18,6 +18,9 @@ export function TelaDeRevendedores() {
   const recebedor = useDefinirRecebedor()
   const contrato = useContratoAssinado()
   const reabertura = useReabertura()
+  const suspensao = useSuspensao()
+  const [suspendendo, setSuspendendo] = useState<string | null>(null)
+  const [motivo, setMotivo] = useState('')
   const [digitado, setDigitado] = useState<Record<string, string>>({})
 
   return (
@@ -43,7 +46,28 @@ export function TelaDeRevendedores() {
                 <TableBody>
                   {revendedores.data.map((r) => (
                     <TableRow key={r.id}>
-                      <TableCell className="min-w-32 font-medium whitespace-normal">{r.nome}</TableCell>
+                                      <TableCell className="min-w-32 font-medium whitespace-normal">
+                        <span className="block">{r.nome}</span>
+                        {!r.encerradaEm && (r.suspensaEm
+                          ? (
+                              <span className="flex flex-wrap items-center gap-2">
+                                <Badge variant="destructive">Suspensa{r.motivoDaSuspensao ? `: ${r.motivoDaSuspensao}` : ''}</Badge>
+                                <Button variant="ghost" size="sm" disabled={suspensao.isPending} onClick={() => suspensao.mutate({ id: r.id, suspender: false })}>Reativar</Button>
+                              </span>
+                            )
+                          : suspendendo === r.id
+                            ? (
+                                <form className="flex gap-2" onSubmit={(e) => {
+                                  e.preventDefault()
+                                  suspensao.mutate({ id: r.id, suspender: true, motivo: motivo.trim() || null }, { onSuccess: () => { setSuspendendo(null); setMotivo('') } })
+                                }}>
+                                  <Input aria-label="Motivo da suspensão" maxLength={200} placeholder="Motivo (opcional)" value={motivo} onChange={(e) => setMotivo(e.target.value)} />
+                                  <Button type="submit" variant="destructive" size="sm" disabled={suspensao.isPending}>Suspender</Button>
+                                  <Button type="button" variant="ghost" size="sm" onClick={() => setSuspendendo(null)}>Voltar</Button>
+                                </form>
+                              )
+                            : <Button variant="ghost" size="sm" className="px-0 text-destructive" onClick={() => setSuspendendo(r.id)}>Suspender</Button>)}
+                      </TableCell>
                       <TableCell className="tabular-nums">{formatarCnpj(r.cnpj)}</TableCell>
                       <TableCell className="tabular-nums">{r.celular ? mascaraTelefone(r.celular) : '-'}</TableCell>
                       <TableCell className="text-right tabular-nums">{formatarBps(r.taxaAvaliaBps)}</TableCell>

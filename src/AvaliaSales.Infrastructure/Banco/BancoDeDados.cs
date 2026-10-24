@@ -92,6 +92,7 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
 
         modelo.Entity<Revendedor>(r =>
         {
+            r.Property(x => x.MotivoDaSuspensao).HasMaxLength(Revendedor.MotivoMaximo);
             r.ToTable("revendedores");
             r.Property(x => x.Nome).HasMaxLength(Revendedor.NomeMaximo).IsRequired();
             r.Property(x => x.RecebedorPagarme).HasMaxLength(64);

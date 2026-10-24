@@ -9,6 +9,9 @@ namespace AvaliaSales.Api.Rotas;
 
 public sealed record BaixarPlaca(Domain.Placas.MotivoDaBaixa Motivo);
 
+/// <summary>O outro cadastro, que sai e passa tudo ao cliente da rota.</summary>
+public sealed record JuntarClientes(Guid Outro);
+
 public sealed record CancelarVenda(
     Domain.Vendas.MotivoDoCancelamento Motivo = Domain.Vendas.MotivoDoCancelamento.ErroDeCadastro,
     string? Observacao = null,
@@ -129,6 +132,11 @@ public static class RotasDaRevenda
         dono.MapGet("/repasses", (Comissoes comissoes, CancellationToken ct) => comissoes.Repasses(ct));
         dono.MapPost("/repasses", async (NovoRepasse pedido, Comissoes comissoes, CancellationToken ct) =>
             Results.Created("/repasses", await comissoes.Repassar(pedido, ct)));
+        dono.MapDelete("/repasses/{id:guid}", async (Guid id, Comissoes comissoes, CancellationToken ct) =>
+        {
+            await comissoes.Desfazer(id, ct);
+            return Results.NoContent();
+        });
         dono.MapGet("/razao", (string? competencia, Razao razao, CancellationToken ct) => razao.DoMes(competencia, ct));
         dono.MapGet("/razao/meses", (Razao razao, CancellationToken ct) => razao.Meses(ct));
         dono.MapGet("/mapa", (Mapa mapa, CancellationToken ct) => mapa.Lugares(ct));
@@ -144,6 +152,22 @@ public static class RotasDaRevenda
             return Results.File(json, "application/json", $"auditoria-{DateTime.UtcNow:yyyy-MM-dd}.json");
         }).Produces<IReadOnlyList<Application.Auditoria.RegistroDto>>();
         dono.MapGet("/clientes", (string? busca, Application.Clientes.Clientes clientes, CancellationToken ct) => clientes.Listar(busca, ct));
+        dono.MapGet("/clientes/{id:guid}", (Guid id, Application.Clientes.Clientes clientes, CancellationToken ct) => clientes.Ficha(id, ct));
+        dono.MapPut("/clientes/{id:guid}", async (Guid id, Application.Clientes.AlterarCliente pedido, Application.Clientes.Clientes clientes, CancellationToken ct) =>
+        {
+            await clientes.Alterar(id, pedido, ct);
+            return Results.NoContent();
+        });
+        dono.MapDelete("/clientes/{id:guid}", async (Guid id, Application.Clientes.Clientes clientes, CancellationToken ct) =>
+        {
+            await clientes.Excluir(id, ct);
+            return Results.NoContent();
+        });
+        dono.MapPost("/clientes/{id:guid}/juncao", async (Guid id, JuntarClientes pedido, Application.Clientes.Clientes clientes, CancellationToken ct) =>
+        {
+            await clientes.Juntar(id, pedido.Outro, ct);
+            return Results.NoContent();
+        });
         dono.MapGet("/clientes/{id:guid}/dados", async (Guid id, Application.Clientes.Clientes clientes, CancellationToken ct) =>
             Results.Json(await clientes.Exportar(id, ct), contentType: "application/json", statusCode: 200));
         dono.MapPost("/clientes/{id:guid}/anonimizacao", async (Guid id, Application.Clientes.Clientes clientes, CancellationToken ct) =>
@@ -154,6 +178,11 @@ public static class RotasDaRevenda
         dono.MapGet("/mapa/configuracao", (Microsoft.Extensions.Options.IOptions<Infrastructure.Integracoes.Google.OpcoesGoogle> google) =>
             new { Chave = string.IsNullOrWhiteSpace(google.Value.ChaveDoMapa) ? null : google.Value.ChaveDoMapa, google.Value.IdDoMapa });
 
+        dono.MapPut("/vendas/{id:guid}", async (Guid id, Application.Vendas.CorrigirVenda pedido, Application.Vendas.Vendas vendas, CancellationToken ct) =>
+        {
+            await vendas.Corrigir(id, pedido, ct);
+            return Results.NoContent();
+        });
         dono.MapPost("/vendas/{id:guid}/cancelamento", async (Guid id, CancelarVenda pedido, Application.Vendas.Vendas vendas, CancellationToken ct) =>
         {
             await vendas.Cancelar(id, pedido.Motivo, pedido.Observacao, pedido.Placa, ct);

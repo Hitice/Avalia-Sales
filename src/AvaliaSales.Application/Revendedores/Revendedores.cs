@@ -7,7 +7,8 @@ namespace AvaliaSales.Application.Revendedores;
 
 public sealed record RevendedorDto(Guid Id, string Nome, string? Cnpj, int TaxaAvaliaBps, int ComissaoPadraoBps,
     string? RecebedorPagarme, DateTimeOffset? ContratoAssinadoEm, DateTimeOffset CriadoEm, int RenovacaoBps, string? Celular,
-    bool TemEndereco, DateTimeOffset? EncerramentoPedidoEm, DateTimeOffset? EncerradaEm, DateTimeOffset? ReaberturaPedidaEm);
+    bool TemEndereco, DateTimeOffset? EncerramentoPedidoEm, DateTimeOffset? EncerradaEm, DateTimeOffset? ReaberturaPedidaEm,
+    DateTimeOffset? SuspensaEm = null, string? MotivoDaSuspensao = null);
 
 public sealed record MinhaRevenda(RevendedorDto Revendedor, SituacaoDoContrato? Contrato);
 
@@ -18,7 +19,7 @@ public sealed class Revendedores(IBancoDeDados banco, IRevendedorAtual atual, Eq
     public async Task<IReadOnlyList<RevendedorDto>> Listar(CancellationToken ct) =>
         await banco.Revendedores.AsNoTracking().OrderBy(r => r.Nome)
             .Select(r => new RevendedorDto(r.Id, r.Nome, r.Cnpj, r.TaxaAvaliaBps, r.ComissaoPadraoBps, r.RecebedorPagarme, r.ContratoAssinadoEm, r.CriadoEm, r.RenovacaoBps, r.Celular,
-                r.Endereco != null, r.EncerramentoPedidoEm, r.EncerradaEm, r.ReaberturaPedidaEm))
+                r.Endereco != null, r.EncerramentoPedidoEm, r.EncerradaEm, r.ReaberturaPedidaEm, r.SuspensaEm, r.MotivoDaSuspensao))
             .ToListAsync(ct);
 
     public async Task<MinhaRevenda> DoUsuario(CancellationToken ct)
@@ -31,8 +32,25 @@ public sealed class Revendedores(IBancoDeDados banco, IRevendedorAtual atual, Eq
             .FirstOrDefaultAsync(ct);
         return new MinhaRevenda(
             new RevendedorDto(r.Id, r.Nome, r.Cnpj, r.TaxaAvaliaBps, r.ComissaoPadraoBps, r.RecebedorPagarme, r.ContratoAssinadoEm, r.CriadoEm, r.RenovacaoBps, r.Celular,
-                r.Endereco is not null, r.EncerramentoPedidoEm, r.EncerradaEm, r.ReaberturaPedidaEm),
+                r.Endereco is not null, r.EncerramentoPedidoEm, r.EncerradaEm, r.ReaberturaPedidaEm, r.SuspensaEm, r.MotivoDaSuspensao),
             contrato);
+    }
+
+    /// <summary>Pela operadora: o dono é avisado no sino, com o motivo.</summary>
+    public async Task Suspender(Guid id, string? motivo, CancellationToken ct)
+    {
+        var revendedor = await Achar(id, ct);
+        revendedor.Suspender(motivo, relogio.GetUtcNow());
+        notificacoes.ParaDono(revendedor.Id, "Revenda suspensa", revendedor.MotivoDaSuspensao ?? "Fale com o suporte da Avalia.", "/painel/suporte");
+        await banco.SaveChangesAsync(ct);
+    }
+
+    public async Task Reativar(Guid id, CancellationToken ct)
+    {
+        var revendedor = await Achar(id, ct);
+        revendedor.Reativar();
+        notificacoes.ParaDono(revendedor.Id, "Revenda reativada", "As vendas e os pedidos de placas estão liberados de novo.", "/painel/inicio");
+        await banco.SaveChangesAsync(ct);
     }
 
     public async Task DefinirRecebedor(Guid id, string recebedor, CancellationToken ct)

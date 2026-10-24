@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { FichaDoCliente } from './FichaDoCliente'
 
 type Cliente = { id: string; nome: string; responsavel: string; telefone: string; documento: string | null; email: string | null; placas: number; criadoEm: string; anonimizado: boolean }
 
@@ -21,6 +22,7 @@ export function TelaDeClientes() {
   const [busca, setBusca] = useState('')
   const [confirmando, setConfirmando] = useState<string | null>(null)
   const [erro, setErro] = useState<unknown>(null)
+  const [aberto, setAberto] = useState<string | null>(null)
   const clientes = useQuery({ queryKey: ['clientes', busca], queryFn: () => chamarApi<Cliente[]>(`/clientes?busca=${encodeURIComponent(busca)}`) })
   const anonimizar = useMutation({
     mutationFn: (id: string) => chamarApi(`/clientes/${id}/anonimizacao`, enviarJson('POST', {})),
@@ -70,7 +72,9 @@ export function TelaDeClientes() {
                   {clientes.data.map((c) => (
                     <TableRow key={c.id}>
                       <TableCell>
-                        <p className="font-medium">{c.nome} {c.anonimizado && <Badge variant="outline">Anonimizado</Badge>}</p>
+                        <button type="button" className="text-left font-medium underline-offset-4 hover:underline" onClick={() => setAberto(c.id)}>
+                          {c.nome} {c.anonimizado && <Badge variant="outline">Anonimizado</Badge>}
+                        </button>
                         {!c.anonimizado && <p className="text-xs text-muted-foreground">{c.responsavel}{c.email ? `, ${c.email}` : ''}</p>}
                       </TableCell>
                       <TableCell className="tabular-nums">{c.telefone ? formatarTelefone(c.telefone) : '-'}</TableCell>
@@ -99,6 +103,10 @@ export function TelaDeClientes() {
           )}
         </CardContent>
       </Card>
+      {aberto && (
+        <FichaDoCliente id={aberto} aoFechar={() => setAberto(null)}
+          outros={(clientes.data ?? []).filter((c) => c.id !== aberto && !c.anonimizado).map((c) => ({ id: c.id, nome: c.nome }))} />
+      )}
     </>
   )
 }

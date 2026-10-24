@@ -10,6 +10,8 @@ namespace AvaliaSales.Api.Rotas;
 
 public sealed record ArquivarLote(bool Arquivado);
 
+public sealed record SuspenderRevenda(string? Motivo);
+
 /// <summary>Retirada: a revenda busca a caixa na Avalia, sem envio.</summary>
 public sealed record DespacharPedido(int Lote, bool Retirada = false);
 
@@ -76,6 +78,16 @@ public static class RotasDaOperadora
             return Results.File(zip, "application/zip", $"lote-{impressao.Rotulo.ToLowerInvariant()}.zip");
         });
 
+        operadora.MapPost("/revendedores/{id:guid}/suspensao", async (Guid id, SuspenderRevenda pedido, Revendedores revendedores, CancellationToken ct) =>
+        {
+            await revendedores.Suspender(id, pedido.Motivo, ct);
+            return Results.NoContent();
+        });
+        operadora.MapDelete("/revendedores/{id:guid}/suspensao", async (Guid id, Revendedores revendedores, CancellationToken ct) =>
+        {
+            await revendedores.Reativar(id, ct);
+            return Results.NoContent();
+        });
         operadora.MapGet("/pedidos", (PedidosDePlacas pedidos, CancellationToken ct) => pedidos.Listar(ct));
         operadora.MapPost("/pedidos/{id:guid}/pagamento", async (Guid id, PedidosDePlacas pedidos, CancellationToken ct) =>
         {

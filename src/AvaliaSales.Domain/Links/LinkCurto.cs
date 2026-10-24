@@ -28,6 +28,8 @@ public sealed class LinkCurto : IDoRevendedor
 
     private LinkCurto() => Codigo = Titulo = Destino = string.Empty;
 
+    public void PassarAoCliente(Guid clienteId) => ClienteId = ClienteId is null ? null : clienteId;
+
     /// <summary>O destino chega já conferido por <see cref="Placas.Destino.Conferir"/>.</summary>
     public LinkCurto(string codigo, string titulo, string destino, Guid? clienteId, DateTimeOffset agora)
     {

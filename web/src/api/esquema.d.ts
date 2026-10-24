@@ -1443,6 +1443,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/operadora/servicos/{id}/reabrir": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/operadora/servicos/{id}/cancelar": {
         parameters: {
             query?: never;
@@ -2272,6 +2307,64 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/operadora/revendedores/{id}/suspensao": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SuspenderRevenda"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
@@ -3744,6 +3837,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/repasses/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/razao": {
         parameters: {
             query?: never;
@@ -3965,6 +4093,124 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/clientes/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FichaDoCliente"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AlterarCliente"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clientes/{id}/juncao": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["JuntarClientes"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/clientes/{id}/dados": {
         parameters: {
             query?: never;
@@ -4063,6 +4309,45 @@ export interface paths {
             };
         };
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/vendas/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CorrigirVenda"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         post?: never;
         delete?: never;
         options?: never;
@@ -5430,7 +5715,7 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /** @enum {unknown} */
-        AcaoAuditada: "DestinoDefinido" | "DestinoTrocado" | "PlacaSuspensa" | "PlacaNoAr" | "PlacaTrocada" | "VendaCancelada" | "VendaEmCortesia" | "RecebidoPorFora" | "RecebimentoDesfeito" | "VendedorCadastrado" | "VendedorAlterado" | "VendedorDesativado" | "VendedorReativado" | "VendedorExcluido" | "ComissaoPadraoAlterada" | "ProdutoAlterado" | "RepasseRegistrado" | "ClienteAnonimizado" | "MarcaAlterada" | "LinkAlterado" | "LinkExcluido" | "SegundoFatorLigado" | "SegundoFatorDesligado" | "EmpresaAlterada" | "EncerramentoPedido" | "EncerramentoDesistido" | "ContaEncerrada" | "ReaberturaPedida";
+        AcaoAuditada: "DestinoDefinido" | "DestinoTrocado" | "PlacaSuspensa" | "PlacaNoAr" | "PlacaTrocada" | "VendaCancelada" | "VendaEmCortesia" | "RecebidoPorFora" | "RecebimentoDesfeito" | "VendedorCadastrado" | "VendedorAlterado" | "VendedorDesativado" | "VendedorReativado" | "VendedorExcluido" | "ComissaoPadraoAlterada" | "ProdutoAlterado" | "RepasseRegistrado" | "ClienteAnonimizado" | "MarcaAlterada" | "LinkAlterado" | "LinkExcluido" | "SegundoFatorLigado" | "SegundoFatorDesligado" | "EmpresaAlterada" | "EncerramentoPedido" | "EncerramentoDesistido" | "ContaEncerrada" | "ReaberturaPedida" | "ClienteAlterado" | "ClienteExcluido" | "ClientesJuntados" | "VendaCorrigida" | "RepasseDesfeito";
         AjustarProduto: {
             /** Format: int64 */
             precoCents: number;
@@ -5439,6 +5724,14 @@ export interface components {
         };
         AlterarAtivo: {
             ativo: boolean;
+        };
+        AlterarCliente: {
+            nome: string;
+            responsavel: string;
+            telefone: null | string;
+            documento: null | string;
+            email: null | string;
+            lugarNoGoogle: null | string;
         };
         /** @description Sem endereço, fica o que está gravado. */
         AlterarEmpresa: {
@@ -5592,6 +5885,13 @@ export interface components {
             /** Format: int32 */
             quantidade: null | number;
         };
+        /** @description Só o que muda: valor digitado errado, vendedor errado. */
+        CorrigirVenda: {
+            /** Format: int64 */
+            valorCents?: null | number;
+            /** Format: uuid */
+            vendedorId?: null | string;
+        };
         CupomDto: {
             /** Format: uuid */
             id: string;
@@ -5733,6 +6033,20 @@ export interface components {
             /** Format: date-time */
             reaberturaPedidaEm: null | string;
         };
+        FichaDoCliente: {
+            /** Format: uuid */
+            id: string;
+            nome: string;
+            responsavel: string;
+            telefone: string;
+            documento: null | string;
+            email: null | string;
+            lugarNoGoogle: null | string;
+            /** Format: date-time */
+            criadoEm: string;
+            anonimizado: boolean;
+            vendas: components["schemas"]["VendaDoCliente"][];
+        };
         FichaDto: {
             codigo: string;
             endereco: string;
@@ -5824,6 +6138,11 @@ export interface components {
             /** Format: int64 */
             pisoCents: number;
             ativo: boolean;
+        };
+        /** @description O outro cadastro, que sai e passa tudo ao cliente da rota. */
+        JuntarClientes: {
+            /** Format: uuid */
+            outro: string;
         };
         LancamentoDto: {
             /** Format: uuid */
@@ -6269,6 +6588,8 @@ export interface components {
             /** Format: date-time */
             pagoEm: string;
             comprovante: null | string;
+            /** Format: date-time */
+            desfeitoEm?: null | string;
         };
         ResumoDoMes: {
             competencia: string;
@@ -6306,6 +6627,9 @@ export interface components {
             encerradaEm: null | string;
             /** Format: date-time */
             reaberturaPedidaEm: null | string;
+            /** Format: date-time */
+            suspensaEm?: null | string;
+            motivoDaSuspensao?: null | string;
         };
         SaldoDeComissao: {
             /** Format: uuid */
@@ -6343,6 +6667,9 @@ export interface components {
             ligado: boolean;
             meio: null | components["schemas"]["MeioDoSegundoFator"];
             emailConfirmado: boolean;
+        };
+        SuspenderRevenda: {
+            motivo: null | string;
         };
         /** @enum {unknown} */
         TipoDeDestino: "Google" | "Link";
@@ -6414,6 +6741,21 @@ export interface components {
             testeExpiradoEm?: null | string;
             /** Format: date-time */
             testeConvertidoEm?: null | string;
+        };
+        /** @description Estado - o EstadoDaPlaca de hoje, por nome; nulo na venda de serviço. */
+        VendaDoCliente: {
+            /** Format: uuid */
+            vendaId: string;
+            codigo: null | string;
+            produto: string;
+            situacao: components["schemas"]["SituacaoDaVenda"];
+            estado: null | string;
+            /** Format: date-time */
+            vendidaEm: string;
+            /** Format: date-time */
+            venceEm: null | string;
+            /** Format: int64 */
+            valorCents: number;
         };
         VendaExportada: {
             /** Format: date-time */

@@ -65,6 +65,16 @@ public sealed class Revendedor
     /// <summary>A última reabertura aprovada. Contrato de antes dela não vale: a revenda assina outro.</summary>
     public DateTimeOffset? ReabertaEm { get; private set; }
 
+    public const int MotivoMaximo = 200;
+
+    /// <summary>
+    /// A Avalia suspendeu a revenda: ela não vende nem pede placas até a
+    /// reativação. As placas vendidas continuam no ar, porque são do cliente.
+    /// </summary>
+    public DateTimeOffset? SuspensaEm { get; private set; }
+
+    public string? MotivoDaSuspensao { get; private set; }
+
     public DateTimeOffset CriadoEm { get; private set; } = DateTimeOffset.UtcNow;
 
     private Revendedor() => Nome = string.Empty;
@@ -165,6 +175,33 @@ public sealed class Revendedor
 
     /// <summary>Pela D4Sign, ou pela operadora quando o contrato foi assinado em papel.</summary>
     public void RegistrarContratoAssinado(DateTimeOffset quando) => ContratoAssinadoEm ??= quando;
+
+    public void Suspender(string? motivo, DateTimeOffset agora)
+    {
+        if (EncerradaEm is not null)
+        {
+            throw new RegraDeNegocioException("A conta desta revenda está encerrada.");
+        }
+
+        var texto = string.IsNullOrWhiteSpace(motivo) ? null : motivo.Trim();
+        MotivoDaSuspensao = texto is null || texto.Length <= MotivoMaximo ? texto : throw new RegraDeNegocioException($"O motivo tem até {MotivoMaximo} caracteres.");
+        SuspensaEm ??= agora;
+    }
+
+    public void Reativar()
+    {
+        SuspensaEm = null;
+        MotivoDaSuspensao = null;
+    }
+
+    /// <summary>A trava da venda e do pedido de placas.</summary>
+    public void ExigirAtiva()
+    {
+        if (SuspensaEm is not null)
+        {
+            throw new RegraDeNegocioException("A revenda está suspensa pela Avalia. Fale com o suporte.");
+        }
+    }
 
     public void DefinirEndereco(Endereco endereco) => Endereco = endereco;
 

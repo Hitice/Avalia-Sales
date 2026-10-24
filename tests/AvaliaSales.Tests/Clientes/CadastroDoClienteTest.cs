@@ -1,0 +1,72 @@
+using System.Net;
+using AvaliaSales.Tests.Apoio;
+
+namespace AvaliaSales.Tests.Clientes;
+
+/// <summary>O cadastro do cliente pelo dono: ficha, edição, exclusão e junção de duplicados; e a venda corrigida.</summary>
+[Collection(ColecaoDaApi.Nome)]
+public sealed class CadastroDoClienteTest(ApiDeTeste api)
+{
+    private static CancellationToken Ct => TestContext.Current.CancellationToken;
+
+    private static async Task<Guid> ClienteDe(HttpClient dono, string telefone) =>
+        (await dono.Pegar($"/clientes?busca={telefone}")).EnumerateArray().Single().GetProperty("id").GetGuid();
+
+    private static async Task<Guid> VendaDe(HttpClient dono, string codigo) =>
+        (await dono.Pegar("/vendas")).EnumerateArray().Single(v => v.GetProperty("codigo").GetString() == codigo).GetProperty("id").GetGuid();
+
+    [Fact]
+    public async Task Dono_edita_o_cliente_ve_a_ficha_e_junta_o_cadastro_duplicado()
+    {
+        var revenda = await api.RevendaComEstoque("Revenda do Cadastro de Cliente");
+        await revenda.Dono.Postar("/vendas", Cenarios.Venda(revenda.Codigos[0], revenda.ProdutoId, "34999990031"), HttpStatusCode.Created);
+        await revenda.Dono.Postar("/vendas", Cenarios.Venda(revenda.Codigos[1], revenda.ProdutoId, "34999990032", documento: null), HttpStatusCode.Created);
+        var fica = await ClienteDe(revenda.Dono, "34999990031");
+        var sai = await ClienteDe(revenda.Dono, "34999990032");
+
+        await revenda.Dono.Colocar($"/clientes/{sai}", new { nome = "Padaria Pão Quente Filial", responsavel = "Marta", telefone = "+55 34 99999-0032", documento = (string?)null,
+            email = "filial@padaria.com.br", lugarNoGoogle = "ChIJFilial" }, HttpStatusCode.NoContent);
+        await revenda.Dono.Colocar($"/clientes/{sai}", new { nome = "Padaria", responsavel = "Marta", telefone = "34999990032", documento = "11222333000181",
+            email = (string?)null, lugarNoGoogle = (string?)null }, HttpStatusCode.UnprocessableEntity);
+
+        var ficha = await revenda.Dono.Pegar($"/clientes/{sai}");
+        Assert.Equal(("Padaria Pão Quente Filial", "34999990032", "ChIJFilial"),
+            (ficha.GetProperty("nome").GetString(), ficha.GetProperty("telefone").GetString(), ficha.GetProperty("lugarNoGoogle").GetString()));
+        Assert.Equal(revenda.Codigos[1], ficha.GetProperty("vendas").EnumerateArray().Single().GetProperty("codigo").GetString());
+
+        // Cliente com venda não se exclui; junta-se.
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await revenda.Dono.DeleteAsync($"/clientes/{sai}", Ct)).StatusCode);
+        await revenda.Dono.Postar($"/clientes/{fica}/juncao", new { outro = sai }, HttpStatusCode.NoContent);
+
+        var juntado = await revenda.Dono.Pegar($"/clientes/{fica}");
+        Assert.Equal(2, juntado.GetProperty("vendas").GetArrayLength());
+        // O que fica não perde o que já tinha: o lugar dele continua.
+        Assert.Equal("ChIJ0123456789abc", juntado.GetProperty("lugarNoGoogle").GetString());
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, (await revenda.Dono.GetAsync($"/clientes/{sai}", Ct)).StatusCode);
+    }
+
+    [Fact]
+    public async Task Venda_corrigida_muda_o_valor_so_sem_cobranca_e_passa_a_comissao_ao_vendedor_certo()
+    {
+        var revenda = await api.RevendaComEstoque("Revenda da Venda Corrigida");
+        var email = $"vendedor-{Guid.NewGuid():N}@teste.com.br";
+        var bia = (await revenda.Dono.Postar("/equipe", new { nome = "Bia", email, senha = ApiDeTeste.Senha, comissaoBps = 2_500 }, HttpStatusCode.Created)).GetProperty("id").GetGuid();
+        var codigo = revenda.Codigos[2];
+        await revenda.Dono.Postar("/vendas", Cenarios.Venda(codigo, revenda.ProdutoId, "34999990033"), HttpStatusCode.Created);
+        var venda = await VendaDe(revenda.Dono, codigo);
+
+        // Com Pix em aberto o valor não muda.
+        await revenda.Dono.Colocar($"/vendas/{venda}", new { valorCents = 19_990L }, HttpStatusCode.UnprocessableEntity);
+        await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
+        await banco.Contar($"update cobrancas set situacao = 'Cancelada' where origem_id = '{venda}' returning 1");
+        await revenda.Dono.Colocar($"/vendas/{venda}", new { valorCents = 19_990L }, HttpStatusCode.NoContent);
+
+        // Recebida no balcão pelo dono, sem comissão; depois passada à Bia, que comissiona 25%.
+        await revenda.Dono.Postar($"/vendas/{venda}/recebimento", new { meio = "Dinheiro" }, HttpStatusCode.NoContent);
+        await revenda.Dono.Colocar($"/vendas/{venda}", new { vendedorId = bia }, HttpStatusCode.NoContent);
+
+        var lista = (await revenda.Dono.Pegar("/vendas")).EnumerateArray().Single(v => v.GetProperty("id").GetGuid() == venda);
+        Assert.Equal((19_990L, bia, 4_998L), (lista.GetProperty("valorCents").GetInt64(), lista.GetProperty("vendedorId").GetGuid(), lista.GetProperty("comissaoCents").GetInt64()));
+        Assert.Equal(-4_998, await banco.Contar($"select coalesce(sum(valor_cents), 0) from lancamentos where venda_id = '{venda}' and tipo = 'ComissaoDevida' and vendedor_id = '{bia}'"));
+    }
+}

@@ -10,7 +10,7 @@ import { Field, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { formatarCentavos } from '@/dinheiro/dinheiro'
-import { useRepassar, useRepasses, useSaldosDeComissao } from './consultas'
+import { useDesfazerRepasse, useRepassar, useRepasses, useSaldosDeComissao } from './consultas'
 
 /**
  * O saldo de comissão de cada vendedor e o registro do Pix feito a ele. A
@@ -20,6 +20,16 @@ import { useRepassar, useRepasses, useSaldosDeComissao } from './consultas'
 export function TelaDeComissoes() {
   const saldos = useSaldosDeComissao()
   const repasses = useRepasses()
+  const desfazer = useDesfazerRepasse()
+  // Só o último de cada vendedor se desfaz: o seguinte foi calculado contando com ele.
+  // A lista vem do mais recente: o primeiro não desfeito de cada vendedor é o último dele.
+  const ultimos = new Set<string>()
+  const vistos = new Set<string>()
+  for (const r of repasses.data ?? []) {
+    if (r.desfeitoEm || vistos.has(r.vendedorId)) continue
+    vistos.add(r.vendedorId)
+    ultimos.add(r.id)
+  }
   const repassar = useRepassar()
   const [escolhido, setEscolhido] = useState<SaldoDeComissao | null>(null)
   const [ate, setAte] = useState('')
@@ -79,6 +89,7 @@ export function TelaDeComissoes() {
                       <TableHead className="text-right">Vendas</TableHead>
                       <TableHead>Até as vendas de</TableHead>
                       <TableHead>Comprovante</TableHead>
+                      <TableHead><span className="sr-only">Ações</span></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -90,6 +101,11 @@ export function TelaDeComissoes() {
                         <TableCell className="text-right tabular-nums">{r.vendas}</TableCell>
                         <TableCell>{formatarData(r.ateVendaEm)}</TableCell>
                         <TableCell>{r.comprovante ?? '-'}</TableCell>
+                        <TableCell className="text-right">
+                          {r.desfeitoEm
+                            ? <span className="text-sm text-muted-foreground">Desfeito</span>
+                            : ultimos.has(r.id) && <Button variant="ghost" size="sm" disabled={desfazer.isPending} onClick={() => desfazer.mutate(r.id)}>Desfazer</Button>}
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

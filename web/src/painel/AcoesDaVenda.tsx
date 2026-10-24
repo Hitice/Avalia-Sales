@@ -8,8 +8,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { formatarCentavos } from '@/dinheiro/dinheiro'
-import { useCancelarVenda, useCortesia, useDesfazerRecebimento, useReceberPorFora, useTrocarPlaca } from './consultas'
+import { formatarCentavos, paraCentavos } from '@/dinheiro/dinheiro'
+import { useCancelarVenda, useCorrigirVenda, useCortesia, useDesfazerRecebimento, useEquipe, useReceberPorFora, useTrocarPlaca } from './consultas'
 
 type Acao = 'Dinheiro' | 'OutroPix' | 'desfazer' | 'cortesia' | 'cancelar'
 
@@ -51,7 +51,11 @@ export function AcoesDaVenda({ venda, dono }: { venda: VendaDaLista; dono: boole
   const cancelar = useCancelarVenda()
   const cortesia = useCortesia()
   const trocar = useTrocarPlaca()
-  const mutacoes = [receber, desfazer, cancelar, cortesia, trocar]
+  const corrigir = useCorrigirVenda()
+  const equipe = useEquipe()
+  const [novoValor, setNovoValor] = useState('')
+  const [novoVendedor, setNovoVendedor] = useState('')
+  const mutacoes = [receber, desfazer, cancelar, cortesia, trocar, corrigir]
   const ocupado = mutacoes.some((m) => m.isPending)
   const erro = mutacoes.find((m) => m.error)?.error
 
@@ -74,6 +78,8 @@ export function AcoesDaVenda({ venda, dono }: { venda: VendaDaLista; dono: boole
     setPorque('ErroDeCadastro')
     setPlacaVolta('VoltaAoEstoque')
     setObservacao('')
+    setNovoValor('')
+    setNovoVendedor('')
     mutacoes.forEach((m) => m.reset())
   }
   const feito = { onSuccess: () => fechar(false) }
@@ -160,6 +166,25 @@ export function AcoesDaVenda({ venda, dono }: { venda: VendaDaLista; dono: boole
                   <Button type="submit" variant="outline" disabled={ocupado || codigo.trim().length < 6}>Trocar</Button>
                 </div>
                 <p className="text-xs text-muted-foreground">A placa {venda.codigo} será encerrada.</p>
+              </form>
+            )}
+            {podeCancelar && (
+              <form
+                className="grid gap-2"
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  corrigir.mutate({ vendaId: venda.id, valorCents: novoValor.trim() ? paraCentavos(novoValor) : null, vendedorId: novoVendedor || null }, feito)
+                }}
+              >
+                <Label htmlFor={`valor-${venda.id}`}>Corrigir a venda</Label>
+                <div className="flex gap-2">
+                  <Input id={`valor-${venda.id}`} inputMode="decimal" placeholder={formatarCentavos(venda.valorCents)} value={novoValor} onChange={(e) => setNovoValor(e.target.value)} disabled={viva} />
+                  <Select value={novoVendedor} onValueChange={setNovoVendedor}>
+                    <SelectTrigger aria-label="Vendedor" className="w-full"><SelectValue placeholder={venda.vendedor} /></SelectTrigger>
+                    <SelectContent>{(equipe.data ?? []).filter((v) => v.ativo && v.id !== venda.vendedorId).map((v) => <SelectItem key={v.id} value={v.id}>{v.nome}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <Button type="submit" variant="outline" className="justify-self-start" disabled={ocupado || (!novoValor.trim() && !novoVendedor) || (!!novoValor.trim() && paraCentavos(novoValor) === null)}>Salvar a correção</Button>
               </form>
             )}
             {(podeDesfazerVenda || podeCancelar) && (

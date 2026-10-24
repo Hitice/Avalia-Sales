@@ -65,6 +65,9 @@ export const useSaldosDeComissao = () => useQuery({ queryKey: ['comissoes'], que
 export const useRepasses = () => useQuery({ queryKey: ['repasses'], queryFn: () => chamarApi<Repasse[]>('/repasses') })
 export const useRepassar = () =>
   useGravar((r: { vendedorId: string; ate: string | null; comprovante: string | null }) => chamarApi<Repasse>('/repasses', enviarJson('POST', r)), ['comissoes', 'repasses', 'razao'])
+export const useCorrigirVenda = () =>
+  useGravar(({ vendaId, ...c }: { vendaId: string; valorCents: number | null; vendedorId: string | null }) => chamarApi(`/vendas/${vendaId}`, enviarJson('PUT', c)), [...VENDA_MUDOU, 'comissoes', 'razao'])
+export const useDesfazerRepasse = () => useGravar((id: string) => chamarApi(`/repasses/${id}`, { method: 'DELETE' }), ['comissoes', 'repasses', 'razao', 'vendas'])
 export const useRazao = (competencia: string | undefined) =>
   useQuery({ queryKey: ['razao', competencia], queryFn: () => chamarApi<ResumoDoMes>(`/razao${competencia ? `?competencia=${competencia}` : ''}`) })
 export const useMesesDoRazao = () => useQuery({ queryKey: ['razao', 'meses'], queryFn: () => chamarApi<string[]>('/razao/meses') })

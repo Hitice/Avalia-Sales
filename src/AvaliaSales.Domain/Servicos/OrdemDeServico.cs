@@ -75,6 +75,17 @@ public sealed class OrdemDeServico : IAtendidoPelaOperadora
         Situacao = SituacaoDaOrdem.Cancelada;
     }
 
+    /// <summary>Entrega ou cancelamento marcado por engano: a entregue volta ao andamento, a cancelada à fila.</summary>
+    public void Reabrir()
+    {
+        (Situacao, EntregueEm) = Situacao switch
+        {
+            SituacaoDaOrdem.Entregue => (SituacaoDaOrdem.EmAndamento, (DateTimeOffset?)null),
+            SituacaoDaOrdem.Cancelada => (SituacaoDaOrdem.AFazer, (DateTimeOffset?)null),
+            _ => throw new RegraDeNegocioException("Só a ordem entregue ou cancelada se reabre."),
+        };
+    }
+
     public void Anotar(string? observacao)
     {
         observacao = observacao?.Trim();

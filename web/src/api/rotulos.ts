@@ -137,4 +137,9 @@ export const ROTULO_DA_ACAO: Record<AcaoAuditada, string> = {
   EncerramentoDesistido: 'Encerramento desistido',
   ContaEncerrada: 'Conta encerrada',
   ReaberturaPedida: 'Reabertura pedida',
+  ClienteAlterado: 'Cliente alterado',
+  ClienteExcluido: 'Cliente excluído',
+  ClientesJuntados: 'Clientes juntados',
+  VendaCorrigida: 'Venda corrigida',
+  RepasseDesfeito: 'Repasse desfeito',
 }

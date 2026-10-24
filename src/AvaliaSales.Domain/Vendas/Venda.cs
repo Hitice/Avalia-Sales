@@ -173,6 +173,28 @@ public sealed class Venda : IDoRevendedor
         CanceladaEm = agora;
     }
 
+    /// <summary>Valor digitado errado, antes de qualquer cobrança: as mesmas travas da venda.</summary>
+    public void CorrigirValor(long valorCents)
+    {
+        if (Cortesia)
+        {
+            throw new RegraDeNegocioException("Venda de cortesia não tem valor.");
+        }
+
+        ConferirValor(valorCents, TabelaCents);
+        ValorCents = valorCents;
+    }
+
+    /// <summary>Venda lançada no nome errado: passa ao vendedor certo, com a comissão dele.</summary>
+    public void TrocarVendedor(Guid vendedorId, int comissaoBps)
+    {
+        VendedorId = vendedorId;
+        ComissaoBps = Cortesia ? 0 : Comissao.Conferir(comissaoBps);
+    }
+
+    /// <summary>Dois cadastros do mesmo cliente juntados: a venda passa ao que fica.</summary>
+    public void PassarAoCliente(Guid clienteId) => ClienteId = clienteId;
+
     public void IniciarTeste(DateTimeOffset agora) => TesteAte = agora.AddDays(DiasDeTeste);
 
     public void AvisarFimDoTeste(DateTimeOffset agora) => TesteAvisadoEm ??= agora;
@@ -200,6 +222,8 @@ public sealed class Venda : IDoRevendedor
     }
 
     public void TrocarPlaca(Guid novaPlacaId) => PlacaId = novaPlacaId;
+
+    public void DesmarcarRepasse(Guid repasseId) => RepasseId = RepasseId == repasseId ? null : RepasseId;
 
     public void MarcarRepassada(Guid repasseId) =>
         RepasseId = RepasseId is null ? repasseId : throw new InvalidOperationException($"A comissão da venda {Id} já foi repassada.");

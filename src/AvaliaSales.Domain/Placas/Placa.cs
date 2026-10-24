@@ -328,6 +328,8 @@ public sealed class Placa : IDoRevendedor
         BaixadaEm = null;
     }
 
+    public void PassarAoCliente(Guid clienteId) => ClienteDaTransferenciaId = ClienteDaTransferenciaId is null ? null : clienteId;
+
     /// <summary>Volta ao lote em que foi impressa, quando veio de outro sistema num lote só.</summary>
     public void MoverParaOLote(Guid loteId) => LoteId = loteId;
 
