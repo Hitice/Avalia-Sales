@@ -6,8 +6,8 @@ vende placas com QR Code e NFC, que levam o cliente à avaliação no Google ou 
 link, e serviços que a operadora executa. Cada revenda trabalha com a própria
 marca (white label), a própria equipe e o próprio caixa.
 
-A stack em produção, com a situação de cada peça e os fluxos da venda, da
-arquitetura e da publicação, está em
+A apresentação da plataforma, com a produção lida ao vivo, a venda passo a
+passo, a arquitetura, as decisões técnicas e onde conferir cada uma, está em
 [sales.avaliaone.com.br/now](https://sales.avaliaone.com.br/now). A versão
 publicada aparece no rodapé do app e segue o `version` de `web/package.json`.
 
