@@ -29,6 +29,8 @@ const preview: Preview = {
     (Historia, contexto) => {
       const marca = MARCAS[contexto.globals.marca as keyof typeof MARCAS] ?? null
       useEffect(() => aplicarMarca(marca), [marca])
+      // A moldura do app ocupa a janela inteira: sem a margem das outras histórias.
+      if (contexto.parameters.semMargem) return <Historia />
       return <div className="bg-background p-4 text-foreground"><Historia /></div>
     },
   ],

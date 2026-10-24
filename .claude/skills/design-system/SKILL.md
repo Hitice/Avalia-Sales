@@ -63,6 +63,9 @@ Cabeçalho: logo (ou nome) à esquerda e, à direita, o sino de notificações
 (dono e operadora, com o número de não lidas) e o menu da conta (iniciais
 num círculo, nome a partir de `md`) com Meus dados, Segurança e Sair. O nome
 lido do botão é "Conta de Fulano", com o nome visível dentro (WCAG 2.5.3).
+No computador, o logo fica na célula do topo do painel lateral (mesma largura
+e borda) e o menu da conta passa para o pé do painel; o cabeçalho fica só com
+o sino.
 
 Gráfico: série única em `--chart-1`, nunca a primária crua (escura demais para marca
 de dado), barras finas com ponta arredondada, grade só horizontal, tooltip ao passar
@@ -77,9 +80,10 @@ aparece sem o dado. Logo da revenda passa pela caixa de recorte
 com a imagem inteira enquadrada.
 
 Logo da plataforma em `web/public/marca`, em SVG e com o texto em curvas:
-`avaliasales.svg` (gauge e "AvaliaSales") só nas telas de entrada (entrar,
-cadastro, senha), pelo `MarcaAvalia`; `gauge.svg` no cabeçalho de quem não tem
-logo próprio; `favicon.svg` é o gauge com o ponteiro claro em aba escura. O
+`avaliasales.svg` (gauge e "AvaliaSales") nas telas de entrada (entrar,
+cadastro, senha) e no topo do painel lateral de quem não tem logo nem nome
+próprio, pelo `MarcaAvalia`; `gauge.svg` no cabeçalho do celular e do tablet
+de quem não tem logo próprio; `favicon.svg` é o gauge com o ponteiro claro em aba escura. O
 "Avalia" e o gauge vêm do logo da Avalia; o "Sales" é Ubuntu Medium na escala do
 "One" original. Revenda com logo usa o dela no cabeçalho.
 
@@ -129,7 +133,7 @@ Até lá, um arquivo CSS basta.
 | --- | --- |
 | Celular (abaixo de 768 px) | Barra de baixo com 5 telas do papel (com o Catálogo) e "Mais" em gaveta, ícone `size-4.5` e altura `min-h-13`; some na Nova venda |
 | Tablet (768 a 1023 px) | Menu de cima, quebrando linha |
-| Computador (1024 px ou mais) | Menu lateral em grupos com título, ícone em cada item (lucide) e, no ativo, fundo `accent` com uma barra na primária à esquerda |
+| Computador (1024 px ou mais) | Painel lateral da altura da janela (`bg-card`, borda à direita, 15rem): a revenda e o papel num bloco `muted`, Nova venda como botão primário, grupos com título, ícone em cada item (lucide) e, no ativo, fundo `accent`, ícone e barra à esquerda na primária; o menu rola por dentro e a conta fica no pé, abrindo para cima |
 
 Tabela abaixo de 768 px vira cartão (`components/ui/table.tsx`): a primeira
 coluna é o título, as outras levam o rótulo da coluna em cima do valor e a

@@ -706,6 +706,7 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
 
 | Data | Mudança |
 | --- | --- |
+| 24/10/2026 | Front - `Moldura` no computador vira painel lateral da altura da janela (grade de `15rem` e conteúdo até `max-w-6xl`): logo na célula do topo do cabeçalho, bloco da revenda e do papel, Nova venda como botão, grupos e o menu da conta (`MenuDaConta`) no pé; até o tablet nada muda. `MarcaAvalia` aceita `className`. História `Negócio/Moldura` no Storybook sem API (cache do TanStack Query e roteador em memória), com o parâmetro `semMargem` no `preview.tsx`. |
 | 24/10/2026 | `Cobrancas.Cancelar` traduz a recusa 4xx do Pagar.me (`412 action_forbidden, Saldo insuficiente`) em `RegraDeNegocioException` (422); 5xx e tempo esgotado seguem como erro. O Sentry da API ignora `RegraDeNegocioException` (422) e `OperationCanceledException` (pedido abortado por quem chamou). |
 | 24/10/2026 | `GET /vendas/{id}/pagamento` (`PagamentoDaVenda`: situação e vencimento do Pix da cobrança mais recente), consultado a cada 5 s pela tela de resultado até pagar, falhar ou vencer. |
 | 24/10/2026 | Testes que rodam rotinas do Worker (ERP, Retomadas, eventos) processam a fila inteira do banco dos testes: com limite de 50, o pedido do teste ficava atrás dos criados por outros testes e o CI falhava conforme a ordem. |
