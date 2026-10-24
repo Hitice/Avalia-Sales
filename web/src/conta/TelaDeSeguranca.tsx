@@ -85,7 +85,7 @@ export function TelaDeSeguranca() {
           {!ligado && chave && !ligar.data && (
             <form className="grid gap-4" onSubmit={(e) => { e.preventDefault(); ligar.mutate(codigo, { onSuccess: () => setCodigo('') }) }}>
               <p className="text-sm">Leia o QR no app autenticador (Google Authenticator, Microsoft Authenticator, 1Password) ou digite a chave.</p>
-              {qr && <img src={qr} alt="QR da chave da autenticação de dois fatores" className="size-56 self-center rounded-lg border bg-white p-2" />}
+              {qr && <img src={qr} alt="QR da chave da autenticação de dois fatores" className="size-56 self-center rounded-lg border bg-card p-2" />}
               <code className="rounded bg-muted p-2 text-center text-sm break-all">{chave.chave}</code>
               <Field>
                 <FieldLabel htmlFor="codigo">Código que o app mostra</FieldLabel>

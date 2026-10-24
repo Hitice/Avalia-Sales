@@ -3,7 +3,26 @@ import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
-import { defineConfig } from 'vite'
+import { type Plugin, defineConfig } from 'vite'
+
+/**
+ * Pré-carrega o woff2 latino da Geist (DESIGN.md): o build renomeia o arquivo
+ * com hash, então o nome é lido da saída e o link entra no index.html.
+ */
+function preloadDaFonte(): Plugin {
+  let arquivo: string | undefined
+  return {
+    name: 'preload-da-fonte',
+    apply: 'build',
+    generateBundle(_, saida) {
+      arquivo = Object.keys(saida).find((nome) => /geist-latin-wght-normal.*\.woff2$/.test(nome))
+    },
+    transformIndexHtml: {
+      order: 'post',
+      handler: () => (arquivo ? [{ tag: 'link', attrs: { rel: 'preload', as: 'font', type: 'font/woff2', crossorigin: '', href: `/${arquivo}` }, injectTo: 'head' }] : []),
+    },
+  }
+}
 
 // Em desenvolvimento, /api vai para a API local sem o prefixo, como o Nginx
 // fará em produção. O front e a API ficam no mesmo domínio.
@@ -19,7 +38,7 @@ const https = certificado && chave ? { cert: readFileSync(certificado), key: rea
 const pacote = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as { version: string }
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), tailwindcss(), preloadDaFonte()],
   define: { __VERSAO__: JSON.stringify(pacote.version) },
   resolve: {
     alias: { '@': path.resolve(import.meta.dirname, './src') },

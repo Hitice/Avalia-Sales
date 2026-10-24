@@ -50,7 +50,7 @@ export function Catalogo() {
                 {!p.ativo && <Badge variant="outline">Suspenso</Badge>}
               </div>
               <div>
-                <h2 className="font-heading text-lg font-semibold">{p.nome}</h2>
+                <h2 className="text-lg font-semibold">{p.nome}</h2>
                 {p.descricao && <p className="line-clamp-3 text-sm text-muted-foreground">{p.descricao}</p>}
               </div>
               <div className="flex items-end justify-between gap-2">

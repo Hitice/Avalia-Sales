@@ -55,7 +55,6 @@ export function ConfirmeOEmail({ email }: { email: string }) {
   return (
     <div className="flex min-h-[70svh] items-center justify-center">
       <Card className="relative w-full max-w-md">
-        <span aria-hidden className="traco absolute inset-x-0 top-0 h-1" />
         <CardHeader>
           <CardTitle className="text-xl"><h1>Confirme seu e-mail</h1></CardTitle>
           <p className="text-sm text-muted-foreground">Enviamos um código para <span className="font-medium text-foreground">{email}</span>.</p>

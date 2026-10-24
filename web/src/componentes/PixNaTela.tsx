@@ -15,7 +15,7 @@ export function PixNaTela({ copiaECola, imagemDoGateway }: { copiaECola: string;
 
   return (
     <div className="grid gap-3">
-      <img className="mx-auto w-64 rounded-lg border bg-white p-2" alt="QR do Pix para o cliente pagar" src={imagemDoGateway ?? imagem ?? undefined} />
+      <img className="mx-auto w-64 rounded-lg border bg-card p-2" alt="QR do Pix para o cliente pagar" src={imagemDoGateway ?? imagem ?? undefined} />
       <Button
         variant="outline"
         onClick={async () => {

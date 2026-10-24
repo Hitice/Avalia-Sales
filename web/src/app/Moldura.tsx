@@ -162,7 +162,7 @@ export function Moldura() {
             {logo
               ? <img src={logo} alt="" className="h-8 w-auto max-w-32 object-contain lg:max-w-48" />
               : marca?.nomeExibido
-                ? <span className="min-w-0 truncate font-heading text-lg font-semibold">{marca.nomeExibido}</span>
+                ? <span className="min-w-0 truncate text-lg font-semibold">{marca.nomeExibido}</span>
                 : (
                     <>
                       <img src="/marca/gauge.svg" alt="" width={61} height={32} className={cn('h-8 w-auto', lateral && 'lg:hidden')} />
@@ -183,7 +183,6 @@ export function Moldura() {
         <nav aria-label="Menu" className={cn('mx-auto hidden max-w-6xl flex-wrap gap-1 px-4 pb-2 lg:hidden', !travado && 'md:flex')}>
           {itens.map((item) => <ItemDoMenu key={item.para} item={item} />)}
         </nav>
-        <div aria-hidden className="traco h-0.5" />
       </header>
       <div className={cn(lateral && 'lg:grid lg:grid-cols-[15rem_minmax(0,1fr)]')}>
         {/* Abaixo do cabeçalho (h-14 e o traço), da altura do resto da janela: o menu rola por dentro e a conta fica no pé. */}
@@ -191,7 +190,7 @@ export function Moldura() {
           {contexto && (
             <div className="mx-3 mt-4 rounded-lg bg-muted px-3 py-2">
               <p className="text-xs font-medium text-muted-foreground">{contexto.rotulo}</p>
-              <p className="truncate font-heading text-sm font-semibold" title={contexto.nome}>{contexto.nome}</p>
+              <p className="truncate text-sm font-semibold" title={contexto.nome}>{contexto.nome}</p>
             </div>
           )}
           <nav aria-label="Menu lateral" className="min-h-0 flex-1 overflow-y-auto px-3 py-4">
@@ -230,7 +229,7 @@ export function Moldura() {
                 to={para}
                 className={({ isActive }) => cn('group relative flex min-h-13 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 text-xs', isActive ? 'font-medium text-foreground' : 'text-muted-foreground')}
               >
-                <span aria-hidden className="traco absolute inset-x-3 top-0 h-0.5 rounded-full opacity-0 group-aria-[current=page]:opacity-100" />
+                <span aria-hidden className="absolute inset-x-3 top-0 h-0.5 rounded-full bg-primary opacity-0 group-aria-[current=page]:opacity-100" />
                 <Icone aria-hidden className="size-4.5" />
                 {rotulo}
               </NavLink>

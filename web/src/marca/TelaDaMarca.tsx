@@ -136,11 +136,10 @@ function FormularioDaMarca({ marca, salvo, setSalvo }: { marca: Marca; salvo: bo
         <CardHeader><CardTitle>Prévia</CardTitle></CardHeader>
         <CardContent>
           {/* As mesmas variáveis que o app aplica depois de salvar: a prévia é o app em miniatura. */}
-          <div inert style={corValida(primaria) && corValida(destaque) ? variaveisDaMarca(primaria, destaque, textoSobre(primaria), textoSobre(destaque)) as CSSProperties : undefined} className="overflow-hidden rounded-lg border bg-background">
+          <div inert style={corValida(primaria) && corValida(destaque) ? variaveisDaMarca(primaria, destaque, textoSobre(primaria)) as CSSProperties : undefined} className="overflow-hidden rounded-lg border bg-background">
             <div className="flex h-12 items-center gap-3 bg-card px-3">
-              {logo ? <img src={logo} alt="" className="h-7 w-auto max-w-28 object-contain" /> : <span className="font-heading font-semibold">{nome || 'Avalia Sales'}</span>}
+              {logo ? <img src={logo} alt="" className="h-7 w-auto max-w-28 object-contain" /> : <span className="font-semibold">{nome || 'Avalia Sales'}</span>}
             </div>
-            <div aria-hidden className="traco h-0.5" />
             <div className="grid grid-cols-[9rem_1fr] gap-4 p-3">
               <div className="grid content-start gap-0.5 text-sm">
                 <span className="relative flex min-h-8 items-center gap-2 rounded-md bg-accent px-2.5 font-medium text-accent-foreground">
@@ -150,7 +149,7 @@ function FormularioDaMarca({ marca, salvo, setSalvo }: { marca: Marca; salvo: bo
                 <span className="flex min-h-8 items-center gap-2 px-2.5 text-muted-foreground"><Receipt className="size-4" />Vendas</span>
               </div>
               <div className="grid content-start gap-3">
-                <p className="font-heading text-lg font-semibold">Início<span className="traco mt-1 block h-0.5 w-6 rounded-full" /></p>
+                <p className="text-lg font-semibold">Início</p>
                 <Input readOnly aria-label="Campo em foco" value="Campo em foco" className="border-ring ring-3 ring-ring/50" />
                 <Button>Registrar venda</Button>
                 <p className="text-sm">Texto com <span className="rounded-sm bg-primary/20 px-1">seleção</span> na cor da marca.</p>

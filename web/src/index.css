@@ -1,66 +1,144 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "@fontsource-variable/geist";
 @import "./estilos/tokens.css";
 
-/* Inter Display, a dos títulos do site da Avalia (opsz 32). Só latim; o corpo segue na Geist. */
+/*
+ * Geist, a única face da interface, servida do pacote Fontsource: só latim e
+ * latim estendido (o português cabe no primeiro); o latim é pré-carregado no
+ * index.html pelo plugin do vite.config.ts.
+ */
 @font-face {
-  font-family: 'Inter Display';
+  font-family: 'Geist Variable';
   font-style: normal;
-  font-weight: 100 900;
   font-display: swap;
-  src: url('/fonts/inter-display.woff2') format('woff2');
+  font-weight: 100 900;
+  src: url('@fontsource-variable/geist/files/geist-latin-wght-normal.woff2') format('woff2-variations');
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Geist Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('@fontsource-variable/geist/files/geist-latin-ext-wght-normal.woff2') format('woff2-variations');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 
 /* Escuro só com a classe .dark, que ainda não existe: sem ela, as variantes
    dark: dos componentes ligariam sozinhas pelo sistema operacional. */
 @custom-variant dark (&:is(.dark *));
 
+/*
+ * A paleta, as fontes, as sombras, os raios e a escala de texto padrão do
+ * Tailwind saem: só o que está em tokens.css vira classe. bg-purple-500 ou
+ * shadow-xl não compilam, e o lint recusa a classe desconhecida.
+ */
+@theme {
+  --color-*: initial;
+  --font-*: initial;
+  --shadow-*: initial;
+  --radius-*: initial;
+  --text-*: initial;
+}
+
 /* Cada variável de tokens.css vira classe do Tailwind (--primary vira bg-primary). */
 @theme inline {
-  --font-heading: 'Inter Display', 'Geist Variable', sans-serif;
-  --color-noite: var(--noite);
-  --font-sans: 'Geist Variable', sans-serif;
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-sucesso: var(--sucesso);
-  --color-destaque-foreground: var(--destaque-foreground);
-  --color-destaque: var(--destaque);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
-  --color-card: var(--card);
-  --color-foreground: var(--foreground);
+  --font-sans: 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
+  /* Só para código e chave de recuperação, nunca como fantasia de "técnico". */
+  --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+  --color-cinza-50: var(--cinza-50);
+  --color-cinza-100: var(--cinza-100);
+  --color-cinza-200: var(--cinza-200);
+  --color-cinza-400: var(--cinza-400);
+  --color-cinza-500: var(--cinza-500);
+  --color-cinza-700: var(--cinza-700);
+  --color-preto: var(--preto);
+
   --color-background: var(--background);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-texto: var(--primary-texto);
+
+  --color-sucesso: var(--sucesso);
+  --color-sucesso-fundo: var(--sucesso-fundo);
+  --color-sucesso-borda: var(--sucesso-borda);
+  --color-atencao: var(--atencao);
+  --color-atencao-fundo: var(--atencao-fundo);
+  --color-atencao-borda: var(--atencao-borda);
+  --color-erro: var(--erro);
+  --color-erro-fundo: var(--erro-fundo);
+  --color-erro-borda: var(--erro-borda);
+  --color-info: var(--info);
+  --color-info-fundo: var(--info-fundo);
+  --color-info-borda: var(--info-borda);
+  --color-destructive: var(--destructive);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  /* Raio: sm 4 px (teclado, selo quadrado), md e lg 6 px (botão, campo, menu), xl 8 px (cartão, modal). */
+  --radius-sm: 0.25rem;
+  --radius-md: var(--radius);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
+  --radius-xl: 0.5rem;
+  --radius-2xl: 0.5rem;
+  --radius-3xl: 0.75rem;
+  --radius-4xl: 0.75rem;
+
+  --shadow-sm: var(--sombra-sm);
+  --shadow-md: var(--sombra-md);
+  --shadow-lg: var(--sombra-lg);
+
+  /*
+   * Escala de texto: 11 (eixo de gráfico e teclado), 12 (cabeçalho de tabela,
+   * selo, rótulo), 13 (corpo), 14 (campo no computador), 16 (campo no celular),
+   * 18, 20 (título da tela), 24 (indicador), 30.
+   */
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 1rem;
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1rem;
+  --text-sm: 0.8125rem;
+  --text-sm--line-height: 1.25rem;
+  --text-md: 0.875rem;
+  --text-md--line-height: 1.25rem;
+  --text-base: 1rem;
+  --text-base--line-height: 1.5rem;
+  --text-lg: 1.125rem;
+  --text-lg--line-height: 1.75rem;
+  --text-xl: 1.25rem;
+  --text-xl--line-height: 1.75rem;
+  --text-2xl: 1.5rem;
+  --text-2xl--line-height: 2rem;
+  --text-3xl: 1.875rem;
+  --text-3xl--line-height: 2.25rem;
 }
 
 @layer base {
   * {
     @apply border-border outline-ring;
+    scrollbar-color: var(--cinza-400) transparent;
   }
   /*
    * Foco de teclado sólido na cor da marca. O "auto" do navegador ignora a cor
@@ -74,15 +152,24 @@
   ::selection {
     background: color-mix(in oklch, var(--primary) 20%, transparent);
   }
-  body {
-    @apply bg-background text-foreground;
-  }
   html {
     @apply font-sans;
+    -webkit-font-smoothing: antialiased;
   }
-  h1, h2, [data-slot="card-title"] {
-    font-variation-settings: 'opsz' 32;
+  /* Corpo em 13 px e todo número tabular: coluna de dinheiro alinha sem classe. */
+  body {
+    @apply bg-background text-sm text-foreground;
+    font-variant-numeric: tabular-nums;
+  }
+  input, textarea {
+    caret-color: var(--primary);
+  }
+  h1, h2 {
     letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+  a {
+    text-underline-offset: 3px;
   }
   /* Animação que não explica nada some para quem pediu menos movimento. */
   @media (prefers-reduced-motion: reduce) {
@@ -93,7 +180,6 @@
   }
 }
 
-/* O traço em linha: cabeçalho, sublinhado do título e item ativo do menu. */
 /*
  * O botão fixo da Nova venda: no celular, logo acima da barra de baixo (13 de
  * altura mais a área segura do aparelho); a partir de md não há barra.
@@ -105,6 +191,27 @@
   }
 }
 
+/* Área segura do aparelho no pé: só ela, ou pelo menos N passos da grade. */
+@utility area-segura-baixo {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+@utility area-segura-baixo-* {
+  padding-bottom: max(calc(var(--spacing) * --value(integer)), env(safe-area-inset-bottom));
+}
+
+/* Lista com o formulário ao lado (N passos da grade), e o contrário. */
+@utility lista-e-lateral-* {
+  grid-template-columns: minmax(0, 1fr) calc(var(--spacing) * --value(integer));
+}
+@utility lateral-e-lista-* {
+  grid-template-columns: calc(var(--spacing) * --value(integer)) minmax(0, 1fr);
+}
+
+/* Folha de baixo do celular: até 85% da altura visível, o resto rola dentro. */
+@utility altura-da-folha {
+  max-height: 85svh;
+}
+
 /* Xadrez atrás de imagem com transparência (logo), para ver o que fica vazio. */
 @utility xadrez {
   background-color: var(--card);
@@ -112,43 +219,43 @@
   background-size: 16px 16px;
 }
 
-/* Barra de carregando no topo: o traço da marca correndo. Com menos movimento, fica parada. */
+/* Barra de carregando no topo: um traço da marca correndo. Com menos movimento, fica parado. */
 @utility barra-de-carregando {
-  background-image: var(--traco);
-  background-size: 200% 100%;
-  animation: barra-correndo 1.2s linear infinite;
+  overflow: hidden;
+  &::after {
+    content: '';
+    display: block;
+    height: 100%;
+    width: 40%;
+    background: var(--primary);
+    animation: barra-correndo 1.2s ease-in-out infinite;
+  }
 }
 
 @keyframes barra-correndo {
-  from { background-position: 100% 0; }
-  to { background-position: -100% 0; }
-}
-
-@utility traco {
-  background-image: var(--traco);
+  from { transform: translateX(-100%); }
+  to { transform: translateX(250%); }
 }
 
 /*
- * Contorno do campo: no foco, o traço da marca (o da revenda, no white label);
- * conferido, verde, mesmo em foco; com erro, vermelho.
+ * Contorno do campo: no foco, a cor de foco da marca; conferido, verde, mesmo
+ * em foco; com erro, vermelho.
  */
 @utility contorno-de-campo {
   &[data-valido] {
     border-color: var(--sucesso);
   }
   &:focus-visible {
-    border-color: transparent;
-    background: linear-gradient(var(--card), var(--card)) padding-box, var(--traco) border-box;
-    box-shadow: 0 0 0 3px color-mix(in oklch, var(--primary) 14%, transparent);
+    outline: none;
+    border-color: var(--ring);
+    box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 20%, transparent);
   }
   &[data-valido]:focus-visible {
     border-color: var(--sucesso);
-    background: var(--card);
     box-shadow: 0 0 0 3px color-mix(in oklch, var(--sucesso) 22%, transparent);
   }
   &[aria-invalid="true"]:focus-visible {
     border-color: var(--destructive);
-    background: var(--card);
     box-shadow: 0 0 0 3px color-mix(in oklch, var(--destructive) 22%, transparent);
   }
 }
@@ -165,4 +272,32 @@
     linear-gradient(to left, var(--card) 30%, transparent) right center / 2.5rem 100% no-repeat local,
     radial-gradient(farthest-side at 0 50%, color-mix(in oklch, var(--foreground) 18%, transparent), transparent) left center / 0.75rem 100% no-repeat scroll,
     radial-gradient(farthest-side at 100% 50%, color-mix(in oklch, var(--foreground) 18%, transparent), transparent) right center / 0.75rem 100% no-repeat scroll;
+}
+
+/*
+ * Movimento curto e funcional (150 a 200 ms): a etapa da venda e a confirmação
+ * do Pix trocam por View Transition; quem pediu menos movimento vê a troca seca.
+ */
+::view-transition-old(root), ::view-transition-new(root) {
+  animation-duration: 160ms;
+}
+::view-transition-old(etapa) {
+  animation: 150ms ease-out both sair-da-etapa;
+}
+::view-transition-new(etapa) {
+  animation: 180ms ease-out both entrar-na-etapa;
+}
+::view-transition-old(pix), ::view-transition-new(pix) {
+  animation-duration: 200ms;
+}
+@keyframes sair-da-etapa {
+  to { opacity: 0; transform: translateX(-8px); }
+}
+@keyframes entrar-na-etapa {
+  from { opacity: 0; transform: translateX(8px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) {
+    animation: none !important;
+  }
 }

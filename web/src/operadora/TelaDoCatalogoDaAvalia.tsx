@@ -75,7 +75,7 @@ export function TelaDoCatalogoDaAvalia() {
             <CardContent className="grid gap-3">
               <div>
                 <p className="text-xs text-muted-foreground">{ROTULO_DO_TIPO[p.tipo]}, ordem {p.ordem}</p>
-                <h2 className="font-heading text-lg font-semibold">{p.nome}</h2>
+                <h2 className="text-lg font-semibold">{p.nome}</h2>
                 <p className="text-sm tabular-nums">Sugerido {formatarCentavos(p.precoSugeridoCents)}{p.quantidadeMinima > 1 ? `, mínimo ${p.quantidadeMinima}` : ''}</p>
                 {p.tipo !== 'Placa' && (
                   <p className="text-sm text-muted-foreground tabular-nums">

@@ -11,7 +11,7 @@ export function Indicador({ rotulo, valor, destaque = false }: { rotulo: string;
   return (
     <Card className={cn('gap-1 px-4 py-3.5', destaque && 'ring-2 ring-sucesso')}>
       <p className="truncate text-xs font-medium text-muted-foreground" title={rotulo}>{rotulo}</p>
-      <p className="font-heading text-xl font-semibold tabular-nums sm:text-2xl">{valor}</p>
+      <p className="text-xl font-semibold tabular-nums sm:text-2xl">{valor}</p>
     </Card>
   )
 }
