@@ -6,8 +6,6 @@ import type { CSSProperties } from 'react'
  */
 const PARCEIROS: { nome: string; arquivo: string; proporcao: number; texto?: string }[] = [
   { nome: 'Pagar.me, uma empresa Stone', arquivo: 'pagarme.svg', proporcao: 1129.27 / 306.1 },
-  { nome: 'D4Sign', arquivo: 'd4sign.svg', proporcao: 96 / 21 },
-  { nome: 'Google Maps', arquivo: 'googlemaps.svg', proporcao: 1, texto: 'Google Maps' },
   { nome: 'Resend', arquivo: 'resend.svg', proporcao: 1, texto: 'Resend' },
 ]
 
