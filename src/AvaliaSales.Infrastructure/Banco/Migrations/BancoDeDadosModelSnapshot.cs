@@ -603,6 +603,10 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .HasColumnType("character varying(254)")
                         .HasColumnName("email");
 
+                    b.Property<long?>("MetaMensalCents")
+                        .HasColumnType("bigint")
+                        .HasColumnName("meta_mensal_cents");
+
                     b.Property<string>("Nome")
                         .IsRequired()
                         .HasMaxLength(120)

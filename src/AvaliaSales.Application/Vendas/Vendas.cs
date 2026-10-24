@@ -101,7 +101,9 @@ public sealed record DetalheDaVenda(
 
 public sealed record ClienteDaVenda(Guid Id, string Nome, string Responsavel, string Telefone, string? Documento, string? Email);
 
-public sealed record CobrancaDaVenda(SituacaoDaCobranca Situacao, MeioDePagamento Meio, long ValorCents, long EstornadoCents, DateTimeOffset CriadaEm, DateTimeOffset? PagaEm, DateTimeOffset? PixExpiraEm);
+/// <summary><paramref name="PixCopiaECola"/> só com o Pix em aberto: o vendedor manda ao cliente que não está no balcão.</summary>
+public sealed record CobrancaDaVenda(SituacaoDaCobranca Situacao, MeioDePagamento Meio, long ValorCents, long EstornadoCents, DateTimeOffset CriadaEm, DateTimeOffset? PagaEm, DateTimeOffset? PixExpiraEm,
+    string? PixCopiaECola = null);
 
 public sealed record ItemDoGrupo(Guid Id, string Produto, string Codigo, int Quantidade, long ValorCents, SituacaoDaVenda Situacao);
 
@@ -655,7 +657,8 @@ public sealed class Vendas(
             .Select(c => new ClienteDaVenda(c.Id, c.Nome, c.Responsavel, c.Telefone, c.Documento, c.Email)).SingleAsync(ct);
         var cobranca = await banco.Cobrancas.AsNoTracking()
             .Where(c => c.Origem == OrigemDaCobranca.Venda && c.OrigemId == venda.CobradaPor).OrderByDescending(c => c.CriadaEm)
-            .Select(c => new CobrancaDaVenda(c.Situacao, c.Meio, c.ValorCents, c.EstornadoCents, c.CriadaEm, c.PagaEm, c.PixExpiraEm)).FirstOrDefaultAsync(ct);
+            .Select(c => new CobrancaDaVenda(c.Situacao, c.Meio, c.ValorCents, c.EstornadoCents, c.CriadaEm, c.PagaEm, c.PixExpiraEm,
+                c.Situacao == SituacaoDaCobranca.Pendente ? c.PixCopiaECola : null)).FirstOrDefaultAsync(ct);
         var itens = venda.GrupoId is { } grupo
             ? await (from v in banco.Vendas.AsNoTracking()
                      where v.GrupoId == grupo && v.Id != id

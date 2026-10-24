@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
+import { toast } from 'sonner'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
@@ -6,7 +7,6 @@ import { z } from 'zod'
 import { chamarApi, enviarJson, mensagemDoErro } from '@/api/cliente'
 import type { components } from '@/api/esquema'
 import { Cabecalho, CarregandoTela, Erro } from '@/componentes/Tela'
-import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field, FieldDescription, FieldLabel } from '@/components/ui/field'
@@ -29,11 +29,10 @@ const esquemaDoEndereco = z.object({ endereco })
 export function TelaDosMeusDados() {
   const dados = useQuery({ queryKey: chave, queryFn: () => chamarApi<DadosDaConta>('/conta/dados') })
   // Fora dos formulários: a chave abaixo os remonta quando a gravação volta, e o aviso sumiria junto.
-  const [salvo, setSalvo] = useState(false)
   if (dados.isPending) return <CarregandoTela />
   if (!dados.data) return <Erro erro={dados.error} />
   // A chave refaz os formulários quando os dados gravados voltam da API.
-  return <Formularios key={JSON.stringify(dados.data)} dados={dados.data} salvo={salvo} aoSalvar={setSalvo} />
+  return <Formularios key={JSON.stringify(dados.data)} dados={dados.data} />
 }
 
 function useGravar(caminho: string) {
@@ -49,7 +48,7 @@ function useGravar(caminho: string) {
   })
 }
 
-function Formularios({ dados, salvo, aoSalvar }: { dados: DadosDaConta; salvo: boolean; aoSalvar: (salvo: boolean) => void }) {
+function Formularios({ dados }: { dados: DadosDaConta }) {
   const renomear = useSessao((s) => s.renomear)
   const [nome, setNome] = useState(dados.nome)
   const [celular, setCelular] = useState(dados.empresa?.celular ? mascaraTelefone(dados.empresa.celular) : '')
@@ -72,12 +71,14 @@ function Formularios({ dados, salvo, aoSalvar }: { dados: DadosDaConta; salvo: b
 
   /** Um Salvar para a tela toda: grava só o bloco que mudou. */
   async function salvar() {
-    aoSalvar(false)
+    let gravou = false
     try {
+      if (nome.trim() !== dados.nome) gravou = true
       if (nome.trim() !== dados.nome) renomear((await gravarNome.mutateAsync({ nome })).nome)
       if (enderecoMudou && !(await formularioDoEndereco.trigger())) return
       const celularMudou = digitos(celular).length > 0 && digitos(celular) !== (dados.empresa?.celular ?? '')
       if (dados.empresa && (celularMudou || enderecoMudou)) {
+        gravou = true
         await gravarEmpresa.mutateAsync({
           nome: dados.empresa.nome,
           celular: digitos(celular) || dados.empresa.celular,
@@ -85,9 +86,11 @@ function Formularios({ dados, salvo, aoSalvar }: { dados: DadosDaConta; salvo: b
         })
       }
       if (dados.recebimento && (digitos(telefone) !== (dados.recebimento.telefone ?? '') || chavePix.trim() !== (dados.recebimento.chavePix ?? ''))) {
+        gravou = true
         await gravarRecebimento.mutateAsync({ telefone: digitos(telefone) || null, chavePix: chavePix.trim() || null })
       }
-      aoSalvar(true)
+      // Nada mudou: o que está na tela já é o que está gravado.
+      if (!gravou) toast.success('Dados salvos.')
     } catch {
       // O erro aparece pelo estado da gravação.
     }
@@ -98,7 +101,6 @@ function Formularios({ dados, salvo, aoSalvar }: { dados: DadosDaConta; salvo: b
     <form className="grid gap-4" onSubmit={(e) => { e.preventDefault(); void salvar() }}>
       <Cabecalho titulo="Meus dados" />
       <Erro erro={erro ? mensagemDoErro(erro) : null} />
-      {salvo && !erro && <Alert><AlertDescription>Dados salvos.</AlertDescription></Alert>}
 
       <Card>
         <CardHeader><CardTitle>Conta</CardTitle></CardHeader>

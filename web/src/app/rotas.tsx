@@ -92,6 +92,7 @@ export const rotas = createBrowserRouter([{
             element: <Protegida papeis={['Dono', 'Vendedor']} />,
             children: [
               { path: '/vender', lazy: tela(() => import('@/balcao/TelaDeNovaVenda'), 'TelaDeNovaVenda') },
+              { path: '/carteira', lazy: tela(() => import('@/painel/TelaDaCarteira'), 'TelaDaCarteira') },
               { path: '/catalogo', lazy: tela(() => import('@/catalogo/TelaDoCatalogo'), 'TelaDoCatalogo') },
               { path: '/placa/:codigo', lazy: tela(() => import('@/balcao/TelaDaPlaca'), 'TelaDaPlaca') },
               { path: '/links', lazy: tela(() => import('@/links/TelaDeLinks'), 'TelaDeLinks') },

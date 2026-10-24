@@ -4,7 +4,6 @@ import { type CSSProperties, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { chamarApi, chamarResposta, enviarJson, mensagemDoErro } from '@/api/cliente'
 import { Cabecalho, CarregandoTela, Erro } from '@/componentes/Tela'
-import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field, FieldLabel } from '@/components/ui/field'
@@ -24,14 +23,13 @@ const PADRAO = { primaria: '#120C2B', destaque: '#D1006F' }
  */
 export function TelaDaMarca() {
   const marca = useMarca()
-  const [salvo, setSalvo] = useState(false)
   if (!marca) return <CarregandoTela />
 
-  // A versão na chave refaz o formulário quando a marca salva volta da API; o "salvo" fica aqui fora.
-  return <FormularioDaMarca key={marca.versao} marca={marca} salvo={salvo} setSalvo={setSalvo} />
+  // A versão na chave refaz o formulário quando a marca salva volta da API.
+  return <FormularioDaMarca key={marca.versao} marca={marca} />
 }
 
-function FormularioDaMarca({ marca, salvo, setSalvo }: { marca: Marca; salvo: boolean; setSalvo: (s: boolean) => void }) {
+function FormularioDaMarca({ marca }: { marca: Marca }) {
   const logo = useLogo(marca)
   const consultas = useQueryClient()
   const [nome, setNome] = useState(marca.nomeExibido ?? '')
@@ -48,11 +46,9 @@ function FormularioDaMarca({ marca, salvo, setSalvo }: { marca: Marca; salvo: bo
 
   async function salvar() {
     setErro(null)
-    setSalvo(false)
     try {
       await chamarApi<Marca>('/revenda/marca', enviarJson('PUT', { nomeExibido: nome || null, corPrimaria: primaria, corDestaque: destaque, cabecalhoNaCor: naCor }))
       await refazer()
-      setSalvo(true)
       toast.success('Marca salva.')
     } catch (e) {
       setErro(e)
@@ -110,7 +106,6 @@ function FormularioDaMarca({ marca, salvo, setSalvo }: { marca: Marca; salvo: bo
         <Card>
           <CardContent className="grid gap-4 pt-6">
             <Erro erro={erro ? (typeof erro === 'string' ? erro : mensagemDoErro(erro)) : null} />
-            {salvo && <Alert><AlertDescription>Marca salva.</AlertDescription></Alert>}
             <Field>
               <FieldLabel htmlFor="nome">Nome exibido</FieldLabel>
               <Input id="nome" maxLength={40} placeholder="Avalia Sales" value={nome} onChange={(e) => setNome(e.target.value)} />

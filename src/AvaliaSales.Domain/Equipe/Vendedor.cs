@@ -19,6 +19,9 @@ public sealed class Vendedor : IDoRevendedor
     /// <summary>Só dígitos; opcional, para o recibo do repasse e a nota.</summary>
     public string? Cpf { get; private set; }
 
+    /// <summary>A meta de vendas pagas no mês, em centavos, que o revendedor define; sem meta, nulo.</summary>
+    public long? MetaMensalCents { get; private set; }
+
     /// <summary>Comissão própria em pontos base; nula usa a padrão do revendedor.</summary>
     public int? ComissaoBps { get; private set; }
 
@@ -61,6 +64,15 @@ public sealed class Vendedor : IDoRevendedor
             : Documentos.CpfValido(digitos) ? digitos
             : throw new RegraDeNegocioException("CPF inválido. Confira os números.");
     }
+
+    public const long MetaMaximaCents = 1_000_000_000;
+
+    public void DefinirMeta(long? cents) => MetaMensalCents = cents switch
+    {
+        null or 0 => null,
+        < 0 or > MetaMaximaCents => throw new RegraDeNegocioException("A meta vai de R$ 0,01 a R$ 10.000.000,00."),
+        _ => cents,
+    };
 
     public void DefinirAtivo(bool ativo) => Ativo = ativo;
 }

@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input'
 import { percentualOpcional, senhaOpcional, telefoneOpcional, texto } from '@/lib/esquemas'
 import { digitos, mascaraCpf, mascaraTelefone } from '@/lib/mascaras'
+import { formatarCentavos, paraCentavos } from '@/dinheiro/dinheiro'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useAlterarVendedor, useAtivarVendedor, useConvidarVendedor, useCriarVendedor, useEquipe, useExcluirVendedor } from './consultas'
 
@@ -29,11 +30,12 @@ const esquema = z.object({
   cpf: z.string().trim().refine((t) => !t || digitos(t).length === 11, 'CPF com 11 números.'),
   chavePix: z.string().trim().max(140, 'Use até 140 caracteres.'),
   comissao: percentualOpcional,
+  meta: z.string().refine((t) => !t.trim() || (paraCentavos(t) ?? -1) >= 0, 'Digite o valor, como 5.000,00.'),
 }).superRefine((d, ctx) => {
   if (d.novo && !emailValido(d.email)) ctx.addIssue({ code: 'custom', path: ['email'], message: 'E-mail incompleto.' })
 })
 type Formulario = z.infer<typeof esquema>
-const VAZIO: Formulario = { novo: true, nome: '', email: '', senha: '', telefone: '', cpf: '', chavePix: '', comissao: '' }
+const VAZIO: Formulario = { novo: true, nome: '', email: '', senha: '', telefone: '', cpf: '', chavePix: '', comissao: '', meta: '' }
 
 /** O link do convite, para o dono mandar também pelo WhatsApp do vendedor. */
 function Convite({ vendedor, aoFechar }: { vendedor: Vendedor; aoFechar: () => void }) {
@@ -77,13 +79,13 @@ export function TelaDaEquipe() {
   function editar(v: Vendedor | null) {
     setEditando(v)
     formulario.reset(v
-      ? { ...VAZIO, novo: false, nome: v.nome, email: v.email, telefone: mascaraTelefone(v.telefone ?? ''), cpf: mascaraCpf(v.cpf ?? ''), chavePix: v.chavePix ?? '', comissao: v.comissaoBps === null ? '' : String(v.comissaoBps / 100).replace('.', ',') }
+      ? { ...VAZIO, novo: false, nome: v.nome, email: v.email, telefone: mascaraTelefone(v.telefone ?? ''), cpf: mascaraCpf(v.cpf ?? ''), chavePix: v.chavePix ?? '', comissao: v.comissaoBps === null ? '' : String(v.comissaoBps / 100).replace('.', ','), meta: v.metaMensalCents ? formatarCentavos(v.metaMensalCents).replace(/^R\$\s?/, '') : '' }
       : VAZIO)
   }
 
   async function salvar(dados: Formulario) {
     const comissaoBps = dados.comissao.trim() ? paraBps(dados.comissao) : null
-    const comum = { nome: dados.nome, telefone: digitos(dados.telefone) || null, cpf: digitos(dados.cpf) || null, chavePix: dados.chavePix || null, comissaoBps }
+    const comum = { nome: dados.nome, telefone: digitos(dados.telefone) || null, cpf: digitos(dados.cpf) || null, chavePix: dados.chavePix || null, comissaoBps, metaMensalCents: dados.meta.trim() ? paraCentavos(dados.meta) : null }
     try {
       if (editando) await alterar.mutateAsync({ id: editando.id, ...comum })
       else {
@@ -155,6 +157,7 @@ export function TelaDaEquipe() {
               <Campo formulario={formulario} nome="cpf" rotulo="CPF" inputMode="numeric" mascara={mascaraCpf} placeholder="Opcional" />
               <Campo formulario={formulario} nome="chavePix" rotulo="Chave Pix da comissão" conferir={false} />
               <Campo formulario={formulario} nome="comissao" rotulo="Comissão (%)" inputMode="decimal" placeholder="Em branco usa a padrão" />
+              <Campo formulario={formulario} nome="meta" rotulo="Meta do mês (R$)" inputMode="decimal" placeholder="Em branco, sem meta" />
               <Button type="submit" disabled={criar.isPending || alterar.isPending}>{editando ? 'Salvar vendedor' : 'Cadastrar vendedor'}</Button>
               {editando && <Button type="button" variant="ghost" onClick={() => editar(null)}>Cancelar</Button>}
             </form>

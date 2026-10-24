@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { chamarApi, enviarJson } from '@/api/cliente'
-import type { EstadoDaPlaca, LoteDaRevenda, MinhaRevenda, MotivoDaBaixa, MotivoDoCancelamento, PlacaDaVendaCancelada, Pacote, PaginaDePlacas, Pedido, Repasse, ResumoDoMes, DetalheDaVenda, SaldoDeComissao, VendaDaLista, VendaRegistrada, Vendedor } from '@/api/tipos'
+import type { EstadoDaPlaca, LoteDaRevenda, MinhaRevenda, MotivoDaBaixa, MotivoDoCancelamento, PlacaDaVendaCancelada, Pacote, PaginaDePlacas, Pedido, Repasse, ResumoDoMes, DetalheDaVenda, ResumoDoVendedor, PlacaDaCarteira, SaldoDeComissao, VendaDaLista, VendaRegistrada, Vendedor } from '@/api/tipos'
 
 export type FiltroDePlacas = { estado?: EstadoDaPlaca; consignadaA?: string; codigo?: string; pagina?: number }
 
@@ -9,6 +9,8 @@ export const usePacotes = () => useQuery({ queryKey: ['pacotes'], queryFn: () =>
 export const usePedidos = () => useQuery({ queryKey: ['pedidos'], queryFn: () => chamarApi<Pedido[]>('/pedidos') })
 export const useEquipe = () => useQuery({ queryKey: ['equipe'], queryFn: () => chamarApi<Vendedor[]>('/equipe') })
 export const useVendas = () => useQuery({ queryKey: ['vendas'], queryFn: () => chamarApi<VendaDaLista[]>('/vendas') })
+export const usePainelDoVendedor = () => useQuery({ queryKey: ['vendas', 'painel'], queryFn: () => chamarApi<ResumoDoVendedor>('/painel-do-vendedor') })
+export const useCarteira = () => useQuery({ queryKey: ['vendas', 'carteira'], queryFn: () => chamarApi<PlacaDaCarteira[]>('/carteira') })
 export const useVenda = (id: string) => useQuery({ queryKey: ['vendas', id], queryFn: () => chamarApi<DetalheDaVenda>(`/vendas/${id}`) })
 
 export function usePlacas(filtro: FiltroDePlacas) {
@@ -31,7 +33,7 @@ export const useCancelarPedido = () => useGravar((id: string) => chamarApi(`/ped
 export const useAtivarLote = () =>
   useGravar((numero: string) => chamarApi<{ lote: string; placas: number; primeiroCodigo: string; ultimoCodigo: string }>('/lotes/ativacao', enviarJson('POST', { numero })), ['pedidos', 'placas'], 'Lote ativado.')
 
-export type GravarVendedor = { nome: string; telefone: string | null; cpf: string | null; chavePix: string | null; comissaoBps: number | null }
+export type GravarVendedor = { nome: string; telefone: string | null; cpf: string | null; chavePix: string | null; comissaoBps: number | null; metaMensalCents: number | null }
 export const useCriarVendedor = () => useGravar((v: GravarVendedor & { email: string; senha: string | null }) => chamarApi<Vendedor>('/equipe', enviarJson('POST', v)), ['equipe'], 'Vendedor cadastrado.')
 export const useAlterarVendedor = () => useGravar(({ id, ...v }: GravarVendedor & { id: string }) => chamarApi<Vendedor>(`/equipe/${id}`, enviarJson('PUT', v)), ['equipe'])
 export const useConvidarVendedor = () => useGravar((id: string) => chamarApi<Vendedor>(`/equipe/${id}/convite`, enviarJson('POST')), ['equipe'], 'Convite enviado.')

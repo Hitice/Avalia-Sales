@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatarCentavos } from '@/dinheiro/dinheiro'
-import { usePlacas, useSaldosDeComissao, useVendas } from './consultas'
+import { usePainelDoVendedor, usePlacas, useSaldosDeComissao, useVendas } from './consultas'
 import { Indicador, Indicadores } from '@/componentes/Indicador'
 import { rotuloDaVenda, tomDaVenda } from './situacaoDaVenda'
 import { VendasEm30Dias, vendasPorDia } from './VendasEm30Dias'
@@ -22,6 +22,7 @@ export function TelaDoVendedor() {
   const nome = useSessao((s) => s.perfil?.nome)
   const vendas = useVendas()
   const saldos = useSaldosDeComissao()
+  const painel = usePainelDoVendedor()
   const placas = usePlacas({ pagina: 1 })
   // Fixado na abertura da tela: o mês não muda entre uma renderização e outra.
   const [inicioDoMes] = useState(() => {
@@ -55,6 +56,12 @@ export function TelaDoVendedor() {
         {numeros.map((n) => <Indicador key={n.rotulo} rotulo={n.rotulo} valor={n.valor} destaque={n.destaque} />)}
       </Indicadores>
       {saldo?.ultimoRepasse && <p className="mt-3 text-xs text-muted-foreground">Último repasse em {formatarData(saldo.ultimoRepasse)}.</p>}
+      {painel.data && (
+        <div className="mt-3 grid gap-3 md:mt-4 md:gap-4 lg:grid-cols-12">
+          <MetaDoMes className="lg:col-span-7" metaCents={painel.data.metaMensalCents} vendidoCents={painel.data.vendidoNoMesCents} />
+          <Ranking className="lg:col-span-5" linhas={painel.data.ranking} />
+        </div>
+      )}
       <div className="mt-3 grid gap-3 md:mt-4 md:gap-4 lg:grid-cols-12">
         <VendasEm30Dias className="lg:col-span-7" porDia={porDia} carregando={vendas.isPending} />
         <Rosca className="lg:col-span-5" titulo="Minha comissão" vazio="Nenhuma comissão ainda."
@@ -90,5 +97,60 @@ export function TelaDoVendedor() {
         </CardContent>
       </Card>
     </>
+  )
+}
+
+/** A meta que o revendedor definiu e o quanto das vendas pagas do mês já chegou nela. */
+function MetaDoMes({ metaCents, vendidoCents, className }: { metaCents: number | null; vendidoCents: number; className?: string }) {
+  const parte = metaCents ? Math.min(100, Math.round((vendidoCents / metaCents) * 100)) : 0
+  return (
+    <Card className={className}>
+      <CardHeader><CardTitle>Meta do mês</CardTitle></CardHeader>
+      <CardContent className="grid gap-3">
+        {metaCents
+          ? (
+              <>
+                <p className="flex items-baseline justify-between gap-3 text-sm">
+                  <span><span className="text-lg font-semibold tabular-nums">{formatarCentavos(vendidoCents)}</span> de {formatarCentavos(metaCents)}</span>
+                  <span className="font-medium tabular-nums">{parte}%</span>
+                </p>
+                <div className="h-2 overflow-hidden rounded-full bg-muted" role="progressbar" aria-label="Meta do mês" aria-valuemin={0} aria-valuemax={100} aria-valuenow={parte}>
+                  <div className="h-full rounded-full bg-primary transition-all duration-500" style={{ width: `${parte}%` }} />
+                </div>
+                <p className="text-xs text-muted-foreground">{vendidoCents >= metaCents ? 'Meta batida.' : `Faltam ${formatarCentavos(metaCents - vendidoCents)} em vendas pagas.`}</p>
+              </>
+            )
+          : <p className="text-sm text-muted-foreground">Sem meta definida para este mês. Vendido e pago: <span className="font-medium text-foreground tabular-nums">{formatarCentavos(vendidoCents)}</span>.</p>}
+      </CardContent>
+    </Card>
+  )
+}
+
+/** A posição de cada um pelas vendas pagas do mês. Valor e comissão dos outros não aparecem. */
+function Ranking({ linhas, className }: { linhas: { posicao: number; nome: string; vendas: number; voce: boolean }[]; className?: string }) {
+  return (
+    <Card className={className}>
+      <CardHeader><CardTitle>Ranking do mês, por vendas pagas</CardTitle></CardHeader>
+      <CardContent>
+        {linhas.length === 0 ? <p className="text-sm text-muted-foreground">A equipe ainda não tem vendedores.</p> : (
+          <ol className="grid gap-1.5 text-sm">
+            {linhas.slice(0, 5).map((l) => (
+              <li key={l.posicao} className={`flex items-center gap-3 rounded-md px-2 py-1.5 ${l.voce ? 'bg-accent font-medium' : ''}`}>
+                <span className="w-5 text-right text-muted-foreground tabular-nums">{l.posicao}º</span>
+                <span className="min-w-0 flex-1 truncate">{l.nome}{l.voce ? ' (você)' : ''}</span>
+                <span className="tabular-nums">{l.vendas} {l.vendas === 1 ? 'paga' : 'pagas'}</span>
+              </li>
+            ))}
+            {!linhas.slice(0, 5).some((l) => l.voce) && linhas.find((l) => l.voce) && (
+              <li className="flex items-center gap-3 rounded-md bg-accent px-2 py-1.5 font-medium">
+                <span className="w-5 text-right text-muted-foreground tabular-nums">{linhas.find((l) => l.voce)!.posicao}º</span>
+                <span className="min-w-0 flex-1 truncate">Você</span>
+                <span className="tabular-nums">{linhas.find((l) => l.voce)!.vendas} pagas</span>
+              </li>
+            )}
+          </ol>
+        )}
+      </CardContent>
+    </Card>
   )
 }

@@ -1,6 +1,6 @@
 import { useIsFetching, useIsMutating } from '@tanstack/react-query'
 import {
-  type LucideIcon, BookOpen, Boxes, ClipboardList, HandCoins, Headset, History, Home, Landmark, MapPin, Menu, Package,
+  type LucideIcon, BookOpen, CalendarClock, Boxes, ClipboardList, HandCoins, Headset, History, Home, Landmark, MapPin, Menu, Package,
   ChevronDown, ChevronsUpDown, LogOut, Palette, Settings, PlusCircle, Receipt, Server, ShieldCheck, Store, TicketPercent, UserRound, Users,
   UsersRound, Wrench,
 } from 'lucide-react'
@@ -79,6 +79,7 @@ const MENU: Record<Papel, Grupo[]> = {
       { para: '/painel/vendas', rotulo: 'Vendas', icone: Receipt },
       { para: '/catalogo', rotulo: 'Catálogo', icone: BookOpen },
       { para: '/painel/clientes', rotulo: 'Clientes', icone: Users },
+      { para: '/carteira', rotulo: 'Carteira', icone: CalendarClock },
       { para: '/links', rotulo: 'Serviços', icone: Wrench },
       { para: '/painel/mapa', rotulo: 'Mapa', icone: MapPin },
     ] },
@@ -106,6 +107,7 @@ const MENU: Record<Papel, Grupo[]> = {
       { para: '/vender', rotulo: 'Nova venda', icone: PlusCircle },
       { para: '/vendedor/placas', rotulo: 'Minhas placas', icone: Package },
       { para: '/vendedor/vendas', rotulo: 'Minhas vendas', icone: Receipt },
+      { para: '/carteira', rotulo: 'Minha carteira', icone: CalendarClock },
       { para: '/catalogo', rotulo: 'Catálogo', icone: BookOpen },
       { para: '/links', rotulo: 'Serviços', icone: Wrench },
     ] },

@@ -5524,6 +5524,76 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/painel-do-vendedor": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ResumoDoVendedor"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/carteira": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PlacaDaCarteira"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/vendas/itens": {
         parameters: {
             query?: never;
@@ -6414,6 +6484,8 @@ export interface components {
             /** Format: int32 */
             comissaoBps: null | number;
             cpf?: null | string;
+            /** Format: int64 */
+            metaMensalCents?: null | number;
         };
         AnonymousTypeOfstringAndstring: {
             chave: null | string;
@@ -6518,6 +6590,7 @@ export interface components {
             documento: null | string;
             email: null | string;
         };
+        /** @description PixCopiaECola só com o Pix em aberto: o vendedor manda ao cliente que não está no balcão. */
         CobrancaDaVenda: {
             situacao: components["schemas"]["SituacaoDaCobranca"];
             meio: components["schemas"]["MeioDePagamento"];
@@ -6531,6 +6604,7 @@ export interface components {
             pagaEm: null | string;
             /** Format: date-time */
             pixExpiraEm: null | string;
+            pixCopiaECola?: null | string;
         };
         CobrancaDto: {
             /** Format: uuid */
@@ -7243,6 +7317,8 @@ export interface components {
             /** Format: int32 */
             comissaoBps: null | number;
             cpf?: null | string;
+            /** Format: int64 */
+            metaMensalCents?: null | number;
         };
         OrdemDaVenda: {
             /** Format: int64 */
@@ -7377,6 +7453,24 @@ export interface components {
             revendedor: null | string;
             emailConfirmado: boolean;
         };
+        /** @description Uma placa vendida na carteira: o cliente para chamar, quando vence e quanto é lida. */
+        PlacaDaCarteira: {
+            /** Format: uuid */
+            vendaId: string;
+            codigo: string;
+            /** Format: uuid */
+            clienteId: string;
+            cliente: string;
+            responsavel: string;
+            telefone: string;
+            estado: components["schemas"]["EstadoDaPlaca"];
+            /** Format: date-time */
+            venceEm: null | string;
+            /** Format: int64 */
+            totalLeituras: number;
+            /** Format: int32 */
+            leiturasEm30Dias: number;
+        };
         PlacaDaLista: {
             codigo: string;
             /** Format: int64 */
@@ -7410,6 +7504,15 @@ export interface components {
             /** Format: date-time */
             venceEm: null | string;
             destino: null | string;
+        };
+        /** @description Uma linha do ranking do mês: posição, primeiro nome e vendas pagas. Valor e comissão dos outros não aparecem. */
+        PosicaoNoRanking: {
+            /** Format: int32 */
+            posicao: number;
+            nome: string;
+            /** Format: int32 */
+            vendas: number;
+            voce: boolean;
         };
         ProdutoDaPlataformaDto: {
             /** Format: uuid */
@@ -7500,6 +7603,16 @@ export interface components {
             /** Format: int64 */
             liquidoCents: number;
             lancamentos: components["schemas"]["LancamentoDto"][];
+        };
+        /** @description O mês do vendedor: a meta que o revendedor definiu, o que ele já vendeu pago e o ranking da equipe. */
+        ResumoDoVendedor: {
+            /** Format: int64 */
+            metaMensalCents: null | number;
+            /** Format: int64 */
+            vendidoNoMesCents: number;
+            /** Format: int32 */
+            vendasNoMes: number;
+            ranking: components["schemas"]["PosicaoNoRanking"][];
         };
         RetiradaDaNatureza: {
             natureza: components["schemas"]["NaturezaDaRetirada"];
@@ -7737,6 +7850,8 @@ export interface components {
             convitePendente: boolean;
             linkDoConvite?: null | string;
             cpf?: null | string;
+            /** Format: int64 */
+            metaMensalCents?: null | number;
         };
     };
     responses: never;

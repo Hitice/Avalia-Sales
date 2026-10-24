@@ -12,7 +12,7 @@ test('o dono pede o encerramento da conta, vê o distrato a caminho e desiste', 
   await page.getByLabel('Cidade').fill('Uberlândia')
   await page.getByLabel('UF').fill('MG')
   await page.getByRole('button', { name: 'Salvar' }).click()
-  await expect(page.getByText('Dados salvos.')).toBeVisible()
+  await expect(page.getByText('Dados salvos.').first()).toBeVisible()
 
   await page.getByRole('button', { name: 'Encerrar conta' }).click()
   const confirmacao = page.getByRole('dialog')

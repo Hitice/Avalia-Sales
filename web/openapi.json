@@ -4232,6 +4232,47 @@
         }
       }
     },
+    "/painel-do-vendedor": {
+      "get": {
+        "tags": [
+          "Balc\u00E3o"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResumoDoVendedor"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/carteira": {
+      "get": {
+        "tags": [
+          "Balc\u00E3o"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PlacaDaCarteira"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/vendas/itens": {
       "post": {
         "tags": [
@@ -5057,6 +5098,13 @@
               "null",
               "string"
             ]
+          },
+          "metaMensalCents": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
           }
         }
       },
@@ -5486,8 +5534,15 @@
               "string"
             ],
             "format": "date-time"
+          },
+          "pixCopiaECola": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
-        }
+        },
+        "description": "PixCopiaECola s\u00F3 com o Pix em aberto: o vendedor manda ao cliente que n\u00E3o est\u00E1 no balc\u00E3o."
       },
       "CobrancaDto": {
         "required": [
@@ -8028,6 +8083,13 @@
               "null",
               "string"
             ]
+          },
+          "metaMensalCents": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
           }
         },
         "description": "Sem senha, o vendedor recebe o convite e cria a dele."
@@ -8489,6 +8551,62 @@
         },
         "description": "Com o e-mail sem confirmar, o painel pede a confirma\u00E7\u00E3o; contrato e avisos esperam por ela."
       },
+      "PlacaDaCarteira": {
+        "required": [
+          "vendaId",
+          "codigo",
+          "clienteId",
+          "cliente",
+          "responsavel",
+          "telefone",
+          "estado",
+          "venceEm",
+          "totalLeituras",
+          "leiturasEm30Dias"
+        ],
+        "type": "object",
+        "properties": {
+          "vendaId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "codigo": {
+            "type": "string"
+          },
+          "clienteId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "cliente": {
+            "type": "string"
+          },
+          "responsavel": {
+            "type": "string"
+          },
+          "telefone": {
+            "type": "string"
+          },
+          "estado": {
+            "$ref": "#/components/schemas/EstadoDaPlaca"
+          },
+          "venceEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "totalLeituras": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "leiturasEm30Dias": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "Uma placa vendida na carteira: o cliente para chamar, quando vence e quanto \u00E9 lida."
+      },
       "PlacaDaLista": {
         "required": [
           "codigo",
@@ -8616,6 +8734,32 @@
             ]
           }
         }
+      },
+      "PosicaoNoRanking": {
+        "required": [
+          "posicao",
+          "nome",
+          "vendas",
+          "voce"
+        ],
+        "type": "object",
+        "properties": {
+          "posicao": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "nome": {
+            "type": "string"
+          },
+          "vendas": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "voce": {
+            "type": "boolean"
+          }
+        },
+        "description": "Uma linha do ranking do m\u00EAs: posi\u00E7\u00E3o, primeiro nome e vendas pagas. Valor e comiss\u00E3o dos outros n\u00E3o aparecem."
       },
       "ProdutoDaPlataformaDto": {
         "required": [
@@ -8932,6 +9076,39 @@
             }
           }
         }
+      },
+      "ResumoDoVendedor": {
+        "required": [
+          "metaMensalCents",
+          "vendidoNoMesCents",
+          "vendasNoMes",
+          "ranking"
+        ],
+        "type": "object",
+        "properties": {
+          "metaMensalCents": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          },
+          "vendidoNoMesCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "vendasNoMes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "ranking": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PosicaoNoRanking"
+            }
+          }
+        },
+        "description": "O m\u00EAs do vendedor: a meta que o revendedor definiu, o que ele j\u00E1 vendeu pago e o ranking da equipe."
       },
       "RetiradaDaNatureza": {
         "required": [
@@ -9819,6 +9996,13 @@
               "null",
               "string"
             ]
+          },
+          "metaMensalCents": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
           }
         },
         "description": "LinkDoConvite s\u00F3 vem na resposta de quem acabou de convidar."

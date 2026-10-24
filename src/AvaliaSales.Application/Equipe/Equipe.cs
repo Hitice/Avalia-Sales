@@ -9,12 +9,12 @@ namespace AvaliaSales.Application.Equipe;
 
 /// <summary><paramref name="LinkDoConvite"/> só vem na resposta de quem acabou de convidar.</summary>
 public sealed record VendedorDto(Guid Id, string Nome, string Email, string? Telefone, string? ChavePix, int? ComissaoBps, int ComissaoEfetivaBps, bool Ativo, int Vendas,
-    bool ConvitePendente, string? LinkDoConvite = null, string? Cpf = null);
+    bool ConvitePendente, string? LinkDoConvite = null, string? Cpf = null, long? MetaMensalCents = null);
 
 /// <summary>Sem senha, o vendedor recebe o convite e cria a dele.</summary>
-public sealed record NovoVendedor(string Nome, string Email, string? Senha, string? Telefone, string? ChavePix, int? ComissaoBps, string? Cpf = null);
+public sealed record NovoVendedor(string Nome, string Email, string? Senha, string? Telefone, string? ChavePix, int? ComissaoBps, string? Cpf = null, long? MetaMensalCents = null);
 
-public sealed record AlterarVendedor(string Nome, string? Telefone, string? ChavePix, int? ComissaoBps, string? Cpf = null);
+public sealed record AlterarVendedor(string Nome, string? Telefone, string? ChavePix, int? ComissaoBps, string? Cpf = null, long? MetaMensalCents = null);
 
 /// <summary>A equipe do revendedor: só o dono mexe, e toda mudança de comissão vale para venda nova.</summary>
 public sealed class Equipe(IBancoDeDados banco, IContas contas, IRevendedorAtual atual, Auditoria.Auditoria auditoria, TimeProvider relogio)
@@ -38,6 +38,7 @@ public sealed class Equipe(IBancoDeDados banco, IContas contas, IRevendedorAtual
         var vendedor = new Vendedor(id, comando.Nome, comando.Email, relogio.GetUtcNow());
         vendedor.Alterar(comando.Nome, comando.Telefone, comando.ChavePix, comando.ComissaoBps);
         vendedor.DefinirCpf(comando.Cpf);
+        vendedor.DefinirMeta(comando.MetaMensalCents);
         banco.Vendedores.Add(vendedor);
         auditoria.Registrar(AcaoAuditada.VendedorCadastrado, $"Vendedor {vendedor.Nome}", vendedor.Id.ToString(), null, Resumo(vendedor));
         await banco.SaveChangesAsync(ct);
@@ -65,6 +66,7 @@ public sealed class Equipe(IBancoDeDados banco, IContas contas, IRevendedorAtual
         var antes = Resumo(vendedor);
         vendedor.Alterar(comando.Nome, comando.Telefone, comando.ChavePix, comando.ComissaoBps);
         vendedor.DefinirCpf(comando.Cpf);
+        vendedor.DefinirMeta(comando.MetaMensalCents);
         if (Resumo(vendedor) != antes)
         {
             auditoria.Registrar(AcaoAuditada.VendedorAlterado, $"Vendedor {vendedor.Nome}", vendedor.Id.ToString(), antes, Resumo(vendedor));
@@ -139,5 +141,5 @@ public sealed class Equipe(IBancoDeDados banco, IContas contas, IRevendedorAtual
     }
 
     private static VendedorDto ParaDto(Vendedor v, int padrao, int vendas, bool convitePendente) =>
-        new(v.Id, v.Nome, v.Email, v.Telefone, v.ChavePix, v.ComissaoBps, v.ComissaoBps ?? padrao, v.Ativo, vendas, convitePendente, Cpf: v.Cpf);
+        new(v.Id, v.Nome, v.Email, v.Telefone, v.ChavePix, v.ComissaoBps, v.ComissaoBps ?? padrao, v.Ativo, vendas, convitePendente, Cpf: v.Cpf, MetaMensalCents: v.MetaMensalCents);
 }

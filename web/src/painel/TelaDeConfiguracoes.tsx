@@ -29,7 +29,6 @@ function Formulario({ comissaoBps, renovacaoBps, taxaBps }: { comissaoBps: numbe
   const [textoDaComissao, setTextoDaComissao] = useState(paraTexto(comissaoBps))
   const novaComissao = paraBps(textoDaComissao)
   const erro = comissao.error
-  const salvo = comissao.isSuccess
 
   async function salvar() {
     if (novaComissao !== null && novaComissao !== comissaoBps) await comissao.mutateAsync(novaComissao).catch(() => undefined)
@@ -39,7 +38,6 @@ function Formulario({ comissaoBps, renovacaoBps, taxaBps }: { comissaoBps: numbe
     <div className="grid max-w-2xl gap-4">
       <Cabecalho titulo="Configurações" />
       <Erro erro={erro ? mensagemDoErro(erro) : null} />
-      {salvo && !erro && <Alert><AlertDescription>Configurações salvas.</AlertDescription></Alert>}
       <Card>
         <CardHeader><CardTitle>Vendas</CardTitle></CardHeader>
         <CardContent>
