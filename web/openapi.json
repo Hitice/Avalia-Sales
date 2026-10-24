@@ -3690,6 +3690,28 @@
         }
       }
     },
+    "/vendas/itens": {
+      "post": {
+        "tags": [
+          "Balc\u00E3o"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NovaVendaComItens"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/vendas/{id}/cobranca": {
       "post": {
         "tags": [
@@ -5885,9 +5907,57 @@
               "integer"
             ],
             "format": "int32"
+          },
+          "quantidadeMinima": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
           }
         },
-        "description": "Sem desconto informado, o produto novo nasce com o padr\u00E3o e o que existe mant\u00E9m o dele."
+        "description": "Sem desconto ou pedido m\u00EDnimo informado, o produto novo nasce com o padr\u00E3o e o que existe mant\u00E9m o dele."
+      },
+      "ItemDaVenda": {
+        "required": [
+          "produtoId"
+        ],
+        "type": "object",
+        "properties": {
+          "produtoId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "codigo": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "destino": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/DestinoInformado"
+              }
+            ]
+          },
+          "valorCents": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          },
+          "quantidade": {
+            "type": "integer",
+            "format": "int32",
+            "default": 1
+          }
+        },
+        "description": "Uma linha da venda feita junto com outras: placa pelo c\u00F3digo, com o destino, ou servi\u00E7o pela quantidade."
       },
       "ItemDoCatalogo": {
         "required": [
@@ -5952,6 +6022,11 @@
           },
           "ativo": {
             "type": "boolean"
+          },
+          "quantidadeMinima": {
+            "type": "integer",
+            "format": "int32",
+            "default": 1
           }
         },
         "description": "Um produto como a revenda v\u00EA: o do cat\u00E1logo da Avalia com o pre\u00E7o dela.\nId \u00E9 o do produto da Avalia. O produto antigo, de antes\ndo cat\u00E1logo, n\u00E3o aparece: s\u00F3 as vendas feitas com ele continuam apontando para ele."
@@ -6636,8 +6711,72 @@
           "testeGratuito": {
             "type": "boolean",
             "default": false
+          },
+          "quantidade": {
+            "type": "integer",
+            "format": "int32",
+            "default": 1
           }
         }
+      },
+      "NovaVendaComItens": {
+        "required": [
+          "itens",
+          "empresa",
+          "responsavel",
+          "telefone",
+          "documento",
+          "email"
+        ],
+        "type": "object",
+        "properties": {
+          "itens": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ItemDaVenda"
+            }
+          },
+          "empresa": {
+            "type": "string"
+          },
+          "responsavel": {
+            "type": "string"
+          },
+          "telefone": {
+            "type": "string"
+          },
+          "documento": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "meio": {
+            "$ref": "#/components/schemas/MeioDePagamento"
+          },
+          "tokenDoCartao": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "parcelas": {
+            "type": "integer",
+            "format": "int32",
+            "default": 1
+          },
+          "testeGratuito": {
+            "type": "boolean",
+            "default": false
+          }
+        },
+        "description": "V\u00E1rias linhas para o mesmo cliente, numa cobran\u00E7a s\u00F3."
       },
       "NovoCadastro": {
         "required": [
@@ -6845,6 +6984,11 @@
               "string"
             ],
             "format": "date-time"
+          },
+          "quantidade": {
+            "type": "integer",
+            "format": "int32",
+            "default": 1
           }
         }
       },
@@ -7342,7 +7486,8 @@
           "fotoUrl",
           "temFotoEnviada",
           "descontoDaRevendaBps",
-          "parteDaAvaliaCents"
+          "parteDaAvaliaCents",
+          "quantidadeMinima"
         ],
         "type": "object",
         "properties": {
@@ -7389,6 +7534,10 @@
           "parteDaAvaliaCents": {
             "type": "integer",
             "format": "int64"
+          },
+          "quantidadeMinima": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },
@@ -8157,6 +8306,18 @@
               "string"
             ],
             "format": "date-time"
+          },
+          "quantidade": {
+            "type": "integer",
+            "format": "int32",
+            "default": 1
+          },
+          "grupoId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         }
       },

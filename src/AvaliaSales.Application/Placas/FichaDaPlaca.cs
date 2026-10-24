@@ -49,7 +49,7 @@ public sealed class FichaDaPlaca(IBancoDeDados banco, IUsuarioAtual usuario, ICo
                 from v in banco.Vendas.AsNoTracking().Where(v => v.Id == vendaId)
                 join c in banco.Clientes on v.ClienteId equals c.Id
                 join p in banco.Produtos on v.ProdutoId equals p.Id
-                let cb = banco.Cobrancas.Where(x => x.Origem == OrigemDaCobranca.Venda && x.OrigemId == v.Id).OrderByDescending(x => x.CriadaEm).FirstOrDefault()
+                let cb = banco.Cobrancas.Where(x => x.Origem == OrigemDaCobranca.Venda && x.OrigemId == (v.GrupoId ?? v.Id)).OrderByDescending(x => x.CriadaEm).FirstOrDefault()
                 select new { v, c.Nome, c.Responsavel, c.Telefone, Produto = p.Nome, Pagamento = cb == null ? (SituacaoDaCobranca?)null : cb.Situacao })
                 .SingleAsync(ct);
             var nomes = await contas.Nomes([linha.v.VendedorId], ct);

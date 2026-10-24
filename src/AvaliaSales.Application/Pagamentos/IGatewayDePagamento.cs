@@ -58,4 +58,10 @@ public interface IGatewayDePagamento
     /// paga é estornada inteira ao cliente, pelo split de quando foi paga.
     /// </summary>
     Task CancelarPedido(string pedido, CancellationToken ct);
+
+    /// <summary>
+    /// Devolve só uma parte do pedido pago: a venda do grupo desfeita sozinha.
+    /// O resto segue pago; devolvido tudo, a cobrança aparece estornada.
+    /// </summary>
+    Task EstornarParte(string pedido, long valorCents, CancellationToken ct);
 }

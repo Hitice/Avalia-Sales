@@ -68,7 +68,7 @@ public sealed class CancelamentoETesteTest(ApiDeTeste api)
         var revenda = await api.RevendaComEstoque("Revenda do Estorno pelo Painel");
         var kit = await Cenarios.ProdutoDoCatalogo(revenda.Dono, "kit-mesa", 3_990L);
         var pedido = new { codigo = "", produtoId = kit, empresa = "Bar do Estorno", responsavel = "Rita", telefone = "11977770024", documento = "11222333000181",
-            email = "bar@estorno.com.br", destino = (object?)null, valorCents = (long?)null, meio = "Pix" };
+            email = "bar@estorno.com.br", destino = (object?)null, valorCents = (long?)null, meio = "Pix", quantidade = 10 };
         var venda = (await revenda.Dono.Postar("/vendas", pedido, HttpStatusCode.Created)).GetProperty("vendaId").GetGuid();
         await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
         var codigo = Guid.Parse(await banco.Texto($"select id::text from cobrancas where origem_id = '{venda}'")).ToString("N");

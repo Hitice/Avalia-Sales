@@ -44,8 +44,9 @@ public static class Cenarios
     }
 
     /// <summary>Venda de serviço: sem placa, sem destino e, sem documento, sem cobrança (o dono recebe por fora).</summary>
-    public static object Servico(Guid produtoId, string telefone) => new
+    public static object Servico(Guid produtoId, string telefone, int quantidade = 1) => new
     {
+        quantidade,
         codigo = "",
         produtoId,
         empresa = "Padaria do Serviço",

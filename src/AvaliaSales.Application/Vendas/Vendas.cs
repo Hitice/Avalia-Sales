@@ -26,7 +26,26 @@ public sealed record NovaVenda(
     MeioDePagamento Meio = MeioDePagamento.Pix,
     string? TokenDoCartao = null,
     int Parcelas = 1,
+    bool TesteGratuito = false,
+    int Quantidade = 1);
+
+/// <summary>Uma linha da venda feita junto com outras: placa pelo código, com o destino, ou serviço pela quantidade.</summary>
+public sealed record ItemDaVenda(Guid ProdutoId, string? Codigo = null, DestinoInformado? Destino = null, long? ValorCents = null, int Quantidade = 1);
+
+/// <summary>Várias linhas para o mesmo cliente, numa cobrança só.</summary>
+public sealed record NovaVendaComItens(
+    IReadOnlyList<ItemDaVenda> Itens,
+    string Empresa,
+    string Responsavel,
+    string Telefone,
+    string? Documento,
+    string? Email,
+    MeioDePagamento Meio = MeioDePagamento.Pix,
+    string? TokenDoCartao = null,
+    int Parcelas = 1,
     bool TesteGratuito = false);
+
+public sealed record VendasRegistradas(IReadOnlyList<VendaRegistrada> Vendas, long TotalCents, CobrancaDto? Cobranca, string? SemCobranca);
 
 /// <summary>A cobrança mais recente da venda, para a tela que espera o Pix.</summary>
 public sealed record PagamentoDaVenda(SituacaoDaCobranca? Situacao, DateTimeOffset? PixExpiraEm);
@@ -58,7 +77,9 @@ public sealed record VendaDaLista(
     MotivoDoCancelamento? MotivoDoCancelamento = null,
     DateTimeOffset? TesteAte = null,
     DateTimeOffset? TesteExpiradoEm = null,
-    DateTimeOffset? TesteConvertidoEm = null);
+    DateTimeOffset? TesteConvertidoEm = null,
+    int Quantidade = 1,
+    Guid? GrupoId = null);
 
 /// <summary>
 /// A venda no balcão: placa, produto, cliente, destino e cobrança. A venda é
@@ -77,82 +98,136 @@ public sealed class Vendas(
     Notificacoes.Notificacoes notificacoes,
     TimeProvider relogio)
 {
+    public const int ItensMaximos = 20;
+
+    /// <summary>A venda de um item só, como a Nova venda fazia antes do carrinho.</summary>
     public async Task<VendaRegistrada> Registrar(NovaVenda pedido, CancellationToken ct)
+    {
+        var feitas = await Registrar(new NovaVendaComItens([new ItemDaVenda(pedido.ProdutoId, pedido.Codigo, pedido.Destino, pedido.ValorCents, pedido.Quantidade)],
+            pedido.Empresa, pedido.Responsavel, pedido.Telefone, pedido.Documento, pedido.Email, pedido.Meio, pedido.TokenDoCartao, pedido.Parcelas, pedido.TesteGratuito), ct);
+        return feitas.Vendas[0] with { Cobranca = feitas.Cobranca, SemCobranca = feitas.SemCobranca };
+    }
+
+    /// <summary>
+    /// Uma ou mais linhas para o mesmo cliente: placa (pelo QR, com o destino)
+    /// ou serviço que a Avalia executa (pela quantidade, nunca abaixo do pedido
+    /// mínimo). Cada linha é uma venda, com a comissão dela; juntas formam um
+    /// grupo e saem numa cobrança só. A ordem de serviço nasce quando o
+    /// cliente paga (EfeitosDaCobranca).
+    /// </summary>
+    public async Task<VendasRegistradas> Registrar(NovaVendaComItens pedido, CancellationToken ct)
     {
         if (pedido.Meio is not (MeioDePagamento.Pix or MeioDePagamento.Cartao or MeioDePagamento.Link))
         {
             throw new RegraDeNegocioException("Escolha Pix ou cartão.");
         }
 
-        (await banco.Revendedores.SingleAsync(r => r.Id == atual.RevendedorId, ct)).ExigirAtiva();
-        var (produto, doCatalogo) = await ProdutoDaVenda(pedido.ProdutoId, ct);
-        var (vendedorId, comissaoBps) = await QuemVende(produto.ComissaoBps, ct);
-        var agora = relogio.GetUtcNow();
-        if (doCatalogo is { UsaPlaca: false })
+        if (pedido.Itens is not { Count: > 0 and <= ItensMaximos })
         {
-            if (pedido.TesteGratuito)
+            throw new RegraDeNegocioException($"A venda tem de 1 a {ItensMaximos} itens.");
+        }
+
+        var codigos = pedido.Itens.Select(i => CodigoDaPlaca.Normalizar(i.Codigo ?? "")).Where(c => c.Length > 0).ToList();
+        if (codigos.Count != codigos.Distinct().Count())
+        {
+            throw new RegraDeNegocioException("A mesma placa está duas vezes na venda.");
+        }
+
+        (await banco.Revendedores.SingleAsync(r => r.Id == atual.RevendedorId, ct)).ExigirAtiva();
+        var agora = relogio.GetUtcNow();
+
+        // Produto, quantidade e destino conferidos antes de travar placa: o erro de digitação não segura o estoque.
+        var linhas = new List<(ItemDaVenda Item, Domain.Catalogo.Produto Produto, Domain.Catalogo.ProdutoDaPlataforma? DoCatalogo, string? Destino)>();
+        foreach (var item in pedido.Itens)
+        {
+            var (produto, doCatalogo) = await ProdutoDaVenda(item.ProdutoId, ct);
+            if (doCatalogo is { UsaPlaca: false })
             {
-                throw new RegraDeNegocioException("Teste gratuito é só para placa.");
+                if (pedido.TesteGratuito)
+                {
+                    throw new RegraDeNegocioException("Teste gratuito é só para placa.");
+                }
+
+                if (item.Quantidade < doCatalogo.QuantidadeMinima)
+                {
+                    throw new RegraDeNegocioException($"{doCatalogo.Nome}: pedido mínimo de {doCatalogo.QuantidadeMinima} unidades.");
+                }
+
+                linhas.Add((item, produto, doCatalogo, null));
+                continue;
             }
 
-            return await RegistrarServico(pedido, produto, doCatalogo.ParteDaAvaliaCents, vendedorId, comissaoBps, agora, ct);
-        }
+            if (item.Quantidade != 1)
+            {
+                throw new RegraDeNegocioException("Placa sai uma por código: leia cada QR.");
+            }
 
-        var codigo = CodigoDaPlaca.Normalizar(pedido.Codigo);
-        var destino = (pedido.Destino ?? throw new RegraDeNegocioException("Informe para onde a placa leva.")).Resolver(plataforma.Value.HostPublico);
+            var destino = (item.Destino ?? throw new RegraDeNegocioException("Informe para onde a placa leva.")).Resolver(plataforma.Value.HostPublico);
+            linhas.Add((item, produto, doCatalogo, destino));
+        }
 
         await using var transacao = await banco.Database.BeginTransactionAsync(ct);
-
-        // Código de outro revendedor responde como inexistente: o código está impresso e qualquer um lê.
-        var placa = codigo.Length == 0
-            ? null
-            : await banco.TravarPlaca(codigo, ct);
-        if (placa is null)
+        var lugar = pedido.Itens.Select(i => i.Destino?.LugarNoGoogle).FirstOrDefault(l => l is not null);
+        var cliente = await EncontrarCliente(pedido.Empresa, pedido.Responsavel, pedido.Telefone, pedido.Documento, pedido.Email, lugar, agora, ct);
+        var feitas = new List<(Venda Venda, Placa? Placa, string? LinkCurto, string Descricao)>();
+        foreach (var (item, produto, doCatalogo, destino) in linhas)
         {
-            throw new RegraDeNegocioException("Código não encontrado, verifique novamente.");
+            var (vendedorId, comissaoBps) = await QuemVende(produto.ComissaoBps, ct);
+            if (destino is null)
+            {
+                var quantidade = item.Quantidade;
+                var servico = new Venda(null, cliente.Id, produto.Id, checked(produto.PrecoCents * quantidade), vendedorId, item.ValorCents, 0, comissaoBps, pedido.Meio,
+                    agora, checked(doCatalogo!.ParteDaAvaliaCents * quantidade), quantidade);
+                banco.Vendas.Add(servico);
+                feitas.Add((servico, null, null, quantidade > 1 ? $"{quantidade}x {produto.Nome}" : produto.Nome));
+                continue;
+            }
+
+            var codigo = CodigoDaPlaca.Normalizar(item.Codigo ?? "");
+
+            // Código de outro revendedor responde como inexistente: o código está impresso e qualquer um lê.
+            var placa = (codigo.Length == 0 ? null : await banco.TravarPlaca(codigo, ct))
+                ?? throw new RegraDeNegocioException("Código não encontrado, verifique novamente.");
+            var venda = new Venda(placa.Id, cliente.Id, produto.Id, produto.PrecoCents, vendedorId, item.ValorCents,
+                placa.CustoCents, comissaoBps, pedido.Meio, agora, doCatalogo?.ParteDaAvaliaCents ?? 0);
+            placa.Vender(venda.Id, destino, agora);
+            if (pedido.TesteGratuito)
+            {
+                venda.IniciarTeste(agora);
+            }
+
+            banco.Vendas.Add(venda);
+            auditoria.Registrar(AcaoAuditada.DestinoDefinido, $"Placa {placa.Codigo}", placa.Codigo, null, destino);
+            var linkCurto = item.Destino!.Tipo == TipoDeDestino.Google ? await links.DoNegocio(cliente.Id, cliente.Nome, destino, ct) : null;
+            feitas.Add((venda, placa, linkCurto, $"Placa {placa.Codigo}"));
         }
 
-        var cliente = await EncontrarCliente(pedido, agora, ct);
-        var venda = new Venda(placa.Id, cliente.Id, produto.Id, produto.PrecoCents, vendedorId, pedido.ValorCents,
-            placa.CustoCents, comissaoBps, pedido.Meio, agora, doCatalogo?.ParteDaAvaliaCents ?? 0);
-        placa.Vender(venda.Id, destino, agora);
-        if (pedido.TesteGratuito)
+        if (feitas.Count > 1)
         {
-            venda.IniciarTeste(agora);
+            foreach (var feita in feitas)
+            {
+                feita.Venda.EntrarNoGrupo(feitas[0].Venda.Id);
+            }
         }
 
-        banco.Vendas.Add(venda);
-        auditoria.Registrar(AcaoAuditada.DestinoDefinido, $"Placa {placa.Codigo}", placa.Codigo, null, destino);
-        var linkCurto = pedido.Destino.Tipo == TipoDeDestino.Google ? await links.DoNegocio(cliente.Id, cliente.Nome, destino, ct) : null;
-        banco.AvisarAoVivo("venda", placa.RevendedorId);
-        await banco.SaveChangesAsync(ct);
-        await transacao.CommitAsync(ct);
-
-        // No teste a cobrança sai quando o cliente decidir, pela lista de vendas ou no balcão.
-        var (cobranca, semCobranca) = venda.TesteAte is { } ate
-            ? (null, $"Teste gratuito até {ate.ToOffset(TimeSpan.FromHours(-3)):dd/MM}.")
-            : await TentarCobrar(venda, cliente, $"Placa {placa.Codigo}", pedido.TokenDoCartao, pedido.Parcelas, ct);
-        return new VendaRegistrada(venda.Id, placa.Codigo, plataforma.Value.EnderecoDaPlaca(placa.Codigo), venda.ValorCents, placa.VenceEm, cobranca, semCobranca, linkCurto);
-    }
-
-    /// <summary>
-    /// Serviço que a Avalia executa: sem placa nem destino. A ordem de serviço
-    /// nasce quando o cliente paga (EfeitosDaCobranca).
-    /// </summary>
-    private async Task<VendaRegistrada> RegistrarServico(NovaVenda pedido, Domain.Catalogo.Produto produto, long parteDaAvaliaCents, Guid vendedorId, int comissaoBps,
-        DateTimeOffset agora, CancellationToken ct)
-    {
-        await using var transacao = await banco.Database.BeginTransactionAsync(ct);
-        var cliente = await EncontrarCliente(pedido, agora, ct);
-        var venda = new Venda(null, cliente.Id, produto.Id, produto.PrecoCents, vendedorId, pedido.ValorCents, 0, comissaoBps, pedido.Meio, agora, parteDaAvaliaCents);
-        banco.Vendas.Add(venda);
         banco.AvisarAoVivo("venda", atual.RevendedorId ?? Guid.Empty);
         await banco.SaveChangesAsync(ct);
         await transacao.CommitAsync(ct);
 
-        var (cobranca, semCobranca) = await TentarCobrar(venda, cliente, produto.Nome, pedido.TokenDoCartao, pedido.Parcelas, ct);
-        return new VendaRegistrada(venda.Id, "", "", venda.ValorCents, null, cobranca, semCobranca);
+        // No teste a cobrança sai quando o cliente decidir, pela lista de vendas ou no balcão.
+        var vendas = feitas.Select(f => f.Venda).ToList();
+        var (cobranca, semCobranca) = vendas[0].TesteAte is { } ate
+            ? (null, $"Teste gratuito até {ate.ToOffset(TimeSpan.FromHours(-3)):dd/MM}.")
+            : await TentarCobrar(vendas, cliente, Descricao(feitas.Select(f => f.Descricao).ToList()), pedido.TokenDoCartao, pedido.Parcelas, ct);
+        var registradas = feitas.Select(f => f.Placa is { } p
+            ? new VendaRegistrada(f.Venda.Id, p.Codigo, plataforma.Value.EnderecoDaPlaca(p.Codigo), f.Venda.ValorCents, p.VenceEm, null, null, f.LinkCurto)
+            : new VendaRegistrada(f.Venda.Id, "", "", f.Venda.ValorCents, null, null, null)).ToList();
+        return new VendasRegistradas(registradas, vendas.Sum(v => v.ValorCents), cobranca, semCobranca);
     }
+
+    /// <summary>O que aparece na fatura e no Pix: o item, ou o primeiro e quantos mais.</summary>
+    private static string Descricao(List<string> itens) =>
+        itens.Count == 1 ? itens[0] : $"{itens[0]} e mais {itens.Count - 1}";
 
     /// <summary>
     /// O produto vem pela tabela da revenda (o id de lá) ou pelo catálogo da
@@ -191,34 +266,43 @@ public sealed class Vendas(
         return (daRevenda, doCatalogo);
     }
 
-    /// <summary>Gera de novo a cobrança que não saiu ou que falhou. A paga e a pendente ficam.</summary>
+    /// <summary>
+    /// Gera de novo a cobrança que não saiu ou que falhou. A paga e a pendente
+    /// ficam. No grupo, a cobrança nova é das vendas que seguem de pé.
+    /// </summary>
     public async Task<VendaRegistrada> Cobrar(Guid vendaId, CancellationToken ct)
     {
         var venda = await AcharVenda(vendaId, ct);
         ExigirDaPlataforma(venda);
-        if (await banco.Cobrancas.AnyAsync(c => c.Origem == OrigemDaCobranca.Venda && c.OrigemId == venda.Id
-                && (c.Situacao == SituacaoDaCobranca.Pendente || c.Situacao == SituacaoDaCobranca.Paga), ct))
-        {
-            throw new RegraDeNegocioException("Esta venda já tem cobrança em aberto ou paga.");
-        }
-
+        await ExigirSemCobrancaViva(venda, "Esta venda já tem cobrança em aberto ou paga.", ct);
         if (venda.Situacao == SituacaoDaVenda.Cancelada || venda.Cortesia)
         {
             throw new RegraDeNegocioException("Venda cancelada ou cortesia não se cobra.");
         }
 
+        var grupo = await DoGrupo(venda, ct);
         var cliente = await banco.Clientes.SingleAsync(c => c.Id == venda.ClienteId, ct);
-        var placa = venda.PlacaId is { } placaId ? await banco.Placas.AsNoTracking().SingleAsync(p => p.Id == placaId, ct) : null;
-        if (placa is null)
+        var descricoes = new List<string>();
+        foreach (var linha in grupo)
         {
-            var nome = await banco.Produtos.Where(p => p.Id == venda.ProdutoId).Select(p => p.Nome).SingleAsync(ct);
-            var (doServico, semCobrancaDoServico) = await TentarCobrar(venda, cliente, nome, null, 1, ct);
-            return new VendaRegistrada(venda.Id, "", "", venda.ValorCents, null, doServico, semCobrancaDoServico);
+            descricoes.Add(linha.PlacaId is { } id
+                ? "Placa " + await banco.Placas.Where(p => p.Id == id).Select(p => p.Codigo).SingleAsync(ct)
+                : await banco.Produtos.Where(p => p.Id == linha.ProdutoId).Select(p => p.Nome).SingleAsync(ct));
         }
 
-        var (cobranca, semCobranca) = await TentarCobrar(venda, cliente, $"Placa {placa.Codigo}", null, 1, ct);
-        return new VendaRegistrada(venda.Id, placa.Codigo, plataforma.Value.EnderecoDaPlaca(placa.Codigo), venda.ValorCents, placa.VenceEm, cobranca, semCobranca);
+        var (cobranca, semCobranca) = await TentarCobrar(grupo, cliente, Descricao(descricoes), null, 1, ct);
+        var placa = venda.PlacaId is { } placaId ? await banco.Placas.AsNoTracking().SingleAsync(p => p.Id == placaId, ct) : null;
+        return placa is null
+            ? new VendaRegistrada(venda.Id, "", "", venda.ValorCents, null, cobranca, semCobranca)
+            : new VendaRegistrada(venda.Id, placa.Codigo, plataforma.Value.EnderecoDaPlaca(placa.Codigo), venda.ValorCents, placa.VenceEm, cobranca, semCobranca);
     }
+
+    /// <summary>As vendas que a cobrança desta cobre: ela sozinha, ou as do grupo que seguem de pé e têm valor.</summary>
+    private async Task<List<Venda>> DoGrupo(Venda venda, CancellationToken ct) =>
+        venda.GrupoId is { } grupo
+            ? await banco.Vendas.Where(v => v.GrupoId == grupo && v.Situacao == SituacaoDaVenda.Registrada && !v.Cortesia)
+                .OrderBy(v => v.VendidaEm).ThenBy(v => v.Id).ToListAsync(ct)
+            : [venda];
 
     /// <summary>
     /// O cliente pagou no balcão, em dinheiro ou por outro Pix. Só sem cobrança
@@ -235,7 +319,8 @@ public sealed class Vendas(
         }
 
         await ExigirSemCobrancaViva(venda, "Venda com Pix em aberto ou já paga.", ct);
-        await cobrancas.RegistrarPorFora(OrigemDaCobranca.Venda, venda.Id, meio, venda.ValorCents, ct, venda.ParteDaAvaliaCents);
+        var grupo = await DoGrupo(venda, ct);
+        await cobrancas.RegistrarPorFora(OrigemDaCobranca.Venda, venda.CobradaPor, meio, grupo.Sum(v => v.ValorCents), ct, grupo.Sum(v => v.ParteDaAvaliaCents));
         await RegistrarNaPlaca(venda, AcaoAuditada.RecebidoPorFora, meio.ToString(), ct);
         await banco.SaveChangesAsync(ct);
     }
@@ -245,9 +330,9 @@ public sealed class Vendas(
     {
         var venda = await AcharVenda(vendaId, ct);
         var cobranca = await banco.Cobrancas
-            .Where(c => c.Origem == OrigemDaCobranca.Venda && c.OrigemId == venda.Id && c.Situacao == SituacaoDaCobranca.Paga)
+            .Where(c => c.Origem == OrigemDaCobranca.Venda && c.OrigemId == venda.CobradaPor && c.Situacao == SituacaoDaCobranca.Paga)
             .SingleOrDefaultAsync(ct) ?? throw new RegraDeNegocioException("Esta venda não está paga.");
-        if (venda.RepasseId is not null)
+        if (venda.RepasseId is not null || (venda.GrupoId is { } grupo && await banco.Vendas.AnyAsync(v => v.GrupoId == grupo && v.RepasseId != null, ct)))
         {
             throw new RegraDeNegocioException("A comissão desta venda já foi repassada ao vendedor.");
         }
@@ -261,7 +346,7 @@ public sealed class Vendas(
     public async Task<PagamentoDaVenda> Pagamento(Guid vendaId, CancellationToken ct)
     {
         var venda = await AcharVenda(vendaId, ct);
-        var ultima = await banco.Cobrancas.AsNoTracking().Where(c => c.Origem == OrigemDaCobranca.Venda && c.OrigemId == venda.Id)
+        var ultima = await banco.Cobrancas.AsNoTracking().Where(c => c.Origem == OrigemDaCobranca.Venda && c.OrigemId == venda.CobradaPor)
             .OrderByDescending(c => c.CriadaEm).Select(c => new { c.Situacao, c.PixExpiraEm }).FirstOrDefaultAsync(ct);
         return new PagamentoDaVenda(ultima?.Situacao, ultima?.PixExpiraEm);
     }
@@ -325,7 +410,7 @@ public sealed class Vendas(
             venda.TrocarVendedor(novo, bps);
 
             // Venda paga: a comissão do vendedor certo passa a ser devida, mesmo quando a de antes era zero (o dono vendia).
-            var paga = await banco.Cobrancas.Where(c => c.Origem == OrigemDaCobranca.Venda && c.OrigemId == venda.Id && c.Situacao == SituacaoDaCobranca.Paga)
+            var paga = await banco.Cobrancas.Where(c => c.Origem == OrigemDaCobranca.Venda && c.OrigemId == venda.CobradaPor && c.Situacao == SituacaoDaCobranca.Paga)
                 .Select(c => (Guid?)c.Id).FirstOrDefaultAsync(ct);
             if (paga is { } cobrancaId && venda.ComissaoCents > 0)
             {
@@ -364,12 +449,20 @@ public sealed class Vendas(
         // A venda se cancela antes da cobrança: o motivo inválido recusa antes de o dinheiro voltar, e o estorno já a vê cancelada.
         var agora = relogio.GetUtcNow();
         venda.Cancelar(motivo, observacao, agora);
-        var vivas = await banco.Cobrancas.Where(c => c.Origem == OrigemDaCobranca.Venda && c.OrigemId == venda.Id
+        var vivas = await banco.Cobrancas.Where(c => c.Origem == OrigemDaCobranca.Venda && c.OrigemId == venda.CobradaPor
             && (c.Situacao == SituacaoDaCobranca.Pendente || c.Situacao == SituacaoDaCobranca.Paga)).ToListAsync(ct);
         var estornou = vivas.Any(c => c.Situacao == SituacaoDaCobranca.Paga);
         foreach (var cobranca in vivas)
         {
-            await cobrancas.Cancelar(cobranca, ct);
+            // No grupo pago, só esta volta ao cliente; o Pix em aberto do grupo cai inteiro, e o resto ganha cobrança nova em Vendas.
+            if (venda.GrupoId is not null && cobranca.Situacao == SituacaoDaCobranca.Paga)
+            {
+                await cobrancas.EstornarVenda(cobranca, venda.Id, ct);
+            }
+            else
+            {
+                await cobrancas.Cancelar(cobranca, ct);
+            }
         }
 
         await notificacoes.EncerrarDaVenda(venda.Id, ct);
@@ -503,7 +596,7 @@ public sealed class Vendas(
 
     private async Task ExigirSemCobrancaViva(Venda venda, string recusa, CancellationToken ct)
     {
-        if (await banco.Cobrancas.AnyAsync(c => c.Origem == OrigemDaCobranca.Venda && c.OrigemId == venda.Id
+        if (await banco.Cobrancas.AnyAsync(c => c.Origem == OrigemDaCobranca.Venda && c.OrigemId == venda.CobradaPor
                 && (c.Situacao == SituacaoDaCobranca.Pendente || c.Situacao == SituacaoDaCobranca.Paga), ct))
         {
             throw new RegraDeNegocioException(recusa);
@@ -524,7 +617,7 @@ public sealed class Vendas(
             from p in placas.DefaultIfEmpty()
             join c in banco.Clientes on v.ClienteId equals c.Id
             join pr in banco.Produtos on v.ProdutoId equals pr.Id
-            let cb = banco.Cobrancas.Where(x => x.Origem == OrigemDaCobranca.Venda && x.OrigemId == v.Id).OrderByDescending(x => x.CriadaEm).FirstOrDefault()
+            let cb = banco.Cobrancas.Where(x => x.Origem == OrigemDaCobranca.Venda && x.OrigemId == (v.GrupoId ?? v.Id)).OrderByDescending(x => x.CriadaEm).FirstOrDefault()
             orderby v.VendidaEm descending
             select new { v, Codigo = p == null ? "" : p.Codigo, Cliente = c.Nome, Produto = pr.Nome, Pagamento = cb == null ? (SituacaoDaCobranca?)null : cb.Situacao, PagaEm = cb == null ? null : cb.PagaEm, PagoPor = cb == null ? (MeioDePagamento?)null : cb.Meio })
             .Take(500)
@@ -533,7 +626,7 @@ public sealed class Vendas(
         return linhas.Select(l => new VendaDaLista(l.v.Id, l.Codigo, l.Cliente, l.Produto, l.v.VendedorId,
             nomes.GetValueOrDefault(l.v.VendedorId, "Não identificado"), l.v.ValorCents, l.v.ComissaoCents, l.v.Meio,
             l.Pagamento, l.v.VendidaEm, l.PagaEm, l.v.Situacao, l.v.Cortesia, l.PagoPor, l.v.DoSistemaAnterior,
-            l.v.MotivoDoCancelamento, l.v.TesteAte, l.v.TesteExpiradoEm, l.v.TesteConvertidoEm)).ToList();
+            l.v.MotivoDoCancelamento, l.v.TesteAte, l.v.TesteExpiradoEm, l.v.TesteConvertidoEm, l.v.Quantidade, l.v.GrupoId)).ToList();
     }
 
     /// <summary>
@@ -555,13 +648,14 @@ public sealed class Vendas(
     }
 
     /// <summary>Um cliente por documento ou telefone: o que já existe é achado e só ganha o que faltava.</summary>
-    private async Task<Cliente> EncontrarCliente(NovaVenda pedido, DateTimeOffset agora, CancellationToken ct)
+    private async Task<Cliente> EncontrarCliente(string empresa, string responsavel, string telefone, string? documento, string? email, string? lugarNoGoogle,
+        DateTimeOffset agora, CancellationToken ct)
     {
-        var novo = new Cliente(pedido.Empresa, pedido.Responsavel, pedido.Telefone, pedido.Documento, agora);
-        novo.Completar(null, pedido.Email, pedido.Destino?.LugarNoGoogle);
+        var novo = new Cliente(empresa, responsavel, telefone, documento, agora);
+        novo.Completar(null, email, lugarNoGoogle);
 
-        var existente = novo.Documento is { } documento
-            ? await banco.Clientes.SingleOrDefaultAsync(c => c.Documento == documento, ct)
+        var existente = novo.Documento is { } doc
+            ? await banco.Clientes.SingleOrDefaultAsync(c => c.Documento == doc, ct)
             : null;
         existente ??= await banco.Clientes.FirstOrDefaultAsync(c => c.Telefone == novo.Telefone, ct);
         if (existente is null)
@@ -575,7 +669,7 @@ public sealed class Vendas(
     }
 
     private async Task<(CobrancaDto? Cobranca, string? SemCobranca)> TentarCobrar(
-        Venda venda, Cliente cliente, string descricao, string? tokenDoCartao, int parcelas, CancellationToken ct)
+        List<Venda> vendas, Cliente cliente, string descricao, string? tokenDoCartao, int parcelas, CancellationToken ct)
     {
         if (cliente.Documento is null || cliente.Email is null)
         {
@@ -584,8 +678,8 @@ public sealed class Vendas(
 
         try
         {
-            var cobranca = await cobrancas.Criar(new CriarCobranca(OrigemDaCobranca.Venda, venda.Id, venda.Meio, venda.ValorCents,
-                descricao, new Pagador(cliente.Nome, cliente.Email, cliente.Documento, cliente.Telefone), tokenDoCartao, parcelas, venda.ParteDaAvaliaCents), ct);
+            var cobranca = await cobrancas.Criar(new CriarCobranca(OrigemDaCobranca.Venda, vendas[0].CobradaPor, vendas[0].Meio, vendas.Sum(v => v.ValorCents),
+                descricao, new Pagador(cliente.Nome, cliente.Email, cliente.Documento, cliente.Telefone), tokenDoCartao, parcelas, vendas.Sum(v => v.ParteDaAvaliaCents)), ct);
             return (cobranca, null);
         }
         catch (RegraDeNegocioException recusa)

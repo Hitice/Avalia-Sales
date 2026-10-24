@@ -160,6 +160,7 @@ export function TelaDeNovaVenda() {
       testeGratuito: meio === 'Teste',
       tokenDoCartao,
       parcelas,
+      quantidade: 1,
     }, {
       onSuccess: (registrada) => {
         formularioDoCartao.reset(CARTAO_VAZIO)

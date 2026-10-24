@@ -79,6 +79,20 @@ public sealed class GatewayFalso : IGatewayDePagamento
         return Task.CompletedTask;
     }
 
+    /// <summary>Pedido e valor de cada estorno parcial, na ordem.</summary>
+    public List<(string Pedido, long ValorCents)> EstornosParciais { get; } = [];
+
+    public Task EstornarParte(string pedido, long valorCents, CancellationToken ct)
+    {
+        if (FalhaAoCancelar is not null)
+        {
+            throw FalhaAoCancelar;
+        }
+
+        EstornosParciais.Add((pedido, valorCents));
+        return Task.CompletedTask;
+    }
+
     public void Mudar(string codigo, SituacaoDaCobranca situacao) =>
         PorCodigo[codigo] = PorCodigo[codigo] with { Situacao = situacao, PagoEm = situacao == SituacaoDaCobranca.Paga ? DateTimeOffset.UtcNow : null };
 }

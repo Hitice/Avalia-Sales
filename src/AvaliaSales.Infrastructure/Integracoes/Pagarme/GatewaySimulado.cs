@@ -49,6 +49,8 @@ public sealed class GatewaySimulado(IOptions<OpcoesPagarme> opcoes, IOptions<App
     /// <summary>Sem estado, não há o que cancelar: a cobrança muda só aqui, e o simulador não a desfaz.</summary>
     public Task CancelarPedido(string pedido, CancellationToken ct) => Task.CompletedTask;
 
+    public Task EstornarParte(string pedido, long valorCents, CancellationToken ct) => Task.CompletedTask;
+
     private PedidoDoGateway? Ler(string codigo)
     {
         if (!Guid.TryParseExact(codigo, "N", out var id) || id.Version != 7)

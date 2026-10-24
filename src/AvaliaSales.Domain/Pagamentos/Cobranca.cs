@@ -44,6 +44,12 @@ public sealed class Cobranca : IDoRevendedor
     public long ValorCents { get; private set; }
     public long TaxaAvaliaCents { get; private set; }
     public SituacaoDaCobranca Situacao { get; private set; } = SituacaoDaCobranca.Pendente;
+
+    /// <summary>
+    /// Devolvido em parte: a venda do grupo desfeita sozinha, com o resto do
+    /// grupo de pé. Devolvido tudo, a cobrança passa a estornada.
+    /// </summary>
+    public long EstornadoCents { get; private set; }
     public string? PedidoNoGateway { get; private set; }
 
     /// <summary>Link de pagamento (pl_...) e o endereço dele, quando a cobrança é pelo checkout do Pagar.me.</summary>
@@ -114,6 +120,18 @@ public sealed class Cobranca : IDoRevendedor
         }
 
         Situacao = SituacaoDaCobranca.Estornada;
+    }
+
+    /// <summary>Parte devolvida ao cliente. Devolve se com ela a cobrança inteira foi devolvida.</summary>
+    public bool EstornarParte(long valorCents)
+    {
+        if (Situacao != SituacaoDaCobranca.Paga || valorCents <= 0 || EstornadoCents + valorCents > ValorCents)
+        {
+            throw new RegraDeNegocioException("Esta cobrança não tem esse valor a devolver.");
+        }
+
+        EstornadoCents += valorCents;
+        return EstornadoCents == ValorCents;
     }
 
     /// <summary>Código do pedido no Pagar.me: o id sem hífens, 32 dos 52 caracteres aceitos.</summary>

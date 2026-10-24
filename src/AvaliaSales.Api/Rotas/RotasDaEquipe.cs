@@ -38,6 +38,8 @@ public static class RotasDaEquipe
         equipe.MapGet("/vendas", (Vendas vendas, CancellationToken ct) => vendas.Listar(ct));
         equipe.MapPost("/vendas", async (NovaVenda pedido, Vendas vendas, CancellationToken ct) =>
             Results.Created("/vendas", await vendas.Registrar(pedido, ct)));
+        equipe.MapPost("/vendas/itens", async (NovaVendaComItens pedido, Vendas vendas, CancellationToken ct) =>
+            Results.Created("/vendas", await vendas.Registrar(pedido, ct)));
         equipe.MapPost("/vendas/{id:guid}/cobranca", (Guid id, Vendas vendas, CancellationToken ct) => vendas.Cobrar(id, ct));
         equipe.MapGet("/vendas/{id:guid}/pagamento", (Guid id, Vendas vendas, CancellationToken ct) => vendas.Pagamento(id, ct));
         // O vendedor troca na venda dele, com placa que está com ele (Vendas.TrocarPlaca confere).

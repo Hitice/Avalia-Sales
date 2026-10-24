@@ -41,6 +41,19 @@ public sealed class Venda : IDoRevendedor
     public Guid RevendedorId { get; private set; }
     /// <summary>Nula na venda de serviço, que não leva placa.</summary>
     public Guid? PlacaId { get; private set; }
+
+    /// <summary>
+    /// Unidades do serviço vendido (kit mesa, placa de cardápio). A venda de
+    /// placa é sempre de uma: cada placa tem o código dela. Tabela, custo e
+    /// parte da Avalia são da linha inteira, já multiplicados.
+    /// </summary>
+    public int Quantidade { get; private set; } = 1;
+
+    /// <summary>
+    /// Vendas feitas juntas para o mesmo cliente, numa cobrança só: o id da
+    /// primeira delas, nela também. Nulo na venda sozinha.
+    /// </summary>
+    public Guid? GrupoId { get; private set; }
     public Guid ClienteId { get; private set; }
     public Guid ProdutoId { get; private set; }
 
@@ -91,15 +104,25 @@ public sealed class Venda : IDoRevendedor
     /// <summary>O cliente pagou: o teste virou venda, e os 12 meses contam daqui.</summary>
     public DateTimeOffset? TesteConvertidoEm { get; private set; }
 
+    /// <summary>A cobrança desta venda tem origem aqui: no grupo, a da primeira venda.</summary>
+    public Guid CobradaPor => GrupoId ?? Id;
+
+    public void EntrarNoGrupo(Guid grupo) => GrupoId = grupo;
+
     public bool EmTeste => TesteAte is not null && TesteConvertidoEm is null && Situacao == SituacaoDaVenda.Registrada;
 
     private Venda()
     {
     }
 
+    public const int QuantidadeMaxima = 1_000;
+
     public Venda(Guid? placaId, Guid clienteId, Guid produtoId, long tabelaCents, Guid vendedorId, long? valorCents,
-        long custoCents, int comissaoBps, MeioDePagamento meio, DateTimeOffset agora, long parteDaAvaliaCents = 0)
+        long custoCents, int comissaoBps, MeioDePagamento meio, DateTimeOffset agora, long parteDaAvaliaCents = 0, int quantidade = 1)
     {
+        Quantidade = quantidade is >= 1 and <= QuantidadeMaxima && (placaId is null || quantidade == 1)
+            ? quantidade
+            : throw new RegraDeNegocioException($"A quantidade vai de 1 a {QuantidadeMaxima}; placa vende uma por código.");
         var valor = valorCents ?? tabelaCents;
         ConferirValor(valor, tabelaCents);
         if (valor < parteDaAvaliaCents)

@@ -65,7 +65,7 @@ public sealed class DesfazerEReabrirTest(ApiDeTeste api)
         var operadora = await api.ClienteLogado(await api.CriarOperadora());
         var revenda = await api.RevendaComEstoque("Revenda da Ordem Reaberta");
         var kit = await Cenarios.ProdutoDoCatalogo(revenda.Dono, "kit-mesa", 3_990L);
-        var venda = (await revenda.Dono.Postar("/vendas", Cenarios.Servico(kit, "34999990044"), HttpStatusCode.Created)).GetProperty("vendaId").GetGuid();
+        var venda = (await revenda.Dono.Postar("/vendas", Cenarios.Servico(kit, "34999990044", quantidade: 10), HttpStatusCode.Created)).GetProperty("vendaId").GetGuid();
         await revenda.Dono.Postar($"/vendas/{venda}/recebimento", new { meio = "Dinheiro" }, HttpStatusCode.NoContent);
         var ordem = (await operadora.Pegar("/operadora/servicos")).EnumerateArray().Single(o => o.GetProperty("revendedor").GetString() == "Revenda da Ordem Reaberta").GetProperty("id").GetGuid();
 

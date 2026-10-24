@@ -27,7 +27,7 @@ public sealed class TestesGratuitos(IBancoDeDados banco, Notificacoes.Notificaco
         foreach (var venda in vendas)
         {
             // Paga, com o efeito ainda por aplicar: o pagamento converte o teste, não esta rotina.
-            if (await banco.Cobrancas.AnyAsync(c => c.Origem == OrigemDaCobranca.Venda && c.OrigemId == venda.Id && c.Situacao == SituacaoDaCobranca.Paga, ct)
+            if (await banco.Cobrancas.AnyAsync(c => c.Origem == OrigemDaCobranca.Venda && c.OrigemId == venda.CobradaPor && c.Situacao == SituacaoDaCobranca.Paga, ct)
                 || venda.PlacaId is not { } placaId)
             {
                 continue;

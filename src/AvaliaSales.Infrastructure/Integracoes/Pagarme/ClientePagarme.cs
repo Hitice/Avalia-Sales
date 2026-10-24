@@ -113,6 +113,26 @@ public sealed class ClientePagarme(HttpClient http, IOptions<OpcoesPagarme> opco
         }
     }
 
+    /// <summary>GET /orders/{id} e DELETE /charges/{charge_id} com o amount: o estorno parcial da cobrança paga.</summary>
+    public async Task EstornarParte(string pedido, long valorCents, CancellationToken ct)
+    {
+        var lido = await ChamadaExterna.Json(Sistema, () => http.GetAsync($"orders/{Uri.EscapeDataString(pedido)}", ct), ct);
+        var paga = lido.TryGetProperty("charges", out var cobrancas) && cobrancas.ValueKind == JsonValueKind.Array
+            ? cobrancas.EnumerateArray().FirstOrDefault(c => c.Texto("status") == "paid")
+            : default;
+        var id = paga.ValueKind == JsonValueKind.Object ? paga.Texto("id") : null;
+        if (id is null)
+        {
+            throw new Application.IntegracaoException(Sistema, null, "pedido sem cobrança paga para devolver");
+        }
+
+        var corpo = new JsonObject { ["amount"] = checked((int)valorCents) };
+        await ChamadaExterna.Json(Sistema, () => http.SendAsync(new HttpRequestMessage(HttpMethod.Delete, $"charges/{Uri.EscapeDataString(id)}")
+        {
+            Content = new StringContent(corpo.ToJsonString(), System.Text.Encoding.UTF8, "application/json"),
+        }, ct), ct);
+    }
+
     /// <summary>GET /recipients/{id}: com a chave errada, o Pagar.me responde 401; com o id errado, 404.</summary>
     public async Task<RecebedorDoGateway> BuscarRecebedor(string id, CancellationToken ct)
     {

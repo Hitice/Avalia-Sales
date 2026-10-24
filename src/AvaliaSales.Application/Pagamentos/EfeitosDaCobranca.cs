@@ -71,11 +71,35 @@ public sealed class EfeitosDaCobranca(IBancoDeDados banco, FilaDeEmails avisos, 
         notificacoes.ParaDono(pedido.RevendedorId, "Pedido pago", $"Recebemos o pagamento das {pedido.Quantidade} placas.", "/painel/pedidos");
     }
 
-    /// <summary>Receita bruta, taxa da Avalia retida no split e a comissão que passa a ser devida.</summary>
+    /// <summary>
+    /// Receita bruta, taxa da Avalia retida no split e a comissão que passa a
+    /// ser devida, de cada venda que a cobrança paga: a sozinha, ou as do grupo
+    /// (as que seguem de pé). No grupo, cada venda recebe o valor dela, e a
+    /// última fica com o que sobra (o custo do parcelamento e os centavos do
+    /// rateio da taxa), para a soma bater com a cobrança.
+    /// </summary>
     private async Task VendaPaga(Cobranca cobranca, CancellationToken ct)
     {
-        var venda = await banco.Vendas.SingleOrDefaultAsync(v => v.Id == cobranca.OrigemId, ct);
-        if (venda is null || await JaLancada(cobranca.Id, ct))
+        var origem = cobranca.OrigemId;
+        var vendas = (await banco.Vendas.Where(v => v.Id == origem || v.GrupoId == origem).ToListAsync(ct))
+            .Where(v => v.GrupoId is null || v.Situacao == SituacaoDaVenda.Registrada)
+            .OrderBy(v => v.VendidaEm).ThenBy(v => v.Id).ToList();
+        var soma = vendas.Sum(v => v.ValorCents);
+        var (receitaQueSobra, taxaQueSobra) = (cobranca.ValorCents, cobranca.TaxaAvaliaCents);
+        for (var i = 0; i < vendas.Count; i++)
+        {
+            var venda = vendas[i];
+            var ultima = i == vendas.Count - 1;
+            var receita = ultima ? receitaQueSobra : venda.ValorCents;
+            var taxa = ultima || soma == 0 ? taxaQueSobra : cobranca.TaxaAvaliaCents * venda.ValorCents / soma;
+            (receitaQueSobra, taxaQueSobra) = (receitaQueSobra - receita, taxaQueSobra - taxa);
+            await LancarVenda(cobranca, venda, receita, taxa, ct);
+        }
+    }
+
+    private async Task LancarVenda(Cobranca cobranca, Domain.Vendas.Venda venda, long receitaCents, long taxaCents, CancellationToken ct)
+    {
+        if (await banco.Lancamentos.AnyAsync(l => l.OrigemId == cobranca.Id && l.VendaId == venda.Id && l.EstornaId == null, ct))
         {
             return;
         }
@@ -83,15 +107,16 @@ public sealed class EfeitosDaCobranca(IBancoDeDados banco, FilaDeEmails avisos, 
         // O que foi vendido, nas linhas do razão: a placa pelo código, o serviço pelo nome.
         var codigo = venda.PlacaId is { } placaId ? await banco.Placas.Where(p => p.Id == placaId).Select(p => p.Codigo).SingleAsync(ct) : null;
         var produto = await banco.Produtos.AsNoTracking().SingleAsync(p => p.Id == venda.ProdutoId, ct);
-        var item = codigo is null ? produto.Nome : $"placa {codigo}";
+        var nome = venda.Quantidade > 1 ? $"{venda.Quantidade}x {produto.Nome}" : produto.Nome;
+        var item = codigo is null ? nome : $"placa {codigo}";
         var quando = cobranca.PagaEm!.Value;
         banco.AvisarAoVivo("pagamento", venda.RevendedorId);
-        banco.Lancamentos.Add(new Lancamento(TipoDeLancamento.Receita, cobranca.Id, cobranca.ValorCents, $"Venda da {item}", quando, venda.Id, venda.VendedorId));
-        if (cobranca.TaxaAvaliaCents > 0)
+        banco.Lancamentos.Add(new Lancamento(TipoDeLancamento.Receita, cobranca.Id, receitaCents, $"Venda da {item}", quando, venda.Id, venda.VendedorId));
+        if (taxaCents > 0)
         {
             var oQue = venda.ParteDaAvaliaCents > 0 ? "Parte da Avalia" : "Taxa da plataforma";
             var taxa = cobranca.PorFora ? $"{oQue} a acertar, {item} recebida por fora" : $"{oQue}, {item}";
-            banco.Lancamentos.Add(new Lancamento(TipoDeLancamento.TaxaAvalia, cobranca.Id, -cobranca.TaxaAvaliaCents, taxa, quando, venda.Id));
+            banco.Lancamentos.Add(new Lancamento(TipoDeLancamento.TaxaAvalia, cobranca.Id, -taxaCents, taxa, quando, venda.Id));
         }
 
         if (venda.ComissaoCents > 0)
@@ -110,23 +135,24 @@ public sealed class EfeitosDaCobranca(IBancoDeDados banco, FilaDeEmails avisos, 
         var cliente = await banco.Clientes.AsNoTracking().Where(c => c.Id == venda.ClienteId).Select(c => c.Nome).SingleAsync(ct);
         var vendedor = (await contas.Nomes([venda.VendedorId], ct)).GetValueOrDefault(venda.VendedorId, "A equipe");
         var valor = $"R$ {venda.ValorCents / 100},{venda.ValorCents % 100:00}";
-        notificacoes.ParaDono(venda.RevendedorId, "Venda paga", $"{vendedor} vendeu {produto.Nome} para {cliente}, {valor}.", "/painel/vendas", venda.Id);
+        notificacoes.ParaDono(venda.RevendedorId, "Venda paga", $"{vendedor} vendeu {nome} para {cliente}, {valor}.", "/painel/vendas", venda.Id);
         if (await banco.Vendedores.AnyAsync(v => v.Id == venda.VendedorId, ct))
         {
             var comissao = venda.ComissaoCents > 0 ? $" Comissão de R$ {venda.ComissaoCents / 100},{venda.ComissaoCents % 100:00}." : string.Empty;
             notificacoes.ParaVendedor(venda.RevendedorId, venda.VendedorId, "Venda paga", $"{cliente} pagou {valor}.{comissao}", "/vendedor/inicio", venda.Id);
         }
 
-        // Serviço que a Avalia executa: a venda paga vira ordem para a operadora, uma por venda.
+        // Serviço que a Avalia executa: a venda paga vira ordem para a operadora, uma por venda, com a quantidade dela.
         var doCatalogo = produto.ProdutoDaPlataformaId is { } catalogoId
             ? await banco.ProdutosDaPlataforma.AsNoTracking().SingleOrDefaultAsync(p => p.Id == catalogoId, ct)
             : null;
         if (doCatalogo is { GeraServico: true } && !await banco.OrdensDeServico.AnyAsync(o => o.VendaId == venda.Id, ct))
         {
-            banco.OrdensDeServico.Add(new Domain.Servicos.OrdemDeServico(venda.RevendedorId, venda.Id, doCatalogo.Id, doCatalogo.Nome, cliente, quando));
+            banco.OrdensDeServico.Add(new Domain.Servicos.OrdemDeServico(venda.RevendedorId, venda.Id, doCatalogo.Id, doCatalogo.Nome, cliente, quando, venda.Quantidade));
             var revendedor = await banco.Revendedores.Where(r => r.Id == venda.RevendedorId).Select(r => r.Nome).SingleAsync(ct);
-            notificacoes.ParaOperadora(venda.RevendedorId, "Serviço a fazer", $"{doCatalogo.Nome} para {cliente}, vendido por {revendedor}.", "/operadora/servicos", venda.Id);
-            notificacoes.ParaDono(venda.RevendedorId, "Serviço na fila da Avalia", $"{doCatalogo.Nome} para {cliente} entrou na fila de execução.", "/links?aba=status", venda.Id);
+            var servico = venda.Quantidade > 1 ? $"{venda.Quantidade}x {doCatalogo.Nome}" : doCatalogo.Nome;
+            notificacoes.ParaOperadora(venda.RevendedorId, "Serviço a fazer", $"{servico} para {cliente}, vendido por {revendedor}.", "/operadora/servicos", venda.Id);
+            notificacoes.ParaDono(venda.RevendedorId, "Serviço na fila da Avalia", $"{servico} para {cliente} entrou na fila de execução.", "/links?aba=status", venda.Id);
         }
     }
 
@@ -169,43 +195,55 @@ public sealed class EfeitosDaCobranca(IBancoDeDados banco, FilaDeEmails avisos, 
             banco.Lancamentos.Add(linha.Estorno(cobranca.PorFora ? "recebimento por fora desfeito" : "pagamento estornado no Pagar.me", agora));
         }
 
-        if (cobranca.Origem == OrigemDaCobranca.Venda && cobranca.OrigemId is { } vendaId)
+        if (cobranca.Origem == OrigemDaCobranca.Venda && cobranca.OrigemId is { } origem)
         {
-            await notificacoes.EncerrarDaVenda(vendaId, ct);
-
-            // Serviço sem pagamento não se executa: a ordem aberta sai cancelada; a entregue fica, e a operadora tira do ar ou acerta com a revenda.
-            var ordens = await banco.OrdensDeServico
-                .Where(o => o.VendaId == vendaId && o.Situacao != SituacaoDaOrdem.Cancelada)
-                .ToListAsync(ct);
-            foreach (var ordem in ordens)
+            // A situação vem da memória: o cancelamento daqui já marcou a venda antes de estornar.
+            var vendas = await banco.Vendas.Where(v => v.Id == origem || v.GrupoId == origem).ToListAsync(ct);
+            foreach (var venda in vendas)
             {
-                if (ordem.Situacao == SituacaoDaOrdem.Entregue)
-                {
-                    notificacoes.ParaOperadora(ordem.RevendedorId, "Serviço entregue sem pagamento",
-                        $"{ordem.Produto} para {ordem.Cliente}: o pagamento foi estornado depois da entrega. Tire do ar o que foi entregue ou acerte com a revenda.", "/operadora/servicos");
-                    continue;
-                }
-
-                ordem.Cancelar();
-                notificacoes.ParaOperadora(ordem.RevendedorId, "Serviço cancelado", $"{ordem.Produto} para {ordem.Cliente}: o pagamento foi estornado.", "/operadora/servicos");
-            }
-
-            if (ordens.Count > 0)
-            {
-                banco.AvisarAoVivo("servico", cobranca.RevendedorId, operadora: true);
+                await EncerrarVenda(venda.Id, ct);
             }
 
             // Estorno que não saiu do cancelamento daqui (painel do Pagar.me, contestação): a venda segue de pé até o dono decidir o destino da placa.
-            var venda = await banco.Vendas.SingleOrDefaultAsync(v => v.Id == vendaId, ct);
-            if (!cobranca.PorFora && venda is { Situacao: SituacaoDaVenda.Registrada })
+            var dePe = vendas.Where(v => v.Situacao == SituacaoDaVenda.Registrada).ToList();
+            if (!cobranca.PorFora && dePe.Count > 0)
             {
-                var cliente = await banco.Clientes.AsNoTracking().Where(c => c.Id == venda.ClienteId).Select(c => c.Nome).SingleAsync(ct);
-                var proximo = venda.PlacaId is null ? "Cancele a venda aqui também." : "Cancele a venda para tirar a placa do ar.";
-                notificacoes.ParaDono(venda.RevendedorId, "Pagamento estornado", $"{cliente}: o pagamento foi estornado no Pagar.me. {proximo}", "/painel/vendas");
+                var cliente = await banco.Clientes.AsNoTracking().Where(c => c.Id == dePe[0].ClienteId).Select(c => c.Nome).SingleAsync(ct);
+                var proximo = dePe.Count > 1 ? "Cancele as vendas aqui também."
+                    : dePe[0].PlacaId is null ? "Cancele a venda aqui também." : "Cancele a venda para tirar a placa do ar.";
+                notificacoes.ParaDono(dePe[0].RevendedorId, "Pagamento estornado", $"{cliente}: o pagamento foi estornado no Pagar.me. {proximo}", "/painel/vendas");
             }
         }
 
         banco.AvisarAoVivo("pagamento", cobranca.RevendedorId);
+    }
+
+    /// <summary>
+    /// A venda sem pagamento: o que ela abriu no sino se encerra; a ordem de
+    /// serviço aberta sai cancelada, e a já entregue fica, com o aviso para a
+    /// operadora tirar do ar o que foi entregue ou acertar com a revenda.
+    /// </summary>
+    public async Task EncerrarVenda(Guid vendaId, CancellationToken ct)
+    {
+        await notificacoes.EncerrarDaVenda(vendaId, ct);
+        var ordens = await banco.OrdensDeServico.Where(o => o.VendaId == vendaId && o.Situacao != SituacaoDaOrdem.Cancelada).ToListAsync(ct);
+        foreach (var ordem in ordens)
+        {
+            if (ordem.Situacao == SituacaoDaOrdem.Entregue)
+            {
+                notificacoes.ParaOperadora(ordem.RevendedorId, "Serviço entregue sem pagamento",
+                    $"{ordem.Produto} para {ordem.Cliente}: o pagamento foi estornado depois da entrega. Tire do ar o que foi entregue ou acerte com a revenda.", "/operadora/servicos");
+                continue;
+            }
+
+            ordem.Cancelar();
+            notificacoes.ParaOperadora(ordem.RevendedorId, "Serviço cancelado", $"{ordem.Produto} para {ordem.Cliente}: o pagamento foi estornado.", "/operadora/servicos");
+        }
+
+        if (ordens.Count > 0)
+        {
+            banco.AvisarAoVivo("servico", ordens[0].RevendedorId, operadora: true);
+        }
     }
 
     private Task<bool> JaLancada(Guid cobrancaId, CancellationToken ct) =>

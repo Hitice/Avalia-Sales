@@ -12,7 +12,7 @@ namespace AvaliaSales.Application.Catalogo;
 /// do catálogo, não aparece: só as vendas feitas com ele continuam apontando para ele.
 /// </summary>
 public sealed record ItemDoCatalogo(Guid Id, string Chave, string Nome, string Descricao, TipoDeProduto Tipo, SituacaoDoProduto Situacao,
-    string? FotoUrl, long PrecoSugeridoCents, long PrecoCents, int? ComissaoBps, long PisoCents, bool Ativo);
+    string? FotoUrl, long PrecoSugeridoCents, long PrecoCents, int? ComissaoBps, long PisoCents, bool Ativo, int QuantidadeMinima = 1);
 
 public sealed record AjustarProduto(long PrecoCents, int? ComissaoBps);
 
@@ -38,7 +38,7 @@ public sealed class Catalogo(IBancoDeDados banco, IUsuarioAtual usuario, Auditor
         {
             var meu = daRevenda.FirstOrDefault(r => r.ProdutoDaPlataformaId == p.Id);
             return new ItemDoCatalogo(p.Id, p.Chave, p.Nome, p.Descricao, p.Tipo, p.Situacao, FotoUrl(p), p.PrecoSugeridoCents,
-                meu?.PrecoCents ?? p.PrecoSugeridoCents, meu?.ComissaoBps, !dono ? 0 : Piso(p, pisoDaPlaca), meu?.Ativo ?? true);
+                meu?.PrecoCents ?? p.PrecoSugeridoCents, meu?.ComissaoBps, !dono ? 0 : Piso(p, pisoDaPlaca), meu?.Ativo ?? true, p.QuantidadeMinima);
         }).ToList();
     }
 

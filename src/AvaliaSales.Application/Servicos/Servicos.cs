@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 namespace AvaliaSales.Application.Servicos;
 
 public sealed record OrdemDto(Guid Id, long Numero, string Revendedor, string Produto, string Cliente, SituacaoDaOrdem Situacao, string? Observacao,
-    DateTimeOffset CriadaEm, DateTimeOffset? IniciadaEm, DateTimeOffset? EntregueEm);
+    DateTimeOffset CriadaEm, DateTimeOffset? IniciadaEm, DateTimeOffset? EntregueEm, int Quantidade = 1);
 
 public sealed record AnotarOrdem(string? Observacao);
 
@@ -25,7 +25,7 @@ public sealed class Servicos(IBancoDeDados banco, IRevendedorAtual atual, Notifi
             .OrderBy(o => o.Situacao is SituacaoDaOrdem.AFazer or SituacaoDaOrdem.EmAndamento ? 0 : 1)
             .ThenBy(o => o.Situacao is SituacaoDaOrdem.AFazer or SituacaoDaOrdem.EmAndamento ? o.CriadaEm.UtcTicks : -(o.EntregueEm ?? o.CriadaEm).UtcTicks)
             .Select(o => new OrdemDto(o.Id, o.Numero, nomes.GetValueOrDefault(o.RevendedorId, ""), o.Produto, o.Cliente, o.Situacao, o.Observacao,
-                o.CriadaEm, o.IniciadaEm, o.EntregueEm))
+                o.CriadaEm, o.IniciadaEm, o.EntregueEm, o.Quantidade))
             .ToList();
     }
 
@@ -39,10 +39,16 @@ public sealed class Servicos(IBancoDeDados banco, IRevendedorAtual atual, Notifi
     public async Task Reabrir(Guid id, CancellationToken ct)
     {
         var ordem = await banco.OrdensDeServico.SingleOrDefaultAsync(o => o.Id == id, ct) ?? throw new RegraDeNegocioException("Ordem não encontrada.");
-        if (ordem.Situacao == SituacaoDaOrdem.Cancelada && !await banco.Cobrancas.AnyAsync(c => c.Origem == Domain.Pagamentos.OrigemDaCobranca.Venda
-                && c.OrigemId == ordem.VendaId && c.Situacao == Domain.Pagamentos.SituacaoDaCobranca.Paga, ct))
+        if (ordem.Situacao == SituacaoDaOrdem.Cancelada)
         {
-            throw new RegraDeNegocioException("A venda deste serviço não está paga.");
+            // No grupo, a cobrança é a da primeira venda; a venda cancelada sozinha num grupo pago também não volta.
+            var venda = await banco.Vendas.Where(v => v.Id == ordem.VendaId).Select(v => new { CobradaPor = v.GrupoId ?? v.Id, v.Situacao }).SingleOrDefaultAsync(ct);
+            var cobradaPor = venda?.CobradaPor ?? ordem.VendaId;
+            if (venda?.Situacao == Domain.Vendas.SituacaoDaVenda.Cancelada || !await banco.Cobrancas.AnyAsync(c => c.Origem == Domain.Pagamentos.OrigemDaCobranca.Venda
+                    && c.OrigemId == cobradaPor && c.Situacao == Domain.Pagamentos.SituacaoDaCobranca.Paga, ct))
+            {
+                throw new RegraDeNegocioException("A venda deste serviço não está paga.");
+            }
         }
 
         await Mudar(id, (o, _) => o.Reabrir(), "Serviço reaberto", "A Avalia reabriu", ct);

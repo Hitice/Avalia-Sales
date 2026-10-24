@@ -4939,6 +4939,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/vendas/itens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["NovaVendaComItens"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/vendas/{id}/cobranca": {
         parameters: {
             query?: never;
@@ -6139,7 +6176,7 @@ export interface components {
             /** Format: int64 */
             precoCents: number;
         };
-        /** @description Sem desconto informado, o produto novo nasce com o padrão e o que existe mantém o dele. */
+        /** @description Sem desconto ou pedido mínimo informado, o produto novo nasce com o padrão e o que existe mantém o dele. */
         GravarProdutoDaPlataforma: {
             chave: string;
             nome: string;
@@ -6151,6 +6188,22 @@ export interface components {
             ordem: number;
             /** Format: int32 */
             descontoDaRevendaBps?: null | number;
+            /** Format: int32 */
+            quantidadeMinima?: null | number;
+        };
+        /** @description Uma linha da venda feita junto com outras: placa pelo código, com o destino, ou serviço pela quantidade. */
+        ItemDaVenda: {
+            /** Format: uuid */
+            produtoId: string;
+            codigo?: null | string;
+            destino?: null | components["schemas"]["DestinoInformado"];
+            /** Format: int64 */
+            valorCents?: null | number;
+            /**
+             * Format: int32
+             * @default 1
+             */
+            quantidade: number;
         };
         /**
          * @description Um produto como a revenda vê: o do catálogo da Avalia com o preço dela.
@@ -6175,6 +6228,11 @@ export interface components {
             /** Format: int64 */
             pisoCents: number;
             ativo: boolean;
+            /**
+             * Format: int32
+             * @default 1
+             */
+            quantidadeMinima: number;
         };
         /** @description O outro cadastro, que sai e passa tudo ao cliente da rota. */
         JuntarClientes: {
@@ -6375,6 +6433,29 @@ export interface components {
             parcelas: number;
             /** @default false */
             testeGratuito: boolean;
+            /**
+             * Format: int32
+             * @default 1
+             */
+            quantidade: number;
+        };
+        /** @description Várias linhas para o mesmo cliente, numa cobrança só. */
+        NovaVendaComItens: {
+            itens: components["schemas"]["ItemDaVenda"][];
+            empresa: string;
+            responsavel: string;
+            telefone: string;
+            documento: null | string;
+            email: null | string;
+            meio?: components["schemas"]["MeioDePagamento"];
+            tokenDoCartao?: null | string;
+            /**
+             * Format: int32
+             * @default 1
+             */
+            parcelas: number;
+            /** @default false */
+            testeGratuito: boolean;
         };
         NovoCadastro: {
             empresa: string;
@@ -6427,6 +6508,11 @@ export interface components {
             iniciadaEm: null | string;
             /** Format: date-time */
             entregueEm: null | string;
+            /**
+             * Format: int32
+             * @default 1
+             */
+            quantidade: number;
         };
         PacoteDto: {
             /** Format: uuid */
@@ -6579,6 +6665,8 @@ export interface components {
             descontoDaRevendaBps: number;
             /** Format: int64 */
             parteDaAvaliaCents: number;
+            /** Format: int32 */
+            quantidadeMinima: number;
         };
         ReceberPorFora: {
             meio: components["schemas"]["MeioDePagamento"];
@@ -6784,6 +6872,13 @@ export interface components {
             testeExpiradoEm?: null | string;
             /** Format: date-time */
             testeConvertidoEm?: null | string;
+            /**
+             * Format: int32
+             * @default 1
+             */
+            quantidade: number;
+            /** Format: uuid */
+            grupoId?: null | string;
         };
         /** @description Estado - o EstadoDaPlaca de hoje, por nome; nulo na venda de serviço. */
         VendaDoCliente: {

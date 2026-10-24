@@ -347,7 +347,8 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
             l.HasOne<Lancamento>().WithMany().HasForeignKey(x => x.EstornaId).OnDelete(DeleteBehavior.Restrict);
 
             // O mesmo pagamento nunca é lançado duas vezes, e a mesma linha nunca é estornada duas vezes.
-            l.HasIndex(x => new { x.OrigemId, x.Tipo }).IsUnique().HasFilter("estorna_id is null");
+            // Uma linha de cada tipo por origem e venda: a cobrança do grupo paga várias vendas. Sem venda (repasse), conta como valor.
+            l.HasIndex(x => new { x.OrigemId, x.Tipo, x.VendaId }).IsUnique().AreNullsDistinct(false).HasFilter("estorna_id is null");
             l.HasIndex(x => x.EstornaId).IsUnique().HasFilter("estorna_id is not null");
             l.HasIndex(x => new { x.RevendedorId, x.Competencia });
             l.HasIndex(x => new { x.RevendedorId, x.VendedorId, x.Tipo });
@@ -532,6 +533,8 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
             v.Ignore(x => x.EmTeste);
             v.HasIndex(x => x.TesteAte).HasFilter("teste_ate is not null and teste_convertido_em is null and teste_expirado_em is null");
             v.Ignore(x => x.ComissaoCents);
+            v.Ignore(x => x.CobradaPor);
+            v.HasIndex(x => x.GrupoId).HasFilter("grupo_id is not null");
             v.HasOne<Revendedor>().WithMany().HasForeignKey(x => x.RevendedorId).OnDelete(DeleteBehavior.Restrict);
             v.HasOne<Placa>().WithMany().HasForeignKey(x => x.PlacaId).OnDelete(DeleteBehavior.Restrict);
             v.HasOne<Cliente>().WithMany().HasForeignKey(x => x.ClienteId).OnDelete(DeleteBehavior.Restrict);

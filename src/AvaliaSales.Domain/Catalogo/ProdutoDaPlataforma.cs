@@ -52,6 +52,9 @@ public sealed class ProdutoDaPlataforma
     public SituacaoDoProduto Situacao { get; private set; } = SituacaoDoProduto.Disponivel;
     public int Ordem { get; private set; }
 
+    /// <summary>Pedido mínimo do que a Avalia produz em quantidade (kit mesa e placa de cardápio, 10): a venda sai com ao menos isso.</summary>
+    public int QuantidadeMinima { get; private set; } = 1;
+
     /// <summary>Caminho da foto que já vem com o front (/produtos/...), usada sem foto enviada.</summary>
     public string? FotoPadrao { get; private set; }
 
@@ -96,6 +99,11 @@ public sealed class ProdutoDaPlataforma
 
     /// <summary>O que a Avalia recebe pelo split em cada venda, arredondado ao centavo como a comissão.</summary>
     public long ParteDaAvaliaCents => GeraServico ? checked((PrecoSugeridoCents * (Base - DescontoDaRevendaBps) + Base / 2) / Base) : 0;
+
+    public void DefinirQuantidadeMinima(int quantidade) =>
+        QuantidadeMinima = quantidade is >= 1 and <= Vendas.Venda.QuantidadeMaxima && (!UsaPlaca || quantidade == 1)
+            ? quantidade
+            : throw new RegraDeNegocioException("O pedido mínimo vai de 1 a 1000; o que leva placa do estoque sai de uma em uma.");
 
     public void DefinirSituacao(SituacaoDoProduto situacao) =>
         Situacao = Enum.IsDefined(situacao) ? situacao : throw new RegraDeNegocioException("Situação desconhecida.");

@@ -27,6 +27,9 @@ public sealed class OrdemDeServico : IAtendidoPelaOperadora
     public Guid ProdutoDaPlataformaId { get; private set; }
     public string Produto { get; private set; }
     public string Cliente { get; private set; }
+
+    /// <summary>Unidades a produzir, as da venda.</summary>
+    public int Quantidade { get; private set; } = 1;
     public SituacaoDaOrdem Situacao { get; private set; } = SituacaoDaOrdem.AFazer;
     public string? Observacao { get; private set; }
     public DateTimeOffset CriadaEm { get; private set; }
@@ -36,8 +39,9 @@ public sealed class OrdemDeServico : IAtendidoPelaOperadora
     private OrdemDeServico() => Produto = Cliente = string.Empty;
 
     /// <summary>O revendedor vai explícito: o pagamento pode chegar pelo contexto da operadora.</summary>
-    public OrdemDeServico(Guid revendedorId, Guid vendaId, Guid produtoDaPlataformaId, string produto, string cliente, DateTimeOffset agora)
+    public OrdemDeServico(Guid revendedorId, Guid vendaId, Guid produtoDaPlataformaId, string produto, string cliente, DateTimeOffset agora, int quantidade = 1)
     {
+        Quantidade = quantidade;
         RevendedorId = revendedorId;
         VendaId = vendaId;
         ProdutoDaPlataformaId = produtoDaPlataformaId;

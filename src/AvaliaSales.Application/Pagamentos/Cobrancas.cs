@@ -1,4 +1,5 @@
 using AvaliaSales.Domain;
+using AvaliaSales.Domain.Financeiro;
 using AvaliaSales.Domain.Integracoes;
 using AvaliaSales.Domain.Pagamentos;
 using Microsoft.EntityFrameworkCore;
@@ -231,10 +232,7 @@ public sealed class Cobrancas(IBancoDeDados banco, IGatewayDePagamento gateway, 
             }
             catch (IntegracaoException recusa) when (recusa.Status is >= 400 and < 500)
             {
-                // Recusa do Pagar.me é resposta para quem cancela, não falha do sistema: nada foi gravado, a venda segue paga.
-                throw new RegraDeNegocioException(recusa.Message.Contains("Saldo insuficiente", StringComparison.OrdinalIgnoreCase)
-                    ? "O Pagar.me não estornou por falta de saldo. Estorne pelo painel do Pagar.me, que devolve a taxa junto, e cancele a venda aqui de novo."
-                    : "O Pagar.me recusou o cancelamento desta cobrança. Confira no painel do Pagar.me.");
+                throw Recusa(recusa);
             }
         }
 
@@ -244,6 +242,57 @@ public sealed class Cobrancas(IBancoDeDados banco, IGatewayDePagamento gateway, 
             await efeitos.Aplicar(cobranca, relogio.GetUtcNow(), ct);
         }
     }
+
+    /// <summary>
+    /// Desfaz uma venda do grupo pago, com o resto de pé: devolve ao cliente o
+    /// que ela recebeu (a receita dela no razão), pelo Pagar.me em estorno
+    /// parcial ou pela revenda quando o pagamento foi por fora, e estorna as
+    /// linhas dela. Devolvido tudo, a cobrança passa a estornada.
+    /// </summary>
+    public async Task EstornarVenda(Cobranca cobranca, Guid vendaId, CancellationToken ct)
+    {
+        var estornadas = banco.Lancamentos.Where(l => l.EstornaId != null).Select(l => l.EstornaId);
+        var linhas = await banco.Lancamentos.Where(l => l.OrigemId == cobranca.Id && l.VendaId == vendaId && l.EstornaId == null && !estornadas.Contains(l.Id))
+            .ToListAsync(ct);
+        var devolver = linhas.Where(l => l.Tipo == TipoDeLancamento.Receita).Sum(l => l.ValorCents);
+        var agora = relogio.GetUtcNow();
+        if (devolver > 0)
+        {
+            if (!cobranca.PorFora)
+            {
+                var pedido = cobranca.PedidoNoGateway ?? throw new RegraDeNegocioException("Esta cobrança não tem pedido no Pagar.me. Confira no painel do Pagar.me.");
+                try
+                {
+                    await gateway.EstornarParte(pedido, devolver, ct);
+                }
+                catch (IntegracaoException recusa) when (recusa.Status is >= 400 and < 500)
+                {
+                    throw Recusa(recusa);
+                }
+            }
+
+            // Devolvido tudo, o estorno da cobrança inteira estorna o que sobrou, esta venda junto; senão, só as linhas dela.
+            if (cobranca.EstornarParte(devolver) && cobranca.Atualizar(SituacaoDaCobranca.Estornada, null))
+            {
+                await efeitos.Aplicar(cobranca, agora, ct);
+            }
+            else
+            {
+                foreach (var linha in linhas)
+                {
+                    banco.Lancamentos.Add(linha.Estorno(cobranca.PorFora ? "venda do grupo desfeita, devolvida por fora" : "venda do grupo estornada no Pagar.me", agora));
+                }
+            }
+        }
+
+        await efeitos.EncerrarVenda(vendaId, ct);
+    }
+
+    /// <summary>Recusa do Pagar.me é resposta para quem cancela, não falha do sistema: nada foi gravado, a venda segue paga.</summary>
+    private static RegraDeNegocioException Recusa(IntegracaoException recusa) =>
+        new(recusa.Message.Contains("Saldo insuficiente", StringComparison.OrdinalIgnoreCase)
+            ? "O Pagar.me não estornou por falta de saldo. Estorne pelo painel do Pagar.me, que devolve a taxa junto, e cancele a venda aqui de novo."
+            : "O Pagar.me recusou o cancelamento desta cobrança. Confira no painel do Pagar.me.");
 
     public static CobrancaDto ParaDto(Cobranca c) =>
         new(c.Id, c.Situacao, c.ValorCents, c.TaxaAvaliaCents, c.PixCopiaECola, c.PixQrCodeUrl, c.PixExpiraEm, c.UrlDoLink);

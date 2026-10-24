@@ -443,6 +443,10 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("preco_sugerido_cents");
 
+                    b.Property<int>("QuantidadeMinima")
+                        .HasColumnType("integer")
+                        .HasColumnName("quantidade_minima");
+
                     b.Property<string>("Situacao")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -759,13 +763,15 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .HasDatabaseName("ix_lancamentos_estorna_id")
                         .HasFilter("estorna_id is not null");
 
-                    b.HasIndex("OrigemId", "Tipo")
-                        .IsUnique()
-                        .HasDatabaseName("ix_lancamentos_origem_id_tipo")
-                        .HasFilter("estorna_id is null");
-
                     b.HasIndex("RevendedorId", "Competencia")
                         .HasDatabaseName("ix_lancamentos_revendedor_id_competencia");
+
+                    b.HasIndex("OrigemId", "Tipo", "VendaId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_lancamentos_origem_id_tipo_venda_id")
+                        .HasFilter("estorna_id is null");
+
+                    NpgsqlIndexBuilderExtensions.AreNullsDistinct(b.HasIndex("OrigemId", "Tipo", "VendaId"), false);
 
                     b.HasIndex("RevendedorId", "VendedorId", "Tipo")
                         .HasDatabaseName("ix_lancamentos_revendedor_id_vendedor_id_tipo");
@@ -1017,6 +1023,10 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                     b.Property<DateTimeOffset>("CriadaEm")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("criada_em");
+
+                    b.Property<long>("EstornadoCents")
+                        .HasColumnType("bigint")
+                        .HasColumnName("estornado_cents");
 
                     b.Property<string>("LinkNoGateway")
                         .HasMaxLength(64)
@@ -1746,6 +1756,10 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("produto_da_plataforma_id");
 
+                    b.Property<int>("Quantidade")
+                        .HasColumnType("integer")
+                        .HasColumnName("quantidade");
+
                     b.Property<Guid>("RevendedorId")
                         .HasColumnType("uuid")
                         .HasColumnName("revendedor_id");
@@ -1879,6 +1893,10 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("do_sistema_anterior");
 
+                    b.Property<Guid?>("GrupoId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("grupo_id");
+
                     b.Property<string>("Meio")
                         .IsRequired()
                         .HasMaxLength(10)
@@ -1906,6 +1924,10 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                     b.Property<Guid>("ProdutoId")
                         .HasColumnType("uuid")
                         .HasColumnName("produto_id");
+
+                    b.Property<int>("Quantidade")
+                        .HasColumnType("integer")
+                        .HasColumnName("quantidade");
 
                     b.Property<Guid?>("RepasseId")
                         .HasColumnType("uuid")
@@ -1958,6 +1980,10 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
 
                     b.HasIndex("ClienteId")
                         .HasDatabaseName("ix_vendas_cliente_id");
+
+                    b.HasIndex("GrupoId")
+                        .HasDatabaseName("ix_vendas_grupo_id")
+                        .HasFilter("grupo_id is not null");
 
                     b.HasIndex("PlacaId")
                         .IsUnique()
