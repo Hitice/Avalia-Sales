@@ -2986,6 +2986,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelarVenda"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "OK"
@@ -4249,6 +4259,23 @@
           "naoLidas": {
             "type": "integer",
             "format": "int32"
+          }
+        }
+      },
+      "CancelarVenda": {
+        "type": "object",
+        "properties": {
+          "motivo": {
+            "$ref": "#/components/schemas/MotivoDoCancelamento"
+          },
+          "observacao": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "placa": {
+            "$ref": "#/components/schemas/PlacaDaVendaCancelada"
           }
         }
       },
@@ -6027,6 +6054,17 @@
         ],
         "description": "Por que a placa saiu de circula\u00E7\u00E3o."
       },
+      "MotivoDoCancelamento": {
+        "enum": [
+          "ErroDeCadastro",
+          "Inadimplencia",
+          "Desistencia",
+          "Defeito",
+          "Outro"
+        ],
+        "description": "Por que a venda foi desfeita (Pedro, 23/10/2026).",
+        "default": "ErroDeCadastro"
+      },
       "NotificacaoDto": {
         "required": [
           "id",
@@ -6174,6 +6212,10 @@
             "type": "integer",
             "format": "int32",
             "default": 1
+          },
+          "testeGratuito": {
+            "type": "boolean",
+            "default": false
           }
         }
       },
@@ -6792,6 +6834,15 @@
             ]
           }
         }
+      },
+      "PlacaDaVendaCancelada": {
+        "enum": [
+          "VoltaAoEstoque",
+          "ComDefeito",
+          "NaoVoltou"
+        ],
+        "description": "O que acontece com a placa da venda desfeita.",
+        "default": "VoltaAoEstoque"
       },
       "PlacaExportada": {
         "required": [
@@ -7594,6 +7645,37 @@
           "doSistemaAnterior": {
             "type": "boolean",
             "default": false
+          },
+          "motivoDoCancelamento": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/MotivoDoCancelamento"
+              }
+            ]
+          },
+          "testeAte": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "testeExpiradoEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "testeConvertidoEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         }
       },

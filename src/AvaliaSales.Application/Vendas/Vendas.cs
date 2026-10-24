@@ -24,7 +24,21 @@ public sealed record NovaVenda(
     long? ValorCents,
     MeioDePagamento Meio = MeioDePagamento.Pix,
     string? TokenDoCartao = null,
-    int Parcelas = 1);
+    int Parcelas = 1,
+    bool TesteGratuito = false);
+
+/// <summary>O que acontece com a placa da venda desfeita.</summary>
+public enum PlacaDaVendaCancelada
+{
+    /// <summary>Voltou inteira: vai ao estoque, para vender de novo.</summary>
+    VoltaAoEstoque = 1,
+
+    /// <summary>Voltou com defeito: sai de circulação.</summary>
+    ComDefeito = 2,
+
+    /// <summary>Não voltou: sai de circulação como perdida.</summary>
+    NaoVoltou = 3,
+}
 
 /// <summary><paramref name="LinkCurto"/> - o /L/ do negócio, quando o destino é a avaliação no Google.</summary>
 public sealed record VendaRegistrada(Guid VendaId, string Codigo, string Endereco, long ValorCents, DateTimeOffset? VenceEm, CobrancaDto? Cobranca, string? SemCobranca,
@@ -33,7 +47,11 @@ public sealed record VendaRegistrada(Guid VendaId, string Codigo, string Enderec
 public sealed record VendaDaLista(
     Guid Id, string Codigo, string Cliente, string Produto, Guid VendedorId, string Vendedor, long ValorCents, long ComissaoCents,
     MeioDePagamento Meio, SituacaoDaCobranca? Pagamento, DateTimeOffset VendidaEm, DateTimeOffset? PagaEm, SituacaoDaVenda Situacao, bool Cortesia, MeioDePagamento? PagoPor,
-    bool DoSistemaAnterior = false);
+    bool DoSistemaAnterior = false,
+    MotivoDoCancelamento? MotivoDoCancelamento = null,
+    DateTimeOffset? TesteAte = null,
+    DateTimeOffset? TesteExpiradoEm = null,
+    DateTimeOffset? TesteConvertidoEm = null);
 
 /// <summary>
 /// A venda no balcão: placa, produto, cliente, destino e cobrança. A venda é
@@ -63,6 +81,11 @@ public sealed class Vendas(
         var agora = relogio.GetUtcNow();
         if (doCatalogo is { UsaPlaca: false })
         {
+            if (pedido.TesteGratuito)
+            {
+                throw new RegraDeNegocioException("Teste gratuito é só para placa.");
+            }
+
             return await RegistrarServico(pedido, produto, doCatalogo.ParteDaAvaliaCents, vendedorId, comissaoBps, agora, ct);
         }
 
@@ -84,6 +107,11 @@ public sealed class Vendas(
         var venda = new Venda(placa.Id, cliente.Id, produto.Id, produto.PrecoCents, vendedorId, pedido.ValorCents,
             placa.CustoCents, comissaoBps, pedido.Meio, agora, doCatalogo?.ParteDaAvaliaCents ?? 0);
         placa.Vender(venda.Id, destino, agora);
+        if (pedido.TesteGratuito)
+        {
+            venda.IniciarTeste(agora);
+        }
+
         banco.Vendas.Add(venda);
         auditoria.Registrar(AcaoAuditada.DestinoDefinido, $"Placa {placa.Codigo}", placa.Codigo, null, destino);
         var linkCurto = pedido.Destino.Tipo == TipoDeDestino.Google ? await links.DoNegocio(cliente.Id, cliente.Nome, destino, ct) : null;
@@ -91,7 +119,10 @@ public sealed class Vendas(
         await banco.SaveChangesAsync(ct);
         await transacao.CommitAsync(ct);
 
-        var (cobranca, semCobranca) = await TentarCobrar(venda, cliente, $"Placa {placa.Codigo}", pedido.TokenDoCartao, pedido.Parcelas, ct);
+        // No teste a cobrança sai quando o cliente decidir, pela lista de vendas ou no balcão.
+        var (cobranca, semCobranca) = venda.TesteAte is { } ate
+            ? (null, $"Teste gratuito até {ate.ToOffset(TimeSpan.FromHours(-3)):dd/MM}.")
+            : await TentarCobrar(venda, cliente, $"Placa {placa.Codigo}", pedido.TokenDoCartao, pedido.Parcelas, ct);
         return new VendaRegistrada(venda.Id, placa.Codigo, plataforma.Value.EnderecoDaPlaca(placa.Codigo), venda.ValorCents, placa.VenceEm, cobranca, semCobranca, linkCurto);
     }
 
@@ -218,22 +249,45 @@ public sealed class Vendas(
     }
 
     /// <summary>
-    /// Desfaz a venda. Só sem cobrança em aberto nem paga: Pix em aberto ainda
-    /// pode cair, e o pagamento chegaria a uma venda desfeita. A placa volta ao
-    /// estoque e sai do ar.
+    /// Desfaz a venda com o motivo. A cobrança viva é cancelada antes: o Pix em
+    /// aberto deixa de poder ser pago, o pago volta ao cliente pelo Pagar.me e o
+    /// recebido por fora é desfeito, com o estorno no razão (inclusive da
+    /// comissão; se já foi repassada, desconta no próximo repasse). A placa sai
+    /// do ar e volta ao estoque, ou sai de circulação se veio com defeito ou não
+    /// voltou.
     /// </summary>
-    public async Task Cancelar(Guid vendaId, CancellationToken ct)
+    public async Task Cancelar(Guid vendaId, MotivoDoCancelamento motivo, string? observacao, PlacaDaVendaCancelada placaVolta, CancellationToken ct)
     {
         var venda = await AcharVenda(vendaId, ct);
         ExigirDaPlataforma(venda);
-        await ExigirSemCobrancaViva(venda, "Venda com cobrança em aberto ou paga.", ct);
-        venda.Cancelar();
+        if (venda.Situacao == SituacaoDaVenda.Cancelada)
+        {
+            throw new RegraDeNegocioException("Esta venda já foi cancelada.");
+        }
+
+        if (venda.PlacaId is { } daVenda)
+        {
+            await ExigirSemRenovacaoAberta(daVenda, ct);
+        }
+
+        var agora = relogio.GetUtcNow();
+        var vivas = await banco.Cobrancas.Where(c => c.Origem == OrigemDaCobranca.Venda && c.OrigemId == venda.Id
+            && (c.Situacao == SituacaoDaCobranca.Pendente || c.Situacao == SituacaoDaCobranca.Paga)).ToListAsync(ct);
+        foreach (var cobranca in vivas)
+        {
+            await cobrancas.Cancelar(cobranca, ct);
+        }
+
+        venda.Cancelar(motivo, observacao, agora);
         if (venda.PlacaId is { } placaId)
         {
-            await ExigirSemRenovacaoAberta(placaId, ct);
             var placa = await banco.Placas.SingleAsync(p => p.Id == placaId, ct);
-            auditoria.Registrar(AcaoAuditada.VendaCancelada, $"Venda da placa {placa.Codigo}", placa.Codigo, placa.Destino, null);
+            auditoria.Registrar(AcaoAuditada.VendaCancelada, $"Venda da placa {placa.Codigo} ({motivo})", placa.Codigo, placa.Destino, null);
             placa.DesfazerVenda();
+            if (placaVolta != PlacaDaVendaCancelada.VoltaAoEstoque)
+            {
+                placa.Baixar(placaVolta == PlacaDaVendaCancelada.NaoVoltou ? MotivoDaBaixa.Perdida : MotivoDaBaixa.Quebrada, agora);
+            }
         }
         else
         {
@@ -368,7 +422,8 @@ public sealed class Vendas(
         var nomes = await contas.Nomes(linhas.Select(l => l.v.VendedorId).Distinct(), ct);
         return linhas.Select(l => new VendaDaLista(l.v.Id, l.Codigo, l.Cliente, l.Produto, l.v.VendedorId,
             nomes.GetValueOrDefault(l.v.VendedorId, "Não identificado"), l.v.ValorCents, l.v.ComissaoCents, l.v.Meio,
-            l.Pagamento, l.v.VendidaEm, l.PagaEm, l.v.Situacao, l.v.Cortesia, l.PagoPor, l.v.DoSistemaAnterior)).ToList();
+            l.Pagamento, l.v.VendidaEm, l.PagaEm, l.v.Situacao, l.v.Cortesia, l.PagoPor, l.v.DoSistemaAnterior,
+            l.v.MotivoDoCancelamento, l.v.TesteAte, l.v.TesteExpiradoEm, l.v.TesteConvertidoEm)).ToList();
     }
 
     /// <summary>

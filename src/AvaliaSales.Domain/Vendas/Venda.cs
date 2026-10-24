@@ -9,6 +9,21 @@ public enum SituacaoDaVenda
     Cancelada = 2,
 }
 
+/// <summary>Por que a venda foi desfeita (Pedro, 23/10/2026).</summary>
+public enum MotivoDoCancelamento
+{
+    ErroDeCadastro = 1,
+
+    /// <summary>Não pagou, inclusive o teste gratuito que venceu sem pagamento.</summary>
+    Inadimplencia = 2,
+
+    /// <summary>O cliente desistiu; na venda fora da loja, até 7 dias é direito dele (CDC, art. 49).</summary>
+    Desistencia = 3,
+
+    Defeito = 4,
+    Outro = 5,
+}
+
 /// <summary>
 /// A venda no balcão: de uma placa, ou de um serviço que a Avalia executa,
 /// sem placa. Valor, tabela, custo e comissão ficam
@@ -55,6 +70,28 @@ public sealed class Venda : IDoRevendedor
 
     /// <summary>O repasse que pagou a comissão desta venda ao vendedor.</summary>
     public Guid? RepasseId { get; private set; }
+
+    public const int ObservacaoMaxima = 300;
+    public MotivoDoCancelamento? MotivoDoCancelamento { get; private set; }
+    public string? ObservacaoDoCancelamento { get; private set; }
+    public DateTimeOffset? CanceladaEm { get; private set; }
+
+    /// <summary>Dias de teste gratuito: a placa fica no ar sem pagamento até lá.</summary>
+    public const int DiasDeTeste = 7;
+
+    /// <summary>Até quando vai o teste gratuito; nulo na venda comum.</summary>
+    public DateTimeOffset? TesteAte { get; private set; }
+
+    /// <summary>O aviso de que o teste está acabando, uma vez só.</summary>
+    public DateTimeOffset? TesteAvisadoEm { get; private set; }
+
+    /// <summary>O teste acabou sem pagamento: a placa saiu do ar e a devolução fica pendente.</summary>
+    public DateTimeOffset? TesteExpiradoEm { get; private set; }
+
+    /// <summary>O cliente pagou: o teste virou venda, e os 12 meses contam daqui.</summary>
+    public DateTimeOffset? TesteConvertidoEm { get; private set; }
+
+    public bool EmTeste => TesteAte is not null && TesteConvertidoEm is null && Situacao == SituacaoDaVenda.Registrada;
 
     private Venda()
     {
@@ -112,14 +149,41 @@ public sealed class Venda : IDoRevendedor
             };
 
     /// <summary>Desfeita sem cobrança em aberto nem paga: quem chama confere isso antes.</summary>
-    public void Cancelar()
+    public void Cancelar(MotivoDoCancelamento? motivo = null, string? observacao = null, DateTimeOffset? agora = null)
     {
         if (Situacao == SituacaoDaVenda.Cancelada)
         {
             throw new RegraDeNegocioException("Esta venda já foi cancelada.");
         }
 
+        if (motivo is { } m && !Enum.IsDefined(m))
+        {
+            throw new RegraDeNegocioException("Motivo do cancelamento desconhecido.");
+        }
+
+        var nota = string.IsNullOrWhiteSpace(observacao) ? null : observacao.Trim();
+        if (nota is { Length: > ObservacaoMaxima })
+        {
+            throw new RegraDeNegocioException($"A observação tem até {ObservacaoMaxima} caracteres.");
+        }
+
         Situacao = SituacaoDaVenda.Cancelada;
+        MotivoDoCancelamento = motivo;
+        ObservacaoDoCancelamento = nota;
+        CanceladaEm = agora;
+    }
+
+    public void IniciarTeste(DateTimeOffset agora) => TesteAte = agora.AddDays(DiasDeTeste);
+
+    public void AvisarFimDoTeste(DateTimeOffset agora) => TesteAvisadoEm ??= agora;
+
+    public void ExpirarTeste(DateTimeOffset agora) => TesteExpiradoEm ??= agora;
+
+    /// <summary>Pagou: o teste vira venda. Devolve se a placa estava fora do ar pelo teste vencido.</summary>
+    public bool ConverterTeste(DateTimeOffset pagoEm)
+    {
+        TesteConvertidoEm ??= pagoEm;
+        return TesteExpiradoEm is not null;
     }
 
     /// <summary>A revenda deu a placa: valor e comissão zerados; a tabela de então fica gravada.</summary>

@@ -1,4 +1,4 @@
-import type { AcaoAuditada, CategoriaDoLote, EstadoDaPlaca, MotivoDaBaixa, Pedido, SituacaoDaCobranca, SituacaoDaOrdem, SituacaoDoContrato, SituacaoDoPedido, SituacaoDoProduto, TipoDeProduto } from './tipos'
+import type { AcaoAuditada, CategoriaDoLote, EstadoDaPlaca, MotivoDaBaixa, MotivoDoCancelamento, Pedido, SituacaoDaCobranca, SituacaoDaOrdem, SituacaoDoContrato, SituacaoDoPedido, SituacaoDoProduto, TipoDeProduto } from './tipos'
 
 /** Os nomes que a tela mostra para cada situação da API. */
 export const ROTULO_DO_ESTADO: Record<EstadoDaPlaca, string> = {
@@ -24,6 +24,14 @@ export const ROTULO_DA_BAIXA: Partial<Record<MotivoDaBaixa, string>> = {
   Quebrada: 'Quebrada',
   Perdida: 'Perdida',
   NaoImpressa: 'Não impressa',
+}
+
+export const ROTULO_DO_CANCELAMENTO: Record<MotivoDoCancelamento, string> = {
+  ErroDeCadastro: 'erro de cadastro',
+  Inadimplencia: 'não pagou',
+  Desistencia: 'desistência',
+  Defeito: 'defeito',
+  Outro: 'outro motivo',
 }
 
 export const ROTULO_DO_PEDIDO: Record<SituacaoDoPedido, string> = {

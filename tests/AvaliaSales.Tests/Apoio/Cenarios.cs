@@ -58,7 +58,7 @@ public static class Cenarios
         meio = "Pix",
     };
 
-    public static object Venda(string codigo, Guid produtoId, string telefone, long? valor = null, string? documento = "11222333000181") => new
+    public static object Venda(string codigo, Guid produtoId, string telefone, long? valor = null, string? documento = "11222333000181", bool testeGratuito = false) => new
     {
         codigo,
         produtoId,
@@ -70,5 +70,6 @@ public static class Cenarios
         destino = new { tipo = "Google", lugarNoGoogle = "ChIJ0123456789abc", link = (string?)null },
         valorCents = valor,
         meio = "Pix",
+        testeGratuito,
     };
 }

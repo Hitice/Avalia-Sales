@@ -203,6 +203,38 @@ public sealed class Cobrancas(IBancoDeDados banco, IGatewayDePagamento gateway, 
         await efeitos.Aplicar(cobranca, relogio.GetUtcNow(), ct);
     }
 
+    /// <summary>
+    /// A cobrança da venda desfeita: a do Pagar.me é cancelada lá (a pendente não
+    /// pode mais ser paga, a paga volta inteira ao cliente) e a recebida por fora
+    /// é desfeita aqui. O estorno vai ao razão já, sem esperar o webhook, que
+    /// depois chega e não muda mais nada.
+    /// </summary>
+    public async Task Cancelar(Cobranca cobranca, CancellationToken ct)
+    {
+        if (cobranca.PorFora)
+        {
+            if (cobranca.Situacao == SituacaoDaCobranca.Paga)
+            {
+                await DesfazerPorFora(cobranca, ct);
+            }
+
+            return;
+        }
+
+        // Pedido que caiu no meio da criação ainda pode existir lá, pelo código: cancela também.
+        var pedido = cobranca.PedidoNoGateway ?? (await gateway.BuscarPorCodigo(cobranca.Codigo, ct))?.Id;
+        if (pedido is not null)
+        {
+            await gateway.CancelarPedido(pedido, ct);
+        }
+
+        var lida = cobranca.Situacao == SituacaoDaCobranca.Paga ? SituacaoDaCobranca.Estornada : SituacaoDaCobranca.Cancelada;
+        if (cobranca.Atualizar(lida, null))
+        {
+            await efeitos.Aplicar(cobranca, relogio.GetUtcNow(), ct);
+        }
+    }
+
     public static CobrancaDto ParaDto(Cobranca c) =>
         new(c.Id, c.Situacao, c.ValorCents, c.TaxaAvaliaCents, c.PixCopiaECola, c.PixQrCodeUrl, c.PixExpiraEm, c.UrlDoLink);
 }

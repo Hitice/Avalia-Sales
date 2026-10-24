@@ -209,6 +209,33 @@ public sealed class Placa : IDoRevendedor
         return true;
     }
 
+    /// <summary>
+    /// O teste gratuito que virou venda: os 12 meses contam do pagamento, e a
+    /// placa que saiu do ar quando o teste venceu volta.
+    /// </summary>
+    public void IniciarVigencia(DateTimeOffset pagoEm, bool voltarAoAr)
+    {
+        if (VendaId is null || Situacao == SituacaoDaPlaca.Baixada)
+        {
+            return;
+        }
+
+        VenceEm = pagoEm.AddMonths(ValidadeMeses);
+        if (voltarAoAr && Situacao == SituacaoDaPlaca.Suspensa)
+        {
+            Situacao = SituacaoDaPlaca.Ativa;
+        }
+    }
+
+    /// <summary>O teste venceu sem pagamento: a placa sai do ar até pagar ou voltar.</summary>
+    public void TirarDoArPorTeste()
+    {
+        if (Situacao == SituacaoDaPlaca.Ativa)
+        {
+            Situacao = SituacaoDaPlaca.Suspensa;
+        }
+    }
+
     /// <summary>Mais um ano a partir do vencimento atual; devolve de quando a quando.</summary>
     public (DateTimeOffset De, DateTimeOffset Ate) Renovar()
     {

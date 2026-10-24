@@ -60,6 +60,19 @@ public sealed class GatewayFalso : IGatewayDePagamento
     public Task<RecebedorDoGateway> BuscarRecebedor(string id, CancellationToken ct) =>
         Task.FromResult(new RecebedorDoGateway(id, "Recebedor de teste", "active"));
 
+    public List<string> Cancelados { get; } = [];
+
+    public Task CancelarPedido(string pedido, CancellationToken ct)
+    {
+        Cancelados.Add(pedido);
+        foreach (var (codigo, lido) in PorCodigo.Where(p => p.Value.Id == pedido).ToList())
+        {
+            PorCodigo[codigo] = lido with { Situacao = lido.Situacao == SituacaoDaCobranca.Paga ? SituacaoDaCobranca.Estornada : SituacaoDaCobranca.Cancelada };
+        }
+
+        return Task.CompletedTask;
+    }
+
     public void Mudar(string codigo, SituacaoDaCobranca situacao) =>
         PorCodigo[codigo] = PorCodigo[codigo] with { Situacao = situacao, PagoEm = situacao == SituacaoDaCobranca.Paga ? DateTimeOffset.UtcNow : null };
 }

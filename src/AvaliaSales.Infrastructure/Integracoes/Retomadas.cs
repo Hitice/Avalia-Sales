@@ -17,7 +17,8 @@ namespace AvaliaSales.Infrastructure.Integracoes;
 /// O que ficou pela metade quando uma chamada externa caiu: cobrança sem
 /// pedido e contrato com envio incompleto. Também gera o contrato de revenda
 /// de quem se cadastrou e ainda não tem, o distrato de quem pediu o
-/// encerramento, e desliga o dono quando acaba o prazo de exportação. Roda
+/// encerramento, desliga o dono quando acaba o prazo de exportação e cuida do
+/// fim do teste gratuito (<see cref="Application.Vendas.TestesGratuitos"/>). Roda
 /// revendedor por revendedor, porque o RLS só mostra as linhas do revendedor da sessão.
 /// </summary>
 public sealed partial class Retomadas(IServiceScopeFactory escopos, BancoDeDados banco, TimeProvider relogio, Microsoft.Extensions.Options.IOptions<Pagarme.OpcoesPagarme> pagarme,
@@ -59,6 +60,9 @@ public sealed partial class Retomadas(IServiceScopeFactory escopos, BancoDeDados
                 .Where(c => c.Situacao == SituacaoDaCobranca.Pendente && c.PedidoNoGateway == null && c.LinkNoGateway == null && c.CriadaEm < agora - Carencia)
                 .Select(c => c.Id)
                 .ToListAsync(ct);
+            // O teste gratuito que venceu sai do ar; o que está acabando gera o aviso.
+            retomados += await escopo.ServiceProvider.GetRequiredService<Application.Vendas.TestesGratuitos>().Processar(ct);
+
             var servicoDeCobranca = escopo.ServiceProvider.GetRequiredService<Cobrancas>();
             foreach (var id in cobrancas)
             {

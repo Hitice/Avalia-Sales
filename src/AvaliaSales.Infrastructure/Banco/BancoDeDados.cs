@@ -525,6 +525,10 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
             v.ToTable("vendas");
             v.Property(x => x.Meio).HasConversion<string>().HasMaxLength(10);
             v.Property(x => x.Situacao).HasConversion<string>().HasMaxLength(12);
+            v.Property(x => x.MotivoDoCancelamento).HasConversion<string>().HasMaxLength(16);
+            v.Property(x => x.ObservacaoDoCancelamento).HasMaxLength(Venda.ObservacaoMaxima);
+            v.Ignore(x => x.EmTeste);
+            v.HasIndex(x => x.TesteAte).HasFilter("teste_ate is not null and teste_convertido_em is null and teste_expirado_em is null");
             v.Ignore(x => x.ComissaoCents);
             v.HasOne<Revendedor>().WithMany().HasForeignKey(x => x.RevendedorId).OnDelete(DeleteBehavior.Restrict);
             v.HasOne<Placa>().WithMany().HasForeignKey(x => x.PlacaId).OnDelete(DeleteBehavior.Restrict);

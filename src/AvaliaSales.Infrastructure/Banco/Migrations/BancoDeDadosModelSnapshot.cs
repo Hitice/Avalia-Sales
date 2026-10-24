@@ -1835,6 +1835,10 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<DateTimeOffset?>("CanceladaEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("cancelada_em");
+
                     b.Property<Guid>("ClienteId")
                         .HasColumnType("uuid")
                         .HasColumnName("cliente_id");
@@ -1860,6 +1864,16 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .HasMaxLength(10)
                         .HasColumnType("character varying(10)")
                         .HasColumnName("meio");
+
+                    b.Property<string>("MotivoDoCancelamento")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("motivo_do_cancelamento");
+
+                    b.Property<string>("ObservacaoDoCancelamento")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("observacao_do_cancelamento");
 
                     b.Property<long>("ParteDaAvaliaCents")
                         .HasColumnType("bigint")
@@ -1891,6 +1905,22 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("tabela_cents");
 
+                    b.Property<DateTimeOffset?>("TesteAte")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("teste_ate");
+
+                    b.Property<DateTimeOffset?>("TesteAvisadoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("teste_avisado_em");
+
+                    b.Property<DateTimeOffset?>("TesteConvertidoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("teste_convertido_em");
+
+                    b.Property<DateTimeOffset?>("TesteExpiradoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("teste_expirado_em");
+
                     b.Property<long>("ValorCents")
                         .HasColumnType("bigint")
                         .HasColumnName("valor_cents");
@@ -1919,6 +1949,10 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
 
                     b.HasIndex("RepasseId")
                         .HasDatabaseName("ix_vendas_repasse_id");
+
+                    b.HasIndex("TesteAte")
+                        .HasDatabaseName("ix_vendas_teste_ate")
+                        .HasFilter("teste_ate is not null and teste_convertido_em is null and teste_expirado_em is null");
 
                     b.HasIndex("VendedorId")
                         .HasDatabaseName("ix_vendas_vendedor_id");

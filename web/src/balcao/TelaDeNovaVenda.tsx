@@ -53,6 +53,9 @@ const esquemaDoCartao = z.object({
   parcelas: z.string(),
 })
 type Cartao = z.infer<typeof esquemaDoCartao>
+/** Teste gratuito (7 dias) é uma escolha da cobrança: vai à API como Pix com testeGratuito. */
+type MeioNaTela = 'Pix' | 'Cartao' | 'Teste'
+
 const CARTAO_VAZIO: Cartao = { numero: '', nome: '', validade: '', cvv: '', parcelas: '1' }
 
 const CLIENTE_VAZIO: Cliente = { empresa: '', responsavel: '', telefone: '', documento: '', email: '' }
@@ -92,7 +95,7 @@ export function TelaDeNovaVenda() {
   const [venda, setVenda] = useState<VendaRegistrada | null>(null)
   const vender = useVender()
   const configDoCartao = useConfiguracaoDoCartao()
-  const [meio, setMeio] = useState<'Pix' | 'Cartao'>('Pix')
+  const [meio, setMeio] = useState<MeioNaTela>('Pix')
   const formularioDoCartao = useForm<Cartao>({ resolver: zodResolver(esquemaDoCartao), mode: 'onChange', defaultValues: CARTAO_VAZIO })
   const [tokenizando, setTokenizando] = useState(false)
   const [recusaDoCartao, setRecusaDoCartao] = useState<string | null>(null)
@@ -152,7 +155,9 @@ export function TelaDeNovaVenda() {
       produtoId: produtoEscolhido,
       destino: servico ? null : destino,
       valorCents: valor.trim() ? paraCentavos(valor) : null,
-      meio,
+      // O teste gratuito é Pix depois: a cobrança sai quando o cliente decidir.
+      meio: meio === 'Teste' ? 'Pix' : meio,
+      testeGratuito: meio === 'Teste',
       tokenDoCartao,
       parcelas,
     }, {
@@ -249,7 +254,7 @@ export function TelaDeNovaVenda() {
               disabled={!produtoEscolhido || vender.isPending || tokenizando || (valor.trim() !== '' && paraCentavos(valor) === null) || (meio === 'Cartao' && !formularioDoCartao.formState.isValid)}
               onClick={registrar}
             >
-              {tokenizando || vender.isPending ? 'Registrando...' : meio === 'Cartao' ? 'Cobrar no cartão' : 'Registrar venda'}
+              {tokenizando || vender.isPending ? 'Registrando...' : meio === 'Cartao' ? 'Cobrar no cartão' : meio === 'Teste' ? 'Começar o teste' : 'Registrar venda'}
             </Button>
           )}
         </div>
@@ -317,8 +322,8 @@ function PassoDaCobranca({ produtoId, aoEscolher, fixo, valor, aoDigitarValor, e
   valor: string
   aoDigitarValor: (v: string) => void
   erro: unknown
-  meio: 'Pix' | 'Cartao'
-  aoMudarMeio: (m: 'Pix' | 'Cartao') => void
+  meio: MeioNaTela
+  aoMudarMeio: (m: MeioNaTela) => void
   cartao: ConfiguracaoDoCartao | null
   formularioDoCartao: UseFormReturn<Cartao>
 }) {
@@ -353,12 +358,14 @@ function PassoDaCobranca({ produtoId, aoEscolher, fixo, valor, aoDigitarValor, e
           <FieldLabel htmlFor="valor">Valor cobrado</FieldLabel>
           <Input id="valor" inputMode="decimal" placeholder={escolhido ? formatarCentavos(escolhido.precoCents) : '0,00'} value={valor} onChange={(e) => aoDigitarValor(e.target.value)} />
         </Field>
-        {cartao?.disponivel && (
-          <ToggleGroup aria-label="Forma de pagamento" className="w-full" value={meio} onValueChange={(m) => aoMudarMeio(m as 'Pix' | 'Cartao')}>
+        {(cartao?.disponivel || !fixo) && (
+          <ToggleGroup aria-label="Forma de pagamento" className="w-full" value={meio} onValueChange={(m) => m && aoMudarMeio(m as MeioNaTela)}>
             <ToggleGroupItem value="Pix">Pix</ToggleGroupItem>
-            <ToggleGroupItem value="Cartao">Cartão</ToggleGroupItem>
+            {cartao?.disponivel && <ToggleGroupItem value="Cartao">Cartão</ToggleGroupItem>}
+            {!fixo && <ToggleGroupItem value="Teste">Teste 7 dias</ToggleGroupItem>}
           </ToggleGroup>
         )}
+        {meio === 'Teste' && <p className="text-sm text-muted-foreground">Sem cobrança agora. Sem pagamento em 7 dias, a placa sai do ar.</p>}
         {meio === 'Cartao' && cartao && (
           <div className="grid gap-4">
             <Campo formulario={formularioDoCartao} nome="numero" rotulo="Número do cartão" inputMode="numeric" autoComplete="cc-number" />

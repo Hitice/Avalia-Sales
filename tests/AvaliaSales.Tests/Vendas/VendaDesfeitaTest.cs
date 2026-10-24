@@ -23,17 +23,14 @@ public sealed class VendaDesfeitaTest(ApiDeTeste api)
         api.Fabrica.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
     [Fact]
-    public async Task Cancelar_espera_o_Pix_vencer_e_devolve_a_placa_ao_estoque_fora_do_ar()
+    public async Task Cancelar_cancela_o_Pix_em_aberto_e_devolve_a_placa_ao_estoque_fora_do_ar()
     {
         var revenda = await api.RevendaComEstoque("Revenda do Cancelamento");
         var codigo = revenda.Codigos[0];
         await revenda.Dono.Postar("/vendas", Cenarios.Venda(codigo, revenda.ProdutoId, "11977770001"), HttpStatusCode.Created);
         var venda = await VendaDe(revenda.Dono, codigo);
 
-        var recusa = await revenda.Dono.Postar($"/vendas/{venda}/cancelamento", new { }, HttpStatusCode.UnprocessableEntity);
-        Assert.Contains("cobrança em aberto", recusa.GetProperty("detail").GetString());
-
-        await VencerPix(revenda.Id);
+        // O Pix em aberto é cancelado no Pagar.me junto: depois de cancelada, a venda não recebe mais.
         await revenda.Dono.Postar($"/vendas/{venda}/cancelamento", new { }, HttpStatusCode.NoContent);
         await revenda.Dono.Postar($"/vendas/{venda}/cancelamento", new { }, HttpStatusCode.UnprocessableEntity);
         await revenda.Dono.Postar($"/vendas/{venda}/cobranca", new { }, HttpStatusCode.UnprocessableEntity);

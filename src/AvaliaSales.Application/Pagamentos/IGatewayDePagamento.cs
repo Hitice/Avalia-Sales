@@ -52,4 +52,10 @@ public interface IGatewayDePagamento
 
     /// <summary>Lê um recebedor; confere a chave e o id antes da primeira cobrança.</summary>
     Task<RecebedorDoGateway> BuscarRecebedor(string id, CancellationToken ct);
+
+    /// <summary>
+    /// Cancela as cobranças do pedido: a pendente deixa de poder ser paga, e a
+    /// paga é estornada inteira ao cliente, pelo split de quando foi paga.
+    /// </summary>
+    Task CancelarPedido(string pedido, CancellationToken ct);
 }

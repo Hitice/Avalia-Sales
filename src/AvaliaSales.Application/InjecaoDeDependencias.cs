@@ -33,6 +33,7 @@ public static class InjecaoDeDependencias
         servicos.AddScoped<Comissoes>();
         servicos.AddScoped<Razao>();
         servicos.AddScoped<Renovacoes>();
+        servicos.AddScoped<Vendas.TestesGratuitos>();
         servicos.AddScoped<Pagamentos.EfeitosDaCobranca>();
         servicos.AddScoped<Erp.FilaDoErp>();
         servicos.AddScoped<Revendedores.Marca>();

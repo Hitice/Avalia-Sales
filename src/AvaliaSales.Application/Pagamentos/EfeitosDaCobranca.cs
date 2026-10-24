@@ -98,6 +98,14 @@ public sealed class EfeitosDaCobranca(IBancoDeDados banco, FilaDeEmails avisos, 
             banco.Lancamentos.Add(new Lancamento(TipoDeLancamento.ComissaoDevida, cobranca.Id, -venda.ComissaoCents, $"Comissão da {item}", quando, venda.Id, venda.VendedorId));
         }
 
+        // Teste gratuito que virou venda: os 12 meses contam do pagamento, e a placa que saiu do ar volta.
+        if (venda.EmTeste && venda.PlacaId is { } daVenda)
+        {
+            var voltar = venda.ConverterTeste(quando);
+            var placa = await banco.Placas.SingleAsync(p => p.Id == daVenda, ct);
+            placa.IniciarVigencia(quando, voltar);
+        }
+
         var cliente = await banco.Clientes.AsNoTracking().Where(c => c.Id == venda.ClienteId).Select(c => c.Nome).SingleAsync(ct);
         var vendedor = (await contas.Nomes([venda.VendedorId], ct)).GetValueOrDefault(venda.VendedorId, "A equipe");
         var valor = $"R$ {venda.ValorCents / 100},{venda.ValorCents % 100:00}";

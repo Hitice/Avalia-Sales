@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { mensagemDoErro } from '@/api/cliente'
-import type { MotivoDaBaixa, VendaDaLista } from '@/api/tipos'
+import { ROTULO_DO_CANCELAMENTO } from '@/api/rotulos'
+import type { MotivoDaBaixa, MotivoDoCancelamento, PlacaDaVendaCancelada, VendaDaLista } from '@/api/tipos'
 import { Erro } from '@/componentes/Tela'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
@@ -13,6 +14,12 @@ import { useCancelarVenda, useCortesia, useDesfazerRecebimento, useReceberPorFor
 type Acao = 'Dinheiro' | 'OutroPix' | 'desfazer' | 'cortesia' | 'cancelar'
 
 /** Por que a placa da venda sai: a antiga fica encerrada com o motivo. */
+const DESTINO_DA_PLACA: Record<PlacaDaVendaCancelada, string> = {
+  VoltaAoEstoque: 'Voltou: vai ao estoque',
+  ComDefeito: 'Voltou com defeito',
+  NaoVoltou: 'Não voltou',
+}
+
 const MOTIVO_DA_TROCA: Partial<Record<MotivoDaBaixa, string>> = {
   DefeitoDeImpressao: 'Defeito de impressão',
   Quebrada: 'Quebrada',
@@ -36,6 +43,9 @@ export function AcoesDaVenda({ venda, dono }: { venda: VendaDaLista; dono: boole
   const [confirmando, setConfirmando] = useState<Acao | null>(null)
   const [codigo, setCodigo] = useState('')
   const [motivo, setMotivo] = useState<MotivoDaBaixa>('DefeitoDeImpressao')
+  const [porque, setPorque] = useState<MotivoDoCancelamento>('ErroDeCadastro')
+  const [placaVolta, setPlacaVolta] = useState<PlacaDaVendaCancelada>('VoltaAoEstoque')
+  const [observacao, setObservacao] = useState('')
   const receber = useReceberPorFora()
   const desfazer = useDesfazerRecebimento()
   const cancelar = useCancelarVenda()
@@ -50,15 +60,20 @@ export function AcoesDaVenda({ venda, dono }: { venda: VendaDaLista; dono: boole
   const podeReceber = ativa && !venda.cortesia && !venda.doSistemaAnterior && venda.valorCents > 0 && !viva
   const recebidaPorFora = venda.pagamento === 'Paga' && (venda.pagoPor === 'Dinheiro' || venda.pagoPor === 'OutroPix')
   const podeDesfazerVenda = dono && ativa && !viva && !venda.doSistemaAnterior
+  // Cancelar vale com cobrança viva: o Pix em aberto é cancelado e o pago volta ao cliente.
+  const podeCancelar = dono && ativa && !venda.doSistemaAnterior
   // O vendedor troca na venda dele, com placa que está com ele; a API confere.
   const podeTrocar = ativa && !!venda.codigo
-  if (!ativa || (!dono && !podeReceber && !podeTrocar)) return null
+  if (!ativa || (!dono && !podeReceber && !podeTrocar && !podeCancelar)) return null
 
   const fechar = (aberto: boolean) => {
     setAberto(aberto)
     setConfirmando(null)
     setCodigo('')
     setMotivo('DefeitoDeImpressao')
+    setPorque('ErroDeCadastro')
+    setPlacaVolta('VoltaAoEstoque')
+    setObservacao('')
     mutacoes.forEach((m) => m.reset())
   }
   const feito = { onSuccess: () => fechar(false) }
@@ -66,7 +81,7 @@ export function AcoesDaVenda({ venda, dono }: { venda: VendaDaLista; dono: boole
     if (acao === 'Dinheiro' || acao === 'OutroPix') receber.mutate({ vendaId: venda.id, meio: acao }, feito)
     else if (acao === 'desfazer') desfazer.mutate(venda.id, feito)
     else if (acao === 'cortesia') cortesia.mutate(venda.id, feito)
-    else cancelar.mutate(venda.id, feito)
+    else cancelar.mutate({ vendaId: venda.id, motivo: porque, placa: venda.codigo ? placaVolta : 'VoltaAoEstoque', observacao: observacao.trim() || null }, feito)
   }
 
   return (
@@ -82,6 +97,28 @@ export function AcoesDaVenda({ venda, dono }: { venda: VendaDaLista; dono: boole
         <Erro erro={erro ? mensagemDoErro(erro) : null} />
         {venda.pagamento === 'Pendente' && <p className="text-muted-foreground">Pix em aberto.</p>}
 
+        {confirmando === 'cancelar' && (
+          <div className="grid gap-3">
+            <Select value={porque} onValueChange={(v) => setPorque(v as MotivoDoCancelamento)}>
+              <SelectTrigger aria-label="Motivo do cancelamento" className="w-full"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {(Object.keys(ROTULO_DO_CANCELAMENTO) as MotivoDoCancelamento[]).map((m) => (
+                  <SelectItem key={m} value={m}>{ROTULO_DO_CANCELAMENTO[m].charAt(0).toUpperCase() + ROTULO_DO_CANCELAMENTO[m].slice(1)}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {venda.codigo && (
+              <Select value={placaVolta} onValueChange={(v) => setPlacaVolta(v as PlacaDaVendaCancelada)}>
+                <SelectTrigger aria-label="A placa" className="w-full"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(DESTINO_DA_PLACA) as PlacaDaVendaCancelada[]).map((d) => <SelectItem key={d} value={d}>{DESTINO_DA_PLACA[d]}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            )}
+            <Input aria-label="Observação" maxLength={300} placeholder="Observação (opcional)" value={observacao} onChange={(e) => setObservacao(e.target.value)} />
+            {venda.pagamento === 'Paga' && <p className="text-sm text-muted-foreground">O pagamento volta ao cliente{recebidaPorFora ? '; devolva por fora' : ' pelo Pagar.me'}.</p>}
+          </div>
+        )}
         {confirmando ? (
           <DialogFooter>
             <Button variant="ghost" onClick={() => setConfirmando(null)}>Voltar</Button>
@@ -125,10 +162,10 @@ export function AcoesDaVenda({ venda, dono }: { venda: VendaDaLista; dono: boole
                 <p className="text-xs text-muted-foreground">A placa {venda.codigo} será encerrada.</p>
               </form>
             )}
-            {podeDesfazerVenda && (
+            {(podeDesfazerVenda || podeCancelar) && (
               <div className="flex flex-wrap gap-2">
-                {!venda.cortesia && <Button variant="outline" onClick={() => setConfirmando('cortesia')}>Dar de cortesia</Button>}
-                <Button variant="outline" onClick={() => setConfirmando('cancelar')}>Cancelar a venda</Button>
+                {podeDesfazerVenda && !venda.cortesia && <Button variant="outline" onClick={() => setConfirmando('cortesia')}>Dar de cortesia</Button>}
+                {podeCancelar && <Button variant="outline" onClick={() => setConfirmando('cancelar')}>Cancelar a venda</Button>}
               </div>
             )}
           </div>

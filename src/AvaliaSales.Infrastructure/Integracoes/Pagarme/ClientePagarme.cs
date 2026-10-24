@@ -8,7 +8,7 @@ using Microsoft.Extensions.Options;
 namespace AvaliaSales.Infrastructure.Integracoes.Pagarme;
 
 /// <summary>
-/// Pedidos na API v5 do Pagar.me (POST /orders e GET /orders?code=). Campos
+/// Pedidos na API v5 do Pagar.me (POST /orders, GET /orders?code=, DELETE /charges/{id}). Campos
 /// conferidos na referência oficial em 21/10/2026.
 /// </summary>
 public sealed class ClientePagarme(HttpClient http, IOptions<OpcoesPagarme> opcoes) : IGatewayDePagamento
@@ -89,6 +89,28 @@ public sealed class ClientePagarme(HttpClient http, IOptions<OpcoesPagarme> opco
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// GET /orders/{id} e DELETE /charges/{charge_id} de cada cobrança ainda
+    /// pendente ou paga: cancela a pendente e estorna a paga, inteira. A
+    /// confirmação chega pelo webhook (charge.canceled, charge.refunded).
+    /// </summary>
+    public async Task CancelarPedido(string pedido, CancellationToken ct)
+    {
+        var lido = await ChamadaExterna.Json(Sistema, () => http.GetAsync($"orders/{Uri.EscapeDataString(pedido)}", ct), ct);
+        if (!lido.TryGetProperty("charges", out var cobrancas) || cobrancas.ValueKind != JsonValueKind.Array)
+        {
+            return;
+        }
+
+        foreach (var cobranca in cobrancas.EnumerateArray())
+        {
+            if (cobranca.Texto("status") is "pending" or "paid" or "processing" && cobranca.Texto("id") is { } id)
+            {
+                await ChamadaExterna.Json(Sistema, () => http.DeleteAsync($"charges/{Uri.EscapeDataString(id)}", ct), ct);
+            }
+        }
     }
 
     /// <summary>GET /recipients/{id}: com a chave errada, o Pagar.me responde 401; com o id errado, 404.</summary>

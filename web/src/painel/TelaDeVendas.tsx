@@ -1,6 +1,6 @@
 import { Link } from 'react-router'
 import { mensagemDoErro } from '@/api/cliente'
-import { formatarDataHora, ROTULO_DO_PAGAMENTO } from '@/api/rotulos'
+import { formatarData, formatarDataHora, ROTULO_DO_CANCELAMENTO, ROTULO_DO_PAGAMENTO } from '@/api/rotulos'
 import { useSessao } from '@/acesso/sessao'
 import { Aviso, Cabecalho, Erro, EstadoDaConsulta, Rolagem } from '@/componentes/Tela'
 import { Badge } from '@/components/ui/badge'
@@ -13,8 +13,11 @@ import { AcoesDaVenda } from './AcoesDaVenda'
 import { useCobrarDeNovo, useSaldosDeComissao, useVendas } from './consultas'
 
 function rotuloDoPagamento(v: VendaDaLista) {
-  if (v.situacao === 'Cancelada') return 'Venda cancelada'
+  if (v.situacao === 'Cancelada') return v.motivoDoCancelamento ? `Cancelada: ${ROTULO_DO_CANCELAMENTO[v.motivoDoCancelamento]}` : 'Venda cancelada'
   if (v.cortesia) return 'Cortesia'
+  if (v.testeAte && !v.testeConvertidoEm && v.pagamento !== 'Paga') {
+    return v.testeExpiradoEm ? 'Teste vencido: receber ou devolver' : `Teste até ${formatarData(v.testeAte)}`
+  }
   if (v.doSistemaAnterior) return 'Paga no sistema anterior'
   if (v.pagamento === 'Paga' && v.pagoPor === 'Dinheiro') return 'Paga em dinheiro'
   if (v.pagamento === 'Paga' && v.pagoPor === 'OutroPix') return 'Paga por outro Pix'

@@ -127,6 +127,21 @@ public sealed class ContratoHttpTest
     }
 
     [Fact]
+    public async Task Cancelar_pedido_le_as_cobrancas_e_cancela_so_a_pendente_ou_paga()
+    {
+        var http = new HttpFalso(
+            (HttpStatusCode.OK, """{"id":"or_1","charges":[{"id":"ch_paga","status":"paid"},{"id":"ch_falhou","status":"failed"}]}"""),
+            (HttpStatusCode.OK, """{"id":"ch_paga","status":"refunded"}"""));
+        await using var servicos = Servicos(http);
+
+        await servicos.GetRequiredService<IGatewayDePagamento>().CancelarPedido("or_1", Ct);
+
+        Assert.Equal(2, http.Pedidos.Count);
+        Assert.Equal("https://api.pagar.me/core/v5/orders/or_1", http.Pedidos[0].Uri.ToString());
+        Assert.Equal((HttpMethod.Delete, "https://api.pagar.me/core/v5/charges/ch_paga"), (http.Pedidos[1].Metodo, http.Pedidos[1].Uri.ToString()));
+    }
+
+    [Fact]
     public async Task Recebedor_e_lido_pelo_id()
     {
         var http = new HttpFalso((HttpStatusCode.OK, """{"id":"rp_abc","name":"Avalia","status":"active"}"""));

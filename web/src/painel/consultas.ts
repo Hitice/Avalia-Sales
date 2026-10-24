@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { chamarApi, enviarJson } from '@/api/cliente'
-import type { EstadoDaPlaca, LoteDaRevenda, MinhaRevenda, MotivoDaBaixa, Pacote, PaginaDePlacas, Pedido, Repasse, ResumoDoMes, SaldoDeComissao, VendaDaLista, VendaRegistrada, Vendedor } from '@/api/tipos'
+import type { EstadoDaPlaca, LoteDaRevenda, MinhaRevenda, MotivoDaBaixa, MotivoDoCancelamento, PlacaDaVendaCancelada, Pacote, PaginaDePlacas, Pedido, Repasse, ResumoDoMes, SaldoDeComissao, VendaDaLista, VendaRegistrada, Vendedor } from '@/api/tipos'
 
 export type FiltroDePlacas = { estado?: EstadoDaPlaca; consignadaA?: string; codigo?: string; pagina?: number }
 
@@ -53,7 +53,9 @@ const VENDA_MUDOU = ['vendas', 'placas', 'comissoes', 'razao']
 export const useReceberPorFora = () =>
   useGravar(({ vendaId, meio }: { vendaId: string; meio: 'Dinheiro' | 'OutroPix' }) => chamarApi(`/vendas/${vendaId}/recebimento`, enviarJson('POST', { meio })), VENDA_MUDOU)
 export const useDesfazerRecebimento = () => useGravar((vendaId: string) => chamarApi(`/vendas/${vendaId}/recebimento`, { method: 'DELETE' }), VENDA_MUDOU)
-export const useCancelarVenda = () => useGravar((vendaId: string) => chamarApi(`/vendas/${vendaId}/cancelamento`, enviarJson('POST', {})), VENDA_MUDOU)
+export type CancelarVenda = { vendaId: string; motivo: MotivoDoCancelamento; placa: PlacaDaVendaCancelada; observacao: string | null }
+export const useCancelarVenda = () =>
+  useGravar(({ vendaId, ...c }: CancelarVenda) => chamarApi(`/vendas/${vendaId}/cancelamento`, enviarJson('POST', c)), [...VENDA_MUDOU, 'lotes'])
 export const useCortesia = () => useGravar((vendaId: string) => chamarApi(`/vendas/${vendaId}/cortesia`, enviarJson('POST', {})), VENDA_MUDOU)
 export const useTrocarPlaca = () =>
   useGravar(({ vendaId, codigo, motivo }: { vendaId: string; codigo: string; motivo: MotivoDaBaixa }) =>

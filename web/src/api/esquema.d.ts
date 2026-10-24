@@ -4088,7 +4088,11 @@ export interface paths {
                 };
                 cookie?: never;
             };
-            requestBody?: never;
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CancelarVenda"];
+                };
+            };
             responses: {
                 /** @description OK */
                 200: {
@@ -5484,6 +5488,11 @@ export interface components {
             /** Format: int32 */
             naoLidas: number;
         };
+        CancelarVenda: {
+            motivo?: components["schemas"]["MotivoDoCancelamento"];
+            observacao?: null | string;
+            placa?: components["schemas"]["PlacaDaVendaCancelada"];
+        };
         /**
          * @description Para que o código serve: nem todo código vira placa de avaliação.
          * @default Placa
@@ -5965,6 +5974,12 @@ export interface components {
          * @enum {unknown}
          */
         MotivoDaBaixa: "Troca" | "DefeitoDeImpressao" | "Perdida" | "Quebrada" | "NaoImpressa" | "LoteArquivado" | "Encerramento";
+        /**
+         * @description Por que a venda foi desfeita (Pedro, 23/10/2026).
+         * @default ErroDeCadastro
+         * @enum {unknown}
+         */
+        MotivoDoCancelamento: "ErroDeCadastro" | "Inadimplencia" | "Desistencia" | "Defeito" | "Outro";
         NotificacaoDto: {
             /** Format: uuid */
             id: string;
@@ -6002,6 +6017,8 @@ export interface components {
              * @default 1
              */
             parcelas: number;
+            /** @default false */
+            testeGratuito: boolean;
         };
         NovoCadastro: {
             empresa: string;
@@ -6167,6 +6184,12 @@ export interface components {
             ultimaLeituraEm: null | string;
             motivoDaBaixa?: null | components["schemas"]["MotivoDaBaixa"];
         };
+        /**
+         * @description O que acontece com a placa da venda desfeita.
+         * @default VoltaAoEstoque
+         * @enum {unknown}
+         */
+        PlacaDaVendaCancelada: "VoltaAoEstoque" | "ComDefeito" | "NaoVoltou";
         PlacaExportada: {
             codigo: string;
             situacao: components["schemas"]["SituacaoDaPlaca"];
@@ -6384,6 +6407,13 @@ export interface components {
             pagoPor: null | components["schemas"]["MeioDePagamento"];
             /** @default false */
             doSistemaAnterior: boolean;
+            motivoDoCancelamento?: null | components["schemas"]["MotivoDoCancelamento"];
+            /** Format: date-time */
+            testeAte?: null | string;
+            /** Format: date-time */
+            testeExpiradoEm?: null | string;
+            /** Format: date-time */
+            testeConvertidoEm?: null | string;
         };
         VendaExportada: {
             /** Format: date-time */

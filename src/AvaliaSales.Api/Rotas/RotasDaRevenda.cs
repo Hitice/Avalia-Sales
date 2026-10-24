@@ -9,6 +9,11 @@ namespace AvaliaSales.Api.Rotas;
 
 public sealed record BaixarPlaca(Domain.Placas.MotivoDaBaixa Motivo);
 
+public sealed record CancelarVenda(
+    Domain.Vendas.MotivoDoCancelamento Motivo = Domain.Vendas.MotivoDoCancelamento.ErroDeCadastro,
+    string? Observacao = null,
+    Application.Vendas.PlacaDaVendaCancelada Placa = Application.Vendas.PlacaDaVendaCancelada.VoltaAoEstoque);
+
 public sealed record NovoPedido(Guid PacoteId, string? Cupom);
 
 public sealed record DefinirRenovacao(int RenovacaoBps);
@@ -149,9 +154,9 @@ public static class RotasDaRevenda
         dono.MapGet("/mapa/configuracao", (Microsoft.Extensions.Options.IOptions<Infrastructure.Integracoes.Google.OpcoesGoogle> google) =>
             new { Chave = string.IsNullOrWhiteSpace(google.Value.ChaveDoMapa) ? null : google.Value.ChaveDoMapa, google.Value.IdDoMapa });
 
-        dono.MapPost("/vendas/{id:guid}/cancelamento", async (Guid id, Application.Vendas.Vendas vendas, CancellationToken ct) =>
+        dono.MapPost("/vendas/{id:guid}/cancelamento", async (Guid id, CancelarVenda pedido, Application.Vendas.Vendas vendas, CancellationToken ct) =>
         {
-            await vendas.Cancelar(id, ct);
+            await vendas.Cancelar(id, pedido.Motivo, pedido.Observacao, pedido.Placa, ct);
             return Results.NoContent();
         });
         dono.MapDelete("/vendas/{id:guid}/recebimento", async (Guid id, Application.Vendas.Vendas vendas, CancellationToken ct) =>
