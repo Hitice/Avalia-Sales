@@ -487,7 +487,7 @@ function venda(figura) {
   const passos = [...figura.querySelectorAll('[data-passo]')];
   const total = 6;
 
-  const rotulos = ['Vender', 'Ler a placa', 'Cobrar no Pix', 'Simular o pagamento', 'Ver a divisão', 'Pôr a placa no ar', 'Vender de novo'];
+  const rotulos = ['Vender', 'Ler a placa', 'Cobrar', 'Pagar', 'Ver o split', 'Ativar', 'Vender de novo'];
   const avisos = [
     'Celular bloqueado. Deslize para vender.',
     'Etapa 1 de 6: placa de avaliação e perfil no Google na mesma venda, total de R$ 300,00.',
