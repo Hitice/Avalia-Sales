@@ -1,13 +1,15 @@
 import { useIsFetching, useIsMutating } from '@tanstack/react-query'
 import {
   type LucideIcon, BookOpen, Boxes, ClipboardList, HandCoins, Headset, History, Home, Landmark, MapPin, Menu, Package,
-  ChevronDown, LogOut, Palette, Settings, PlusCircle, Receipt, Server, ShieldCheck, Store, TicketPercent, UserRound, Users, UsersRound, Wrench,
+  ChevronDown, ChevronsUpDown, LogOut, Palette, Settings, PlusCircle, Receipt, Server, ShieldCheck, Store, TicketPercent, UserRound, Users,
+  UsersRound, Wrench,
 } from 'lucide-react'
 import { useState } from 'react'
 import { NavLink, Navigate, Outlet, useLocation, useNavigate, useNavigation } from 'react-router'
 import { ConfirmeOEmail } from '@/acesso/ConfirmeOEmail'
 import { sairDaSessao } from '@/acesso/renovacao'
-import { type Papel, useSessao } from '@/acesso/sessao'
+import { type Papel, type Perfil, useSessao } from '@/acesso/sessao'
+import { MarcaAvalia } from '@/componentes/MarcaAvalia'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import {
@@ -136,6 +138,11 @@ export function Moldura() {
   const buscando = useIsFetching()
   const gravando = useIsMutating()
   const carregando = navegacao.state !== 'idle' || buscando + gravando > 0
+  // Computador: painel lateral da altura da janela, com a marca no topo, a revenda, o menu e a conta no pé.
+  const lateral = !travado
+  const novaVenda = itens.find((i) => i.para === '/vender')
+  const gruposDoLateral = grupos.map((g) => ({ ...g, itens: g.itens.filter((i) => i !== novaVenda) })).filter((g) => g.itens.length > 0)
+  const contexto = contextoDoPerfil(perfil, marca?.nomeExibido)
 
   async function sair() {
     await sairDaSessao()
@@ -146,41 +153,31 @@ export function Moldura() {
     <div className="min-h-svh">
       <div role="progressbar" aria-label="Carregando" aria-hidden={!carregando} className={cn('barra-de-carregando fixed inset-x-0 top-0 z-30 h-1 transition-opacity', carregando ? 'opacity-100 delay-300' : 'opacity-0 delay-0')} />
       <header className="sticky top-0 z-10 bg-card">
-        <div className="mx-auto flex h-14 max-w-7xl items-center gap-3 px-4">
-          {/* O logo leva à tela inicial do papel, como nos sites. */}
-          <NavLink to={inicio} aria-label={!logo && marca?.nomeExibido ? `${marca.nomeExibido}, início` : 'Início'} className="flex shrink-0 items-center rounded-md">
+        <div className={cn('mx-auto flex h-14 max-w-7xl items-center gap-3 px-4', lateral && 'lg:max-w-none lg:pr-6 lg:pl-0')}>
+          {/* O logo leva à tela inicial do papel, como nos sites. No computador, é o topo do painel lateral. */}
+          <NavLink
+            to={inicio}
+            aria-label={!logo && marca?.nomeExibido ? `${marca.nomeExibido}, início` : 'Início'}
+            className={cn('flex min-w-0 shrink-0 items-center rounded-md', lateral && 'lg:h-full lg:w-60 lg:rounded-none lg:border-r lg:px-5')}
+          >
             {logo
-              ? <img src={logo} alt="" className="h-8 w-auto max-w-32 object-contain" />
+              ? <img src={logo} alt="" className="h-8 w-auto max-w-32 object-contain lg:max-w-48" />
               : marca?.nomeExibido
-                ? <span className="font-heading text-lg font-semibold whitespace-nowrap">{marca.nomeExibido}</span>
-                : <img src="/marca/gauge.svg" alt="" width={61} height={32} className="h-8 w-auto" />}
+                ? <span className="min-w-0 truncate font-heading text-lg font-semibold">{marca.nomeExibido}</span>
+                : (
+                    <>
+                      <img src="/marca/gauge.svg" alt="" width={61} height={32} className={cn('h-8 w-auto', lateral && 'lg:hidden')} />
+                      {lateral && <MarcaAvalia className="hidden h-9 w-auto lg:block" />}
+                    </>
+                  )}
           </NavLink>
-          {perfil?.revendedor && !marca?.nomeExibido && <span className="hidden truncate text-sm text-muted-foreground sm:inline">{perfil.revendedor}</span>}
-          {perfil?.papel === 'Operadora' && <span className="hidden text-sm text-muted-foreground sm:inline">Operação</span>}
+          {perfil?.revendedor && !marca?.nomeExibido && <span className={cn('hidden truncate text-sm text-muted-foreground sm:inline', lateral && 'lg:hidden')}>{perfil.revendedor}</span>}
+          {perfil?.papel === 'Operadora' && <span className={cn('hidden text-sm text-muted-foreground sm:inline', lateral && 'lg:hidden')}>Operação</span>}
           <div className="ml-auto flex items-center gap-1">
             {!travado && <Sino />}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="gap-2 px-2">
-                  <span aria-hidden className="flex size-8 items-center justify-center rounded-full bg-accent text-xs font-semibold text-accent-foreground">{iniciais(perfil?.nome)}</span>
-                  {/* O nome lido é "Conta de Fulano" e contém o nome visível, como pede a WCAG 2.5.3. */}
-                  <span className="sr-only">Conta de </span>
-                  <span className="sr-only max-w-40 truncate text-sm md:not-sr-only md:whitespace-nowrap">{perfil?.nome}</span>
-                  <ChevronDown aria-hidden className="size-4 text-muted-foreground" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel className="grid font-normal">
-                  <span className="truncate font-medium">{perfil?.nome}</span>
-                  <span className="truncate text-xs text-muted-foreground">{perfil?.email}</span>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={() => navegar('/conta/dados')}><UserRound aria-hidden />Meus dados</DropdownMenuItem>
-                {perfil?.papel !== 'Vendedor' && <DropdownMenuItem onSelect={() => navegar('/conta/seguranca')}><ShieldCheck aria-hidden />Segurança</DropdownMenuItem>}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={sair}><LogOut aria-hidden />Sair</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <div className={cn(lateral && 'lg:hidden')}>
+              <MenuDaConta aoSair={sair} />
+            </div>
           </div>
         </div>
         {/* Tablet: menu de cima, quebrando linha. Celular: barra de baixo. Computador: lateral. */}
@@ -189,19 +186,41 @@ export function Moldura() {
         </nav>
         <div aria-hidden className="traco h-0.5" />
       </header>
-      <AvisoDeContaEncerrada />
-      <div className={cn('mx-auto max-w-7xl lg:gap-8 lg:px-4', !travado && 'lg:grid lg:grid-cols-[14rem_minmax(0,1fr)]')}>
-        <nav aria-label="Menu lateral" className={cn('sticky top-16 hidden max-h-[calc(100svh-4rem)] self-start overflow-y-auto py-4', !travado && 'lg:block')}>
-          {grupos.map((grupo, i) => (
-            <div key={grupo.titulo ?? i} className="mb-4 grid gap-0.5">
-              {grupo.titulo && <p className="px-3 pb-1 text-xs font-medium text-muted-foreground">{grupo.titulo}</p>}
-              {grupo.itens.map((item) => <ItemDoMenu key={item.para} item={item} />)}
+      <div className={cn(lateral && 'lg:grid lg:grid-cols-[15rem_minmax(0,1fr)]')}>
+        {/* Abaixo do cabeçalho (h-14 e o traço), da altura do resto da janela: o menu rola por dentro e a conta fica no pé. */}
+        <div className={cn('sticky top-14.5 hidden h-[calc(100svh-3.625rem)] flex-col border-r bg-card', lateral && 'lg:flex')}>
+          {contexto && (
+            <div className="mx-3 mt-4 rounded-lg bg-muted px-3 py-2">
+              <p className="text-xs font-medium text-muted-foreground">{contexto.rotulo}</p>
+              <p className="truncate font-heading text-sm font-semibold" title={contexto.nome}>{contexto.nome}</p>
             </div>
-          ))}
-        </nav>
-        <main className={cn('min-w-0 p-4 lg:px-0', naVenda ? 'pb-40 md:pb-24' : 'pb-24 md:pb-4')}>
+          )}
+          <nav aria-label="Menu lateral" className="min-h-0 flex-1 overflow-y-auto px-3 py-4">
+            {novaVenda && (
+              <Button asChild size="lg" className="mb-4 w-full">
+                <NavLink to={novaVenda.para}>
+                  <novaVenda.icone aria-hidden />
+                  {novaVenda.rotulo}
+                </NavLink>
+              </Button>
+            )}
+            {gruposDoLateral.map((grupo, i) => (
+              <div key={grupo.titulo ?? i} className="mb-4 grid gap-0.5 last:mb-0">
+                {grupo.titulo && <p className="px-3 pb-1 text-xs font-medium text-muted-foreground">{grupo.titulo}</p>}
+                {grupo.itens.map((item) => <ItemDoMenu key={item.para} item={item} />)}
+              </div>
+            ))}
+          </nav>
+          <div className="border-t p-3">
+            <MenuDaConta aoSair={sair} noRodape />
+          </div>
+        </div>
+        <div className="min-w-0">
+          <AvisoDeContaEncerrada />
+          <main className={cn('mx-auto min-w-0 max-w-7xl p-4', lateral && 'lg:max-w-6xl lg:px-6 lg:pt-6', naVenda ? 'pb-40 md:pb-24' : 'pb-24 md:pb-4')}>
             {travado ? <ConfirmeOEmail email={perfil.email} /> : encerrada && soComAContaAtiva(caminho) ? <Navigate to="/painel/inicio" replace /> : <Outlet />}
-        </main>
+          </main>
+        </div>
       </div>
       {!travado && (
         <nav aria-label="Menu principal" className="fixed inset-x-0 bottom-0 z-10 border-t bg-card pb-[env(safe-area-inset-bottom)] md:hidden">
@@ -252,24 +271,78 @@ export function Moldura() {
   )
 }
 
+/** De onde a pessoa está no painel lateral: a revenda e o papel nela, ou a operação da plataforma. */
+function contextoDoPerfil(perfil: Perfil | null, nomeExibido: string | null | undefined) {
+  if (!perfil) return null
+  if (perfil.papel === 'Operadora') return { rotulo: 'Operação', nome: 'Avalia Sales' }
+  const nome = perfil.revendedor ?? nomeExibido
+  return nome ? { rotulo: perfil.papel, nome } : null
+}
+
 /** As iniciais do nome, no círculo do menu da conta. */
 function iniciais(nome: string | undefined) {
   const partes = (nome ?? '').trim().split(/\s+/).filter(Boolean)
   return ((partes[0]?.[0] ?? '') + (partes.length > 1 ? partes[partes.length - 1][0] : '')).toUpperCase()
 }
 
-/** Item do menu lateral e do de cima: ícone, rótulo e, no ativo, o traço da marca à esquerda. */
+/** O menu da conta: no cabeçalho até o tablet; no computador, no pé do painel lateral, abrindo para cima. */
+function MenuDaConta({ aoSair, noRodape = false }: { aoSair: () => void; noRodape?: boolean }) {
+  const perfil = useSessao((s) => s.perfil)
+  const navegar = useNavigate()
+  const circulo = <span aria-hidden className="flex size-8 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-semibold text-accent-foreground">{iniciais(perfil?.nome)}</span>
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        {noRodape
+          ? (
+              <button type="button" className="flex min-h-12 w-full items-center gap-2.5 rounded-lg px-2 text-left hover:bg-muted aria-expanded:bg-muted">
+                {circulo}
+                {/* O nome lido é "Conta de Fulano" e contém o nome visível, como pede a WCAG 2.5.3. */}
+                <span className="sr-only">Conta de </span>
+                <span className="grid min-w-0 flex-1">
+                  <span className="truncate text-sm font-medium">{perfil?.nome}</span>
+                  <span aria-hidden className="truncate text-xs text-muted-foreground">{perfil?.email}</span>
+                </span>
+                <ChevronsUpDown aria-hidden className="size-4 shrink-0 text-muted-foreground" />
+              </button>
+            )
+          : (
+              <Button variant="ghost" className="gap-2 px-2">
+                {circulo}
+                <span className="sr-only">Conta de </span>
+                <span className="sr-only max-w-40 truncate text-sm md:not-sr-only md:whitespace-nowrap">{perfil?.nome}</span>
+                <ChevronDown aria-hidden className="size-4 text-muted-foreground" />
+              </Button>
+            )}
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align={noRodape ? 'start' : 'end'} side={noRodape ? 'top' : 'bottom'} className={cn(!noRodape && 'w-56')}>
+        <DropdownMenuLabel className="grid font-normal">
+          <span className="truncate font-medium">{perfil?.nome}</span>
+          <span className="truncate text-xs text-muted-foreground">{perfil?.email}</span>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onSelect={() => navegar('/conta/dados')}><UserRound aria-hidden />Meus dados</DropdownMenuItem>
+        {perfil?.papel !== 'Vendedor' && <DropdownMenuItem onSelect={() => navegar('/conta/seguranca')}><ShieldCheck aria-hidden />Segurança</DropdownMenuItem>}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onSelect={aoSair}><LogOut aria-hidden />Sair</DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
+/** Item do menu lateral e do de cima: ícone, rótulo e, no ativo, fundo accent, ícone na primária e a barra da primária à esquerda. */
 function ItemDoMenu({ item }: { item: Item }) {
   return (
     <NavLink
       to={item.para}
       className={({ isActive }) => cn(
-        'group relative flex min-h-9 shrink-0 items-center gap-2.5 rounded-md px-3 text-sm',
+        'group relative flex min-h-9 shrink-0 items-center gap-2.5 rounded-md px-3 text-sm transition-colors',
         isActive ? 'bg-accent font-medium text-accent-foreground' : 'text-muted-foreground hover:bg-muted hover:text-foreground',
       )}
     >
-      <span aria-hidden className="absolute inset-y-2 left-0 w-0.5 rounded-full bg-primary opacity-0 group-aria-[current=page]:opacity-100" />
-      <item.icone aria-hidden className="size-4 shrink-0" />
+      <span aria-hidden className="absolute inset-y-1.5 left-0 w-1 rounded-r-full bg-primary opacity-0 group-aria-[current=page]:opacity-100" />
+      <item.icone aria-hidden className="size-4 shrink-0 group-aria-[current=page]:text-primary" />
       {item.rotulo}
     </NavLink>
   )
