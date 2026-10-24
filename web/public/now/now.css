@@ -3818,3 +3818,29 @@ html:not(.js) .marca fieldset {
 .hero-titulo[data-escrever] {
   margin-bottom: 1.75rem;
 }
+
+/* O cursor nasce apagado e só pisca depois que a frase termina de ser escrita. */
+.hero-titulo .cursor {
+  opacity: 0;
+  animation: cursor-pisca 1s steps(1) var(--fim, 2.5s) infinite;
+}
+
+@keyframes cursor-pisca {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+/* Autor colado à frase; no celular, a frase um pouco maior, ainda em duas linhas. */
+.hero-titulo[data-escrever] {
+  margin-bottom: 0.6rem;
+}
+
+.hero-autor {
+  margin-top: 0;
+}
+
+@media (max-width: 759px) {
+  .hero-titulo[data-escrever] {
+    font-size: 8vw;
+  }
+}

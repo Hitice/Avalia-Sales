@@ -477,6 +477,8 @@ function escrever(alvo) {
 
   cursor.className = 'cursor';
   cursor.setAttribute('aria-hidden', 'true');
+  // O cursor só aparece quando a última letra termina de entrar (0,7 s de espera, 42 ms por letra, 0,7 s de entrada).
+  cursor.style.setProperty('--fim', `${0.7 + i * 0.042 + 0.7}s`);
   alvo.lastChild.append(cursor);
 }
 
