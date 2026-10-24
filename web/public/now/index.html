@@ -256,14 +256,14 @@
       <figcaption class="figura-titulo">Migração</figcaption>
       <ol class="esteira-linha">
         <li style="--ordem: 0"><strong>Sistema anterior</strong><span>em produção</span></li>
-        <li style="--ordem: 1"><strong>Rotas</strong><span>302, uma a uma</span></li>
+        <li style="--ordem: 1"><strong>Rotas</strong><span>302 sem cache, uma a uma</span></li>
         <li style="--ordem: 2"><strong>Conversor</strong><span>ensaio sobre o backup</span></li>
         <li style="--ordem: 3"><strong>Importação</strong><span>tudo ou nada</span></li>
         <li style="--ordem: 4"><strong>Conferência</strong><span>link a link</span></li>
         <li style="--ordem: 5" class="esteira-fim"><strong>Virada</strong><span>em um dia</span></li>
       </ol>
     </figure>
-    <p class="tec-bloco"><em class="tec">302 sem cache, conversor em ensaio e importação tudo ou nada.</em></p>
+    
 
     <!-- Arquitetura -->
     <h2 id="arquitetura" class="abre-bloco" data-revelar>Arquitetura em camadas</h2>
@@ -303,7 +303,7 @@
 
     <!-- Dados -->
     <h2 id="dados">PostgreSQL</h2>
-    <p>Modelagem multi-tenant, migrations aditivas e consultas otimizadas.</p>
+    <p>Modelagem multi-tenant e consultas otimizadas.</p>
     <ul class="check anima" data-revelar>
       <li><strong>Valores em centavos</strong> - bigint e pontos base</li>
       <li><strong>Razão</strong> - correção por estorno, fechamento de mês por trigger</li>
@@ -352,11 +352,11 @@
         <li style="--ordem: 3"><strong>Borda</strong><span>Nginx</span><span>TLS</span></li>
       </ol>
     </figure>
-    <p class="tec-bloco"><em class="tec">Healthcheck, restart, aplicação sem root, HSTS e CSP.</em></p>
+    <p class="tec-bloco"><em class="tec">Aplicação sem root, HSTS e CSP na borda.</em></p>
 
     <!-- CI/CD -->
     <h2 id="publicacao">CI/CD</h2>
-    <p>GitHub Actions com runner self-hosted, aprovação de ambiente e rollback por commit.</p>
+    <p>GitHub Actions com runner self-hosted.</p>
 
     <figure class="esteira" data-esteira>
       <figcaption class="figura-titulo">Pipeline</figcaption>
@@ -375,7 +375,6 @@
     <h2 id="testes">Testes e observabilidade</h2>
     <p>Cerca de 430 testes por publicação e rastreamento de erros por versão.</p>
     <ul class="check anima" data-revelar>
-      <li><strong>Unidade</strong> - regras de domínio</li>
       <li><strong>Contrato HTTP</strong> - integrações contra servidor falso</li>
       <li><strong>Integração</strong> - PostgreSQL real com RLS ativo</li>
       <li><strong>E2E</strong> - celular e desktop, com acessibilidade</li>
@@ -393,7 +392,7 @@
         <div class="fluxo-no fluxo-no-branco" style="--ordem: 6"><strong>Resolução</strong><span>pelo commit</span></div>
       </div>
     </figure>
-    <p class="tec-bloco"><em class="tec">xUnit, Vitest e Playwright com axe; release por commit no Sentry.</em></p>
+    <p class="tec-bloco"><em class="tec">xUnit, Vitest e Playwright com axe.</em></p>
 
     <!-- Documentação -->
     <h2 id="documentacao">Documentação técnica</h2>
@@ -484,17 +483,15 @@
     <div class="telas anima" data-revelar>
       <figure class="tela-grande">
         <img src="/now/img/revendedor-inicio-1440.webp" width="1440" height="900" loading="lazy" decoding="async" alt="Início do revendedor no computador: placas em estoque, placas no ar, vendas e recebido no mês, vendas dos últimos 30 dias, para onde foi o dinheiro do mês e vendas de hoje">
-        <figcaption>Imagem demonstrativa</figcaption>
       </figure>
       <figure>
         <img src="/now/img/vendedor-vender-390.webp" width="390" height="844" loading="lazy" decoding="async" alt="Nova venda no celular do vendedor: catálogo com placas e serviços, preço por placa e pedido mínimo">
-        <figcaption>Imagem demonstrativa</figcaption>
       </figure>
       <figure>
         <img src="/now/img/revendedor-vendas-390.webp" width="390" height="844" loading="lazy" decoding="async" alt="Vendas no celular do revendedor, com as abas Vendas e Catálogo">
-        <figcaption>Imagem demonstrativa</figcaption>
       </figure>
     </div>
+    <p class="nota">Imagens demonstrativas.</p>
 
     <section class="fecho" aria-labelledby="fecho-titulo">
       <h2 id="fecho-titulo">Acesso</h2>
@@ -502,7 +499,6 @@
         <a class="botao botao-cheio" href="https://sales.avaliaone.com.br" rel="noopener">Abrir a plataforma</a>
         <a class="botao botao-linha" href="https://github.com/Hitice/Avalia-Sales" rel="noopener"><span class="ico i-github" aria-hidden="true"></span>Ler o código</a>
       </p>
-      <p class="assina"><strong>Pedro Fernandes</strong> · <a href="https://github.com/Hitice" rel="me noopener">GitHub</a> · <a href="https://www.linkedin.com/in/hitice" rel="me noopener">LinkedIn</a></p>
     </section>
 
   </article>
