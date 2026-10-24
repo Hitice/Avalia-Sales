@@ -69,4 +69,36 @@ public sealed class CadastroDoClienteTest(ApiDeTeste api)
         Assert.Equal((19_990L, bia, 4_998L), (lista.GetProperty("valorCents").GetInt64(), lista.GetProperty("vendedorId").GetGuid(), lista.GetProperty("comissaoCents").GetInt64()));
         Assert.Equal(-4_998, await banco.Contar($"select coalesce(sum(valor_cents), 0) from lancamentos where venda_id = '{venda}' and tipo = 'ComissaoDevida' and vendedor_id = '{bia}'"));
     }
+
+    [Fact]
+    public async Task Venda_paga_pelo_Pix_passa_de_um_vendedor_a_outro_mas_nao_volta_ao_primeiro()
+    {
+        var revenda = await api.RevendaComEstoque("Revenda da Comissão Trocada");
+        async Task<Guid> Vendedor(string nome)
+        {
+            var email = $"vendedor-{Guid.NewGuid():N}@teste.com.br";
+            return (await revenda.Dono.Postar("/equipe", new { nome, email, senha = ApiDeTeste.Senha, comissaoBps = 2_500 }, HttpStatusCode.Created)).GetProperty("id").GetGuid();
+        }
+
+        var (bia, rui) = (await Vendedor("Bia"), await Vendedor("Rui"));
+        var codigo = revenda.Codigos[3];
+        await revenda.Dono.Postar("/vendas", Cenarios.Venda(codigo, revenda.ProdutoId, "34999990034"), HttpStatusCode.Created);
+        var venda = await VendaDe(revenda.Dono, codigo);
+        await revenda.Dono.Colocar($"/vendas/{venda}", new { vendedorId = bia }, HttpStatusCode.NoContent);
+        await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
+        api.Gateway.Mudar(Guid.Parse(await banco.Texto($"select id::text from cobrancas where origem_id = '{venda}'")).ToString("N"), Domain.Pagamentos.SituacaoDaCobranca.Paga);
+        await using (var worker = api.AmbienteDoWorker(api.Gateway, new AssinaturaFalsa(), new Microsoft.Extensions.Time.Testing.FakeTimeProvider(DateTimeOffset.UtcNow.AddMinutes(10))))
+        {
+            using var escopo = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.CreateScope(worker);
+            await Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<AvaliaSales.Infrastructure.Integracoes.Retomadas>(escopo.ServiceProvider)
+                .Executar(contratosPorRodada: 0, Ct);
+        }
+
+        await revenda.Dono.Colocar($"/vendas/{venda}", new { vendedorId = rui }, HttpStatusCode.NoContent);
+        Assert.Equal(0, await banco.Contar($"select coalesce(sum(valor_cents), 0) from lancamentos where venda_id = '{venda}' and tipo = 'ComissaoDevida' and vendedor_id = '{bia}'"));
+        Assert.Equal(-3_748, await banco.Contar($"select coalesce(sum(valor_cents), 0) from lancamentos where venda_id = '{venda}' and tipo = 'ComissaoDevida' and vendedor_id = '{rui}'"));
+
+        var recusa = await revenda.Dono.Colocar($"/vendas/{venda}", new { vendedorId = bia }, HttpStatusCode.UnprocessableEntity);
+        Assert.Contains("já foi deste vendedor", recusa.GetProperty("detail").GetString());
+    }
 }

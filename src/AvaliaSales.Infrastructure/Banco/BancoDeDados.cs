@@ -406,8 +406,9 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
             l.HasOne<Lancamento>().WithMany().HasForeignKey(x => x.EstornaId).OnDelete(DeleteBehavior.Restrict);
 
             // O mesmo pagamento nunca é lançado duas vezes, e a mesma linha nunca é estornada duas vezes.
-            // Uma linha de cada tipo por origem e venda: a cobrança do grupo paga várias vendas. Sem venda (repasse), conta como valor.
-            l.HasIndex(x => new { x.OrigemId, x.Tipo, x.VendaId }).IsUnique().AreNullsDistinct(false).HasFilter("estorna_id is null");
+            // Uma linha de cada tipo por origem, venda e vendedor: a cobrança do grupo paga várias vendas, e a venda passada a outro
+            // vendedor ganha a comissão dele. Sem venda ou sem vendedor (repasse, taxa), o nulo conta como valor.
+            l.HasIndex(x => new { x.OrigemId, x.Tipo, x.VendaId, x.VendedorId }).IsUnique().AreNullsDistinct(false).HasFilter("estorna_id is null");
             l.HasIndex(x => x.EstornaId).IsUnique().HasFilter("estorna_id is not null");
             l.HasIndex(x => new { x.RevendedorId, x.Competencia });
             l.HasIndex(x => new { x.RevendedorId, x.VendedorId, x.Tipo });

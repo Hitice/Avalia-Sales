@@ -876,19 +876,19 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                     b.HasIndex("RevendedorId", "Competencia")
                         .HasDatabaseName("ix_lancamentos_revendedor_id_competencia");
 
-                    b.HasIndex("OrigemId", "Tipo", "VendaId")
-                        .IsUnique()
-                        .HasDatabaseName("ix_lancamentos_origem_id_tipo_venda_id")
-                        .HasFilter("estorna_id is null");
-
-                    NpgsqlIndexBuilderExtensions.AreNullsDistinct(b.HasIndex("OrigemId", "Tipo", "VendaId"), false);
-
                     b.HasIndex("RevendedorId", "PlacaId")
                         .HasDatabaseName("ix_lancamentos_revendedor_id_placa_id")
                         .HasFilter("placa_id is not null");
 
                     b.HasIndex("RevendedorId", "VendedorId", "Tipo")
                         .HasDatabaseName("ix_lancamentos_revendedor_id_vendedor_id_tipo");
+
+                    b.HasIndex("OrigemId", "Tipo", "VendaId", "VendedorId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_lancamentos_origem_id_tipo_venda_id_vendedor_id")
+                        .HasFilter("estorna_id is null");
+
+                    NpgsqlIndexBuilderExtensions.AreNullsDistinct(b.HasIndex("OrigemId", "Tipo", "VendaId", "VendedorId"), false);
 
                     b.ToTable("lancamentos", (string)null);
                 });

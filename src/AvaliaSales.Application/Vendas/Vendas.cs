@@ -400,6 +400,16 @@ public sealed class Vendas(
                 throw new RegraDeNegocioException("Vendedor não encontrado.");
             }
 
+            var paga = await banco.Cobrancas.Where(c => c.Origem == OrigemDaCobranca.Venda && c.OrigemId == venda.CobradaPor && c.Situacao == SituacaoDaCobranca.Paga)
+                .Select(c => (Guid?)c.Id).FirstOrDefaultAsync(ct);
+
+            // A comissão de cada vendedor nesta cobrança é uma linha só no razão: a que voltasse ao primeiro repetiria a dele.
+            if (paga is { } jaPaga && await banco.Lancamentos.AnyAsync(l => l.OrigemId == jaPaga && l.VendaId == venda.Id && l.Tipo == TipoDeLancamento.ComissaoDevida
+                    && l.EstornaId == null && l.VendedorId == novo, ct))
+            {
+                throw new RegraDeNegocioException("A comissão desta venda paga já foi deste vendedor. Para devolver a ele, cancele a venda e registre de novo.");
+            }
+
             var estornadas = banco.Lancamentos.Where(l => l.EstornaId != null).Select(l => l.EstornaId);
             var devidas = await banco.Lancamentos.Where(l => l.VendaId == venda.Id && l.Tipo == TipoDeLancamento.ComissaoDevida && l.EstornaId == null
                 && !estornadas.Contains(l.Id)).ToListAsync(ct);
@@ -411,8 +421,6 @@ public sealed class Vendas(
             venda.TrocarVendedor(novo, bps);
 
             // Venda paga: a comissão do vendedor certo passa a ser devida, mesmo quando a de antes era zero (o dono vendia).
-            var paga = await banco.Cobrancas.Where(c => c.Origem == OrigemDaCobranca.Venda && c.OrigemId == venda.CobradaPor && c.Situacao == SituacaoDaCobranca.Paga)
-                .Select(c => (Guid?)c.Id).FirstOrDefaultAsync(ct);
             if (paga is { } cobrancaId && venda.ComissaoCents > 0)
             {
                 var item = venda.PlacaId is { } placaId ? "placa " + await banco.Placas.Where(p => p.Id == placaId).Select(p => p.Codigo).SingleAsync(ct) : "venda de serviço";
