@@ -65,7 +65,7 @@ public sealed class FluxoDeContratoTest(ApiDeTeste api)
         relogio.Advance(Retomadas.Carencia + TimeSpan.FromMinutes(1));
         using (var escopo = worker.CreateScope())
         {
-            await escopo.ServiceProvider.GetRequiredService<Retomadas>().Executar(contratosPorRodada: 50, Ct);
+            await escopo.ServiceProvider.GetRequiredService<Retomadas>().Executar(contratosPorRodada: 100_000, Ct);
         }
 
         var depois = await Ler(worker, revendedor, primeira.Id);
@@ -95,7 +95,7 @@ public sealed class FluxoDeContratoTest(ApiDeTeste api)
 
         using (var escopo = worker.CreateScope())
         {
-            await escopo.ServiceProvider.GetRequiredService<ProcessadorDeEventos>().ProcessarPendentes(50, Ct);
+            await escopo.ServiceProvider.GetRequiredService<ProcessadorDeEventos>().ProcessarPendentes(100_000, Ct);
         }
 
         var assinado = await Ler(worker, revendedor, contrato.Id);

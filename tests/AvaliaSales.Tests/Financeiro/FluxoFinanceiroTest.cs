@@ -120,7 +120,7 @@ public sealed class FluxoFinanceiroTest(ApiDeTeste api)
         await using (var worker = api.AmbienteDoWorker(api.Gateway, new AssinaturaFalsa()))
         {
             using var escopo = worker.CreateScope();
-            await escopo.ServiceProvider.GetRequiredService<ProcessadorDeEventos>().ProcessarPendentes(50, Ct);
+            await escopo.ServiceProvider.GetRequiredService<ProcessadorDeEventos>().ProcessarPendentes(100_000, Ct);
         }
         var depois = (await revenda.Dono.Pegar("/comissoes")).EnumerateArray().Single(s => s.GetProperty("vendedorId").GetGuid() == vendedor);
         Assert.Equal(-4_000, depois.GetProperty("abertaCents").GetInt64());

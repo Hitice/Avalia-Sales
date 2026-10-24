@@ -76,7 +76,8 @@ public sealed class FluxoDoErpTest(ApiDeTeste api)
         async Task Rodar()
         {
             using var escopo = worker.CreateScope();
-            await escopo.ServiceProvider.GetRequiredService<EnvioAoErpRotina>().Executar(50, TestContext.Current.CancellationToken);
+            // A fila é do banco inteiro dos testes, do mais antigo ao mais novo: a volta leva todos, senão este pedido fica de fora.
+            await escopo.ServiceProvider.GetRequiredService<EnvioAoErpRotina>().Executar(100_000, TestContext.Current.CancellationToken);
         }
 
         await Rodar();

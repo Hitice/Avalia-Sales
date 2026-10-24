@@ -83,7 +83,7 @@ public sealed class EncerramentoTest(ApiDeTeste api)
         await using var worker = api.AmbienteDoWorker(new GatewayFalso(), d4sign);
         using (var escopo = worker.CreateScope())
         {
-            await escopo.ServiceProvider.GetRequiredService<Retomadas>().Executar(contratosPorRodada: 50, Ct);
+            await escopo.ServiceProvider.GetRequiredService<Retomadas>().Executar(contratosPorRodada: 100_000, Ct);
         }
 
         var aguardando = await revenda.Dono.Pegar("/revenda/encerramento");
@@ -97,7 +97,7 @@ public sealed class EncerramentoTest(ApiDeTeste api)
         await Webhook(uuid);
         using (var escopo = worker.CreateScope())
         {
-            await escopo.ServiceProvider.GetRequiredService<ProcessadorDeEventos>().ProcessarPendentes(50, Ct);
+            await escopo.ServiceProvider.GetRequiredService<ProcessadorDeEventos>().ProcessarPendentes(100_000, Ct);
         }
 
         var encerrada = await revenda.Dono.Pegar("/revenda/encerramento");
@@ -134,7 +134,7 @@ public sealed class EncerramentoTest(ApiDeTeste api)
         await using (var worker = api.AmbienteDoWorker(new GatewayFalso(), d4sign))
         {
             using var escopo = worker.CreateScope();
-            await escopo.ServiceProvider.GetRequiredService<Retomadas>().Executar(contratosPorRodada: 50, Ct);
+            await escopo.ServiceProvider.GetRequiredService<Retomadas>().Executar(contratosPorRodada: 100_000, Ct);
         }
 
         var resposta = await revenda.Dono.DeleteAsync("/revenda/encerramento", Ct);

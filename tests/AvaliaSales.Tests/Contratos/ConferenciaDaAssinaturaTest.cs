@@ -27,7 +27,7 @@ public sealed class ConferenciaDaAssinaturaTest(ApiDeTeste api)
 
         using (var escopo = worker.CreateScope())
         {
-            await escopo.ServiceProvider.GetRequiredService<Retomadas>().Executar(contratosPorRodada: 50, Ct);
+            await escopo.ServiceProvider.GetRequiredService<Retomadas>().Executar(contratosPorRodada: 100_000, Ct);
         }
 
         Assert.False(d4sign.Chamadas.ContainsKey("LerSituacao"));
@@ -35,7 +35,7 @@ public sealed class ConferenciaDaAssinaturaTest(ApiDeTeste api)
         relogio.Advance(Retomadas.IntervaloDeConferencia + TimeSpan.FromMinutes(1));
         using (var escopo = worker.CreateScope())
         {
-            await escopo.ServiceProvider.GetRequiredService<Retomadas>().Executar(contratosPorRodada: 50, Ct);
+            await escopo.ServiceProvider.GetRequiredService<Retomadas>().Executar(contratosPorRodada: 100_000, Ct);
         }
 
         await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);

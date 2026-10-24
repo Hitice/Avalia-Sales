@@ -45,7 +45,7 @@ public sealed class FluxoDePagamentoTest(ApiDeTeste api)
     private static async Task<int> Processar(ServiceProvider worker)
     {
         using var escopo = worker.CreateScope();
-        return await escopo.ServiceProvider.GetRequiredService<ProcessadorDeEventos>().ProcessarPendentes(50, Ct);
+        return await escopo.ServiceProvider.GetRequiredService<ProcessadorDeEventos>().ProcessarPendentes(100_000, Ct);
     }
 
     private async Task<HttpResponseMessage> WebhookPagarme(string idDoHook, string tipo, string codigo, string segredo = ApiDeTeste.SegredoDoWebhookPagarme)
