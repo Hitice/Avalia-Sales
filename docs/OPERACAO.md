@@ -422,11 +422,16 @@ estiver vazia. Para ligar:
 1. No painel da Cloudflare, Turnstile, Add widget. Nome: Avalia Sales. Hostname:
    o `DOMINIO` de produção (por exemplo `sales.avaliaone.com.br`). Modo: Managed.
 2. Copie a Site Key (pública) e a Secret Key.
-3. No `.env` do VPS:
+3. Grave as duas chaves no ambiente `producao` do GitHub, e o Deploy as repassa
+   ao Compose (que lê o ambiente antes do `.env`):
+   ```bash
+   gh variable set TURNSTILE_CHAVE_SITE --env producao --body '<site key>'
+   gh secret set TURNSTILE_CHAVE_SECRETA --env producao
    ```
-   TURNSTILE_CHAVE_SITE=<site key>
-   TURNSTILE_CHAVE_SECRETA=<secret key>
-   ```
+   Ou, sem o Deploy, no `.env` do VPS (`TURNSTILE_CHAVE_SITE` e
+   `TURNSTILE_CHAVE_SECRETA`). Quem sobe o Compose à mão no servidor precisa ter
+   as duas no `.env`, senão o contêiner da API é recriado sem a secreta e o
+   cadastro passa a recusar.
 4. A chave do site entra no build do front, então publique de novo (`VERSAO`
    nova, seção "Publicar"); só reiniciar não basta. A secreta é lida pela API
    (`Turnstile__ChaveSecreta`) ao subir.

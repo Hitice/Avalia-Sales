@@ -44,6 +44,10 @@ jobs:
       # ambiente antes do .env, e o nome não precisa ficar no servidor nem no repositório.
       AVALIA_REPRESENTANTE: ${{ vars.AVALIA_REPRESENTANTE }}
       AVALIA_CARGO_DO_REPRESENTANTE: ${{ vars.AVALIA_CARGO_DO_REPRESENTANTE }}
+      # Captcha do cadastro (Cloudflare Turnstile): a chave do site entra no build do front e a secreta é lida
+      # pela API. Vindas do ambiente producao, ficam fora do .env do servidor; vazias, o cadastro roda sem captcha.
+      TURNSTILE_CHAVE_SITE: ${{ vars.TURNSTILE_CHAVE_SITE }}
+      TURNSTILE_CHAVE_SECRETA: ${{ secrets.TURNSTILE_CHAVE_SECRETA }}
     steps:
       - uses: actions/checkout@v7
         with:
