@@ -1,4 +1,3 @@
-import { importLibrary, setOptions } from '@googlemaps/js-api-loader'
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { chamarApi } from '@/api/cliente'
@@ -7,37 +6,10 @@ import { Aviso, Cabecalho, EstadoDaConsulta, Rolagem } from '@/componentes/Tela'
 import { Card, CardContent } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { carregarAmbienteDoGoogle } from './ambienteDoGoogle'
+import { criarMapaDeLugares, TODAS, type Lugar, type MapaDeLugares } from './mapaDeLugares'
 
-type Lugar = { clienteId: string; nome: string; lugarNoGoogle: string; placas: number; placasNoAr: number; leituras30Dias: number }
 type Configuracao = { chave: string | null; idDoMapa: string }
-
-const CENTRO_DO_BRASIL = { lat: -15.78, lng: -47.93 }
-const TODAS = 'Todas'
-// Perto disso o mapa mostra o telhado, não a rua.
-const ZOOM_MAXIMO = 16
-let configurado = false
-
-/**
- * O enquadramento dos lugares. A partir de 8, fica com os 80% do meio em cada
- * eixo: um lugar isolado na ponta da cidade abriria o mapa demais e juntaria
- * os alfinetes do centro. Quem fica de fora aparece ao arrastar.
- */
-function enquadramento(posicoes: google.maps.LatLng[]) {
-  const corte = posicoes.length >= 8 ? Math.floor(posicoes.length * 0.1) : 0
-  const meio = (valores: number[]) => valores.sort((a, b) => a - b).slice(corte, valores.length - corte)
-  const latitudes = meio(posicoes.map((p) => p.lat()))
-  const longitudes = meio(posicoes.map((p) => p.lng()))
-  const limites = new google.maps.LatLngBounds()
-  limites.extend({ lat: latitudes[0], lng: longitudes[0] })
-  limites.extend({ lat: latitudes[latitudes.length - 1], lng: longitudes[longitudes.length - 1] })
-  return limites
-}
-
-/** A cidade do lugar, pelo que o próprio Google devolve: município (BR) ou localidade. */
-function cidadeDe(componentes: google.maps.places.AddressComponent[] | null | undefined) {
-  const achado = componentes?.find((c) => c.types.includes('administrative_area_level_2')) ?? componentes?.find((c) => c.types.includes('locality'))
-  return achado?.longText ?? null
-}
 
 /**
  * Os lugares vendidos no mapa do Google. A posição sai do próprio Places no
@@ -120,77 +92,51 @@ type Props = {
   aoAcharCidades: (cidades: Record<string, string>) => void
 }
 
+/**
+ * O mapa nasce uma vez por chave. Lugar novo ou alterado só mexe nos
+ * marcadores, e a posição de cada lugar do Google é buscada uma vez só.
+ */
 function MapaDoGoogle({ chave, idDoMapa, lugares, cidade, aoAcharCidades }: Props) {
   const elemento = useRef<HTMLDivElement>(null)
-  const mapa = useRef<google.maps.Map | null>(null)
-  const marcadores = useRef<google.maps.marker.AdvancedMarkerElement[]>([])
-  const posicoes = useRef<{ clienteId: string; cidade: string | null; posicao: google.maps.LatLng }[]>([])
+  const [mapa, setMapa] = useState<MapaDeLugares | null>(null)
   const [pronto, setPronto] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelado = false
-    async function desenhar() {
-      if (!configurado) {
-        setOptions({ key: chave, v: 'weekly', language: 'pt-BR', region: 'BR' })
-        configurado = true
-      }
-
-      const [{ Map: MapaDoGoogleMaps }, { Place }, { AdvancedMarkerElement }] = await Promise.all([
-        importLibrary('maps'), importLibrary('places'), importLibrary('marker'),
-      ])
-      if (cancelado || !elemento.current) return
-      // Tema escuro do Google: o mapa fica de fundo e os marcadores das vendas aparecem.
-      mapa.current = new MapaDoGoogleMaps(elemento.current, { center: CENTRO_DO_BRASIL, zoom: 4, mapId: idDoMapa, colorScheme: 'DARK' })
-      const achados = await Promise.all(lugares.map(async (l) => {
-        try {
-          const lugar = new Place({ id: l.lugarNoGoogle })
-          await lugar.fetchFields({ fields: ['location', 'addressComponents'] })
-          return lugar.location ? { l, posicao: lugar.location, cidade: cidadeDe(lugar.addressComponents) } : null
-        } catch {
-          // Lugar que o Google não acha mais (fechou, mudou de id) fica só na lista.
-          return null
-        }
-      }))
-      if (cancelado) return
-      posicoes.current = []
-      const cidades: Record<string, string> = {}
-      for (const achado of achados) {
-        if (!achado) continue
-        marcadores.current.push(new AdvancedMarkerElement({ map: mapa.current, position: achado.posicao, title: `${achado.l.nome}: ${achado.l.leituras30Dias} leituras em 30 dias` }))
-        posicoes.current.push({ clienteId: achado.l.clienteId, cidade: achado.cidade, posicao: achado.posicao })
-        if (achado.cidade) cidades[achado.l.clienteId] = achado.cidade
-      }
-
-      aoAcharCidades(cidades)
-      setPronto(true)
-    }
-
-    desenhar().catch(() => !cancelado && setErro('Não foi possível carregar o mapa.'))
+    let criado: MapaDeLugares | null = null
+    carregarAmbienteDoGoogle(chave, idDoMapa)
+      .then((ambiente) => {
+        if (cancelado || !elemento.current) return
+        criado = criarMapaDeLugares(ambiente, elemento.current)
+        setMapa(criado)
+      })
+      .catch(() => !cancelado && setErro('Não foi possível carregar o mapa.'))
     return () => {
       cancelado = true
-      for (const marcador of marcadores.current) marcador.map = null
-      marcadores.current = []
+      criado?.destruir()
+      setMapa(null)
+      setPronto(false)
     }
-  }, [chave, idDoMapa, lugares, aoAcharCidades])
+  }, [chave, idDoMapa])
+
+  useEffect(() => {
+    if (!mapa) return
+    let cancelado = false
+    mapa.atualizar(lugares)
+      .then((cidades) => {
+        if (cancelado || !cidades) return
+        aoAcharCidades(cidades)
+        setPronto(true)
+      })
+      .catch(() => !cancelado && setErro('Não foi possível carregar o mapa.'))
+    return () => { cancelado = true }
+  }, [mapa, lugares, aoAcharCidades])
 
   // A aba escolhida enquadra só os lugares daquela cidade.
   useEffect(() => {
-    if (!pronto || !mapa.current) return
-    const naCidade = posicoes.current.filter((p) => cidade === TODAS || p.cidade === cidade)
-    if (naCidade.length === 1) {
-      // Um lugar só: o enquadramento iria ao zoom máximo, dentro do telhado.
-      mapa.current.setCenter(naCidade[0].posicao)
-      mapa.current.setZoom(15)
-    } else if (naCidade.length > 1) {
-      const atual = mapa.current
-      atual.fitBounds(enquadramento(naCidade.map((p) => p.posicao)), 24)
-      // Vários lugares no mesmo prédio dariam um enquadramento sem área.
-      google.maps.event.addListenerOnce(atual, 'idle', () => {
-        if ((atual.getZoom() ?? 0) > ZOOM_MAXIMO) atual.setZoom(ZOOM_MAXIMO)
-      })
-    }
-  }, [pronto, cidade])
+    if (pronto) mapa?.enquadrar(cidade)
+  }, [mapa, pronto, cidade])
 
   return (
     <>
