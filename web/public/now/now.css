@@ -284,26 +284,6 @@ a:hover { color: var(--primaria-hover); }
   .abertura-lead { font-size: 1.1875rem; }
 }
 
-/* ----- Resumo ----- */
-
-.resumo-lista {
-  display: grid;
-  border-top: 1px solid var(--borda);
-}
-.resumo-lista > div {
-  display: grid;
-  gap: 4px;
-  padding: 20px 0;
-  border-bottom: 1px solid var(--borda);
-}
-.resumo-lista dt { font-weight: 600; }
-.resumo-lista dd { color: var(--texto-2); max-width: 62ch; }
-
-@media (min-width: 900px) {
-  .resumo-lista { grid-template-columns: repeat(3, 1fr); gap: 40px; border-top: 0; }
-  .resumo-lista > div { padding: 20px 0 0; border-bottom: 0; border-top: 1px solid var(--texto); }
-}
-
 /* ----- Seções ----- */
 
 .secao { padding-top: 88px; }
@@ -751,9 +731,14 @@ tbody td { color: var(--texto-2); }
   .aprofundar .tabela tbody td:nth-child(2) { grid-row: auto; }
 }
 
-.ressalvas { display: grid; gap: 6px; margin-top: 16px; font-size: 0.875rem; color: var(--texto-3); }
-.ressalvas li { position: relative; padding-left: 16px; }
-.ressalvas li::before { content: ''; position: absolute; left: 2px; top: 0.6em; width: 5px; height: 1px; background: currentColor; }
+
+/* A comparação no celular: o nome da camada, depois o antes e o agora, cada um com o rótulo. */
+@media (max-width: 639px) {
+  .tabela-comparacao tbody tr { grid-template-columns: 1fr; }
+  .tabela-comparacao tbody td:nth-child(2), .tabela-comparacao tbody td:nth-child(3) { grid-column: 1; grid-row: auto; font-size: 0.875rem; }
+  .tabela-comparacao tbody td:nth-child(2)::before { content: "Antes: "; color: var(--texto-3); }
+  .tabela-comparacao tbody td:nth-child(3)::before { content: "Agora: "; font-weight: 500; color: var(--texto); }
+}
 
 /* ----- Fecho e rodapé ----- */
 
@@ -767,18 +752,33 @@ tbody td { color: var(--texto-2); }
 .rodape-papel { display: block; font-size: 0.875rem; color: var(--texto-2); }
 
 
-/* ----- Stack logo abaixo das telas ----- */
+/* ----- Blocos editoriais: subtítulo da abertura, decisões, leituras ----- */
 
-.stack { padding-bottom: 40px; }
-.stack-grade { display: grid; gap: 20px; padding: 24px 0 0; border-top: 1px solid var(--borda); }
-.stack-grade dt { margin-bottom: 8px; font-size: 0.8125rem; font-weight: 500; color: var(--texto-3); }
-.tecs-grandes { gap: 8px 18px; font-size: 0.875rem; color: var(--texto-2); }
-.tecs-grandes .ico { width: 18px; height: 18px; }
-.tecs-grandes .ico-letra { font-size: 8px; }
+.abertura-sub { max-width: 34rem; margin-top: 14px; font-size: 1.25rem; font-weight: 500; line-height: 1.4; letter-spacing: -0.01em; text-wrap: balance; }
+.sub-titulo { margin: 48px 0 16px; }
+
+.decisao { display: grid; gap: 10px; margin-top: 12px; }
+.decisao div { display: grid; gap: 2px; }
+.decisao dt { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; color: var(--texto-3); }
+.decisao dd { margin: 0; color: var(--texto-2); max-width: 64ch; }
+.decisao .evidencia { margin-top: 2px; }
+.decisao .nota { display: block; margin-top: 4px; }
+.no-fluxo { margin-top: 10px; font-size: 0.875rem; }
+.no-fluxo a, .passo-tec a, .evidencia a { display: inline-flex; align-items: center; min-height: 24px; }
+.passo-tec a { white-space: nowrap; }
+
 @media (min-width: 960px) {
-  .stack-grade { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 24px; }
-  .tecs-grandes { flex-direction: column; flex-wrap: nowrap; }
+  .decisoes > li { grid-template-columns: minmax(0, 4fr) minmax(0, 8fr); }
+  .decisoes > li > h3 { grid-row: span 2; }
+  .decisao { margin-top: 0; }
 }
+
+.leituras { display: grid; gap: 12px; margin-bottom: 24px; }
+.leituras a { display: grid; gap: 2px; height: 100%; padding: 14px 16px; border: 1px solid var(--borda); border-radius: var(--raio); color: var(--texto); text-decoration: none; transition: border-color 150ms var(--saida), background-color 150ms var(--saida); }
+.leituras a:hover { border-color: var(--borda-forte); background: var(--fundo-2); color: var(--texto); }
+.leituras strong { font-weight: 600; }
+.leituras span { font-size: 0.875rem; color: var(--texto-2); }
+@media (min-width: 720px) { .leituras { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 
 .seta-de-ir { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 

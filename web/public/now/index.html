@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Avalia Sales: plataforma de gestão e revenda de produtos</title>
-  <meta name="description" content="Avalia Sales, plataforma em produção para uma rede de revendas vender placas com QR Code e NFC e serviços digitais, cobrar por Pix ou cartão e fechar estoque, comissões e financeiro. Projeto, desenvolvimento e operação de Pedro Fernandes.">
+  <title>Avalia Sales: sistema de vendas reconstruído em .NET, React e PostgreSQL</title>
+  <meta name="description" content="Avalia Sales, sistema de vendas reconstruído a partir de uma versão anterior em Laravel/PHP: .NET, React e PostgreSQL em servidor próprio, cobrança pelo Pagar.me e placas com QR Code e NFC. Arquitetura, decisões de engenharia e verificação, por Pedro Fernandes.">
   <link rel="canonical" href="https://sales.avaliaone.com.br/now">
   <meta name="author" content="Pedro Fernandes">
   <meta name="robots" content="index, follow">
@@ -51,12 +51,11 @@
       <img src="/marca/avaliasales.svg" width="117" height="48" alt="">
     </a>
     <nav class="topo-nav" aria-label="Seções">
-      <a href="#stack">Stack</a>
-      <a href="#solucao">Solução</a>
-      <a href="#venda">Venda</a>
+      <a href="#arquitetura">Arquitetura</a>
       <a href="#decisoes">Decisões</a>
+      <a href="#venda">Aplicação</a>
       <a href="#qualidade">Qualidade</a>
-      <a href="#integracoes">Integrações</a>
+      <a href="#aprofundamento">Aprofundamento</a>
     </nav>
     <a class="botao botao-cheio botao-pequeno" href="https://sales.avaliaone.com.br" rel="noopener">Plataforma<svg class="seta-de-ir" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" /></svg></a>
   </div>
@@ -64,11 +63,12 @@
 
 <main id="conteudo">
 
-  <!-- Abertura: o que é, quem fez, como é -->
+  <!-- Abertura -->
   <section class="abertura largura" aria-labelledby="titulo">
     <div class="abertura-texto">
-      <h1 id="titulo">Plataforma de gestão e revenda de produtos</h1>
-      <p class="abertura-lead">Uma rede de revendas vende placas com QR Code e NFC e serviços digitais pelo celular. O cliente paga por Pix ou cartão na hora, e estoque, comissões e financeiro são controlados no mesmo sistema.</p>
+      <h1 id="titulo">Avalia Sales</h1>
+      <p class="abertura-sub">Um sistema de vendas reconstruído com uma nova stack, cobrança por gateway de pagamento e identificação das placas por QR Code e NFC.</p>
+      <p class="abertura-lead">O Avalia Sales parte de um sistema de vendas que desenvolvi antes em Laravel/PHP. Esta implementação reescreve a base em .NET, React e PostgreSQL, em servidor próprio, com cobrança pelo Pagar.me. Uma rede de revendas vende placas e serviços pelo celular, e estoque, comissões e financeiro ficam no mesmo sistema.</p>
       <p class="abertura-autor"><strong>Pedro Fernandes</strong> projetou, desenvolveu e opera a plataforma, do produto à infraestrutura.</p>
       <p class="abertura-estado" data-producao><span class="ponto" data-estado="lendo" aria-hidden="true"></span><span data-producao-texto>Em produção em sales.avaliaone.com.br, com o código aberto.</span></p>
     </div>
@@ -80,61 +80,15 @@
     </figure>
   </section>
 
-  <!-- Stack: logo abaixo das telas, antes do resumo -->
-  <section id="stack" class="stack largura" aria-labelledby="stack-titulo">
-    <h2 id="stack-titulo" class="vh">Stack e integrações</h2>
-    <dl class="stack-grade">
-      <div>
-        <dt>Back-end</dt>
-        <dd><ul class="tecs tecs-grandes"><li><span class="ico i-dotnet" aria-hidden="true"></span>C# e .NET</li><li><span class="ico i-dotnet" aria-hidden="true"></span>ASP.NET Core</li><li><span class="ico i-dotnet" aria-hidden="true"></span>EF Core</li><li><span class="ico i-dotnet" aria-hidden="true"></span>SignalR</li></ul></dd>
-      </div>
-      <div>
-        <dt>Front-end</dt>
-        <dd><ul class="tecs tecs-grandes"><li><span class="ico i-react" aria-hidden="true"></span>React</li><li><span class="ico i-typescript" aria-hidden="true"></span>TypeScript</li><li><span class="ico i-reactquery" aria-hidden="true"></span>TanStack Query</li><li><span class="ico i-tailwindcss" aria-hidden="true"></span>Tailwind CSS</li><li><span class="ico i-vite" aria-hidden="true"></span>Vite</li></ul></dd>
-      </div>
-      <div>
-        <dt>Dados</dt>
-        <dd><ul class="tecs tecs-grandes"><li><span class="ico i-postgresql" aria-hidden="true"></span>PostgreSQL</li></ul></dd>
-      </div>
-      <div>
-        <dt>Infraestrutura</dt>
-        <dd><ul class="tecs tecs-grandes"><li><span class="ico i-linux" aria-hidden="true"></span>Linux</li><li><span class="ico i-docker" aria-hidden="true"></span>Docker Compose</li><li><span class="ico i-nginx" aria-hidden="true"></span>Nginx</li><li><span class="ico i-letsencrypt" aria-hidden="true"></span>Let's Encrypt</li><li><span class="ico i-githubactions" aria-hidden="true"></span>GitHub Actions</li><li><span class="ico i-sentry" aria-hidden="true"></span>Sentry</li></ul></dd>
-      </div>
-      <div>
-        <dt>Integrações</dt>
-        <dd><ul class="tecs tecs-grandes"><li><span class="ico ico-letra" aria-hidden="true">P</span>Pagar.me</li><li><span class="ico i-resend" aria-hidden="true"></span>Resend</li><li><span class="ico i-googlemaps" aria-hidden="true"></span>Google Maps</li><li><span class="ico ico-letra" aria-hidden="true">D4</span>D4Sign</li><li><span class="ico i-totvs" aria-hidden="true"></span>Protheus</li></ul></dd>
-      </div>
-    </dl>
-  </section>
-
-  <!-- Em um minuto -->
-  <section class="resumo largura" aria-labelledby="resumo-titulo">
-    <h2 id="resumo-titulo" class="vh">O que está construído</h2>
-    <dl class="resumo-lista">
-      <div>
-        <dt>Produto</dt>
-        <dd>Venda com vários itens numa cobrança, estoque de placas por lote, comissões e repasses, financeiro do revendedor, serviços executados pela operadora e a marca de cada revenda nas telas.</dd>
-      </div>
-      <div>
-        <dt>Engenharia</dt>
-        <dd>API e processamento em segundo plano em .NET, PostgreSQL com isolamento entre revendas no próprio banco e front em React para o celular do vendedor e o painel no computador.</dd>
-      </div>
-      <div>
-        <dt>Operação</dt>
-        <dd>Servidor próprio com Docker e Nginx, publicação pelo GitHub Actions com testes e aprovação, erros rastreados por versão e documentação no repositório.</dd>
-      </div>
-    </dl>
-  </section>
-
-  <!-- Solução integrada -->
-  <section id="solucao" class="secao largura" aria-labelledby="solucao-titulo">
+  <!-- Arquitetura e stack -->
+  <section id="arquitetura" class="secao largura" aria-labelledby="arquitetura-titulo">
     <header class="secao-topo">
-      <h2 id="solucao-titulo">Arquitetura da solução</h2>
-      <p>Front-end, API, banco de dados, integrações e infraestrutura, com contrato tipado entre as camadas.</p>
+      <h2 id="arquitetura-titulo">Arquitetura: API e Worker em .NET, telas em React, dados no PostgreSQL</h2>
+      <p>A API grava e responde sem esperar integração; o Worker processa filas, eventos de pagamento e e-mails com retentativa.</p>
     </header>
 
     <figure class="mapa">
-      <figcaption class="vh">Como as partes da plataforma se conectam</figcaption>
+      <figcaption class="vh">Como as partes da plataforma se conectam, como está no código</figcaption>
       <div class="mapa-grade">
         <div class="mapa-coluna">
           <p class="mapa-lugar">Navegador</p>
@@ -181,32 +135,102 @@
       <div class="mapa-base"><strong>Servidor próprio</strong><ul class="tecs"><li><span class="ico i-linux" aria-hidden="true"></span>Linux</li><li><span class="ico i-docker" aria-hidden="true"></span>Docker Compose</li><li><span class="ico i-nginx" aria-hidden="true"></span>Nginx</li><li><span class="ico i-letsencrypt" aria-hidden="true"></span>Let's Encrypt</li><li><span class="ico i-githubactions" aria-hidden="true"></span>GitHub Actions</li><li><span class="ico i-sentry" aria-hidden="true"></span>Sentry</li></ul></div>
     </figure>
 
-    <details class="aprofundar">
-      <summary>Camadas do código</summary>
-      <div class="aprofundar-corpo">
-        <div class="tabela">
-          <table>
-            <caption class="vh">Camadas do código e a responsabilidade de cada uma</caption>
-            <thead><tr><th scope="col">Projeto</th><th scope="col">Responsabilidade</th></tr></thead>
-            <tbody>
-              <tr><th scope="row">Domain</th><td>Entidades e regras de negócio, sem dependência de pacote</td></tr>
-              <tr><th scope="row">Application</th><td>Casos de uso e as interfaces das integrações</td></tr>
-              <tr><th scope="row">Infrastructure</th><td>EF Core, migrations, clientes HTTP e simuladores</td></tr>
-              <tr><th scope="row">Api e Worker</th><td>ASP.NET Core e o processamento em segundo plano</td></tr>
-            </tbody>
-          </table>
-        </div>
-        <p>Retentativa automática de HTTP só em métodos seguros, para uma cobrança não ser reenviada por engano.</p>
-        <p class="evidencia"><a href="https://github.com/Hitice/Avalia-Sales/blob/main/docs/SDD.md" rel="noopener">Arquitetura (SDD)</a></p>
-      </div>
-    </details>
+
+    <h3 class="sub-titulo">Do sistema anterior à implementação atual</h3>
+    <div class="tabela tabela-comparacao">
+      <table>
+        <caption class="vh">Comparação entre o sistema anterior e a implementação atual</caption>
+        <thead><tr><th scope="col">Camada</th><th scope="col">Sistema anterior</th><th scope="col">Implementação atual</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">Aplicação</th><td>Laravel 12, PHP 8.3</td><td>ASP.NET Core e Worker Service em C#, em camadas</td></tr>
+          <tr><th scope="row">Telas</th><td>Blade, Alpine.js e Tailwind</td><td>React e TypeScript, com tipos gerados do contrato OpenAPI</td></tr>
+          <tr><th scope="row">Banco de dados</th><td>MySQL</td><td>PostgreSQL com row-level security por revenda</td></tr>
+          <tr><th scope="row">Hospedagem</th><td>Hospedagem compartilhada</td><td>Servidor próprio com Docker Compose, Nginx e TLS</td></tr>
+          <tr><th scope="row">Publicação</th><td>Script no servidor, disparado por cron depois do push</td><td>GitHub Actions com testes, aprovação manual e health check</td></tr>
+        </tbody>
+      </table>
+    </div>
   </section>
 
-  <!-- Venda -->
+  <!-- Decisões -->
+  <section id="decisoes" class="secao largura" aria-labelledby="decisoes-titulo">
+    <header class="secao-topo">
+      <h2 id="decisoes-titulo">Quatro decisões de engenharia, com a evidência de cada uma</h2>
+      <p>Cada uma tem registro (ADR) ou documento no repositório.</p>
+    </header>
+    <ol class="decisoes">
+      <li id="d-isolamento">
+        <h3>Revendas isoladas em duas camadas: aplicação e banco de dados</h3>
+        <p>Filtro do EF Core e row-level security no PostgreSQL: se a aplicação falhar, o banco recusa.</p>
+        <details class="aprofundar">
+          <summary>Ver contexto e evidência</summary>
+          <div class="aprofundar-corpo">
+            <dl class="decisao">
+          <div><dt>Contexto</dt><dd>Várias revendas usam o mesmo banco, cada uma com clientes, vendas e dinheiro próprios.</dd></div>
+          <div><dt>Decisão</dt><dd>Filtro global do EF Core pela revenda do login e row-level security forçada no PostgreSQL. A aplicação conecta com um papel sem permissão para ignorar a regra.</dd></div>
+          <div><dt>Motivo</dt><dd>Uma consulta que esqueça o filtro não alcança dados de outra revenda: o banco recusa.</dd></div>
+          <div><dt>Evidência</dt><dd><p class="evidencia"><a href="https://github.com/Hitice/Avalia-Sales/blob/main/docs/adr/0001-tenant-no-banco-unico-com-filtro-do-ef-core-e-rls.md" rel="noopener">ADR 0001</a><a href="https://github.com/Hitice/Avalia-Sales/blob/main/tests/AvaliaSales.Tests/Isolamento/IsolamentoEntreRevendedoresTest.cs" rel="noopener">Testes de isolamento</a></p><span class="nota">Um teste reprova a publicação se uma tabela com revenda nascer sem a regra.</span></dd></div>
+        </dl>
+            <p class="no-fluxo"><a href="#venda">Vale em todas as etapas do fluxo de venda</a></p>
+          </div>
+        </details>
+      </li>
+      <li id="d-pagamento">
+        <h3>Pagamento confirmado na origem, no gateway, e aplicado uma vez</h3>
+        <p>A venda só fica paga depois de o Worker reconsultar a cobrança no Pagar.me, uma vez por evento.</p>
+        <details class="aprofundar">
+          <summary>Ver contexto e evidência</summary>
+          <div class="aprofundar-corpo">
+            <dl class="decisao">
+          <div><dt>Contexto</dt><dd>O webhook do Pagar.me pode chegar repetido, fora de ordem ou forjado, e a rede pode cair no meio da cobrança.</dd></div>
+          <div><dt>Decisão</dt><dd>A cobrança é gravada antes de chamar o Pagar.me. O webhook só registra o evento; o Worker reconsulta a cobrança no gateway e trava a linha do evento (FOR UPDATE SKIP LOCKED) antes da baixa.</dd></div>
+          <div><dt>Motivo</dt><dd>A venda só muda de situação pelo estado confirmado no Pagar.me, e o mesmo aviso não é aplicado duas vezes.</dd></div>
+          <div><dt>Evidência</dt><dd><p class="evidencia"><a href="https://github.com/Hitice/Avalia-Sales/blob/main/docs/adr/0004-cobranca-gravada-antes-de-chamar-o-pagar-me.md" rel="noopener">ADR 0004</a><a href="https://github.com/Hitice/Avalia-Sales/blob/main/docs/adr/0005-webhook-so-grava-o-worker-reconsulta-a-fonte.md" rel="noopener">ADR 0005</a><a href="https://github.com/Hitice/Avalia-Sales/blob/main/tests/AvaliaSales.Tests/Integracoes/FluxoDePagamentoTest.cs" rel="noopener">Testes do pagamento</a></p></dd></div>
+        </dl>
+            <p class="no-fluxo"><a href="#venda">No fluxo: etapas 3 e 4</a></p>
+          </div>
+        </details>
+      </li>
+      <li id="d-razao">
+        <h3>Dinheiro em centavos e razão append-only</h3>
+        <p>Valores inteiros em centavos e razão só de inserção: correção entra como estorno.</p>
+        <details class="aprofundar">
+          <summary>Ver contexto e evidência</summary>
+          <div class="aprofundar-corpo">
+            <dl class="decisao">
+          <div><dt>Contexto</dt><dd>Split, comissão, estorno parcial e fechamento de mês precisam fechar ao centavo.</dd></div>
+          <div><dt>Decisão</dt><dd>Valores inteiros em centavos. O razão só recebe inserção: correção entra como estorno. O mês fechado é travado por trigger, e o banco nega UPDATE e DELETE no razão ao papel da aplicação.</dd></div>
+          <div><dt>Motivo</dt><dd>Qualquer saldo pode ser refeito a partir das linhas, e nenhuma correção apaga o que já foi lançado.</dd></div>
+          <div><dt>Evidência</dt><dd><p class="evidencia"><a href="https://github.com/Hitice/Avalia-Sales/blob/main/docs/adr/0003-split-do-pagar-me-em-centavos-flat.md" rel="noopener">ADR 0003</a><a href="https://github.com/Hitice/Avalia-Sales/blob/main/docs/adr/0011-razao-so-de-insercao.md" rel="noopener">ADR 0011</a><a href="https://github.com/Hitice/Avalia-Sales/blob/main/docs/adr/0020-mes-fechado-garantido-no-banco.md" rel="noopener">ADR 0020</a></p></dd></div>
+        </dl>
+            <p class="no-fluxo"><a href="#venda">No fluxo: etapa 5</a></p>
+          </div>
+        </details>
+      </li>
+      <li id="d-migracao">
+        <h3>Migração incremental a partir do sistema em Laravel/PHP</h3>
+        <p>Rotas trocadas uma a uma e dados importados numa transação, sem mudar o endereço das placas vendidas.</p>
+        <details class="aprofundar">
+          <summary>Ver contexto e evidência</summary>
+          <div class="aprofundar-corpo">
+            <dl class="decisao">
+          <div><dt>Contexto</dt><dd>O sistema anterior estava em uso, com placas impressas cujo endereço do QR Code não pode mudar.</dd></div>
+          <div><dt>Decisão</dt><dd>As rotas do sistema anterior passaram a redirecionar para a nova plataforma uma a uma (padrão strangler fig). Os dados foram convertidos a partir do backup e importados numa transação única, depois de um ensaio.</dd></div>
+          <div><dt>Motivo</dt><dd>A operação continuou durante a troca, e uma importação com erro é desfeita por inteiro.</dd></div>
+          <div><dt>Evidência</dt><dd><p class="evidencia"><a href="https://github.com/Hitice/Avalia-Sales/blob/main/docs/OPERACAO.md" rel="noopener">Operação</a><a href="https://github.com/Hitice/Avalia-Sales/blob/main/infra/migracao/converter_do_sales.py" rel="noopener">Conversor</a><a href="https://github.com/Hitice/Avalia-Sales/blob/main/src/AvaliaSales.Application/Importacao/Importacao.cs" rel="noopener">Importação</a></p></dd></div>
+        </dl>
+            <p class="no-fluxo"><a href="#venda">No fluxo: etapa 6, o endereço da placa</a></p>
+          </div>
+        </details>
+      </li>
+    </ol>
+  </section>
+
+  <!-- Aplicação em funcionamento -->
   <section id="venda" class="secao largura" aria-labelledby="venda-titulo">
     <header class="secao-topo">
-      <h2 id="venda-titulo">Fluxo de venda</h2>
-      <p>Venda feita no celular do vendedor, no ponto de venda. Em cada etapa, o que acontece na tela e o mecanismo técnico.</p>
+      <h2 id="venda-titulo">A aplicação em funcionamento: uma venda em seis etapas</h2>
+      <p>No celular do vendedor, com leitura do QR Code da placa e cobrança pelo Pagar.me. As etapas 3 a 6 aplicam as decisões acima.</p>
     </header>
 
     <div class="venda" data-venda>
@@ -302,89 +326,130 @@
             <span class="passo-numero" aria-hidden="true">3</span>
             <span class="passo-texto"><strong>Cobrança</strong>O cliente paga por Pix ou cartão na tela do vendedor.</span>
           </button>
-          <p class="passo-tec">A cobrança é gravada antes de chamar o Pagar.me; o cartão é tokenizado no navegador.</p>
+          <p class="passo-tec">A cobrança é gravada antes de chamar o Pagar.me; o cartão é tokenizado no navegador. <a href="#d-pagamento">Decisão</a></p>
         </li>
         <li>
           <button type="button" class="passo" data-ir="4" aria-pressed="false">
             <span class="passo-numero" aria-hidden="true">4</span>
             <span class="passo-texto"><strong>Confirmação</strong>O pagamento aparece na tela do vendedor sem recarregar.</span>
           </button>
-          <p class="passo-tec">O webhook do Pagar.me é gravado e conferido na origem; a tela recebe por SignalR.</p>
+          <p class="passo-tec">O webhook do Pagar.me é gravado e conferido na origem; a tela recebe por SignalR. <a href="#d-pagamento">Decisão</a></p>
         </li>
         <li>
           <button type="button" class="passo" data-ir="5" aria-pressed="false">
             <span class="passo-numero" aria-hidden="true">5</span>
             <span class="passo-texto"><strong>Divisão</strong>A plataforma calcula a parte da revenda, da operadora e a comissão do vendedor.</span>
           </button>
-          <p class="passo-tec">Valores em centavos no razão; split do Pagar.me por recebedor; comissão paga em repasse.</p>
+          <p class="passo-tec">Valores em centavos no razão; split do Pagar.me por recebedor; comissão paga em repasse. <a href="#d-razao">Decisão</a></p>
         </li>
         <li>
           <button type="button" class="passo" data-ir="6" aria-pressed="false">
             <span class="passo-numero" aria-hidden="true">6</span>
             <span class="passo-texto"><strong>Ativação</strong>A placa passa a levar à avaliação do cliente no Google.</span>
           </button>
-          <p class="passo-tec">Redirecionamento configurável sem reimprimir a placa; gravação NFC pelo Web NFC.</p>
+          <p class="passo-tec">Redirecionamento configurável sem reimprimir a placa; gravação NFC pelo Web NFC. <a href="#d-migracao">Decisão</a></p>
         </li>
       </ol>
     </div>
   </section>
 
-  <!-- Decisões -->
-  <section id="decisoes" class="secao largura" aria-labelledby="decisoes-titulo">
+  <!-- Qualidade e operação -->
+  <section id="qualidade" class="secao largura" aria-labelledby="qualidade-titulo">
     <header class="secao-topo">
-      <h2 id="decisoes-titulo">Decisões técnicas e resolutivas</h2>
-      <p>Cada decisão tem um ADR no repositório, com contexto, alternativas e consequências.</p>
+      <h2 id="qualidade-titulo">Qualidade e operação: o que roda a cada publicação</h2>
+      <p>Verificações do repositório e da produção. As contagens dizem quantos casos rodam; não medem cobertura.</p>
     </header>
 
-    <ul class="decisoes">
+    <ul class="provas">
       <li>
-        <h3>Isolamento entre revendas na API e no banco de dados</h3>
-        <p>Os dados de cada revenda ficam separados em duas camadas: se o filtro da aplicação falhar, o banco ainda recusa.</p>
-        <details class="aprofundar">
-          <summary>Como funciona</summary>
-          <div class="aprofundar-corpo">
-            <p>Filtro global do EF Core pela revenda do login e row-level security forçada no PostgreSQL. A aplicação conecta com um papel sem permissão de ignorar a regra, e um teste reprova a publicação se uma tabela com revenda ficar sem ela.</p>
-            <p class="evidencia"><a href="https://github.com/Hitice/Avalia-Sales/blob/main/docs/adr/0001-tenant-no-banco-unico-com-filtro-do-ef-core-e-rls.md" rel="noopener">ADR 0001</a><a href="https://github.com/Hitice/Avalia-Sales/blob/main/tests/AvaliaSales.Tests/Isolamento/IsolamentoEntreRevendedoresTest.cs" rel="noopener">Testes de isolamento</a></p>
-          </div>
-        </details>
+        <h3>Testes automáticos</h3>
+        <p>346 testes da API (xUnit, contra PostgreSQL real), 116 do front (Vitest, com axe) e 16 cenários ponta a ponta (Playwright) no celular e no computador.</p>
+        <a href="https://github.com/Hitice/Avalia-Sales/tree/main/tests/AvaliaSales.Tests" rel="noopener">Testes da API</a>
       </li>
       <li>
-        <h3>Pagamento confirmado na origem, no gateway</h3>
-        <p>A venda só é confirmada depois que o sistema consulta a cobrança no Pagar.me.</p>
-        <details class="aprofundar">
-          <summary>Como funciona</summary>
-          <div class="aprofundar-corpo">
-            <p>A cobrança é gravada antes de chamar o gateway, para nenhuma resposta se perder. O webhook só registra o evento; o Worker reconsulta a cobrança antes da baixa e trava a linha do evento, para o mesmo aviso não ser aplicado duas vezes.</p>
-            <p class="evidencia"><a href="https://github.com/Hitice/Avalia-Sales/blob/main/docs/adr/0004-cobranca-gravada-antes-de-chamar-o-pagar-me.md" rel="noopener">ADR 0004</a><a href="https://github.com/Hitice/Avalia-Sales/blob/main/docs/adr/0005-webhook-so-grava-o-worker-reconsulta-a-fonte.md" rel="noopener">ADR 0005</a></p>
-          </div>
-        </details>
+        <h3>Publicação controlada</h3>
+        <p>CI verde, aprovação manual, cópia do banco antes de subir e health check pelo domínio. Rollback por nova publicação do commit anterior.</p>
+        <a href="https://github.com/Hitice/Avalia-Sales/blob/main/.github/workflows/deploy.yml" rel="noopener">Fluxo de publicação</a>
       </li>
       <li>
-        <h3>Dinheiro em centavos e razão append-only</h3>
-        <p>Valores, taxas e comissões são inteiros em centavos, e cada movimento financeiro vira um lançamento no razão.</p>
-        <details class="aprofundar">
-          <summary>Como funciona</summary>
-          <div class="aprofundar-corpo">
-            <p>A aplicação só insere no razão: uma correção entra como estorno, não como edição. O mês fechado é travado por trigger no próprio banco, e a divisão em centavos sempre soma o valor cobrado.</p>
-            <p class="evidencia"><a href="https://github.com/Hitice/Avalia-Sales/blob/main/docs/adr/0011-razao-so-de-insercao.md" rel="noopener">ADR 0011</a><a href="https://github.com/Hitice/Avalia-Sales/blob/main/docs/adr/0020-mes-fechado-garantido-no-banco.md" rel="noopener">ADR 0020</a><a href="https://github.com/Hitice/Avalia-Sales/blob/main/docs/adr/0003-split-do-pagar-me-em-centavos-flat.md" rel="noopener">ADR 0003</a></p>
-          </div>
-        </details>
+        <h3>Contrato entre front e API</h3>
+        <p>Tipos do front gerados do OpenAPI da API; o CI falha se estiverem desatualizados.</p>
+        <a href="https://github.com/Hitice/Avalia-Sales/blob/main/.github/workflows/ci.yml" rel="noopener">Verificações do CI</a>
       </li>
       <li>
-        <h3>Processamento assíncrono das integrações</h3>
-        <p>A API grava e responde sem aguardar e-mail, ERP ou contrato; o Worker processa as filas.</p>
-        <details class="aprofundar">
-          <summary>Como funciona</summary>
-          <div class="aprofundar-corpo">
-            <p>Os envios ficam em fila no PostgreSQL, processados a cada 10 segundos, com retentativa e espera crescente. Quando algo muda, o banco avisa a API (LISTEN/NOTIFY) e a tela recebe por SignalR.</p>
-            <p class="evidencia"><a href="https://github.com/Hitice/Avalia-Sales/blob/main/docs/adr/0013-avisos-ao-vivo-pelo-listen-notify.md" rel="noopener">ADR 0013</a></p>
-          </div>
-        </details>
+        <h3>Erros rastreados por versão</h3>
+        <p>Erros da API, do Worker e do navegador chegam ao Sentry marcados com o commit publicado.</p>
       </li>
-      <li class="decisao-marca">
-        <h3>White label com contraste calculado</h3>
-        <p>Cada revenda aplica logo e cor nas telas. A plataforma escolhe a cor do texto do botão e escurece o destaque até a leitura passar no critério do WCAG.</p>
+      <li>
+        <h3>Segurança e dados pessoais</h3>
+        <p>Sessão curta com refresh rotativo, segundo fator, cartão tokenizado no navegador, auditoria das ações e anonimização do cliente.</p>
+      </li>
+    </ul>
 
+    <details id="integracoes" class="aprofundar">
+      <summary>Integrações e o estado de cada uma</summary>
+      <div class="aprofundar-corpo">
+      <div class="tabela">
+        <table>
+          <caption class="vh">Integrações, uso e estado</caption>
+          <thead><tr><th scope="col">Serviço</th><th scope="col">Uso</th><th scope="col">Estado</th></tr></thead>
+          <tbody>
+            <tr><th scope="row"><span class="servico"><span class="ico ico-letra" aria-hidden="true">P</span>Pagar.me</span></th><td>Pix, cartão, split por recebedor e estorno total ou parcial</td><td><span class="estado estado-ok">Em produção</span></td></tr>
+            <tr><th scope="row"><span class="servico"><span class="ico i-resend" aria-hidden="true"></span>Resend</span></th><td>E-mails transacionais com fila e retentativa</td><td><span class="estado estado-ok">Em produção</span></td></tr>
+            <tr><th scope="row"><span class="servico"><span class="ico i-googlemaps" aria-hidden="true"></span>Google Places API e Maps API</span></th><td>Localização do estabelecimento e mapa de vendas</td><td><span class="estado estado-ok">Em produção</span></td></tr>
+            <tr><th scope="row"><span class="servico"><span class="ico ico-letra" aria-hidden="true">BR</span>BrasilAPI</span></th><td>Razão social e endereço por CNPJ e CEP</td><td><span class="estado estado-ok">Em produção</span></td></tr>
+            <tr><th scope="row"><span class="servico"><span class="ico ico-letra" aria-hidden="true">PDF</span>Gotenberg</span></th><td>Contrato e distrato em PDF, num contêiner sem rede</td><td><span class="estado estado-ok">Em produção</span></td></tr>
+            <tr><th scope="row"><span class="servico"><span class="ico i-sentry" aria-hidden="true"></span>Sentry</span></th><td>Erros com a versão publicada</td><td><span class="estado estado-ok">Em produção</span></td></tr>
+            <tr><th scope="row"><span class="servico"><span class="ico ico-letra" aria-hidden="true">D4</span>D4Sign</span></th><td>Assinatura eletrônica do contrato de revenda</td><td><span class="estado estado-espera">Sandbox</span></td></tr>
+            <tr><th scope="row"><span class="servico"><span class="ico i-totvs" aria-hidden="true"></span>Protheus</span></th><td>Pedido de placas pago gerado como pedido de venda no ERP</td><td><span class="estado estado-neutro">Pronto para homologação</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      </div>
+    </details>
+  </section>
+
+  </section>
+
+  <!-- Aprofundamento -->
+  <section id="aprofundamento" class="secao largura" aria-labelledby="aprofundamento-titulo">
+    <header class="secao-topo">
+      <h2 id="aprofundamento-titulo">Aprofundamento</h2>
+      <p>Documentação versionada com o código, para quem quer ir além desta página.</p>
+    </header>
+    <ul class="leituras">
+      <li><a href="https://github.com/Hitice/Avalia-Sales/blob/main/docs/PDD.md" rel="noopener"><strong>Regras do produto</strong><span>PDD: cada regra de venda, cobrança, comissão e placa</span></a></li>
+      <li><a href="https://github.com/Hitice/Avalia-Sales/blob/main/docs/SDD.md" rel="noopener"><strong>Arquitetura</strong><span>SDD: camadas, tabelas, integrações e o registro de mudanças</span></a></li>
+      <li><a href="https://github.com/Hitice/Avalia-Sales/tree/main/docs/adr" rel="noopener"><strong>20 registros de decisão</strong><span>ADRs com contexto, opções e consequências</span></a></li>
+      <li><a href="https://github.com/Hitice/Avalia-Sales/blob/main/docs/OPERACAO.md" rel="noopener"><strong>Operação</strong><span>Instalação, publicação, volta de versão, backup e restauração</span></a></li>
+      <li><a href="https://github.com/Hitice/Avalia-Sales/blob/main/web/openapi.json" rel="noopener"><strong>Contrato da API</strong><span>OpenAPI de onde saem os tipos do front</span></a></li>
+      <li><a href="https://github.com/Hitice/Avalia-Sales" rel="noopener"><strong>Código-fonte</strong><span>Repositório completo no GitHub</span></a></li>
+    </ul>
+
+    <details class="aprofundar">
+      <summary>Camadas do código e responsabilidades</summary>
+      <div class="aprofundar-corpo">
+        <div class="tabela">
+          <table>
+            <caption class="vh">Camadas do código e a responsabilidade de cada uma</caption>
+            <thead><tr><th scope="col">Projeto</th><th scope="col">Responsabilidade</th></tr></thead>
+            <tbody>
+              <tr><th scope="row">Domain</th><td>Entidades e regras de negócio, sem dependência de pacote</td></tr>
+              <tr><th scope="row">Application</th><td>Casos de uso e as interfaces das integrações</td></tr>
+              <tr><th scope="row">Infrastructure</th><td>EF Core, migrations, clientes HTTP e simuladores</td></tr>
+              <tr><th scope="row">Api e Worker</th><td>ASP.NET Core e o processamento em segundo plano</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>Retentativa automática de HTTP só em métodos seguros, para uma cobrança não ser reenviada por engano.</p>
+        <p class="evidencia"><a href="https://github.com/Hitice/Avalia-Sales/blob/main/docs/SDD.md" rel="noopener">Arquitetura (SDD)</a></p>
+      </div>
+    </details>
+
+    <details class="aprofundar">
+      <summary>White label com contraste calculado</summary>
+      <div class="aprofundar-corpo">
+        <p>Cada revenda aplica logo e cor nas telas. A plataforma escolhe a cor do texto do botão e escurece o destaque até a leitura passar no critério do WCAG.</p>
         <figure class="marca" data-marca>
           <figcaption class="vh">Experimente a cor de uma revenda</figcaption>
           <div class="marca-controles">
@@ -409,83 +474,8 @@
             <span class="mini-botao">Nova venda</span>
           </div>
         </figure>
-      </li>
-      <li>
-        <h3>Migração incremental (strangler fig) com a operação ativa</h3>
-        <p>A plataforma nova assumiu as funções do sistema anterior rota a rota, e os dados foram migrados por importação validada em ensaio.</p>
-        <details class="aprofundar">
-          <summary>Como funciona</summary>
-          <div class="aprofundar-corpo">
-            <p>Cada rota do sistema anterior passou a redirecionar para a nova quando ela ficou pronta. O conversor lê o backup sem tocar no banco de origem; a importação roda antes em ensaio e, valendo, numa transação única, em que uma linha recusada desfaz o arquivo inteiro. O endereço impresso nas placas vendidas não muda.</p>
-            <p class="evidencia"><a href="https://github.com/Hitice/Avalia-Sales/blob/main/docs/OPERACAO.md" rel="noopener">Operação</a><a href="https://github.com/Hitice/Avalia-Sales/blob/main/infra/migracao/converter_do_sales.py" rel="noopener">Conversor</a></p>
-          </div>
-        </details>
-      </li>
-    </ul>
-  </section>
-
-  <!-- Qualidade -->
-  <section id="qualidade" class="secao largura" aria-labelledby="qualidade-titulo">
-    <header class="secao-topo">
-      <h2 id="qualidade-titulo">Verificação e qualidade</h2>
-      <p>O que roda a cada publicação e onde conferir no repositório.</p>
-    </header>
-
-    <ul class="provas">
-      <li>
-        <h3>Testes automáticos</h3>
-        <p>Cerca de 475: 344 da API contra PostgreSQL real com o isolamento ligado, 116 do front, com acessibilidade conferida em cada componente documentado, e 16 jornadas ponta a ponta no celular e no computador.</p>
-        <a href="https://github.com/Hitice/Avalia-Sales/tree/main/tests/AvaliaSales.Tests" rel="noopener">Testes da API</a>
-      </li>
-      <li>
-        <h3>Publicação controlada</h3>
-        <p>O deploy só roda com o CI verde e aprovação manual, sobe as imagens do commit e confere a saúde da API pelo domínio. Rollback por nova publicação do commit anterior.</p>
-        <a href="https://github.com/Hitice/Avalia-Sales/blob/main/.github/workflows/deploy.yml" rel="noopener">Fluxo de publicação</a>
-      </li>
-      <li>
-        <h3>Contrato entre front e API</h3>
-        <p>Os tipos do front saem do contrato OpenAPI da API, e o CI falha se estiverem desatualizados. Warnings do compilador são tratados como erro.</p>
-        <a href="https://github.com/Hitice/Avalia-Sales/blob/main/.github/workflows/ci.yml" rel="noopener">Verificações do CI</a>
-      </li>
-      <li>
-        <h3>Erros rastreados</h3>
-        <p>Erros da API, do Worker e do navegador chegam ao Sentry marcados com a versão publicada, o que liga cada alerta a um commit.</p>
-      </li>
-      <li>
-        <h3>Segurança e dados pessoais</h3>
-        <p>Sessão curta com renovação rotativa, segundo fator, bloqueio por tentativas, cartão tokenizado no navegador, cabeçalhos de segurança na borda, auditoria das ações e exportação e anonimização dos dados do cliente.</p>
-      </li>
-      <li>
-        <h3>Documentação com o código</h3>
-        <p>Regras do produto, arquitetura, operação e 20 registros de decisão versionados junto do código.</p>
-        <a href="https://github.com/Hitice/Avalia-Sales/tree/main/docs" rel="noopener">Documentação</a>
-      </li>
-    </ul>
-  </section>
-
-  <!-- Integrações -->
-  <section id="integracoes" class="secao largura" aria-labelledby="integracoes-titulo">
-    <header class="secao-topo">
-      <h2 id="integracoes-titulo">Integrações implementadas</h2>
-      <p>Cada integração fica atrás de uma interface própria, com teste de contrato HTTP, e todo webhook é conferido por assinatura ou reconsulta antes de valer.</p>
-    </header>
-
-    <div class="tabela">
-      <table>
-        <caption class="vh">Integrações, uso e estado</caption>
-        <thead><tr><th scope="col">Serviço</th><th scope="col">Uso</th><th scope="col">Estado</th></tr></thead>
-        <tbody>
-          <tr><th scope="row"><span class="servico"><span class="ico ico-letra" aria-hidden="true">P</span>Pagar.me</span></th><td>Pix, cartão, split por recebedor e estorno total ou parcial</td><td><span class="estado estado-ok">Em produção</span></td></tr>
-          <tr><th scope="row"><span class="servico"><span class="ico i-resend" aria-hidden="true"></span>Resend</span></th><td>E-mails transacionais com fila e retentativa</td><td><span class="estado estado-ok">Em produção</span></td></tr>
-          <tr><th scope="row"><span class="servico"><span class="ico i-googlemaps" aria-hidden="true"></span>Google Places API e Maps API</span></th><td>Localização do estabelecimento e mapa de vendas</td><td><span class="estado estado-ok">Em produção</span></td></tr>
-          <tr><th scope="row"><span class="servico"><span class="ico ico-letra" aria-hidden="true">BR</span>BrasilAPI</span></th><td>Razão social e endereço por CNPJ e CEP</td><td><span class="estado estado-ok">Em produção</span></td></tr>
-          <tr><th scope="row"><span class="servico"><span class="ico ico-letra" aria-hidden="true">PDF</span>Gotenberg</span></th><td>Contrato e distrato em PDF, num contêiner sem rede</td><td><span class="estado estado-ok">Em produção</span></td></tr>
-          <tr><th scope="row"><span class="servico"><span class="ico i-sentry" aria-hidden="true"></span>Sentry</span></th><td>Erros com a versão publicada</td><td><span class="estado estado-ok">Em produção</span></td></tr>
-          <tr><th scope="row"><span class="servico"><span class="ico ico-letra" aria-hidden="true">D4</span>D4Sign</span></th><td>Assinatura eletrônica do contrato de revenda</td><td><span class="estado estado-espera">Sandbox</span></td></tr>
-          <tr><th scope="row"><span class="servico"><span class="ico i-totvs" aria-hidden="true"></span>Protheus</span></th><td>Pedido de placas pago gerado como pedido de venda no ERP</td><td><span class="estado estado-neutro">Pronto para homologação</span></td></tr>
-        </tbody>
-      </table>
-    </div>
+      </div>
+    </details>
   </section>
 
   <!-- Acesso -->

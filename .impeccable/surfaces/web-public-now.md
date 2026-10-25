@@ -16,7 +16,7 @@ THESIS - A plataforma contada como um produto que funciona e foi construído de 
 
 OWN-WORLD - A base do próprio produto (DESIGN.md): fundo branco, Geist, neutros frios em OKLCH, o magenta da marca Avalia Sales (#bb00bf, o do logo) na ação e no passo ativo, logos da stack em máscara na cor do texto num quadro de 16 px, selos de estado verde e âmbar, borda de 1 px, raio de 6 a 10 px, sombra quase nula. Escolhida por Pedro em 24/10/2026, depois de testar a escura (/proposta) e o quadro de partidas.
 
-STORY - Abertura (título, o que faz, autoria, ações, telas reais) → resumo em três linhas (produto, engenharia, operação) → a venda em seis passos → o mapa da solução → seis decisões → qualidade → integrações e ressalvas → acesso.
+STORY - Abertura (Avalia Sales reconstruído a partir do sistema em Laravel/PHP, produção ao vivo, telas) → arquitetura e stack por camada, com a comparação antes e agora → quatro decisões de engenharia (contexto, decisão, motivo, evidência) → a venda em seis etapas ligada às decisões → qualidade e operação → aprofundamento (documentação e código) → acesso. Escrita de engenheiro para engenheiro: sem adjetivo promocional, toda afirmação rastreável ao código ou aos documentos.
 
 FIRST VIEWPORT - Título "Plataforma de gestão e revenda de produtos", a frase do que o produto faz, a autoria, "Abrir a plataforma" e "Ler o código no GitHub", a produção lida ao vivo do /api/health (no ar, tempo de resposta, hora) e as telas do revendedor e do vendedor com a nota de dados de demonstração.
 
