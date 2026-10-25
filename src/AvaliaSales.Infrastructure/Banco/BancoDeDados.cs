@@ -149,6 +149,7 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
         modelo.Entity<LinkCurto>(l =>
         {
             l.ToTable("links");
+            l.HasIndex(x => new { x.RevendedorId, x.CriadoEm, x.Id }).IsDescending(false, true, true).HasDatabaseName("ix_links_revendedor_criado_id");
             l.Property(x => x.Codigo).HasMaxLength(CodigoDaPlaca.Tamanho).IsFixedLength();
             l.Property(x => x.Titulo).HasMaxLength(LinkCurto.TituloMaximo).IsRequired();
             l.Property(x => x.Destino).HasMaxLength(Destino.TamanhoMaximo).IsRequired();
@@ -380,6 +381,8 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
         modelo.Entity<EnvioAoErp>(e =>
         {
             e.ToTable("envios_ao_erp");
+            // A fila da operadora, paginada pela data e pelo pedido.
+            e.HasIndex(x => new { x.CriadoEm, x.PedidoId }).IsDescending(true, true).HasDatabaseName("ix_envios_ao_erp_criado_pedido");
             e.Property(x => x.Cliente).HasMaxLength(Revendedor.NomeMaximo).IsRequired();
             e.Property(x => x.Cnpj).HasMaxLength(14);
             e.Property(x => x.Situacao).HasConversion<string>().HasMaxLength(12);
@@ -401,6 +404,7 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
         modelo.Entity<Lancamento>(l =>
         {
             l.ToTable("lancamentos");
+            l.HasIndex(x => new { x.RevendedorId, x.Competencia, x.OcorridoEm, x.Id }).IsDescending(false, false, true, true).HasDatabaseName("ix_lancamentos_competencia_ocorrido_id");
             l.Property(x => x.Tipo).HasConversion<string>().HasMaxLength(20);
             l.Property(x => x.Descricao).HasMaxLength(200).IsRequired();
             l.Property(x => x.Competencia).HasMaxLength(7).IsFixedLength();
@@ -419,6 +423,7 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
         modelo.Entity<Repasse>(r =>
         {
             r.ToTable("repasses");
+            r.HasIndex(x => new { x.RevendedorId, x.PagoEm, x.Id }).IsDescending(false, true, true).HasDatabaseName("ix_repasses_revendedor_pago_id");
             r.Property(x => x.Comprovante).HasMaxLength(120);
             r.HasOne<Revendedor>().WithMany().HasForeignKey(x => x.RevendedorId).OnDelete(DeleteBehavior.Restrict);
             r.HasOne<Vendedor>().WithMany().HasForeignKey(x => x.VendedorId).OnDelete(DeleteBehavior.Restrict);
@@ -544,6 +549,8 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
         modelo.Entity<PedidoDePlacas>(p =>
         {
             p.ToTable("pedidos_placas");
+            p.HasIndex(x => new { x.RevendedorId, x.CriadoEm, x.Id }).IsDescending(false, true, true).HasDatabaseName("ix_pedidos_placas_revendedor_criado_id");
+            p.HasIndex(x => new { x.CriadoEm, x.Id }).IsDescending(true, true).HasDatabaseName("ix_pedidos_placas_criado_id");
             p.Property(x => x.Situacao).HasConversion<string>().HasMaxLength(20);
             p.Ignore(x => x.CustoPorPlacaCents);
             p.Ignore(x => x.Gratuito);
@@ -606,6 +613,7 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
         modelo.Entity<Venda>(v =>
         {
             v.ToTable("vendas");
+            v.HasIndex(x => new { x.RevendedorId, x.VendidaEm, x.Id }).IsDescending(false, true, true).HasDatabaseName("ix_vendas_revendedor_vendida_id");
             v.Property(x => x.Meio).HasConversion<string>().HasMaxLength(10);
             v.Property(x => x.Situacao).HasConversion<string>().HasMaxLength(12);
             v.Property(x => x.MotivoDoCancelamento).HasConversion<string>().HasMaxLength(16);

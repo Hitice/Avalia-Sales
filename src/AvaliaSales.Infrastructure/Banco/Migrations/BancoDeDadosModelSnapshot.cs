@@ -711,6 +711,10 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                     b.HasIndex("RevendedorId")
                         .HasDatabaseName("ix_envios_ao_erp_revendedor_id");
 
+                    b.HasIndex("CriadoEm", "PedidoId")
+                        .IsDescending()
+                        .HasDatabaseName("ix_envios_ao_erp_criado_pedido");
+
                     b.ToTable("envios_ao_erp", (string)null);
                 });
 
@@ -903,6 +907,10 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
 
                     NpgsqlIndexBuilderExtensions.AreNullsDistinct(b.HasIndex("OrigemId", "Tipo", "VendaId", "VendedorId"), false);
 
+                    b.HasIndex("RevendedorId", "Competencia", "OcorridoEm", "Id")
+                        .IsDescending(false, false, true, true)
+                        .HasDatabaseName("ix_lancamentos_competencia_ocorrido_id");
+
                     b.ToTable("lancamentos", (string)null);
                 });
 
@@ -951,6 +959,10 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
 
                     b.HasIndex("VendedorId")
                         .HasDatabaseName("ix_repasses_vendedor_id");
+
+                    b.HasIndex("RevendedorId", "PagoEm", "Id")
+                        .IsDescending(false, true, true)
+                        .HasDatabaseName("ix_repasses_revendedor_pago_id");
 
                     b.HasIndex("RevendedorId", "VendedorId", "PagoEm")
                         .HasDatabaseName("ix_repasses_revendedor_id_vendedor_id_pago_em");
@@ -1163,6 +1175,10 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
 
                     b.HasIndex("RevendedorId", "Destino")
                         .HasDatabaseName("ix_links_revendedor_id_destino");
+
+                    b.HasIndex("RevendedorId", "CriadoEm", "Id")
+                        .IsDescending(false, true, true)
+                        .HasDatabaseName("ix_links_revendedor_criado_id");
 
                     b.ToTable("links", (string)null);
                 });
@@ -1475,8 +1491,16 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                     b.HasKey("Id")
                         .HasName("pk_pedidos_placas");
 
+                    b.HasIndex("CriadoEm", "Id")
+                        .IsDescending()
+                        .HasDatabaseName("ix_pedidos_placas_criado_id");
+
                     b.HasIndex("RevendedorId", "Situacao")
                         .HasDatabaseName("ix_pedidos_placas_revendedor_id_situacao");
+
+                    b.HasIndex("RevendedorId", "CriadoEm", "Id")
+                        .IsDescending(false, true, true)
+                        .HasDatabaseName("ix_pedidos_placas_revendedor_criado_id");
 
                     b.ToTable("pedidos_placas", (string)null);
                 });
@@ -2229,6 +2253,10 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
 
                     b.HasIndex("RevendedorId", "VendedorId", "VendidaEm")
                         .HasDatabaseName("ix_vendas_revendedor_id_vendedor_id_vendida_em");
+
+                    b.HasIndex("RevendedorId", "VendidaEm", "Id")
+                        .IsDescending(false, true, true)
+                        .HasDatabaseName("ix_vendas_revendedor_vendida_id");
 
                     b.ToTable("vendas", (string)null);
                 });
