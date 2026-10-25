@@ -63,7 +63,7 @@ código e o documento discordarem, perguntar qual vale e atualizar o outro.
 Sales, abrir a sessão com:
 
 ```bash
-cd ~/Documents/Avalia-Sales
+cd ~/Documents/development/Avalia-Sales
 Codex --add-dir ~/Documents/Avalia
 ```
 
