@@ -753,6 +753,7 @@ porque está impresso nas placas vendidas.
 
 | Data | Mudança |
 | --- | --- |
+| 25/10/2026 | Ficha da placa - o vendedor lê a ficha completa da placa em estoque (para conferir na Nova venda) e da placa que ele vendeu. Placa vendida por outro vendedor mostra só o código e o estado; cliente, valor, comissão, destino e histórico são de quem vendeu e do revendedor. |
 | 25/10/2026 | Renovação recebida por fora pede confirmação na ficha da placa e vai à auditoria; o revendedor desfaz a renovação registrada por engano (estorno no razão e o vencimento de antes). |
 | 25/10/2026 | Histórico das vendas do Sales - a receita e a comissão das vendas pagas no sistema anterior entram no razão nos meses de origem (receita e comissão devida no mês do pagamento, comissão paga no mês em que foi paga, sem taxa da Avalia); mês fechado recusa a importação; o saldo do vendedor fica só com o que falta pagar, e o repasse não conta a venda paga lá. |
 | 25/10/2026 | Financeiro - cartão Caixa com o saldo, o saldo inicial, as entradas e as saídas; o revendedor define, troca ou exclui o saldo inicial pelo cartão. Aporte de sócio na lista de naturezas da retirada. |

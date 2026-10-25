@@ -33,6 +33,14 @@ public sealed class FichaDaPlaca(IBancoDeDados banco, IUsuarioAtual usuario, ICo
     {
         var placa = await Achar(codigo, ct);
         var agora = relogio.GetUtcNow();
+
+        // A Nova venda confere a placa livre pela ficha, mesmo a consignada a outro vendedor. Vendida, ela é de quem vendeu:
+        // cliente, valor, comissão, destino e histórico não saem para outro vendedor, só o estado.
+        if (usuario.Papel == Papel.Vendedor && placa.Estado(agora) != EstadoDaPlaca.EmEstoque && !await VendidaPorMim(placa, ct))
+        {
+            return new FichaDto(placa.Codigo, plataforma.Value.EnderecoDaPlaca(placa.Codigo), placa.Sequencia, placa.Estado(agora), null, null, null, 0, null, null, null, [], []);
+        }
+
         var desde = DateOnly.FromDateTime(agora.UtcDateTime).AddDays(-DiasDeLeitura);
         var leituras = await banco.Leituras.AsNoTracking().Where(l => l.PlacaId == placa.Id && l.Dia >= desde)
             .OrderBy(l => l.Dia).Select(l => new LeituraDto(l.Dia, l.Total)).ToListAsync(ct);
@@ -110,6 +118,9 @@ public sealed class FichaDaPlaca(IBancoDeDados banco, IUsuarioAtual usuario, ICo
             ?? throw new RegraDeNegocioException("Código não encontrado, verifique novamente.");
     }
 
+    private async Task<bool> VendidaPorMim(Placa placa, CancellationToken ct) =>
+        placa.VendaId is { } vendaId && await banco.Vendas.AnyAsync(v => v.Id == vendaId && v.VendedorId == usuario.UsuarioId, ct);
+
     private async Task ExigirQuePodeMexer(Placa placa, CancellationToken ct)
     {
         if (usuario.Papel == Papel.Dono)
@@ -117,8 +128,7 @@ public sealed class FichaDaPlaca(IBancoDeDados banco, IUsuarioAtual usuario, ICo
             return;
         }
 
-        var vendeu = placa.VendaId is { } vendaId && await banco.Vendas.AnyAsync(v => v.Id == vendaId && v.VendedorId == usuario.UsuarioId, ct);
-        if (!vendeu)
+        if (!await VendidaPorMim(placa, ct))
         {
             throw new RegraDeNegocioException("Só quem vendeu a placa, ou o revendedor, muda o destino.");
         }
