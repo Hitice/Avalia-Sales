@@ -20,8 +20,12 @@ export function cpfValido(texto: string): boolean {
 
 export const documentoValido = (texto: string) => cpfValido(texto) || cnpjValido(texto)
 
-/** Forma, e não existência: quem confere a caixa é o e-mail que chega. */
-export const emailValido = (texto: string) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(texto.trim())
+/**
+ * Forma, e não existência: quem confere a caixa é o e-mail que chega. O domínio
+ * para no primeiro ponto depois do primeiro caractere: sem retrocesso, casa o
+ * mesmo que [^\s@]+\.[^\s@]{2,}.
+ */
+export const emailValido = (texto: string) => /^[^\s@]+@[^\s@][^\s@.]*\.[^\s@]{2,}$/.test(texto.trim())
 
 /** DDD mais 8 ou 9 dígitos. */
 export const telefoneValido = (texto: string) => /^\d{10,11}$/.test(texto.replace(/\D/g, ''))

@@ -25,7 +25,11 @@ export const QUANTIDADE_MAXIMA = 1_000
 
 export const quantidadeMinima = (item: ItemDoCatalogo) => Math.max(1, item.quantidadeMinima ?? 1)
 
-const novoId = () => (typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`)
+// O randomUUID só existe em página segura (HTTPS ou localhost); o getRandomValues
+// existe também no Vite aberto pelo IP da rede, no celular.
+const novoId = () => (typeof crypto.randomUUID === 'function'
+  ? crypto.randomUUID()
+  : Array.from(crypto.getRandomValues(new Uint32Array(4)), (n) => n.toString(16).padStart(8, '0')).join(''))
 
 export function linhaDePlaca(item: ItemDoCatalogo, codigo: string, destino: DestinoInformado, lugar: Lugar | null): LinhaDaVenda {
   return { id: novoId(), item, quantidade: 1, codigo, destino, lugar, valorCents: null }

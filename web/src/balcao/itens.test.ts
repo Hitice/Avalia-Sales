@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ItemDoCatalogo } from '@/api/tipos'
 import { ITENS_MAXIMOS, adicionar, comQuantidade, comValor, itensParaVender, linhaDePlaca, linhaDeServico, nomeDaLinha, paraItens, remover, soPlacas, total } from './itens'
 
@@ -9,6 +9,10 @@ const item = (parte: Partial<ItemDoCatalogo>): ItemDoCatalogo => ({
 const placa = item({})
 const kitMesa = item({ id: 's1', chave: 'kit-mesa', nome: 'Kit Mesa', tipo: 'Servico', precoCents: 1990, quantidadeMinima: 10 })
 const destino = { tipo: 'Link' as const, lugarNoGoogle: null, link: 'cardapio.com.br' }
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
 
 describe('itens da venda', () => {
   it('serviço entra com o pedido mínimo e nunca desce abaixo dele', () => {
@@ -66,5 +70,13 @@ describe('itens da venda', () => {
   it('para vender: só o disponível e ativo, placas primeiro', () => {
     const lista = itensParaVender([kitMesa, item({ id: 'x', ativo: false }), item({ id: 'y', situacao: 'Esgotado' }), placa])
     expect(lista.map((p) => p.id)).toEqual(['p1', 's1'])
+  })
+
+  it('sem o randomUUID (página sem HTTPS), cada linha ainda ganha um id diferente', () => {
+    vi.stubGlobal('crypto', { getRandomValues: crypto.getRandomValues.bind(crypto) })
+    const a = linhaDePlaca(placa, 'K7M2PX', destino, null)
+    const b = linhaDePlaca(placa, 'ABC234', destino, null)
+    expect(a.id).toMatch(/^[0-9a-f]{32}$/)
+    expect(a.id).not.toBe(b.id)
   })
 })

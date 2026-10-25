@@ -82,8 +82,8 @@ export function RecorteDoLogo({ arquivo, aoCancelar, aoConfirmar, enviando, titu
           )}
         </div>
         <label className="grid gap-1 text-sm">
-          <span className="flex justify-between"><span>Zoom</span><span className="tabular-nums text-muted-foreground">{Math.round(zoom * 100)}%</span></span>
-          <input type="range" min={0.5} max={4} step={0.01} value={zoom} onChange={(e) => setZoom(Number(e.target.value))} className="accent-primary" />
+          <span className="flex justify-between">Zoom<span aria-hidden className="tabular-nums text-muted-foreground">{Math.round(zoom * 100)}%</span></span>
+          <input type="range" min={0.5} max={4} step={0.01} value={zoom} aria-valuetext={`${Math.round(zoom * 100)}%`} onChange={(e) => setZoom(Number(e.target.value))} className="accent-primary" />
         </label>
         <DialogFooter>
           <Button variant="ghost" onClick={aoCancelar} disabled={enviando}>Cancelar</Button>

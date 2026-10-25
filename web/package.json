@@ -13,6 +13,7 @@
     "typecheck": "tsc -b",
     "tipos": "openapi-typescript openapi.json -o src/api/esquema.d.ts",
     "e2e": "playwright test",
+    "navegador": "playwright install --with-deps chromium",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build -o storybook-static"
   },

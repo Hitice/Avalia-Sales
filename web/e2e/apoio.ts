@@ -40,9 +40,11 @@ export async function semRolagemLateral(page: Page) {
 /** O código que um app autenticador mostraria agora (RFC 6238, HMAC-SHA1, 30 s). */
 export function codigoTotp(chaveBase32: string, agora = Date.now()): string {
   const alfabeto = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'
+  let fim = chaveBase32.length
+  while (chaveBase32[fim - 1] === '=') fim--
   let bits = ''
-  for (const c of chaveBase32.replace(/=+$/, '').toUpperCase()) bits += alfabeto.indexOf(c).toString(2).padStart(5, '0')
-  const chave = Buffer.from((bits.match(/.{8}/g) ?? []).map((b) => parseInt(b, 2)))
+  for (const c of chaveBase32.slice(0, fim).toUpperCase()) bits += alfabeto.indexOf(c).toString(2).padStart(5, '0')
+  const chave = Buffer.from((bits.match(/.{8}/g) ?? []).map((b) => Number.parseInt(b, 2)))
   const contador = Buffer.alloc(8)
   contador.writeBigInt64BE(BigInt(Math.floor(agora / 1000 / 30)))
   const hash = createHmac('sha1', chave).update(contador).digest()

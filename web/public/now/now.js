@@ -81,7 +81,7 @@ const canal = (v) => {
   return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
 };
 
-const rgb = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+const rgb = (hex) => [1, 3, 5].map((i) => Number.parseInt(hex.slice(i, i + 2), 16));
 const luminancia = (hex) => {
   const [r, g, b] = rgb(hex).map(canal);
 
@@ -170,9 +170,10 @@ function producao(linha) {
       : `Sem resposta às ${hora.format(new Date())}. Nova leitura em 30 s.`;
   };
 
-  ler();
-  setInterval(() => { if (! document.hidden) ler(); }, 30000);
-  document.addEventListener('visibilitychange', () => { if (! document.hidden) ler(); });
+  // O ler trata a própria falha (marca "fora"): a promessa não rejeita, e o void diz isso.
+  void ler();
+  setInterval(() => { if (! document.hidden) void ler(); }, 30000);
+  document.addEventListener('visibilitychange', () => { if (! document.hidden) void ler(); });
 }
 
 document.querySelectorAll('[data-producao]').forEach(producao);

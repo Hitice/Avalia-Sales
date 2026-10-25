@@ -12,7 +12,25 @@ type Configuracao = { chave: string | null; idDoMapa: string }
 
 const CENTRO_DO_BRASIL = { lat: -15.78, lng: -47.93 }
 const TODAS = 'Todas'
+// Perto disso o mapa mostra o telhado, não a rua.
+const ZOOM_MAXIMO = 16
 let configurado = false
+
+/**
+ * O enquadramento dos lugares. A partir de 8, fica com os 80% do meio em cada
+ * eixo: um lugar isolado na ponta da cidade abriria o mapa demais e juntaria
+ * os alfinetes do centro. Quem fica de fora aparece ao arrastar.
+ */
+function enquadramento(posicoes: google.maps.LatLng[]) {
+  const corte = posicoes.length >= 8 ? Math.floor(posicoes.length * 0.1) : 0
+  const meio = (valores: number[]) => valores.sort((a, b) => a - b).slice(corte, valores.length - corte)
+  const latitudes = meio(posicoes.map((p) => p.lat()))
+  const longitudes = meio(posicoes.map((p) => p.lng()))
+  const limites = new google.maps.LatLngBounds()
+  limites.extend({ lat: latitudes[0], lng: longitudes[0] })
+  limites.extend({ lat: latitudes[latitudes.length - 1], lng: longitudes[longitudes.length - 1] })
+  return limites
+}
 
 /** A cidade do lugar, pelo que o próprio Google devolve: município (BR) ou localidade. */
 function cidadeDe(componentes: google.maps.places.AddressComponent[] | null | undefined) {
@@ -105,6 +123,7 @@ type Props = {
 function MapaDoGoogle({ chave, idDoMapa, lugares, cidade, aoAcharCidades }: Props) {
   const elemento = useRef<HTMLDivElement>(null)
   const mapa = useRef<google.maps.Map | null>(null)
+  const marcadores = useRef<google.maps.marker.AdvancedMarkerElement[]>([])
   const posicoes = useRef<{ clienteId: string; cidade: string | null; posicao: google.maps.LatLng }[]>([])
   const [pronto, setPronto] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
@@ -117,12 +136,12 @@ function MapaDoGoogle({ chave, idDoMapa, lugares, cidade, aoAcharCidades }: Prop
         configurado = true
       }
 
-      const [{ Map }, { Place }, { AdvancedMarkerElement }] = await Promise.all([
+      const [{ Map: MapaDoGoogleMaps }, { Place }, { AdvancedMarkerElement }] = await Promise.all([
         importLibrary('maps'), importLibrary('places'), importLibrary('marker'),
       ])
       if (cancelado || !elemento.current) return
       // Tema escuro do Google: o mapa fica de fundo e os marcadores das vendas aparecem.
-      mapa.current = new Map(elemento.current, { center: CENTRO_DO_BRASIL, zoom: 4, mapId: idDoMapa, colorScheme: 'DARK' })
+      mapa.current = new MapaDoGoogleMaps(elemento.current, { center: CENTRO_DO_BRASIL, zoom: 4, mapId: idDoMapa, colorScheme: 'DARK' })
       const achados = await Promise.all(lugares.map(async (l) => {
         try {
           const lugar = new Place({ id: l.lugarNoGoogle })
@@ -138,7 +157,7 @@ function MapaDoGoogle({ chave, idDoMapa, lugares, cidade, aoAcharCidades }: Prop
       const cidades: Record<string, string> = {}
       for (const achado of achados) {
         if (!achado) continue
-        new AdvancedMarkerElement({ map: mapa.current, position: achado.posicao, title: `${achado.l.nome}: ${achado.l.leituras30Dias} leituras em 30 dias` })
+        marcadores.current.push(new AdvancedMarkerElement({ map: mapa.current, position: achado.posicao, title: `${achado.l.nome}: ${achado.l.leituras30Dias} leituras em 30 dias` }))
         posicoes.current.push({ clienteId: achado.l.clienteId, cidade: achado.cidade, posicao: achado.posicao })
         if (achado.cidade) cidades[achado.l.clienteId] = achado.cidade
       }
@@ -150,6 +169,8 @@ function MapaDoGoogle({ chave, idDoMapa, lugares, cidade, aoAcharCidades }: Prop
     desenhar().catch(() => !cancelado && setErro('Não foi possível carregar o mapa.'))
     return () => {
       cancelado = true
+      for (const marcador of marcadores.current) marcador.map = null
+      marcadores.current = []
     }
   }, [chave, idDoMapa, lugares, aoAcharCidades])
 
@@ -162,9 +183,12 @@ function MapaDoGoogle({ chave, idDoMapa, lugares, cidade, aoAcharCidades }: Prop
       mapa.current.setCenter(naCidade[0].posicao)
       mapa.current.setZoom(15)
     } else if (naCidade.length > 1) {
-      const limites = new google.maps.LatLngBounds()
-      for (const p of naCidade) limites.extend(p.posicao)
-      mapa.current.fitBounds(limites)
+      const atual = mapa.current
+      atual.fitBounds(enquadramento(naCidade.map((p) => p.posicao)), 24)
+      // Vários lugares no mesmo prédio dariam um enquadramento sem área.
+      google.maps.event.addListenerOnce(atual, 'idle', () => {
+        if ((atual.getZoom() ?? 0) > ZOOM_MAXIMO) atual.setZoom(ZOOM_MAXIMO)
+      })
     }
   }, [pronto, cidade])
 

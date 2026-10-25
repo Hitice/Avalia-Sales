@@ -49,6 +49,9 @@ const preencher = (modelo, campos) =>
     return valor;
   });
 
+// O Gotenberg recebe o rodapé inteiro; o page.pdf do Playwright, só o que vai no <body>.
+const corpo = (html) => html.slice(html.indexOf('<body>') + '<body>'.length, html.indexOf('</body>'));
+
 // Os arquivos vão para uma pasta só, como no Gotenberg, que lê tudo pelo nome.
 const trabalho = mkdtempSync(path.join(tmpdir(), 'contrato-'));
 for (const arquivo of readdirSync(modelos)) copyFileSync(path.join(modelos, arquivo), path.join(trabalho, arquivo));
@@ -69,7 +72,7 @@ for (const [modelo, campos] of Object.entries(exemplos)) {
     printBackground: true,
     displayHeaderFooter: true,
     headerTemplate: '<span></span>',
-    footerTemplate: rodape.replace(/[\s\S]*<body>|<\/body>[\s\S]*/g, '').replace('<div>', '<div style="width:100%;font:7.5px Helvetica,Arial,sans-serif;color:#55526a;padding:0 22mm;display:flex;justify-content:space-between">'),
+    footerTemplate: corpo(rodape).replace('<div>', '<div style="width:100%;font:7.5px Helvetica,Arial,sans-serif;color:#55526a;padding:0 22mm;display:flex;justify-content:space-between">'),
   });
   await pagina.close();
   console.log(destino);

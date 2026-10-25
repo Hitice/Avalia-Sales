@@ -42,7 +42,8 @@ COLUNAS = [
     "vendedor_email", "produto", "produto_preco_cents", "comissao_devida_cents", "total_leituras",
     "cliente_email", "cliente_lugar_no_google",
 ]
-EMAIL = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+# O domínio para no primeiro ponto depois do primeiro caractere: sem retrocesso, casa o mesmo que [^@\s]+\.[^@\s]+.
+EMAIL = re.compile(r"^[^@\s]+@[^@\s][^@\s.]*\.[^@\s]+$")
 LUGAR_NO_DESTINO = re.compile(r"[?&]placeid=([A-Za-z0-9_-]+)")
 
 

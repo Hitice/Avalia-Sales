@@ -31,4 +31,20 @@ describe('campos do cliente', () => {
     expect(telefoneValido('(34) 99999-0000')).toBe(true)
     expect(telefoneValido('9999-0000')).toBe(false)
   })
+
+  it('aceita o e-mail com o ponto depois do primeiro caractere do domínio e com o fim de dois ou mais', () => {
+    expect(emailValido('  marta@a.b.co ')).toBe(true)
+    expect(emailValido('marta@..co')).toBe(true)
+    expect(emailValido('marta@padaria.com.b')).toBe(true)
+    expect(emailValido('marta@.com')).toBe(false)
+    expect(emailValido('marta@padaria.c')).toBe(false)
+    expect(emailValido('marta@pa daria.com')).toBe(false)
+    expect(emailValido('marta@padaria@x.com')).toBe(false)
+  })
+
+  it('recusa o e-mail longo e inválido sem demora', () => {
+    const inicio = performance.now()
+    expect(emailValido(`a@${'a.'.repeat(50_000)} x`)).toBe(false)
+    expect(performance.now() - inicio).toBeLessThan(100)
+  })
 })

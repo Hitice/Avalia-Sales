@@ -8,7 +8,7 @@ export const corValida = (cor: string) => /^#[0-9a-f]{6}$/i.test(cor)
 
 function luminancia(cor: string): number {
   const canal = (i: number) => {
-    const c = parseInt(cor.slice(i, i + 2), 16) / 255
+    const c = Number.parseInt(cor.slice(i, i + 2), 16) / 255
     return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
   }
   return 0.2126 * canal(1) + 0.7152 * canal(3) + 0.0722 * canal(5)

@@ -79,6 +79,16 @@ jobs:
           docker compose -f docker-compose.producao.yml --env-file "$ENV_FILE" logs --tail 100 api
           exit 1
 
+      # Cada versão deixa quatro imagens com a tag do commit, que o prune comum não
+      # apaga. Ficam a que está no ar e a anterior; o cache de build guarda 7 dias.
       - name: Limpar imagens velhas
         if: success()
-        run: docker image prune -f --filter "until=168h"
+        run: |
+          for imagem in avalia-sales-api avalia-sales-worker avalia-sales-nginx avalia-sales-backup; do
+            docker image ls "$imagem" --format '{{.CreatedAt}}\t{{.Tag}}' | sort -r | cut -f2 \
+              | grep -vx "$VERSAO" | tail -n +2 \
+              | xargs -r -I{} docker image rm "$imagem:{}" || true
+          done
+          docker image prune -f
+          docker builder prune -f --filter "until=168h"
+          df -h / | tail -1

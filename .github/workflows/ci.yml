@@ -53,16 +53,19 @@ jobs:
           node-version-file: web/.nvmrc
           cache: npm
           cache-dependency-path: web/package-lock.json
-      - run: npm ci
+      # Sem script de instalação de dependência (só o esbuild e o fsevents têm, e
+      # nenhum faz falta: o binário do esbuild vem no pacote opcional da plataforma).
+      # Os binários rodam pelo npm run, da versão do package-lock, sem baixar nada.
+      - run: npm ci --ignore-scripts
       # Os tipos do front saem do contrato da API (web/openapi.json, conferido pelo ContratoDaApiTest).
       - name: Tipos em dia com o contrato
         run: npm run tipos && git diff --exit-code src/api/esquema.d.ts
       - run: npm run typecheck
       - run: npm run lint
       # O npm test roda os testes de unidade e cada história do Storybook no Chromium, com o axe em modo erro.
-      - run: npx playwright install --with-deps chromium
+      - run: npm run navegador
       - run: npm test
-      - run: npx vite build
+      - run: npm run build
       # O catálogo vivo precisa compilar: história quebrada falha aqui.
       - run: npm run build-storybook -- --quiet
 
@@ -92,9 +95,9 @@ jobs:
           node-version-file: web/.nvmrc
           cache: npm
           cache-dependency-path: web/package-lock.json
-      - run: npm ci
+      - run: npm ci --ignore-scripts
         working-directory: web
-      - run: npx playwright install --with-deps chromium
+      - run: npm run navegador
         working-directory: web
       - name: API da demonstração
         run: web/e2e/api.sh
@@ -114,7 +117,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - uses: gitleaks/gitleaks-action@v2
+      - uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -125,6 +128,9 @@ jobs:
   # qualidade aparece no SonarCloud e no pull request.
   qualidade:
     runs-on: ubuntu-latest
+    # Falha da análise (SonarCloud fora do ar, token vencido) não pinta o CI de
+    # vermelho: o Deploy só roda com o CI verde.
+    continue-on-error: true
     services:
       postgres:
         image: postgres:17
