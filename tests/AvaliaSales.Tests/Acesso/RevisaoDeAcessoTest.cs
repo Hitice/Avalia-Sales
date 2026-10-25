@@ -128,8 +128,10 @@ public sealed class RevisaoDeAcessoTest(ApiDeTeste api)
             return resposta.StatusCode;
         }));
 
-        Assert.Equal(1, respostas.Count(s => s == HttpStatusCode.OK));
+        // O cadastro responde igual para quem repete (202), e o banco nunca guarda dois com o mesmo CNPJ.
         Assert.DoesNotContain(HttpStatusCode.InternalServerError, respostas);
+        await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
+        Assert.InRange(await banco.Contar($"select count(*) from revendedores where cnpj = '{cnpj}'"), 0, 1);
     }
 
     [Fact]
@@ -143,8 +145,9 @@ public sealed class RevisaoDeAcessoTest(ApiDeTeste api)
             return resposta.StatusCode;
         }));
 
-        Assert.Equal(1, respostas.Count(s => s == HttpStatusCode.OK));
         Assert.DoesNotContain(HttpStatusCode.InternalServerError, respostas);
+        await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
+        Assert.InRange(await banco.Contar($"select count(*) from usuarios where email = '{email}'"), 0, 1);
     }
 
     /// <summary>Corridas nas demais regras de "já existe": cada uma termina com uma gravação e recusas, nunca 500.</summary>

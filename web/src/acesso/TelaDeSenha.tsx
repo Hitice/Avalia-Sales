@@ -36,7 +36,10 @@ const esquemaDaSenha = z.object({ senha: senhaNova, repetida: z.string() })
   .refine((d) => d.senha === d.repetida, { path: ['repetida'], message: 'As senhas não conferem.' })
 type NovaSenha = z.infer<typeof esquemaDaSenha>
 
-/** /convite e /senha: o token vem depois do #, que não vai ao servidor. Senha gravada, já entra. */
+/**
+ * /convite, /senha e /confirmar-cadastro: o token vem depois do #, que não vai ao
+ * servidor. Senha gravada, já entra. No cadastro público, gravar a senha também confirma o e-mail.
+ */
 export function TelaDeSenha() {
   const { hash, pathname } = useLocation()
   const navegar = useNavigate()
@@ -63,7 +66,8 @@ export function TelaDeSenha() {
   }
 
   return (
-    <Moldura titulo={pathname === '/convite' ? 'Criar senha' : 'Nova senha'}>
+    <Moldura titulo={pathname === '/confirmar-cadastro' ? 'Confirmar e criar senha' : pathname === '/convite' ? 'Criar senha' : 'Nova senha'}>
+      {pathname === '/confirmar-cadastro' && token && !desafio && <p className="mb-4 text-sm text-muted-foreground">Seu e-mail fica confirmado quando você grava a senha.</p>}
       {desafio && <PassoDoCodigo desafio={desafio} aoEntrar={concluir} />}
       {!desafio && !token && <p className="text-sm">Link incompleto. <Link to="/esqueci" className="underline">Peça outro</Link>.</p>}
       {!desafio && token && (

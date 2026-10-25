@@ -5,6 +5,7 @@ using AvaliaSales.Application.Avisos;
 using AvaliaSales.Application.Equipe;
 using AvaliaSales.Application.Lugares;
 using AvaliaSales.Application.Revendedores;
+using AvaliaSales.Application.Seguranca;
 using AvaliaSales.Infrastructure.Banco;
 using AvaliaSales.Infrastructure.Identidade;
 using AvaliaSales.Infrastructure.Impressao;
@@ -14,6 +15,7 @@ using AvaliaSales.Infrastructure.Integracoes.Google;
 using AvaliaSales.Infrastructure.Integracoes.Pagarme;
 using AvaliaSales.Infrastructure.Integracoes.Protheus;
 using AvaliaSales.Infrastructure.Integracoes.Resend;
+using AvaliaSales.Infrastructure.Integracoes.Turnstile;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -43,6 +45,7 @@ public static class InjecaoDeDependencias
         servicos.AddScoped<IBancoDeDados>(sp => sp.GetRequiredService<BancoDeDados>());
         servicos.AddScoped<CaixaDeEntrada>();
         servicos.AddOptions<OpcoesDaPlataforma>().BindConfiguration(OpcoesDaPlataforma.Secao).ValidateDataAnnotations().ValidateOnStart();
+        servicos.AddOptions<OpcoesDoCadastro>().BindConfiguration(OpcoesDoCadastro.Secao).ValidateDataAnnotations().ValidateOnStart();
         servicos.AddScoped<ITransferenciaDeClientes, TransferenciaDeClientes>();
         servicos.AdicionarCasosDeUso();
 
@@ -143,6 +146,18 @@ public static class InjecaoDeDependencias
             cliente.AddStandardResilienceHandler(o => o.Retry.DisableForUnsafeHttpMethods());
         }
 
+        // Turnstile do cadastro público: desligado sem Turnstile:ChaveSecreta; ligado, uma tentativa só e falha fechada.
+        servicos.AddOptions<OpcoesTurnstile>().BindConfiguration(OpcoesTurnstile.Secao);
+        var turnstile = servicos.AddHttpClient<IVerificadorDeCaptcha, VerificadorTurnstile>(http =>
+        {
+            http.Timeout = TimeSpan.FromSeconds(10);
+            http.DefaultRequestHeaders.UserAgent.ParseAdd("AvaliaSales/1.0");
+        });
+        if (manipuladorDeTeste is not null)
+        {
+            turnstile.ConfigurePrimaryHttpMessageHandler(manipuladorDeTeste);
+        }
+
         // O PDF do contrato e do distrato: o Gotenberg na rede interna, sem retentativa (a próxima volta do Worker tenta de novo).
         servicos.AddOptions<OpcoesDoConversor>().BindConfiguration(OpcoesDoConversor.Secao).ValidateDataAnnotations().ValidateOnStart();
         servicos.AddHttpClient<IConversorDePdf, ConversorGotenberg>((sp, http) =>
@@ -220,6 +235,7 @@ public static class InjecaoDeDependencias
         servicos.AddScoped<EnvioDeEmails>();
         servicos.AddScoped<EnvioAoErpRotina>();
         servicos.AddScoped<Manutencao.LimpezaDeExpirados>();
+        servicos.AddScoped<LimpezaDeCadastros>();
         return servicos;
     }
 }

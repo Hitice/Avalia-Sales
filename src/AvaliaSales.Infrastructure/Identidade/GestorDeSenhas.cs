@@ -48,7 +48,7 @@ public sealed class GestorDeSenhas(BancoDeDados banco, UserManager<Usuario> usua
     {
         var normalizado = string.IsNullOrWhiteSpace(email) ? null : email.Trim().ToLowerInvariant();
         var usuario = normalizado is null ? null : await usuarios.FindByEmailAsync(normalizado);
-        if (usuario is not { Ativo: true })
+        if (usuario is not { Ativo: true } || await Pendente(usuario.Id, ct))
         {
             return;
         }
@@ -108,6 +108,69 @@ public sealed class GestorDeSenhas(BancoDeDados banco, UserManager<Usuario> usua
 
             Vale 2 dias. Se não foi você, ignore este e-mail.
             """, sensivel: true);
+        await banco.SaveChangesAsync(ct);
+    }
+
+    /// <summary>
+    /// Cadastro público que ainda não abriu o link: o login existe, mas não entra.
+    /// Quem já era dono antes dessa regra tem o e-mail por confirmar e nenhum link
+    /// deste tipo, então não é pendente e continua entrando.
+    /// </summary>
+    public Task<bool> Pendente(Guid usuarioId, CancellationToken ct) =>
+        banco.Users.AsNoTracking().AnyAsync(u => u.Id == usuarioId && !u.EmailConfirmed && u.Papel == Domain.Acesso.Papel.Dono
+            && banco.LinksDeSenha.Any(l => l.UsuarioId == u.Id && l.Finalidade == FinalidadeDoLink.CadastroPendente), ct);
+
+    /// <summary>
+    /// O link que confirma o cadastro: abre a tela de criar a senha, e gravar a
+    /// senha confirma o e-mail e entra. O anterior deixa de valer. Quem chama
+    /// grava na mesma transação do cadastro.
+    /// </summary>
+    public async Task PedirConfirmacaoDoCadastro(Guid usuarioId, CancellationToken ct)
+    {
+        var usuario = await usuarios.FindByIdAsync(usuarioId.ToString()) ?? throw new RegraDeNegocioException("Login não encontrado.");
+        var (link, endereco) = await Emitir(usuario.Id, FinalidadeDoLink.CadastroPendente, ct);
+        emails.Enfileirar($"{Application.Revendedores.Cadastro.PrefixoDaChave}{link.Id:N}", usuario.Email!, "Confirme seu e-mail na Avalia Sales",
+            $"""
+            Olá, {usuario.Nome}.
+
+            Recebemos o cadastro da sua revenda na Avalia Sales. Para continuar, confirme este e-mail e crie sua senha:
+
+            Confirmar e criar senha: {endereco}
+
+            O link vale 2 dias e só funciona uma vez. Sem a confirmação, o cadastro é descartado.
+            Se não foi você, ignore este e-mail.
+            """);
+        await banco.SaveChangesAsync(ct);
+    }
+
+    /// <summary>Para quem tentou se cadastrar com um e-mail que já tem conta: o aviso vai ao dono do e-mail, e a tela não diz nada.</summary>
+    public async Task AvisarQueJaTemCadastro(string email, CancellationToken ct)
+    {
+        var painel = plataforma.Value.UrlDoPainel.TrimEnd('/');
+        emails.Enfileirar($"{Application.Revendedores.Cadastro.PrefixoDaChave}{Guid.CreateVersion7():N}", email, "Você já tem cadastro na Avalia Sales",
+            $"""
+            Alguém pediu um cadastro na Avalia Sales com este e-mail, e ele já tem conta.
+
+            Entrar: {painel}/entrar
+            Esqueci a senha: {painel}/esqueci
+
+            Se não foi você, ignore este e-mail: nada foi alterado.
+            """);
+        await banco.SaveChangesAsync(ct);
+    }
+
+    public async Task AvisarCnpjEmUso(string email, CancellationToken ct)
+    {
+        var painel = plataforma.Value.UrlDoPainel.TrimEnd('/');
+        emails.Enfileirar($"{Application.Revendedores.Cadastro.PrefixoDaChave}{Guid.CreateVersion7():N}", email, "O CNPJ já tem cadastro na Avalia Sales",
+            $"""
+            Recebemos um pedido de cadastro com este e-mail, mas o CNPJ informado já tem uma revenda na Avalia Sales.
+
+            Se você trabalha nessa empresa, peça ao dono da conta para cadastrar seu acesso na Equipe.
+            Se você é o dono, entre ou recupere a senha: {painel}/entrar
+
+            Se não foi você, ignore este e-mail: nada foi criado.
+            """);
         await banco.SaveChangesAsync(ct);
     }
 
@@ -242,14 +305,14 @@ public sealed class GestorDeSenhas(BancoDeDados banco, UserManager<Usuario> usua
 
     /// <summary>
     /// O link travado na transação de quem chama. Sem <paramref name="finalidade"/>,
-    /// aceita os de senha (convite e redefinição) e recusa o de confirmação.
+    /// aceita os de senha (convite, redefinição e cadastro) e recusa o de confirmação.
     /// </summary>
     private async Task<(LinkDeSenha Link, Usuario Usuario)> Usar(string? token, FinalidadeDoLink? finalidade, CancellationToken ct)
     {
         var hash = Sessao.Hash(token ?? string.Empty);
         var link = await banco.LinksDeSenha.FromSql($"select * from links_de_senha where hash_do_token = {hash} for update").SingleOrDefaultAsync(ct);
         var usuario = link is null ? null : await usuarios.FindByIdAsync(link.UsuarioId.ToString());
-        var daFinalidade = link is not null && (finalidade is { } f ? link.Finalidade == f : link.Finalidade is FinalidadeDoLink.Convite or FinalidadeDoLink.Redefinicao);
+        var daFinalidade = link is not null && (finalidade is { } f ? link.Finalidade == f : link.Finalidade is FinalidadeDoLink.Convite or FinalidadeDoLink.Redefinicao or FinalidadeDoLink.CadastroPendente);
         return link is not null && daFinalidade && link.Valido(relogio.GetUtcNow()) && usuario is { Ativo: true }
             ? (link, usuario)
             : throw new RegraDeNegocioException("Link vencido ou já usado. Peça outro.");
@@ -266,6 +329,7 @@ public sealed class GestorDeSenhas(BancoDeDados banco, UserManager<Usuario> usua
         {
             FinalidadeDoLink.Convite => "convite",
             FinalidadeDoLink.ConfirmacaoDeEmail => "confirmar-email",
+            FinalidadeDoLink.CadastroPendente => "confirmar-cadastro",
             _ => "senha",
         };
         return (link, $"{plataforma.Value.UrlDoPainel.TrimEnd('/')}/{tela}#{token}");

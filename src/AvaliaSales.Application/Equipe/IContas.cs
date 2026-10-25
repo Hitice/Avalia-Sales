@@ -46,4 +46,37 @@ public interface IContas
 
     /// <summary>Troca o nome do login, o que aparece no cabeçalho e nas mensagens.</summary>
     Task Renomear(Guid usuarioId, string nome, CancellationToken ct);
+
+    /// <summary>
+    /// O que o cadastro público precisa saber antes de criar: se o e-mail ou o
+    /// CNPJ já pertencem a uma conta de verdade e quais cadastros pendentes
+    /// (nunca confirmados) ocupam um deles.
+    /// </summary>
+    Task<SituacaoDoCadastro> SituacaoDoCadastro(string email, string cnpj, CancellationToken ct);
+
+    /// <summary>Login do dono sem senha, em estado pendente, e o e-mail com o link de confirmação na fila.</summary>
+    Task<Guid> CriarPendente(string nome, string email, Guid revendedorId, CancellationToken ct);
+
+    /// <summary>Link novo de confirmação do cadastro pendente; o anterior deixa de valer.</summary>
+    Task EnviarConfirmacaoDoCadastro(Guid usuarioId, CancellationToken ct);
+
+    /// <summary>Id do cadastro pendente com este e-mail, se houver.</summary>
+    Task<Guid?> PendentePorEmail(string email, CancellationToken ct);
+
+    /// <summary>Aviso a quem já tem conta: link para entrar e para recuperar a senha.</summary>
+    Task AvisarQueJaTemCadastro(string email, CancellationToken ct);
+
+    /// <summary>Aviso ao e-mail informado de que o CNPJ já tem revenda cadastrada.</summary>
+    Task AvisarCnpjEmUso(string email, CancellationToken ct);
+
+    /// <summary>Apaga cadastros pendentes (login e revenda vazia). Só apaga o que ainda é pendente.</summary>
+    Task DescartarPendentes(IEnumerable<Guid> usuarios, CancellationToken ct);
+
+    /// <summary>Descarta até <paramref name="lote"/> cadastros pendentes criados antes de <paramref name="criadosAntesDe"/>; devolve quantos.</summary>
+    Task<int> DescartarPendentesVencidos(DateTimeOffset criadosAntesDe, int lote, CancellationToken ct);
 }
+
+/// <param name="EmailEmUso">O e-mail é de uma conta de verdade (confirmada ou anterior ao cadastro com confirmação).</param>
+/// <param name="CnpjEmUso">O CNPJ é de uma revenda de verdade.</param>
+/// <param name="Pendentes">Logins pendentes que ocupam o e-mail ou o CNPJ.</param>
+public sealed record SituacaoDoCadastro(bool EmailEmUso, bool CnpjEmUso, IReadOnlyList<Guid> Pendentes);

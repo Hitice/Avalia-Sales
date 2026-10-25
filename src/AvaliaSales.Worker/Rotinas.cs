@@ -1,3 +1,4 @@
+using AvaliaSales.Infrastructure.Identidade;
 using AvaliaSales.Infrastructure.Integracoes;
 using AvaliaSales.Infrastructure.Manutencao;
 
@@ -27,9 +28,9 @@ public sealed partial class Rotinas(IServiceScopeFactory escopos, ILogger<Rotina
     private const string Monitor = "avalia-sales-worker";
     private static readonly TimeSpan IntervaloDoSinal = TimeSpan.FromMinutes(5);
     private DateTimeOffset _ultimoSinal = DateTimeOffset.MinValue;
-
     private static readonly TimeSpan IntervaloDaLimpeza = TimeSpan.FromMinutes(10);
     private DateTimeOffset _ultimaLimpeza = DateTimeOffset.MinValue;
+    private DateTimeOffset _ultimaLimpezaDeCadastros = DateTimeOffset.MinValue;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -44,6 +45,13 @@ public sealed partial class Rotinas(IServiceScopeFactory escopos, ILogger<Rotina
             if (eventos + retomados + emails + erp + limpos > 0)
             {
                 LogVolta(log, eventos, retomados, emails, erp, limpos);
+            }
+
+            // Cadastro público sem confirmação não precisa de pressa: a cada dez minutos libera o e-mail e o CNPJ.
+            if (DateTimeOffset.UtcNow - _ultimaLimpezaDeCadastros >= IntervaloDaLimpeza)
+            {
+                _ultimaLimpezaDeCadastros = DateTimeOffset.UtcNow;
+                await Rodar("cadastros pendentes", (sp, ct) => sp.GetRequiredService<LimpezaDeCadastros>().Executar(ct), stoppingToken);
             }
 
             SinalDeVida();

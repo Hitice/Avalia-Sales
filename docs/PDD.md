@@ -170,10 +170,17 @@ uma busca pelo texto da linha, sem acento. Gravar confirma na tela.
 
 ### 6.1 Acesso e conta
 
-- O revendedor só usa o painel depois de confirmar o e-mail. O cadastro manda
-  o link e um código de 6 dígitos, que valem 2 dias. Até a confirmação, o
-  painel mostra só a confirmação, com o campo do código e o reenvio depois de
-  1 minuto. Cinco códigos errados encerram o envio; reenviar manda outro.
+- O cadastro público não cria conta que funcione: o dono entra só depois de
+  abrir o link enviado ao e-mail e criar a senha, o que confirma o e-mail. O
+  link é de uso único e vale 2 dias; o cadastro não confirmado é descartado em
+  48 horas e libera o e-mail e o CNPJ. A resposta é a mesma para e-mail e CNPJ
+  novos ou já cadastrados, e quem já tem conta recebe o aviso por e-mail. O
+  reenvio espera 1 minuto. Captcha (Cloudflare Turnstile, desligado até
+  configurar as chaves), limite de cadastros por IP, por e-mail e por CNPJ e
+  teto diário de e-mails do cadastro. O dono criado antes desta regra, com o
+  e-mail não confirmado, segue no fluxo anterior: painel só com a confirmação,
+  código de 6 dígitos e reenvio depois de 1 minuto; cinco códigos errados
+  encerram o envio.
 - Contrato e avisos só vão para e-mail confirmado. Conta criada pela
   operadora já nasce confirmada. O vendedor não passa por essa trava.
 - Entrada de aparelho novo gera um e-mail ao dono da conta, com navegador,
@@ -753,6 +760,7 @@ porque está impresso nas placas vendidas.
 
 | Data | Mudança |
 | --- | --- |
+| 25/10/2026 | Cadastro público com confirmação do e-mail antes de a conta funcionar, sem senha digitada no cadastro (a senha é criada pelo link), resposta igual para e-mail e CNPJ novos ou já cadastrados, cadastro pendente descartado em 48 horas, captcha Turnstile (desligado até ligar) e limites por IP, e-mail, CNPJ e dia. |
 | 25/10/2026 | Repetir um envio (toque duplo, rede ruim) não duplica mais venda, despesa, pedido nem repasse; reenviar o acesso por rede ruim não desloga mais o usuário (janela de 10 s); cupom e repasse com data em outro fuso deixam de dar erro. |
 | 25/10/2026 | Cliente alheio mascarado para o vendedor - documento, e-mail e telefone completos só do cliente que ele cadastrou; dos demais, nome e contato mascarado (CPF `***.456.789-**`, e-mail `m***@dominio.com`, telefone `(11) *****-7777`) no detalhe da venda, na ficha da placa e na carteira. O botão de WhatsApp some quando o telefone está mascarado. Links do vendedor: só os dos clientes das vendas dele e os que ele criou. |
 | 25/10/2026 | Recebido por fora do vendedor com garantia - aviso imediato ao revendedor com o atalho para desfazer, limite por dia (valor e quantidade) e teto por venda (padrão R$ 10.000,00, 30 recebimentos e R$ 5.000,00, ajustados em Equipe) e conferência do revendedor, em Comissões, antes de a comissão entrar num repasse. O que o revendedor registra já nasce conferido. |

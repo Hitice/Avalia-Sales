@@ -103,7 +103,7 @@ public sealed class AutorizacaoPorRecursoTest(ApiDeTeste api)
         var publicas = new HashSet<string>(StringComparer.Ordinal)
         {
             "/auth/email", "/auth/entrar", "/auth/entrar/codigo", "/auth/entrar/codigo/reenvio", "/auth/renovar", "/auth/sair", "/auth/senha",
-            "/auth/senha/link", "/cadastro", "/cadastro/cep/{cep}", "/cadastro/cnpj/{cnpj}", "/catalogo/{id:guid}/foto", "/l/{codigo}", "/q/{codigo}",
+            "/auth/senha/link", "/cadastro", "/cadastro/reenvio", "/cadastro/cep/{cep}", "/cadastro/cnpj/{cnpj}", "/catalogo/{id:guid}/foto", "/l/{codigo}", "/q/{codigo}",
             "/webhooks/d4sign", "/webhooks/pagarme/{segredo}",
             // Sem papel: saúde do contêiner, e o documento da API (só mapeado em desenvolvimento, que é o ambiente do teste).
             "/health", "/openapi/{documentName}.json",

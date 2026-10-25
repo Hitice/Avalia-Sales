@@ -12,6 +12,12 @@ public enum FinalidadeDoLink
 
     /// <summary>O desafio entre a senha e o código do app autenticador.</summary>
     SegundoFator,
+
+    /// <summary>
+    /// Cadastro público ainda não confirmado. Marca o login como pendente (não entra)
+    /// e o link cria a senha e confirma o e-mail de uma vez. Gravado como texto: não pede migration.
+    /// </summary>
+    CadastroPendente,
 }
 
 /// <summary>
@@ -25,7 +31,7 @@ public sealed class LinkDeSenha
     public static TimeSpan Validade(FinalidadeDoLink finalidade) => finalidade switch
     {
         FinalidadeDoLink.Convite => TimeSpan.FromHours(24),
-        FinalidadeDoLink.ConfirmacaoDeEmail => TimeSpan.FromDays(2),
+        FinalidadeDoLink.ConfirmacaoDeEmail or FinalidadeDoLink.CadastroPendente => TimeSpan.FromDays(2),
         FinalidadeDoLink.SegundoFator => TimeSpan.FromMinutes(5),
         _ => TimeSpan.FromHours(1),
     };

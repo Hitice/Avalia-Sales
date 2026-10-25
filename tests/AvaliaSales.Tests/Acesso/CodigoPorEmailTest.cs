@@ -42,10 +42,8 @@ public sealed partial class CodigoPorEmailTest(ApiDeTeste api)
     [Fact]
     public async Task Codigo_por_email_so_com_email_confirmado()
     {
-        var email = $"dono-{Guid.NewGuid():N}@teste.com.br";
-        var cliente = api.Fabrica.CreateClient();
-        var entrou = await cliente.Postar("/cadastro", new { empresa = "Revenda Sem Confirmar", cnpj = Cnpj(), celular = "(11) 98765-4321", endereco = ApiDeTeste.Endereco, nome = "Rui", email, senha = ApiDeTeste.Senha });
-        cliente.DefaultRequestHeaders.Authorization = new("Bearer", entrou.GetProperty("token").GetString());
+        var email = await api.CriarDonoSemConfirmar("Revenda Sem Confirmar");
+        var cliente = await api.ClienteLogado(email);
 
         await cliente.Postar("/conta/segundo-fator/email/codigo", new { }, HttpStatusCode.UnprocessableEntity);
     }
@@ -55,18 +53,6 @@ public sealed partial class CodigoPorEmailTest(ApiDeTeste api)
         await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
         var assunto = await banco.Texto($"select assunto from emails where para = '{email}' and assunto like 'Código de acesso%' order by criado_em desc limit 1");
         return Codigo().Match(assunto).Value;
-    }
-
-    private static string Cnpj()
-    {
-        var d = Enumerable.Range(0, 12).Select(_ => Random.Shared.Next(10)).ToList();
-        foreach (var pesos in new[] { new[] { 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2 }, new[] { 6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2 } })
-        {
-            var resto = d.Select((n, i) => n * pesos[i]).Sum() % 11;
-            d.Add(resto < 2 ? 0 : 11 - resto);
-        }
-
-        return string.Concat(d);
     }
 
     [GeneratedRegex(@"\d{6}")]

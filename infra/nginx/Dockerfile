@@ -8,6 +8,9 @@ ARG VITE_SENTRY_DSN=""
 ENV VITE_SENTRY_DSN=$VITE_SENTRY_DSN
 ARG VITE_SENTRY_RELEASE=""
 ENV VITE_SENTRY_RELEASE=$VITE_SENTRY_RELEASE
+# Chave pública do site no Turnstile (painel da Cloudflare). Vazia, a tela de cadastro não mostra o captcha.
+ARG VITE_TURNSTILE_CHAVE_SITE=""
+ENV VITE_TURNSTILE_CHAVE_SITE=$VITE_TURNSTILE_CHAVE_SITE
 RUN npm run build
 
 FROM nginx:1.28-alpine

@@ -76,27 +76,30 @@ public sealed class SessaoTest(ApiDeTeste api)
     }
 
     [Fact]
-    public async Task Cadastro_pela_tela_cria_a_revenda_e_ja_entra_como_dono()
+    public async Task Cadastro_pela_tela_cria_a_revenda_pendente_e_o_link_cria_a_senha_e_entra_como_dono()
     {
         var cliente = api.Fabrica.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions { HandleCookies = false });
         var ct = TestContext.Current.CancellationToken;
         var email = $"novo-{Guid.NewGuid():N}@teste.com.br";
 
         var resposta = await cliente.PostAsJsonAsync("/cadastro",
-            new { empresa = "Revenda Nova", cnpj = "13.186.091/0001-43", celular = "(11) 98765-4321", endereco = ApiDeTeste.Endereco, nome = "Maria Dona", email, senha = ApiDeTeste.Senha }, ct);
-        var repetido = await cliente.PostAsJsonAsync("/cadastro",
-            new { empresa = "Outra", cnpj = "13186091000143", celular = "(11) 98765-4321", endereco = ApiDeTeste.Endereco, nome = "Outra", email = "x" + email, senha = ApiDeTeste.Senha }, ct);
+            new { empresa = "Revenda Nova", cnpj = "13.186.091/0001-43", celular = "(11) 98765-4321", endereco = ApiDeTeste.Endereco, nome = "Maria Dona", email }, ct);
         var semCelular = await cliente.PostAsJsonAsync("/cadastro",
-            new { empresa = "Sem Celular", cnpj = "45.723.174/0001-10", endereco = ApiDeTeste.Endereco, nome = "Outra", email = "y" + email, senha = ApiDeTeste.Senha }, ct);
+            new { empresa = "Sem Celular", cnpj = "45.723.174/0001-10", endereco = ApiDeTeste.Endereco, nome = "Outra", email = "y" + email }, ct);
         var semEndereco = await cliente.PostAsJsonAsync("/cadastro",
-            new { empresa = "Sem Endereço", cnpj = "45.723.174/0001-10", celular = "(11) 98765-4321", nome = "Outra", email = "z" + email, senha = ApiDeTeste.Senha }, ct);
+            new { empresa = "Sem Endereço", cnpj = "45.723.174/0001-10", celular = "(11) 98765-4321", nome = "Outra", email = "z" + email }, ct);
 
-        Assert.Equal(HttpStatusCode.OK, resposta.StatusCode);
-        var token = await resposta.Content.ReadFromJsonAsync<ApiDeTeste.TokenLido>(ct);
-        Assert.Equal("Revenda Nova", token!.Perfil.Revendedor);
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, repetido.StatusCode);
+        Assert.Equal(HttpStatusCode.Accepted, resposta.StatusCode);
+        Assert.False(resposta.Headers.Contains("Set-Cookie"));
         Assert.Equal(HttpStatusCode.UnprocessableEntity, semCelular.StatusCode);
         Assert.Equal(HttpStatusCode.UnprocessableEntity, semEndereco.StatusCode);
+
+        await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
+        var texto = await banco.Texto($"select texto from emails where para = '{email}' order by criado_em desc limit 1");
+        var token = System.Text.RegularExpressions.Regex.Match(texto, "/confirmar-cadastro#([A-Za-z0-9_-]{20,})").Groups[1].Value;
+        var entrou = await cliente.PostAsJsonAsync("/auth/senha", new { token, senha = ApiDeTeste.Senha }, ct);
+        var perfil = await entrou.Content.ReadFromJsonAsync<ApiDeTeste.TokenLido>(ct);
+        Assert.Equal("Revenda Nova", perfil!.Perfil.Revendedor);
     }
 
     [Fact]

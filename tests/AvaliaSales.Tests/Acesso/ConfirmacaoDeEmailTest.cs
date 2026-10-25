@@ -17,32 +17,28 @@ public sealed partial class ConfirmacaoDeEmailTest(ApiDeTeste api)
         var email = $"dono-{Guid.NewGuid():N}@teste.com.br";
         var cliente = api.Fabrica.CreateClient();
         var resposta = await cliente.PostAsJsonAsync("/cadastro",
-            new { empresa = "Revenda Confirma", cnpj = Cnpj(), celular = "(11) 98765-4321", endereco = ApiDeTeste.Endereco, nome = "Ana", email, senha = ApiDeTeste.Senha }, Ct);
-        var entrou = await resposta.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>(Ct);
+            new { empresa = "Revenda Confirma", cnpj = Cnpj(), celular = "(11) 98765-4321", endereco = ApiDeTeste.Endereco, nome = "Ana", email }, Ct);
 
-        Assert.Equal(HttpStatusCode.OK, resposta.StatusCode);
-        Assert.False(entrou.GetProperty("perfil").GetProperty("emailConfirmado").GetBoolean());
+        Assert.Equal(HttpStatusCode.Accepted, resposta.StatusCode);
         await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
         var revendedor = await banco.Texto($"select revendedor_id from usuarios where email = '{email}'");
         Assert.Empty(await Donos(Guid.Parse(revendedor)));
 
-        var token = Token(await banco.Texto($"select texto from emails where para = '{email}' order by criado_em desc limit 1"));
-        await cliente.Postar("/auth/senha", new { token, senha = "tentando-trocar-a-senha" }, HttpStatusCode.UnprocessableEntity);
-        await cliente.Postar("/auth/email", new { token }, HttpStatusCode.NoContent);
+        var token = TokenDoCadastro(await banco.Texto($"select texto from emails where para = '{email}' order by criado_em desc limit 1"));
         await cliente.Postar("/auth/email", new { token }, HttpStatusCode.UnprocessableEntity);
+        Assert.Empty(await Donos(Guid.Parse(revendedor)));
+        var entrou = await cliente.Postar("/auth/senha", new { token, senha = "senha-escolhida-123" });
+        await cliente.Postar("/auth/senha", new { token, senha = "tentando-trocar-a-senha" }, HttpStatusCode.UnprocessableEntity);
 
+        Assert.True(entrou.GetProperty("perfil").GetProperty("emailConfirmado").GetBoolean());
         Assert.Equal([email], await Donos(Guid.Parse(revendedor)));
-        var renovado = await cliente.Postar("/auth/renovar", new { });
-        Assert.True(renovado.GetProperty("perfil").GetProperty("emailConfirmado").GetBoolean());
     }
 
     [Fact]
     public async Task Dono_sem_email_confirmado_so_abre_a_conta_ate_confirmar()
     {
-        var email = $"dono-{Guid.NewGuid():N}@teste.com.br";
-        var cliente = api.Fabrica.CreateClient();
-        var entrou = await cliente.Postar("/cadastro", new { empresa = "Revenda Trancada", cnpj = Cnpj(), celular = "(11) 98765-4321", endereco = ApiDeTeste.Endereco, nome = "Bia", email, senha = ApiDeTeste.Senha });
-        cliente.DefaultRequestHeaders.Authorization = new("Bearer", entrou.GetProperty("token").GetString());
+        var email = await api.CriarDonoSemConfirmar("Revenda Trancada");
+        var cliente = await api.ClienteLogado(email);
 
         Assert.Equal(HttpStatusCode.Forbidden, (await cliente.GetAsync("/revenda", Ct)).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await cliente.GetAsync("/vendas", Ct)).StatusCode);
@@ -60,10 +56,8 @@ public sealed partial class ConfirmacaoDeEmailTest(ApiDeTeste api)
     [Fact]
     public async Task Reenvio_derruba_o_link_anterior_e_e_recusado_depois_de_confirmado()
     {
-        var email = $"dono-{Guid.NewGuid():N}@teste.com.br";
-        var cliente = api.Fabrica.CreateClient();
-        var entrou = await cliente.Postar("/cadastro", new { empresa = "Revenda Reenvio Email", cnpj = Cnpj(), celular = "(11) 98765-4321", endereco = ApiDeTeste.Endereco, nome = "Rui", email, senha = ApiDeTeste.Senha });
-        cliente.DefaultRequestHeaders.Authorization = new("Bearer", entrou.GetProperty("token").GetString());
+        var email = await api.CriarDonoSemConfirmar("Revenda Reenvio Email");
+        var cliente = await api.ClienteLogado(email);
         await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
         var primeiro = Token(await banco.Texto($"select texto from emails where para = '{email}' order by criado_em desc limit 1"));
 
@@ -80,10 +74,8 @@ public sealed partial class ConfirmacaoDeEmailTest(ApiDeTeste api)
     [Fact]
     public async Task Codigo_do_email_confirma_na_tela_e_cinco_erros_encerram()
     {
-        var email = $"dono-{Guid.NewGuid():N}@teste.com.br";
-        var cliente = api.Fabrica.CreateClient();
-        var entrou = await cliente.Postar("/cadastro", new { empresa = "Revenda Codigo", cnpj = Cnpj(), celular = "(11) 98765-4321", endereco = ApiDeTeste.Endereco, nome = "Lia", email, senha = ApiDeTeste.Senha });
-        cliente.DefaultRequestHeaders.Authorization = new("Bearer", entrou.GetProperty("token").GetString());
+        var email = await api.CriarDonoSemConfirmar("Revenda Codigo");
+        var cliente = await api.ClienteLogado(email);
         await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
         var codigo = Codigo(await banco.Texto($"select assunto from emails where para = '{email}' order by criado_em desc limit 1"));
         var errado = codigo == "000000" ? "111111" : "000000";
@@ -97,9 +89,8 @@ public sealed partial class ConfirmacaoDeEmailTest(ApiDeTeste api)
         var renovado = await cliente.Postar("/auth/renovar", new { });
         Assert.True(renovado.GetProperty("perfil").GetProperty("emailConfirmado").GetBoolean());
 
-        var outro = $"dono-{Guid.NewGuid():N}@teste.com.br";
-        var segundo = await cliente.Postar("/cadastro", new { empresa = "Revenda Codigo Errado", cnpj = Cnpj(), celular = "(11) 98765-4321", endereco = ApiDeTeste.Endereco, nome = "Leo", email = outro, senha = ApiDeTeste.Senha });
-        cliente.DefaultRequestHeaders.Authorization = new("Bearer", segundo.GetProperty("token").GetString());
+        var outro = await api.CriarDonoSemConfirmar("Revenda Codigo Errado");
+        cliente = await api.ClienteLogado(outro);
         var certo = Codigo(await banco.Texto($"select assunto from emails where para = '{outro}' order by criado_em desc limit 1"));
         var invalido = certo == "000000" ? "111111" : "000000";
         for (var i = 0; i < 5; i++)
@@ -136,6 +127,11 @@ public sealed partial class ConfirmacaoDeEmailTest(ApiDeTeste api)
 
         return string.Concat(d);
     }
+
+    private static string TokenDoCadastro(string texto) => LinkDoCadastro().Match(texto) is { Success: true } m ? m.Groups[1].Value : throw new Xunit.Sdk.XunitException(texto);
+
+    [GeneratedRegex(@"/confirmar-cadastro#([A-Za-z0-9_-]{20,})")]
+    private static partial Regex LinkDoCadastro();
 
     private static string Token(string texto) => Link().Match(texto) is { Success: true } m ? m.Groups[1].Value : throw new Xunit.Sdk.XunitException(texto);
 

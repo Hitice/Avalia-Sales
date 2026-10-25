@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { Link, useNavigate } from 'react-router'
+import { Link } from 'react-router'
 import { z } from 'zod'
 import { chamarApi, mensagemDoErro } from '@/api/cliente'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -11,11 +11,13 @@ import { FieldGroup, FieldLegend, FieldSet } from '@/components/ui/field'
 import { Campo } from '@/componentes/Campo'
 import { CamposDeEndereco } from '@/componentes/CamposDeEndereco'
 import { completarPeloCnpj, consultarCnpj, paraEnderecoInformado } from '@/lib/endereco'
-import { ENDERECO_VAZIO, email, endereco, senhaNova, telefone, texto } from '@/lib/esquemas'
+import { ENDERECO_VAZIO, email, endereco, telefone, texto } from '@/lib/esquemas'
 import { digitos, mascaraCnpj, mascaraTelefone } from '@/lib/mascaras'
 import { cnpjValido } from './documentos'
-import { type TokenEmitido, useSessao } from './sessao'
+import { Captcha } from '@/componentes/Captcha'
+import { CHAVE_DO_CAPTCHA } from '@/lib/captcha'
 import { MarcaAvalia } from '@/componentes/MarcaAvalia'
+import { VerifiqueSeuEmail } from './VerifiqueSeuEmail'
 
 const esquema = z.object({
   empresa: texto('o nome da empresa'),
@@ -24,19 +26,21 @@ const esquema = z.object({
   endereco,
   nome: texto('seu nome'),
   email,
-  senha: senhaNova,
 })
 
 type Cadastro = z.infer<typeof esquema>
 
 /**
- * O cadastro da revenda: depois dele, o contrato chega por e-mail para assinar,
- * já com estes dados. O CNPJ válido busca a razão social e o endereço.
+ * O cadastro da revenda. Não pede senha: o e-mail leva o link que confirma o
+ * endereço e cria a senha, e só então a conta entra e o contrato chega, já com
+ * estes dados. O CNPJ válido busca a razão social e o endereço. Com a chave do
+ * Turnstile no build, o widget vai junto e o servidor confere o token.
  */
 export function TelaDeCadastro() {
-  const entrar = useSessao((s) => s.entrar)
-  const navegar = useNavigate()
-  const formulario = useForm<Cadastro>({ resolver: zodResolver(esquema), mode: 'onChange', defaultValues: { empresa: '', cnpj: '', celular: '', endereco: ENDERECO_VAZIO, nome: '', email: '', senha: '' } })
+  const [enviadoPara, setEnviadoPara] = useState<string | null>(null)
+  const [captcha, setCaptcha] = useState<string | null>(null)
+  const [reinicio, setReinicio] = useState(0)
+  const formulario = useForm<Cadastro>({ resolver: zodResolver(esquema), mode: 'onChange', defaultValues: { empresa: '', cnpj: '', celular: '', endereco: ENDERECO_VAZIO, nome: '', email: '' } })
   const { errors, isSubmitting } = formulario.formState
 
   useEffect(() => {
@@ -52,13 +56,25 @@ export function TelaDeCadastro() {
   }, [formulario])
 
   async function cadastrar(dados: Cadastro) {
+    if (CHAVE_DO_CAPTCHA && !captcha) {
+      formulario.setError('root', { message: 'Conclua a verificação de segurança.' })
+      return
+    }
+
     try {
-      entrar(await chamarApi<TokenEmitido>('/cadastro', { method: 'POST', body: JSON.stringify({ ...dados, cnpj: digitos(dados.cnpj), celular: digitos(dados.celular), endereco: paraEnderecoInformado(dados.endereco), email: dados.email.trim() }) }))
-      navegar('/painel/inicio', { replace: true })
+      const corpo = { ...dados, cnpj: digitos(dados.cnpj), celular: digitos(dados.celular), endereco: paraEnderecoInformado(dados.endereco), email: dados.email.trim(), tokenDoCaptcha: captcha }
+      await chamarApi('/cadastro', { method: 'POST', body: JSON.stringify(corpo) })
+      setEnviadoPara(corpo.email)
     } catch (erro) {
       formulario.setError('root', { message: mensagemDoErro(erro) })
+    } finally {
+      // O token do desafio vale uma vez: com erro ou sem, o próximo envio pede outro.
+      setCaptcha(null)
+      setReinicio((n) => n + 1)
     }
   }
+
+  if (enviadoPara) return <VerifiqueSeuEmail email={enviadoPara} aoVoltar={() => setEnviadoPara(null)} />
 
   return (
     <main className="flex min-h-svh flex-col items-center justify-center gap-6 p-4">
@@ -80,7 +96,8 @@ export function TelaDeCadastro() {
               </FieldSet>
               <Campo formulario={formulario} nome="nome" rotulo="Seu nome" autoComplete="name" />
               <Campo formulario={formulario} nome="email" rotulo="E-mail" type="email" autoComplete="email" />
-              <Campo formulario={formulario} nome="senha" rotulo="Senha" type="password" autoComplete="new-password" />
+              <p className="text-xs text-muted-foreground">Enviaremos um link para este e-mail. Ao abri-lo, você cria a senha.</p>
+              {CHAVE_DO_CAPTCHA && <Captcha aoMudar={setCaptcha} reinicio={reinicio} />}
               <Button type="submit" size="lg" disabled={isSubmitting}>{isSubmitting ? 'Cadastrando...' : 'Cadastrar'}</Button>
             </FieldGroup>
           </form>

@@ -135,14 +135,51 @@ export interface paths {
                 };
             };
             responses: {
-                /** @description OK */
-                200: {
+                /** @description Accepted */
+                202: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["TokenEmitido"];
+                        "application/json": components["schemas"]["RespostaDoCadastro"];
                     };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/cadastro/reenvio": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PedidoDeReenvioDoCadastro"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
                 };
             };
         };
@@ -7495,6 +7532,7 @@ export interface components {
             /** @default false */
             testeGratuito: boolean;
         };
+        /** @description Sem senha: ela nasce depois do link do e-mail, quando o dono prova que o endereço é dele. */
         NovoCadastro: {
             empresa: string;
             cnpj: string;
@@ -7502,7 +7540,7 @@ export interface components {
             endereco: null | components["schemas"]["EnderecoInformado"];
             nome: string;
             email: string;
-            senha: string;
+            tokenDoCaptcha?: null | string;
         };
         NovoChamado: {
             assunto: string;
@@ -7632,6 +7670,9 @@ export interface components {
         };
         PedidoDeReenvio: {
             desafio: null | string;
+        };
+        PedidoDeReenvioDoCadastro: {
+            email: null | string;
         };
         PedidoDto: {
             /** Format: uuid */
@@ -7840,6 +7881,10 @@ export interface components {
             comprovante: null | string;
             /** Format: date-time */
             desfeitoEm?: null | string;
+        };
+        /** @description A resposta do cadastro é a mesma para e-mail e CNPJ novos ou já cadastrados. */
+        RespostaDoCadastro: {
+            mensagem: string;
         };
         ResultadoDaConferencia: {
             /** Format: int32 */

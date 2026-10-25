@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { CLIENTE_A, CLIENTE_B, SENHA, apiComo, cnpjNovo, codigoTotp, entrar, semViolacaoGrave } from './apoio'
 
-test('revenda recém-cadastrada só vê a confirmação do e-mail', async ({ page }) => {
+test('revenda recém-cadastrada não entra: vê o aviso de verificar o e-mail e não tem painel', async ({ page }) => {
   await page.goto('/cadastro')
   await page.locator('#empresa').fill('Revenda Nova')
   await page.locator('#cnpj').fill(cnpjNovo())
@@ -14,14 +14,15 @@ test('revenda recém-cadastrada só vê a confirmação do e-mail', async ({ pag
   await page.getByLabel('UF').fill('MG')
   await page.locator('#nome').fill('Dona Nova')
   await page.locator('#email').fill(`nova-${Date.now()}@revenda.dev`)
-  await page.locator('#senha').fill('senha-de-teste-123')
+  await expect(page.locator('#senha')).toHaveCount(0)
   await page.getByRole('button', { name: /Cadastrar/ }).click()
 
-  await expect(page.getByRole('heading', { name: 'Confirme seu e-mail' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Verifique seu e-mail' })).toBeVisible()
   await semViolacaoGrave(page)
+  await expect(page.getByRole('button', { name: /Reenviar em/ })).toBeDisabled()
   await expect(page.getByRole('navigation', { name: 'Menu principal' })).toHaveCount(0)
   await page.goto('/painel/vendas')
-  await expect(page.getByRole('heading', { name: 'Confirme seu e-mail' })).toBeVisible()
+  await expect(page).toHaveURL(/\/entrar/)
 })
 
 // Conta da demonstração com e-mail confirmado; o teste desliga o fator no fim para não sujar o banco.

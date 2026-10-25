@@ -1,6 +1,8 @@
 using AvaliaSales.Api.Autenticacao;
 using AvaliaSales.Application;
 using AvaliaSales.Application.Revendedores;
+using AvaliaSales.Application.Seguranca;
+using AvaliaSales.Domain;
 using AvaliaSales.Infrastructure.Banco;
 using AvaliaSales.Infrastructure.Identidade;
 using Microsoft.AspNetCore.Identity;
@@ -27,6 +29,11 @@ public sealed record SituacaoDoSegundoFator(bool Ligado, MeioDoSegundoFator? Mei
 
 public sealed record PedidoDeReenvio(string? Desafio);
 
+public sealed record PedidoDeReenvioDoCadastro(string? Email);
+
+/// <summary>A resposta do cadastro é a mesma para e-mail e CNPJ novos ou já cadastrados.</summary>
+public sealed record RespostaDoCadastro(string Mensagem);
+
 /// <summary>
 /// Entrada, renovação e saída. O token de acesso vive 15 minutos e só em
 /// memória no front; o refresh fica em cookie HttpOnly, que script nenhum lê,
@@ -42,6 +49,9 @@ public static class RotasDeAcesso
     /// bits; o limite apertado da entrada não protegeria nada aqui.
     /// </summary>
     public const string LimiteDeRenovacao = "renovacao";
+
+    /// <summary>Cadastro público e reenvio: poucos por hora por IP, porque cada um pode mandar e-mail.</summary>
+    public const string LimiteDeCadastro = "cadastro";
     public const string Cookie = "avalia_sessao";
     public const string CookieDoAparelho = "avalia_aparelho";
 
@@ -113,7 +123,10 @@ public static class RotasDeAcesso
             EmissorDeToken emissor, BancoDeDados banco, CancellationToken ct) =>
             await Entrou(http, await senhas.Trocar(Guid.Parse(Atual(atual)), pedido.Atual, pedido.Nova, ct), sessoes, emissor, banco, ct))
             .RequireAuthorization().RequireRateLimiting(LimiteDeEntrada).SemIdempotencia().Produces<TokenEmitido>();
-        rotas.MapPost("/cadastro", Cadastrar).AllowAnonymous().RequireRateLimiting(LimiteDeEntrada).Produces<TokenEmitido>();
+        rotas.MapPost("/cadastro", Cadastrar).AllowAnonymous().RequireRateLimiting(LimiteDeCadastro)
+            .Produces<RespostaDoCadastro>(StatusCodes.Status202Accepted);
+        rotas.MapPost("/cadastro/reenvio", ReenviarCadastro).AllowAnonymous().RequireRateLimiting(LimiteDeCadastro)
+            .Produces(StatusCodes.Status204NoContent);
 
         // O cadastro preenche razão social e endereço pelo CNPJ, e o endereço pelo CEP. Sem resultado, 404 e a tela pede para digitar.
         rotas.MapGet("/cadastro/cnpj/{cnpj}", async (string cnpj, IConsultaDeEndereco consulta, CancellationToken ct) =>
@@ -132,7 +145,8 @@ public static class RotasDeAcesso
         SignInManager<Usuario> acesso, GestorDeSessoes sessoes, GestorDeSegundoFator fatores, EmissorDeToken emissor, BancoDeDados banco, CancellationToken ct)
     {
         var usuario = string.IsNullOrWhiteSpace(pedido.Email) ? null : await usuarios.FindByEmailAsync(pedido.Email.Trim());
-        if (usuario is not { Ativo: true })
+        // Cadastro por confirmar não entra, e a recusa é a mesma de senha errada.
+        if (usuario is not { Ativo: true } || await http.RequestServices.GetRequiredService<GestorDeSenhas>().Pendente(usuario.Id, ct))
         {
             GastarTempoDeSenha(usuarios, pedido.Senha);
             return Results.Unauthorized();
@@ -239,14 +253,33 @@ public static class RotasDeAcesso
         return Results.NoContent();
     }
 
-    /// <summary>Cadastro do revendedor pela tela: cria a revenda e o dono, e já entra.</summary>
-    private static async Task<IResult> Cadastrar(NovoCadastro pedido, HttpContext http, Cadastro cadastro, UserManager<Usuario> usuarios,
-        GestorDeSessoes sessoes, EmissorDeToken emissor, BancoDeDados banco, CancellationToken ct)
+    /// <summary>
+    /// Cadastro do revendedor pela tela: cria a revenda e o dono em estado pendente
+    /// e manda o link por e-mail. Não entra, não devolve token e não diz se o e-mail ou o CNPJ já existiam.
+    /// </summary>
+    private static async Task<IResult> Cadastrar(NovoCadastro pedido, HttpContext http, Cadastro cadastro, IVerificadorDeCaptcha captcha, CancellationToken ct)
     {
-        var dono = await cadastro.Criar(pedido, ct);
-        var usuario = await usuarios.FindByIdAsync(dono.ToString()) ?? throw new InvalidOperationException("Dono recém-criado não encontrado.");
-        return await Entrou(http, usuario, sessoes, emissor, banco, ct);
+        switch (await captcha.Verificar(pedido.TokenDoCaptcha, http.Connection.RemoteIpAddress?.ToString(), ct))
+        {
+            case ResultadoDoCaptcha.Reprovado:
+                throw new RegraDeNegocioException("Confirme que você não é um robô e tente de novo.");
+            case ResultadoDoCaptcha.Indisponivel:
+                return Indisponivel("A verificação de segurança está fora do ar. Tente de novo em instantes.");
+        }
+
+        return await cadastro.Criar(pedido, ct) == ResultadoDoCadastro.Saturado
+            ? Indisponivel("Recebemos muitos cadastros agora. Tente de novo mais tarde.")
+            : Results.Accepted(value: new RespostaDoCadastro("Enviamos um e-mail para continuar."));
     }
+
+    /// <summary>Resposta igual com e sem cadastro pendente. Sem captcha: só reenvia a quem já passou por ele, com espera e limite por endereço.</summary>
+    private static async Task<IResult> ReenviarCadastro(PedidoDeReenvioDoCadastro pedido, Cadastro cadastro, CancellationToken ct) =>
+        await cadastro.Reenviar(pedido.Email, ct) == ResultadoDoCadastro.Saturado
+            ? Indisponivel("Recebemos muitos cadastros agora. Tente de novo mais tarde.")
+            : Results.NoContent();
+
+    private static IResult Indisponivel(string mensagem) =>
+        Results.Problem(title: "Indisponível", detail: mensagem, statusCode: StatusCodes.Status503ServiceUnavailable);
 
     private static async Task<string?> NomeDoRevendedor(BancoDeDados banco, Usuario usuario, CancellationToken ct) =>
         usuario.RevendedorId is { } id ? await banco.Revendedores.Where(r => r.Id == id).Select(r => r.Nome).SingleOrDefaultAsync(ct) : null;

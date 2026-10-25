@@ -55,6 +55,9 @@ public sealed class ApiDeTeste : IAsyncLifetime
         ["Google:ChaveDoServidor"] = "",
         ["Limites:EntradasPorMinuto"] = "100000",
         ["Limites:RenovacoesPorMinuto"] = "100000",
+        ["Limites:CadastrosPorHoraPorIp"] = "100000",
+        ["Cadastro:EmailsPorDia"] = "100000",
+        ["Cadastro:TentativasPorCnpjPorHora"] = "1000",
     };
 
     public const string UrlPublica = "https://placas.exemplo.com.br";
@@ -166,6 +169,26 @@ public sealed class ApiDeTeste : IAsyncLifetime
             new Usuario { RevendedorId = revendedor.Id, Papel = Papel.Dono, Nome = $"Revendedor {nome}", UserName = email, Email = email, EmailConfirmed = true }, Senha);
         Assert.True(criado.Succeeded, string.Join("; ", criado.Errors.Select(e => e.Description)));
         return (revendedor.Id, email);
+    }
+
+    /// <summary>
+    /// Dono de antes da confirmação obrigatória: e-mail por confirmar, sem link de cadastro
+    /// pendente. Entra, vê só a confirmação e confirma pelo painel; o e-mail de confirmação já está na fila.
+    /// </summary>
+    public async Task<string> CriarDonoSemConfirmar(string nome)
+    {
+        using var escopo = Fabrica.Services.CreateScope();
+        var banco = escopo.ServiceProvider.GetRequiredService<BancoDeDados>();
+        var revendedor = new Revendedor(nome);
+        banco.Revendedores.Add(revendedor);
+        await banco.SaveChangesAsync();
+        var email = $"dono-{Guid.NewGuid():N}@teste.com.br";
+        var usuarios = escopo.ServiceProvider.GetRequiredService<UserManager<Usuario>>();
+        var criado = await usuarios.CreateAsync(
+            new Usuario { RevendedorId = revendedor.Id, Papel = Papel.Dono, Nome = $"Revendedor {nome}", UserName = email, Email = email, EmailConfirmed = false }, Senha);
+        Assert.True(criado.Succeeded, string.Join("; ", criado.Errors.Select(e => e.Description)));
+        await escopo.ServiceProvider.GetRequiredService<GestorDeSenhas>().PedirConfirmacao((await usuarios.FindByEmailAsync(email))!.Id, CancellationToken.None);
+        return email;
     }
 
     /// <summary>Login da operadora, sem revendedor.</summary>

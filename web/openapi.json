@@ -84,15 +84,37 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK",
+          "202": {
+            "description": "Accepted",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TokenEmitido"
+                  "$ref": "#/components/schemas/RespostaDoCadastro"
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/cadastro/reenvio": {
+      "post": {
+        "tags": [
+          "RotasDeAcesso"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PedidoDeReenvioDoCadastro"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
           }
         }
       }
@@ -8175,8 +8197,7 @@
           "celular",
           "endereco",
           "nome",
-          "email",
-          "senha"
+          "email"
         ],
         "type": "object",
         "properties": {
@@ -8205,10 +8226,14 @@
           "email": {
             "type": "string"
           },
-          "senha": {
-            "type": "string"
+          "tokenDoCaptcha": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
-        }
+        },
+        "description": "Sem senha: ela nasce depois do link do e-mail, quando o dono prova que o endere\u00E7o \u00E9 dele."
       },
       "NovoChamado": {
         "required": [
@@ -8662,6 +8687,20 @@
         "type": "object",
         "properties": {
           "desafio": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "PedidoDeReenvioDoCadastro": {
+        "required": [
+          "email"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
             "type": [
               "null",
               "string"
@@ -9383,6 +9422,18 @@
             "format": "date-time"
           }
         }
+      },
+      "RespostaDoCadastro": {
+        "required": [
+          "mensagem"
+        ],
+        "type": "object",
+        "properties": {
+          "mensagem": {
+            "type": "string"
+          }
+        },
+        "description": "A resposta do cadastro \u00E9 a mesma para e-mail e CNPJ novos ou j\u00E1 cadastrados."
       },
       "ResultadoDaConferencia": {
         "required": [

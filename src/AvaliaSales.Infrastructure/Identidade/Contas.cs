@@ -116,6 +116,94 @@ public sealed class Contas(UserManager<Usuario> usuarios, BancoDeDados banco, Ge
     public async Task<Guid?> IdPorEmail(string email, CancellationToken ct) =>
         (await usuarios.FindByEmailAsync(email.Trim()))?.Id;
 
+    public async Task<SituacaoDoCadastro> SituacaoDoCadastro(string email, string cnpj, CancellationToken ct)
+    {
+        var pendentes = new List<Guid>();
+        var doEmail = await usuarios.FindByEmailAsync(email);
+        var emailEmUso = false;
+        if (doEmail is not null)
+        {
+            if (await senhas.Pendente(doEmail.Id, ct))
+            {
+                pendentes.Add(doEmail.Id);
+            }
+            else
+            {
+                emailEmUso = true;
+            }
+        }
+
+        var cnpjEmUso = false;
+        if (await banco.Revendedores.AsNoTracking().Where(r => r.Cnpj == cnpj).Select(r => (Guid?)r.Id).FirstOrDefaultAsync(ct) is { } revendedorId)
+        {
+            // Só é pendente a revenda em que todos os logins são cadastros por confirmar; o resto é conta de verdade.
+            var logins = await banco.Users.AsNoTracking().Where(u => u.RevendedorId == revendedorId).Select(u => u.Id).ToListAsync(ct);
+            var todosPendentes = logins.Count > 0;
+            foreach (var id in logins)
+            {
+                todosPendentes &= await senhas.Pendente(id, ct);
+            }
+
+            if (todosPendentes)
+            {
+                pendentes.AddRange(logins.Where(id => !pendentes.Contains(id)));
+            }
+            else
+            {
+                cnpjEmUso = true;
+            }
+        }
+
+        return new SituacaoDoCadastro(emailEmUso, cnpjEmUso, pendentes);
+    }
+
+    public async Task<Guid> CriarPendente(string nome, string email, Guid revendedorId, CancellationToken ct)
+    {
+        var id = await Criar(nome, email, null, Papel.Dono, revendedorId, ct);
+        await senhas.PedirConfirmacaoDoCadastro(id, ct);
+        return id;
+    }
+
+    public Task EnviarConfirmacaoDoCadastro(Guid usuarioId, CancellationToken ct) => senhas.PedirConfirmacaoDoCadastro(usuarioId, ct);
+
+    public async Task<Guid?> PendentePorEmail(string email, CancellationToken ct) =>
+        await usuarios.FindByEmailAsync(email) is { } usuario && await senhas.Pendente(usuario.Id, ct) ? usuario.Id : null;
+
+    public Task AvisarQueJaTemCadastro(string email, CancellationToken ct) => senhas.AvisarQueJaTemCadastro(email, ct);
+
+    public Task AvisarCnpjEmUso(string email, CancellationToken ct) => senhas.AvisarCnpjEmUso(email, ct);
+
+    public async Task DescartarPendentes(IEnumerable<Guid> ids, CancellationToken ct)
+    {
+        foreach (var id in ids.Distinct())
+        {
+            // Confere de novo: o login pode ter confirmado entre a leitura e agora, e esse não se apaga.
+            if (!await senhas.Pendente(id, ct))
+            {
+                continue;
+            }
+
+            var revendedorId = await banco.Users.Where(u => u.Id == id).Select(u => u.RevendedorId).SingleAsync(ct);
+            await banco.Users.Where(u => u.Id == id).ExecuteDeleteAsync(ct);
+            if (revendedorId is { } rid)
+            {
+                await banco.Revendedores.Where(r => r.Id == rid && r.ContratoAssinadoEm == null && !banco.Users.Any(u => u.RevendedorId == rid))
+                    .ExecuteDeleteAsync(ct);
+            }
+        }
+    }
+
+    public async Task<int> DescartarPendentesVencidos(DateTimeOffset criadosAntesDe, int lote, CancellationToken ct)
+    {
+        var ids = await banco.Users.AsNoTracking()
+            .Where(u => !u.EmailConfirmed && u.Papel == Papel.Dono
+                && banco.LinksDeSenha.Any(l => l.UsuarioId == u.Id && l.Finalidade == FinalidadeDoLink.CadastroPendente)
+                && banco.Revendedores.Any(r => r.Id == u.RevendedorId && r.CriadoEm < criadosAntesDe))
+            .OrderBy(u => u.Id).Select(u => u.Id).Take(lote).ToListAsync(ct);
+        await DescartarPendentes(ids, ct);
+        return ids.Count;
+    }
+
     /// <summary>As recusas do Identity que a regra de senha e de e-mail produzem, em português.</summary>
     internal static string Traduzir(IdentityError erro) => erro.Code switch
     {

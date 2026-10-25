@@ -28,6 +28,7 @@ public static class InjecaoDeDependencias
         servicos.AddScoped<Equipe.Equipe>();
         servicos.AddScoped<Vendas.Vendas>();
         servicos.AddScoped<Vendas.PainelDoVendedor>();
+        servicos.AddSingleton<JanelaDeTentativas>();
         servicos.AddScoped<Cadastro>();
         servicos.AddScoped<Revendedores.Revendedores>();
         servicos.AddScoped<Pedidos.Cupons>();

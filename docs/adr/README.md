@@ -27,3 +27,4 @@ apagada, ganha a situação Substituída e o número da que a substitui.
 | [0019](0019-transferencia-de-clientes-no-encerramento.md) | Transferência dos clientes no encerramento por uma função e uma política próprias | Aceita |
 | [0020](0020-mes-fechado-garantido-no-banco.md) | Mês fechado garantido no banco, com a linha atrasada passada ao mês corrente | Aceita |
 | [0021](0021-limite-e-conferencia-do-recebido-por-fora-na-auditoria.md) | Limite e conferência do recebido por fora guardados na auditoria | Aceita |
+| [0022](0022-cadastro-pendente-por-link-sem-senha-no-cadastro.md) | Cadastro pendente por link, sem senha no cadastro | Aceita |

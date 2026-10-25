@@ -374,6 +374,67 @@ renovação, destino e suspensão de placa são feitos só na plataforma.
   sem Protheus espera em `envios_ao_erp` (tela ERP da operadora); webhook que
   falhou 10 vezes fica em `eventos_externos` com o último erro.
 
+## Captcha e limites do cadastro
+
+O cadastro público (`/cadastro`) não cria conta que funcione: o dono entra só
+depois de abrir o link do e-mail e criar a senha. Cadastro sem confirmação é
+descartado pelo Worker em 48 horas, e o e-mail e o CNPJ ficam livres.
+
+**Captcha (Cloudflare Turnstile).** Desligado enquanto `TURNSTILE_CHAVE_SECRETA`
+estiver vazia. Para ligar:
+
+1. No painel da Cloudflare, Turnstile, Add widget. Nome: Avalia Sales. Hostname:
+   o `DOMINIO` de produção (por exemplo `sales.avaliaone.com.br`). Modo: Managed.
+2. Copie a Site Key (pública) e a Secret Key.
+3. No `.env` do VPS:
+   ```
+   TURNSTILE_CHAVE_SITE=<site key>
+   TURNSTILE_CHAVE_SECRETA=<secret key>
+   ```
+4. A chave do site entra no build do front, então publique de novo (`VERSAO`
+   nova, seção "Publicar"); só reiniciar não basta. A secreta é lida pela API
+   (`Turnstile__ChaveSecreta`) ao subir.
+5. Ligue as duas juntas. Só a secreta: o cadastro recusa, porque a tela não
+   manda token. Só a do site: o widget aparece e o servidor não confere.
+6. A CSP do Nginx já libera `challenges.cloudflare.com` (script, iframe e
+   conexão) na tela do app. Se o widget não aparecer, confira no console do
+   navegador se há bloqueio de CSP.
+
+Com o captcha ligado e a Cloudflare fora do ar (ou a secreta errada), o
+cadastro responde 503 e não cria nada: falha fechada. O log da API mostra
+`Turnstile indisponível ou mal configurado`. Chaves de teste da Cloudflare, que
+sempre aprovam: site `1x00000000000000000000AA`, secreta
+`1x0000000000000000000000000000000AA`.
+
+**Limites** (todos respondem sem dizer se o e-mail ou o CNPJ já existem):
+
+| Limite | Valor | Variável | Ao estourar |
+| --- | --- | --- | --- |
+| Cadastros por IP | 10 por hora | `Limites__CadastrosPorHoraPorIp` | 429 |
+| E-mails do cadastro por endereço | 3 por hora, 1 por minuto | `Cadastro__EmailsPorEnderecoPorHora`, `Cadastro__EsperaEmSegundos` | 202 igual, sem e-mail |
+| Tentativas por CNPJ | 5 por hora (memória da API) | `Cadastro__TentativasPorCnpjPorHora` | 202 igual, sem e-mail |
+| E-mails do cadastro no dia (teto global) | 300 por 24 horas | `CADASTRO_EMAILS_POR_DIA` | 503 para todos |
+| Validade do cadastro pendente | 48 horas | `Cadastro__PendenteExpiraEmHoras` | Worker descarta |
+
+O teto diário conta a tabela `emails` (chave `cadastro:`), então reiniciar a API
+não o zera. Quando ele é atingido, a API registra o aviso `teto diário ... atingido`
+(sem dado pessoal); veja com `docker compose -f docker-compose.producao.yml logs api | grep teto`.
+Conferir o uso do dia:
+
+```sql
+select count(*) from emails where chave like 'cadastro:%' and criado_em > now() - interval '24 hours';
+```
+
+Cadastros pendentes agora (login criado e ainda sem confirmação):
+
+```sql
+select count(*) from usuarios u where not email_confirmed and papel = 'Dono'
+  and exists (select 1 from links_de_senha l where l.usuario_id = u.id and l.finalidade = 'CadastroPendente');
+```
+
+Dono que já existia antes dessa regra e nunca confirmou o e-mail não é
+pendente: continua entrando e confirma pelo painel, como antes.
+
 ## Segredos
 
 Só no `.env` do VPS, fora do repositório. Troca de `JWT_CHAVE` derruba os
