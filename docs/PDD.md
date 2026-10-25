@@ -753,6 +753,7 @@ porque está impresso nas placas vendidas.
 
 | Data | Mudança |
 | --- | --- |
+| 25/10/2026 | Repetir um envio (toque duplo, rede ruim) não duplica mais venda, despesa, pedido nem repasse; reenviar o acesso por rede ruim não desloga mais o usuário (janela de 10 s); cupom e repasse com data em outro fuso deixam de dar erro. |
 | 25/10/2026 | Cliente alheio mascarado para o vendedor - documento, e-mail e telefone completos só do cliente que ele cadastrou; dos demais, nome e contato mascarado (CPF `***.456.789-**`, e-mail `m***@dominio.com`, telefone `(11) *****-7777`) no detalhe da venda, na ficha da placa e na carteira. O botão de WhatsApp some quando o telefone está mascarado. Links do vendedor: só os dos clientes das vendas dele e os que ele criou. |
 | 25/10/2026 | Recebido por fora do vendedor com garantia - aviso imediato ao revendedor com o atalho para desfazer, limite por dia (valor e quantidade) e teto por venda (padrão R$ 10.000,00, 30 recebimentos e R$ 5.000,00, ajustados em Equipe) e conferência do revendedor, em Comissões, antes de a comissão entrar num repasse. O que o revendedor registra já nasce conferido. |
 | 25/10/2026 | Mapa cria o Google Maps uma vez e busca cada lugar no Places uma vez só. |

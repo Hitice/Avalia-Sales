@@ -152,7 +152,7 @@ o workflow compila de novo.
   a cópia vai anexada por e-mail até 28 MB, sempre criptografada
   (`avalia_sales-<data>.dump.enc`, AES-256-CBC com PBKDF2) com a senha de
   `BACKUP_SENHA`. `BACKUP_SENHA` é obrigatória com `BACKUP_PARA`: sem ela o
-  contêiner `backup` sai com erro e nada vai por e-mail. Guarde a senha fora do
+  e-mail é desligado, com aviso no log, e a cópia no disco continua. Guarde a senha fora do
   VPS (gerenciador de senhas): perdida, as cópias por e-mail não abrem. O
   arquivo no disco do VPS não é criptografado. O destino fora do VPS que fica é
   um bucket de armazenamento de objetos, com o Backblaze B2 recomendado (10 GB

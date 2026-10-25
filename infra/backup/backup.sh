@@ -19,10 +19,11 @@ umask 077
 
 LIMITE_DO_ANEXO=28000000
 
-# Falha fechado: e-mail ligado sem senha não vira cópia em claro na caixa de entrada.
+# Falha fechado só no e-mail: ligado sem senha, nada sai em claro para a caixa de entrada, mas a cópia no
+# disco continua (e o Deploy, que depende dela, não fica preso por falta de uma variável).
 if [ -n "${BACKUP_PARA:-}" ] && [ -z "${BACKUP_SENHA:-}" ]; then
-  echo "BACKUP_PARA está ligado e BACKUP_SENHA está vazia: a cópia não pode sair por e-mail sem criptografia." >&2
-  exit 1
+  echo "AVISO: BACKUP_PARA está ligado e BACKUP_SENHA está vazia; a cópia fica só no disco, sem e-mail." >&2
+  BACKUP_PARA=""
 fi
 
 enviar() {
