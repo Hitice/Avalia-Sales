@@ -25,7 +25,7 @@ public sealed record FichaDto(string Codigo, string Endereco, long Sequencia, Es
 /// A placa vendida: destino, vencimento, leituras e o liga e desliga. O dono
 /// mexe em qualquer placa; o vendedor, só nas que vendeu.
 /// </summary>
-public sealed class FichaDaPlaca(IBancoDeDados banco, IUsuarioAtual usuario, IContas contas, Auditoria.Auditoria auditoria, IOptions<OpcoesDaPlataforma> plataforma, TimeProvider relogio)
+public sealed class FichaDaPlaca(IBancoDeDados banco, IUsuarioAtual usuario, IContas contas, Clientes.PrivacidadeDoCliente privacidade, Auditoria.Auditoria auditoria, IOptions<OpcoesDaPlataforma> plataforma, TimeProvider relogio)
 {
     public const int DiasDeLeitura = 30;
 
@@ -51,7 +51,8 @@ public sealed class FichaDaPlaca(IBancoDeDados banco, IUsuarioAtual usuario, ICo
             // A venda ficou com a revenda encerrada; aqui só o cliente e o valor que a transferência gravou.
             var cliente = await banco.Clientes.AsNoTracking().Where(c => c.Id == transferido)
                 .Select(c => new { c.Nome, c.Responsavel, c.Telefone }).SingleAsync(ct);
-            venda = new VendaDaFicha(vendaAntiga, cliente.Nome, cliente.Responsavel, cliente.Telefone, "Placa transferida no encerramento de outra revenda",
+            var telefoneDoCliente = Clientes.PrivacidadeDoCliente.Ver(await privacidade.Libera(transferido, ct), cliente.Telefone, null, null).Telefone;
+            venda = new VendaDaFicha(vendaAntiga, cliente.Nome, cliente.Responsavel, telefoneDoCliente, "Placa transferida no encerramento de outra revenda",
                 "Revenda anterior", placa.ValorDaVendaCents ?? 0, 0, null, placa.VendidaEm ?? placa.TransferidaEm.Value);
         }
         else if (placa.VendaId is { } vendaId)
@@ -61,10 +62,11 @@ public sealed class FichaDaPlaca(IBancoDeDados banco, IUsuarioAtual usuario, ICo
                 join c in banco.Clientes on v.ClienteId equals c.Id
                 join p in banco.Produtos on v.ProdutoId equals p.Id
                 let cb = banco.Cobrancas.Where(x => x.Origem == OrigemDaCobranca.Venda && x.OrigemId == (v.GrupoId ?? v.Id)).OrderByDescending(x => x.CriadaEm).FirstOrDefault()
-                select new { v, c.Nome, c.Responsavel, c.Telefone, Produto = p.Nome, Pagamento = cb == null ? (SituacaoDaCobranca?)null : cb.Situacao })
+                select new { v, ClienteId = c.Id, c.Nome, c.Responsavel, c.Telefone, Produto = p.Nome, Pagamento = cb == null ? (SituacaoDaCobranca?)null : cb.Situacao })
                 .SingleAsync(ct);
             var nomes = await contas.Nomes([linha.v.VendedorId], ct);
-            venda = new VendaDaFicha(linha.v.Id, linha.Nome, linha.Responsavel, linha.Telefone, linha.Produto,
+            var telefone = Clientes.PrivacidadeDoCliente.Ver(await privacidade.Libera(linha.ClienteId, ct), linha.Telefone, null, null).Telefone;
+            venda = new VendaDaFicha(linha.v.Id, linha.Nome, linha.Responsavel, telefone, linha.Produto,
                 nomes.GetValueOrDefault(linha.v.VendedorId, "Não identificado"), linha.v.ValorCents, linha.v.ComissaoCents, linha.Pagamento, linha.v.VendidaEm);
         }
 

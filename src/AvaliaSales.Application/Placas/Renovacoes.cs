@@ -16,7 +16,7 @@ public sealed record RenovacaoAberta(Guid Id, string Codigo, long ValorCents, Da
 /// o mesmo split da venda e sem comissão. Pedir de novo devolve a renovação em
 /// aberto, e só gera outro Pix se o anterior falhou ou foi cancelado.
 /// </summary>
-public sealed class Renovacoes(IBancoDeDados banco, IUsuarioAtual usuario, Cobrancas cobrancas, Auditoria.Auditoria auditoria, TimeProvider relogio)
+public sealed class Renovacoes(IBancoDeDados banco, IUsuarioAtual usuario, Cobrancas cobrancas, Auditoria.Auditoria auditoria, Financeiro.RecebimentosPorFora porFora, TimeProvider relogio)
 {
     public async Task<RenovacaoAberta> Renovar(string codigo, CancellationToken ct)
     {
@@ -57,6 +57,14 @@ public sealed class Renovacoes(IBancoDeDados banco, IUsuarioAtual usuario, Cobra
     /// </summary>
     public async Task<RenovacaoAberta> ReceberPorFora(string codigo, MeioDePagamento meio, CancellationToken ct)
     {
+        var eu = usuario.UsuarioId ?? Guid.Empty;
+        await using var transacao = await banco.Database.BeginTransactionAsync(ct);
+        if (usuario.Papel == Papel.Vendedor)
+        {
+            // Travado antes de contar o dia: dois cliques seguidos não passam juntos pelo limite.
+            await banco.TravarVendedor(eu, ct);
+        }
+
         var (placa, _, renovacao) = await AbrirRenovacao(codigo, ct);
 
         // Duplo clique no balcão: o segundo espera o primeiro e encontra a renovação paga.
@@ -67,11 +75,14 @@ public sealed class Renovacoes(IBancoDeDados banco, IUsuarioAtual usuario, Cobra
             throw new RegraDeNegocioException("Renovação com Pix em aberto.");
         }
 
+        await porFora.ExigirDentroDoLimite(eu, renovacao.ValorCents, ct);
         var antes = Vencimento(placa);
         var cobranca = await cobrancas.RegistrarPorFora(OrigemDaCobranca.Renovacao, renovacao.Id, meio, renovacao.ValorCents, ct);
         auditoria.Registrar(AcaoAuditada.RenovacaoRecebidaPorFora, $"Placa {placa.Codigo}", placa.Codigo, antes,
             $"{Vencimento(placa)}, {Reais(renovacao.ValorCents)} {(meio == MeioDePagamento.Dinheiro ? "em dinheiro" : "por outro Pix")}");
+        await porFora.Registrado(cobranca, eu, $"da renovação da placa {placa.Codigo}", $"/placa/{placa.Codigo}", renovacao.VendaId, ct);
         await banco.SaveChangesAsync(ct);
+        await transacao.CommitAsync(ct);
         return new RenovacaoAberta(renovacao.Id, placa.Codigo, renovacao.ValorCents, placa.VenceEm, Cobrancas.ParaDto(cobranca), null);
     }
 

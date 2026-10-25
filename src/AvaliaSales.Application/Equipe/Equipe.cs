@@ -9,7 +9,7 @@ namespace AvaliaSales.Application.Equipe;
 
 /// <summary><paramref name="LinkDoConvite"/> só vem na resposta de quem acabou de convidar.</summary>
 public sealed record VendedorDto(Guid Id, string Nome, string Email, string? Telefone, string? ChavePix, int? ComissaoBps, int ComissaoEfetivaBps, bool Ativo, int Vendas,
-    bool ConvitePendente, string? LinkDoConvite = null, string? Cpf = null, long? MetaMensalCents = null);
+    bool ConvitePendente, string? LinkDoConvite = null, string? Cpf = null, long? MetaMensalCents = null, Financeiro.LimitesDePorFora? LimitesPorFora = null);
 
 /// <summary>Sem senha, o vendedor recebe o convite e cria a dele.</summary>
 public sealed record NovoVendedor(string Nome, string Email, string? Senha, string? Telefone, string? ChavePix, int? ComissaoBps, string? Cpf = null, long? MetaMensalCents = null);
@@ -17,7 +17,7 @@ public sealed record NovoVendedor(string Nome, string Email, string? Senha, stri
 public sealed record AlterarVendedor(string Nome, string? Telefone, string? ChavePix, int? ComissaoBps, string? Cpf = null, long? MetaMensalCents = null);
 
 /// <summary>A equipe do revendedor: só o dono mexe, e toda mudança de comissão vale para venda nova.</summary>
-public sealed class Equipe(IBancoDeDados banco, IContas contas, IRevendedorAtual atual, Auditoria.Auditoria auditoria, TimeProvider relogio)
+public sealed class Equipe(IBancoDeDados banco, IContas contas, Financeiro.RecebimentosPorFora porFora, IRevendedorAtual atual, Auditoria.Auditoria auditoria, TimeProvider relogio)
 {
     public async Task<IReadOnlyList<VendedorDto>> Listar(CancellationToken ct)
     {
@@ -26,7 +26,8 @@ public sealed class Equipe(IBancoDeDados banco, IContas contas, IRevendedorAtual
             .Select(g => new { g.Key, Total = g.Count() }).ToDictionaryAsync(x => x.Key, x => x.Total, ct);
         var vendedores = await banco.Vendedores.AsNoTracking().OrderBy(v => v.Nome).ToListAsync(ct);
         var semSenha = await contas.SemSenha(vendedores.Select(v => v.Id), ct);
-        return vendedores.Select(v => ParaDto(v, padrao, vendas.GetValueOrDefault(v.Id), semSenha.Contains(v.Id))).ToList();
+        var limites = await porFora.LimitesDe(vendedores.Select(v => v.Id), ct);
+        return vendedores.Select(v => ParaDto(v, padrao, vendas.GetValueOrDefault(v.Id), semSenha.Contains(v.Id), limites.GetValueOrDefault(v.Id, Financeiro.RecebimentosPorFora.Padrao))).ToList();
     }
 
     public async Task<VendedorDto> Criar(NovoVendedor comando, CancellationToken ct)
@@ -44,7 +45,7 @@ public sealed class Equipe(IBancoDeDados banco, IContas contas, IRevendedorAtual
         await banco.SaveChangesAsync(ct);
         var link = senha is null ? await contas.Convidar(id, await Remetente(ct), ct) : null;
         await transacao.CommitAsync(ct);
-        return ParaDto(vendedor, await ComissaoPadrao(ct), 0, senha is null) with { LinkDoConvite = link };
+        return ParaDto(vendedor, await ComissaoPadrao(ct), 0, senha is null, await porFora.Limites(id, ct)) with { LinkDoConvite = link };
     }
 
     /// <summary>Convite de novo: o link anterior deixa de valer.</summary>
@@ -57,7 +58,7 @@ public sealed class Equipe(IBancoDeDados banco, IContas contas, IRevendedorAtual
         }
 
         var link = await contas.Convidar(id, await Remetente(ct), ct);
-        return ParaDto(vendedor, await ComissaoPadrao(ct), await banco.Vendas.CountAsync(v => v.VendedorId == id, ct), true) with { LinkDoConvite = link };
+        return ParaDto(vendedor, await ComissaoPadrao(ct), await banco.Vendas.CountAsync(v => v.VendedorId == id, ct), true, await porFora.Limites(id, ct)) with { LinkDoConvite = link };
     }
 
     public async Task<VendedorDto> Alterar(Guid id, AlterarVendedor comando, CancellationToken ct)
@@ -74,7 +75,7 @@ public sealed class Equipe(IBancoDeDados banco, IContas contas, IRevendedorAtual
 
         await banco.SaveChangesAsync(ct);
         var semSenha = await contas.SemSenha([id], ct);
-        return ParaDto(vendedor, await ComissaoPadrao(ct), await banco.Vendas.CountAsync(v => v.VendedorId == id, ct), semSenha.Count > 0);
+        return ParaDto(vendedor, await ComissaoPadrao(ct), await banco.Vendas.CountAsync(v => v.VendedorId == id, ct), semSenha.Count > 0, await porFora.Limites(id, ct));
     }
 
     public async Task DefinirAtivo(Guid id, bool ativo, CancellationToken ct)
@@ -140,6 +141,6 @@ public sealed class Equipe(IBancoDeDados banco, IContas contas, IRevendedorAtual
         return new RemetenteDoEmail(revenda.Nome, donos.Count > 0 ? donos[0] : null, revenda.CorPrimaria);
     }
 
-    private static VendedorDto ParaDto(Vendedor v, int padrao, int vendas, bool convitePendente) =>
-        new(v.Id, v.Nome, v.Email, v.Telefone, v.ChavePix, v.ComissaoBps, v.ComissaoBps ?? padrao, v.Ativo, vendas, convitePendente, Cpf: v.Cpf, MetaMensalCents: v.MetaMensalCents);
+    private static VendedorDto ParaDto(Vendedor v, int padrao, int vendas, bool convitePendente, Financeiro.LimitesDePorFora limites) =>
+        new(v.Id, v.Nome, v.Email, v.Telefone, v.ChavePix, v.ComissaoBps, v.ComissaoBps ?? padrao, v.Ativo, vendas, convitePendente, Cpf: v.Cpf, MetaMensalCents: v.MetaMensalCents, LimitesPorFora: limites);
 }

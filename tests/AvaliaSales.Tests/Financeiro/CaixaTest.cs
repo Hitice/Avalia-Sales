@@ -42,6 +42,7 @@ public sealed class CaixaTest(ApiDeTeste api)
         await lia.Postar("/vendas", Cenarios.Venda(revenda.Codigos[0], revenda.ProdutoId, "11955550101", documento: null), HttpStatusCode.Created);
         var venda = (await revenda.Dono.Pegar("/vendas")).EnumerateArray().Single(v => v.GetProperty("codigo").GetString() == revenda.Codigos[0]).GetProperty("id").GetGuid();
         await lia.Postar($"/vendas/{venda}/recebimento", new { meio = "Dinheiro" }, HttpStatusCode.NoContent);
+        await revenda.Dono.Postar("/comissoes/conferencia", new { });
         await revenda.Dono.Postar("/repasses", new { vendedorId }, HttpStatusCode.Created);
         await revenda.Dono.Postar("/financeiro/despesas", new { data = Hoje, descricao = "Correios", categoria = "Frete", valorCents = 5_000 }, HttpStatusCode.Created);
         var socio = (await revenda.Dono.Postar("/financeiro/socios", new { nome = "Ana Sócia" }, HttpStatusCode.Created)).GetProperty("id").GetGuid();

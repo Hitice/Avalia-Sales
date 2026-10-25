@@ -184,6 +184,9 @@ export function formatarTelefone(digitos: string | null): string {
   return m ? `${pais}(${m[1]}) ${m[2]}-${m[3]}` : digitos
 }
 
+/** O vendedor lê só o final do telefone do cliente que outro cadastrou: não há número para ligar nem para o WhatsApp. */
+export const telefoneMascarado = (telefone: string | null) => !!telefone && telefone.includes('*')
+
 export const ROTULO_DA_ACAO: Record<AcaoAuditada, string> = {
   DestinoDefinido: 'Destino definido na venda',
   DestinoTrocado: 'Destino trocado',
@@ -228,6 +231,9 @@ export const ROTULO_DA_ACAO: Record<AcaoAuditada, string> = {
   SaldoInicialDoCaixaExcluido: 'Saldo inicial do caixa excluído',
   RenovacaoRecebidaPorFora: 'Renovação recebida por fora',
   RenovacaoDesfeita: 'Renovação desfeita',
+  LinkCriado: 'Link criado',
+  RecebimentoConferido: 'Recebimento por fora conferido',
+  LimiteDePorForaDefinido: 'Limite de recebimento por fora definido',
 }
 
 export const ROTULO_DA_DESPESA: Record<CategoriaDeDespesa, string> = {

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
 import { mensagemDoErro } from '@/api/cliente'
-import { formatarData, formatarDataHora } from '@/api/rotulos'
+import { formatarData, formatarDataHora, ROTULO_DO_MEIO } from '@/api/rotulos'
 import type { SaldoDeComissao } from '@/api/tipos'
 import { AcoesDaLinha } from '@/componentes/AcoesDaLinha'
 import { Cabecalho, Erro, EstadoDaConsulta, Rolagem } from '@/componentes/Tela'
@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { formatarCentavos } from '@/dinheiro/dinheiro'
 import { fimDoDiaEmBrasilia } from '@/lib/data'
-import { useDesfazerRepasse, useRepassar, useRepasses, useSaldosDeComissao } from './consultas'
+import { useConferirRecebimentos, useDesfazerRepasse, usePendentesDeConferencia, useRepassar, useRepasses, useSaldosDeComissao } from './consultas'
 
 /**
  * O saldo de comissão de cada vendedor e o registro do Pix feito a ele. A
@@ -39,7 +39,11 @@ export function TelaDeComissoes() {
   const [escolhido, setEscolhido] = useState<SaldoDeComissao | null>(null)
   const [ate, setAte] = useState('')
   const [comprovante, setComprovante] = useState('')
-  const aPagar = (saldos.data ?? []).filter((s) => s.abertaCents > 0)
+  // O recebido por fora que o dono ainda não conferiu fica fora do repasse.
+  const liberada = (s: SaldoDeComissao) => s.abertaCents - (s.aguardandoConferenciaCents ?? 0)
+  const aPagar = (saldos.data ?? []).filter((s) => liberada(s) > 0)
+  const pendentes = usePendentesDeConferencia()
+  const conferir = useConferirRecebimentos()
 
   return (
     <div className="grid gap-4">
@@ -47,6 +51,51 @@ export function TelaDeComissoes() {
           <Button disabled={!aPagar.length} title={aPagar.length ? undefined : 'Nenhum vendedor com comissão a pagar'} onClick={() => { setEscolhido(aPagar[0]); repassar.reset() }}>Registrar repasse</Button>
         </Cabecalho>
         {saldos.data && saldos.data.length > 0 && !aPagar.length && <p className="text-sm text-muted-foreground">Nada a pagar agora: a comissão entra quando o cliente paga a venda.</p>}
+        {pendentes.data && pendentes.data.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Recebido por fora, ainda não conferido</CardTitle>
+              <p className="text-sm text-muted-foreground">O vendedor registrou o dinheiro ou o Pix recebido no balcão. A comissão só entra em repasse depois que você confere.</p>
+            </CardHeader>
+            <CardContent className="grid gap-3">
+              <Erro erro={conferir.error ? mensagemDoErro(conferir.error) : null} />
+              <div>
+                <Button disabled={conferir.isPending} onClick={() => conferir.mutate(null)}>Conferir todos ({pendentes.data.length})</Button>
+              </div>
+              <Rolagem>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead tipo="data">Registrado em</TableHead>
+                      <TableHead>Vendedor</TableHead>
+                      <TableHead>Cliente</TableHead>
+                      <TableHead>Meio</TableHead>
+                      <TableHead tipo="numero">Valor</TableHead>
+                      <TableHead tipo="numero">Comissão</TableHead>
+                      <TableHead tipo="acoes" />
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {pendentes.data.map((p) => (
+                      <TableRow key={p.cobrancaId}>
+                        <TableCell>{formatarDataHora(p.recebidoEm)}</TableCell>
+                        <TableCell>{p.vendedor}</TableCell>
+                        <TableCell className="min-w-40 whitespace-normal">{p.cliente}</TableCell>
+                        <TableCell>{ROTULO_DO_MEIO[p.meio]}</TableCell>
+                        <TableCell>{formatarCentavos(p.valorCents)}</TableCell>
+                        <TableCell>{formatarCentavos(p.comissaoCents)}</TableCell>
+                        <TableCell>
+                          <AcoesDaLinha nome={`recebimento de ${p.cliente}`} principal={{ rotulo: 'Conferir', desabilitada: conferir.isPending, aoClicar: () => conferir.mutate([p.cobrancaId]) }}
+                            outras={[{ rotulo: 'Ver venda', para: `/painel/vendas/${p.vendaId}` }]} />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </Rolagem>
+            </CardContent>
+          </Card>
+        )}
         <Card>
           <CardContent>
             <EstadoDaConsulta carregando={saldos.isPending} erro={saldos.error} vazio={saldos.data?.length === 0} textoVazio="Nenhum vendedor na equipe."
@@ -70,10 +119,13 @@ export function TelaDeComissoes() {
                         <TableCell className="min-w-48 whitespace-normal"><p className="font-medium">{s.vendedor}</p>{s.chavePix && <p className="text-xs text-muted-foreground">Pix {s.chavePix}</p>}</TableCell>
                         <TableCell>{formatarCentavos(s.devidaCents)}</TableCell>
                         <TableCell>{formatarCentavos(s.repassadaCents)}</TableCell>
-                        <TableCell className={`font-medium ${s.abertaCents < 0 ? 'text-destructive' : ''}`}>{formatarCentavos(s.abertaCents)}</TableCell>
+                        <TableCell className={`font-medium ${s.abertaCents < 0 ? 'text-destructive' : ''}`}>
+                          {formatarCentavos(s.abertaCents)}
+                          {(s.aguardandoConferenciaCents ?? 0) > 0 && <span className="block text-xs font-normal text-muted-foreground">{formatarCentavos(s.aguardandoConferenciaCents ?? 0)} aguardam conferência</span>}
+                        </TableCell>
                         <TableCell>{formatarData(s.ultimoRepasse)}</TableCell>
                         <TableCell>
-                          <AcoesDaLinha nome={s.vendedor} principal={s.abertaCents > 0 && { rotulo: 'Repassar', aoClicar: () => { setEscolhido(s); repassar.reset() } }} />
+                          <AcoesDaLinha nome={s.vendedor} principal={liberada(s) > 0 && { rotulo: 'Repassar', aoClicar: () => { setEscolhido(s); repassar.reset() } }} />
                         </TableCell>
                       </TableRow>
                     ))}
@@ -147,7 +199,7 @@ export function TelaDeComissoes() {
                 <FieldLabel htmlFor="vendedor-do-repasse">Vendedor</FieldLabel>
                 <Select value={escolhido.vendedorId} onValueChange={(id) => setEscolhido(aPagar.find((s) => s.vendedorId === id) ?? escolhido)}>
                   <SelectTrigger id="vendedor-do-repasse" className="w-full"><SelectValue /></SelectTrigger>
-                  <SelectContent>{aPagar.map((s) => <SelectItem key={s.vendedorId} value={s.vendedorId}>{s.vendedor}, {formatarCentavos(s.abertaCents)}</SelectItem>)}</SelectContent>
+                  <SelectContent>{aPagar.map((s) => <SelectItem key={s.vendedorId} value={s.vendedorId}>{s.vendedor}, {formatarCentavos(liberada(s))}</SelectItem>)}</SelectContent>
                 </Select>
               </Field>
               {escolhido.chavePix && <p className="text-sm text-muted-foreground">Pix {escolhido.chavePix}</p>}
@@ -161,7 +213,7 @@ export function TelaDeComissoes() {
               </Field>
               <DialogFooter>
                 <Button type="button" variant="ghost" onClick={() => setEscolhido(null)}>Cancelar</Button>
-                <Button type="submit" disabled={repassar.isPending}>{/* Com data limite, o valor é o das vendas até ela: só o servidor sabe somar. */}{ate ? 'Registrar repasse' : `Registrar ${formatarCentavos(escolhido.abertaCents)}`}</Button>
+                <Button type="submit" disabled={repassar.isPending}>{/* Com data limite, o valor é o das vendas até ela: só o servidor sabe somar. */}{ate ? 'Registrar repasse' : `Registrar ${formatarCentavos(liberada(escolhido))}`}</Button>
               </DialogFooter>
             </form>
           )}

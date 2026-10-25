@@ -32,6 +32,7 @@ public static class InjecaoDeDependencias
         servicos.AddScoped<Revendedores.Revendedores>();
         servicos.AddScoped<Pedidos.Cupons>();
         servicos.AddScoped<Comissoes>();
+        servicos.AddScoped<RecebimentosPorFora>();
         servicos.AddScoped<Razao>();
         servicos.AddScoped<Fechamentos>();
         servicos.AddScoped<Despesas>();
@@ -57,6 +58,7 @@ public static class InjecaoDeDependencias
         servicos.AddScoped<Importacao.Importacao>();
         servicos.AddScoped<Importacao.Reservas>();
         servicos.AddScoped<Clientes.Clientes>();
+        servicos.AddScoped<Clientes.PrivacidadeDoCliente>();
         return servicos;
     }
 }

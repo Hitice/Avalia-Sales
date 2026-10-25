@@ -83,6 +83,11 @@ public static class RotasDaRevenda
             await equipe.DefinirAtivo(id, pedido.Ativo, ct);
             return Results.NoContent();
         });
+        dono.MapPut("/equipe/{id:guid}/limites-por-fora", async (Guid id, LimitesDePorFora pedido, RecebimentosPorFora porFora, CancellationToken ct) =>
+        {
+            await porFora.DefinirLimites(id, pedido, ct);
+            return Results.NoContent();
+        });
         dono.MapDelete("/equipe/{id:guid}", async (Guid id, Equipe equipe, CancellationToken ct) =>
         {
             await equipe.Excluir(id, ct);
@@ -126,6 +131,9 @@ public static class RotasDaRevenda
             var json = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(await exportacao.Gerar(ct), Exportacao);
             return Results.File(json, "application/json", $"dados-da-revenda-{DateTime.UtcNow:yyyy-MM-dd}.json");
         }).Produces<DadosExportados>();
+        // Recebido por fora e ainda não conferido: a comissão espera o dono ver, em lote ou um a um.
+        dono.MapGet("/comissoes/conferencia", (RecebimentosPorFora porFora, CancellationToken ct) => porFora.Pendentes(ct));
+        dono.MapPost("/comissoes/conferencia", (ConferirRecebimentos pedido, RecebimentosPorFora porFora, CancellationToken ct) => porFora.Conferir(pedido, ct));
         dono.MapGet("/repasses", (Comissoes comissoes, CancellationToken ct) => comissoes.Repasses(ct));
         dono.MapPost("/repasses", async (NovoRepasse pedido, Comissoes comissoes, CancellationToken ct) =>
             Results.Created("/repasses", await comissoes.Repassar(pedido, ct)));

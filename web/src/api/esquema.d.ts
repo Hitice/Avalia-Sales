@@ -3399,6 +3399,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/equipe/{id}/limites-por-fora": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["LimitesDePorFora"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/revenda/contrato": {
         parameters: {
             query?: never;
@@ -3777,6 +3816,64 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/comissoes/conferencia": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PendenteDeConferencia"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ConferirRecebimentos"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ResultadoDaConferencia"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -6540,7 +6637,7 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /** @enum {unknown} */
-        AcaoAuditada: "DestinoDefinido" | "DestinoTrocado" | "PlacaSuspensa" | "PlacaNoAr" | "PlacaTrocada" | "VendaCancelada" | "VendaEmCortesia" | "RecebidoPorFora" | "RecebimentoDesfeito" | "VendedorCadastrado" | "VendedorAlterado" | "VendedorDesativado" | "VendedorReativado" | "VendedorExcluido" | "ComissaoPadraoAlterada" | "ProdutoAlterado" | "RepasseRegistrado" | "ClienteAnonimizado" | "MarcaAlterada" | "LinkAlterado" | "LinkExcluido" | "SegundoFatorLigado" | "SegundoFatorDesligado" | "EmpresaAlterada" | "EncerramentoPedido" | "EncerramentoDesistido" | "ContaEncerrada" | "ReaberturaPedida" | "ClienteAlterado" | "ClienteExcluido" | "ClientesJuntados" | "VendaCorrigida" | "RepasseDesfeito" | "MesFechado" | "MesReaberto" | "SocioCadastrado" | "SocioAlterado" | "SocioExcluido" | "ClienteCadastrado" | "SaldoInicialDoCaixaDefinido" | "SaldoInicialDoCaixaExcluido" | "RenovacaoRecebidaPorFora" | "RenovacaoDesfeita";
+        AcaoAuditada: "DestinoDefinido" | "DestinoTrocado" | "PlacaSuspensa" | "PlacaNoAr" | "PlacaTrocada" | "VendaCancelada" | "VendaEmCortesia" | "RecebidoPorFora" | "RecebimentoDesfeito" | "VendedorCadastrado" | "VendedorAlterado" | "VendedorDesativado" | "VendedorReativado" | "VendedorExcluido" | "ComissaoPadraoAlterada" | "ProdutoAlterado" | "RepasseRegistrado" | "ClienteAnonimizado" | "MarcaAlterada" | "LinkAlterado" | "LinkExcluido" | "SegundoFatorLigado" | "SegundoFatorDesligado" | "EmpresaAlterada" | "EncerramentoPedido" | "EncerramentoDesistido" | "ContaEncerrada" | "ReaberturaPedida" | "ClienteAlterado" | "ClienteExcluido" | "ClientesJuntados" | "VendaCorrigida" | "RepasseDesfeito" | "MesFechado" | "MesReaberto" | "SocioCadastrado" | "SocioAlterado" | "SocioExcluido" | "ClienteCadastrado" | "SaldoInicialDoCaixaDefinido" | "SaldoInicialDoCaixaExcluido" | "RenovacaoRecebidaPorFora" | "RenovacaoDesfeita" | "LinkCriado" | "RecebimentoConferido" | "LimiteDePorForaDefinido";
         AjustarProduto: {
             /** Format: int64 */
             precoCents: number;
@@ -6735,6 +6832,10 @@ export interface components {
         };
         CodigoDoAutenticador: {
             codigo: null | string;
+        };
+        /** @description CobrancaIds - os recebimentos conferidos; nulo ou vazio confere todos os pendentes. */
+        ConferirRecebimentos: {
+            cobrancaIds: null | string[];
         };
         /**
          * @description Simulado: o front gera um token de mentira, sem chamar o Pagar.me.
@@ -7152,6 +7253,15 @@ export interface components {
             /** Format: int32 */
             total: number;
         };
+        /** @description O que o vendedor pode registrar como recebido por fora (dinheiro, outro Pix): por dia, em valor e em quantidade, e por venda. */
+        LimitesDePorFora: {
+            /** Format: int64 */
+            diaCents: number;
+            /** Format: int32 */
+            diaQuantidade: number;
+            /** Format: int64 */
+            vendaCents: number;
+        };
         LinhaDaVenda: {
             tipo: components["schemas"]["TipoDeLancamento"];
             descricao: string;
@@ -7553,6 +7663,24 @@ export interface components {
             urlDePagamento: null | string;
             retirada: boolean;
         };
+        /** @description Um recebimento por fora que o dono ainda não conferiu; a comissão dele não entra em repasse até a conferência. */
+        PendenteDeConferencia: {
+            /** Format: uuid */
+            cobrancaId: string;
+            /** Format: uuid */
+            vendaId: string;
+            /** Format: uuid */
+            vendedorId: string;
+            vendedor: string;
+            cliente: string;
+            meio: components["schemas"]["MeioDePagamento"];
+            /** Format: int64 */
+            valorCents: number;
+            /** Format: int64 */
+            comissaoCents: number;
+            /** Format: date-time */
+            recebidoEm: string;
+        };
         /** @description Com o e-mail sem confirmar, o painel pede a confirmação; contrato e avisos esperam por ela. */
         Perfil: {
             /** Format: uuid */
@@ -7713,6 +7841,10 @@ export interface components {
             /** Format: date-time */
             desfeitoEm?: null | string;
         };
+        ResultadoDaConferencia: {
+            /** Format: int32 */
+            conferidos: number;
+        };
         ResumoDoMes: {
             competencia: string;
             /** Format: int64 */
@@ -7781,6 +7913,7 @@ export interface components {
             suspensaEm?: null | string;
             motivoDaSuspensao?: null | string;
         };
+        /** @description AguardandoConferenciaCents - parte da comissão em aberto cuja venda foi recebida por fora e o dono ainda não conferiu: não entra em repasse. */
         SaldoDeComissao: {
             /** Format: uuid */
             vendedorId: string;
@@ -7794,6 +7927,11 @@ export interface components {
             abertaCents: number;
             /** Format: date-time */
             ultimoRepasse: null | string;
+            /**
+             * Format: int64
+             * @default 0
+             */
+            aguardandoConferenciaCents: number;
         };
         /** @enum {unknown} */
         SituacaoDaCobranca: "Pendente" | "Paga" | "Cancelada" | "Falhou" | "Estornada" | null;
@@ -7973,6 +8111,7 @@ export interface components {
             cpf?: null | string;
             /** Format: int64 */
             metaMensalCents?: null | number;
+            limitesPorFora?: null | components["schemas"]["LimitesDePorFora"];
         };
     };
     responses: never;

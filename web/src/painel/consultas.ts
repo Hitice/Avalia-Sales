@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { chamarApi, enviarJson } from '@/api/cliente'
-import type { EstadoDaPlaca, LoteDaRevenda, MinhaRevenda, MotivoDaBaixa, MotivoDoCancelamento, PlacaDaVendaCancelada, Pacote, PaginaDePlacas, Pedido, Repasse, ResumoDoMes, DetalheDaVenda, ResumoDoVendedor, PlacaDaCarteira, SaldoDeComissao, VendaDaLista, VendaRegistrada, Vendedor } from '@/api/tipos'
+import type { EstadoDaPlaca, LoteDaRevenda, MinhaRevenda, MotivoDaBaixa, MotivoDoCancelamento, PlacaDaVendaCancelada, Pacote, PaginaDePlacas, Pedido, Repasse, ResumoDoMes, DetalheDaVenda, ResumoDoVendedor, PlacaDaCarteira, SaldoDeComissao, PendenteDeConferencia, LimitesDePorFora, VendaDaLista, VendaRegistrada, Vendedor } from '@/api/tipos'
 
 export type FiltroDePlacas = { estado?: EstadoDaPlaca; consignadaA?: string; codigo?: string; pagina?: number }
 
@@ -67,6 +67,12 @@ export const useTrocarPlaca = () =>
     chamarApi<{ codigo: string }>(`/vendas/${vendaId}/troca-de-placa`, enviarJson('POST', { codigo, motivo })), [...VENDA_MUDOU, 'lotes'], 'Placa trocada.')
 
 export const useSaldosDeComissao = () => useQuery({ queryKey: ['comissoes'], queryFn: () => chamarApi<SaldoDeComissao[]>('/comissoes') })
+export const usePendentesDeConferencia = () => useQuery({ queryKey: ['comissoes', 'conferencia'], queryFn: () => chamarApi<PendenteDeConferencia[]>('/comissoes/conferencia') })
+/** Sem lista, o dono confere todos os pendentes. */
+export const useConferirRecebimentos = () =>
+  useGravar((cobrancaIds: string[] | null) => chamarApi<{ conferidos: number }>('/comissoes/conferencia', enviarJson('POST', { cobrancaIds })), ['comissoes', 'auditoria'], 'Recebimentos conferidos.')
+export const useDefinirLimitesPorFora = () =>
+  useGravar(({ id, ...limites }: LimitesDePorFora & { id: string }) => chamarApi(`/equipe/${id}/limites-por-fora`, enviarJson('PUT', limites)), ['equipe', 'auditoria'], 'Limites salvos.')
 export const useRepasses = () => useQuery({ queryKey: ['repasses'], queryFn: () => chamarApi<Repasse[]>('/repasses') })
 export const useRepassar = () =>
   useGravar((r: { vendedorId: string; ate: string | null; comprovante: string | null }) => chamarApi<Repasse>('/repasses', enviarJson('POST', r)), ['comissoes', 'repasses', 'razao', 'financeiro'], 'Repasse registrado.')

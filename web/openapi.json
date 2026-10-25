@@ -2561,6 +2561,39 @@
         }
       }
     },
+    "/equipe/{id}/limites-por-fora": {
+      "put": {
+        "tags": [
+          "Revenda"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LimitesDePorFora"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/revenda/contrato": {
       "get": {
         "tags": [
@@ -2760,6 +2793,55 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/DadosExportados"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/comissoes/conferencia": {
+      "get": {
+        "tags": [
+          "Revenda"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PendenteDeConferencia"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Revenda"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConferirRecebimentos"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultadoDaConferencia"
                 }
               }
             }
@@ -5003,7 +5085,10 @@
           "SaldoInicialDoCaixaDefinido",
           "SaldoInicialDoCaixaExcluido",
           "RenovacaoRecebidaPorFora",
-          "RenovacaoDesfeita"
+          "RenovacaoDesfeita",
+          "LinkCriado",
+          "RecebimentoConferido",
+          "LimiteDePorForaDefinido"
         ]
       },
       "AjustarProduto": {
@@ -5761,6 +5846,25 @@
             ]
           }
         }
+      },
+      "ConferirRecebimentos": {
+        "required": [
+          "cobrancaIds"
+        ],
+        "type": "object",
+        "properties": {
+          "cobrancaIds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        "description": "CobrancaIds - os recebimentos conferidos; nulo ou vazio confere todos os pendentes."
       },
       "ConfiguracaoDoCartao": {
         "required": [
@@ -7241,6 +7345,29 @@
           }
         }
       },
+      "LimitesDePorFora": {
+        "required": [
+          "diaCents",
+          "diaQuantidade",
+          "vendaCents"
+        ],
+        "type": "object",
+        "properties": {
+          "diaCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "diaQuantidade": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "vendaCents": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "description": "O que o vendedor pode registrar como recebido por fora (dinheiro, outro Pix): por dia, em valor e em quantidade, e por venda."
+      },
       "LinhaDaVenda": {
         "required": [
           "tipo",
@@ -8649,6 +8776,56 @@
           }
         }
       },
+      "PendenteDeConferencia": {
+        "required": [
+          "cobrancaId",
+          "vendaId",
+          "vendedorId",
+          "vendedor",
+          "cliente",
+          "meio",
+          "valorCents",
+          "comissaoCents",
+          "recebidoEm"
+        ],
+        "type": "object",
+        "properties": {
+          "cobrancaId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "vendaId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "vendedorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "vendedor": {
+            "type": "string"
+          },
+          "cliente": {
+            "type": "string"
+          },
+          "meio": {
+            "$ref": "#/components/schemas/MeioDePagamento"
+          },
+          "valorCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "comissaoCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "recebidoEm": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "Um recebimento por fora que o dono ainda n\u00E3o conferiu; a comiss\u00E3o dele n\u00E3o entra em repasse at\u00E9 a confer\u00EAncia."
+      },
       "Perfil": {
         "required": [
           "id",
@@ -9207,6 +9384,18 @@
           }
         }
       },
+      "ResultadoDaConferencia": {
+        "required": [
+          "conferidos"
+        ],
+        "type": "object",
+        "properties": {
+          "conferidos": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "ResumoDoMes": {
         "required": [
           "competencia",
@@ -9485,8 +9674,14 @@
               "string"
             ],
             "format": "date-time"
+          },
+          "aguardandoConferenciaCents": {
+            "type": "integer",
+            "format": "int64",
+            "default": 0
           }
-        }
+        },
+        "description": "AguardandoConferenciaCents - parte da comiss\u00E3o em aberto cuja venda foi recebida por fora e o dono ainda n\u00E3o conferiu: n\u00E3o entra em repasse."
       },
       "SituacaoDaCobranca": {
         "enum": [
@@ -10173,6 +10368,16 @@
               "integer"
             ],
             "format": "int64"
+          },
+          "limitesPorFora": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/LimitesDePorFora"
+              }
+            ]
           }
         },
         "description": "LinkDoConvite s\u00F3 vem na resposta de quem acabou de convidar."

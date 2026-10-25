@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { cnpjValido } from '@/acesso/documentos'
-import { formatarBps, formatarData, formatarDataHora, formatarTelefone, paraBps } from './rotulos'
+import { formatarBps, formatarData, formatarDataHora, formatarTelefone, paraBps, telefoneMascarado } from './rotulos'
 
 describe('percentual em pontos base', () => {
   it('lê vírgula e ponto sem ponto flutuante', () => {
@@ -43,5 +43,14 @@ describe('datas em Brasília', () => {
     expect(formatarData('2026-11-01T02:59:59+00:00')).toBe('31/10/2026')
     expect(formatarDataHora('2026-11-01T02:59:59+00:00')).toBe('31/10, 23:59')
     expect(formatarData(null)).toBe('-')
+  })
+})
+
+describe('telefone mascarado', () => {
+  it('mostra como veio e não serve para ligar', () => {
+    expect(formatarTelefone('(11) *****-7777')).toBe('(11) *****-7777')
+    expect(telefoneMascarado('(11) *****-7777')).toBe(true)
+    expect(telefoneMascarado('11988887777')).toBe(false)
+    expect(telefoneMascarado(null)).toBe(false)
   })
 })

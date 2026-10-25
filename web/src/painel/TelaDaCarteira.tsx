@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
-import { formatarData, formatarTelefone } from '@/api/rotulos'
+import { formatarData, formatarTelefone, telefoneMascarado } from '@/api/rotulos'
 import type { PlacaDaCarteira } from '@/api/tipos'
 import { useSessao } from '@/acesso/sessao'
 import { AcoesDaLinha } from '@/componentes/AcoesDaLinha'
@@ -77,7 +77,7 @@ export function TelaDaCarteira() {
                       <TableCell>{p.leiturasEm30Dias} <span className="text-xs text-muted-foreground">de {p.totalLeituras}</span></TableCell>
                       <TableCell>
                         <AcoesDaLinha nome={`placa ${p.codigo}`} principal={{ rotulo: 'Renovar', para: `/placa/${p.codigo}` }}
-                          outras={[{ rotulo: 'WhatsApp', href: whatsapp(p) }]} />
+                          outras={telefoneMascarado(p.telefone) ? [] : [{ rotulo: 'WhatsApp', href: whatsapp(p) }]} />
                       </TableCell>
                     </TableRow>
                   ))}

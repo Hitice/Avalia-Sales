@@ -12,6 +12,7 @@ import { Cabecalho, Erro, EstadoDaConsulta, Rolagem } from '@/componentes/Tela'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Field, FieldLabel } from '@/components/ui/field'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { percentualOpcional, senhaOpcional, telefoneOpcional, texto } from '@/lib/esquemas'
@@ -20,7 +21,7 @@ import { copiar } from '@/lib/area'
 import { toast } from 'sonner'
 import { formatarCentavos, paraCentavos } from '@/dinheiro/dinheiro'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { useAlterarVendedor, useAtivarVendedor, useConvidarVendedor, useCriarVendedor, useEquipe, useExcluirVendedor } from './consultas'
+import { useAlterarVendedor, useAtivarVendedor, useConvidarVendedor, useCriarVendedor, useDefinirLimitesPorFora, useEquipe, useExcluirVendedor } from './consultas'
 
 /** E-mail e senha só no cadastro: o login não muda de e-mail pela equipe. */
 const esquema = z.object({
@@ -38,6 +39,55 @@ const esquema = z.object({
 })
 type Formulario = z.infer<typeof esquema>
 const VAZIO: Formulario = { novo: true, nome: '', email: '', senha: '', telefone: '', cpf: '', chavePix: '', comissao: '', meta: '' }
+
+const SEM_NUMERO = /\D/g
+
+/**
+ * Quanto o vendedor pode registrar como recebido em dinheiro ou por outro Pix:
+ * por dia (valor e quantidade) e por venda. Acima disso o servidor recusa e
+ * ele chama o revendedor, que registra.
+ */
+function LimitesPorFora({ vendedor }: { vendedor: Vendedor }) {
+  const definir = useDefinirLimitesPorFora()
+  const atual = vendedor.limitesPorFora
+  const [dia, setDia] = useState(() => formatarCentavos(atual?.diaCents ?? 0).replace(/^R\$\s?/, ''))
+  const [quantidade, setQuantidade] = useState(String(atual?.diaQuantidade ?? 0))
+  const [venda, setVenda] = useState(() => formatarCentavos(atual?.vendaCents ?? 0).replace(/^R\$\s?/, ''))
+  const diaCents = paraCentavos(dia)
+  const vendaCents = paraCentavos(venda)
+  const numero = quantidade.replace(SEM_NUMERO, '')
+  const valido = diaCents !== null && vendaCents !== null && numero.length > 0
+
+  return (
+    <Card>
+      <CardHeader><CardTitle>Recebido por fora de {vendedor.nome}</CardTitle></CardHeader>
+      <CardContent>
+        <form
+          className="grid gap-4"
+          onSubmit={(e) => {
+            e.preventDefault()
+            if (valido) definir.mutate({ id: vendedor.id, diaCents, diaQuantidade: Number(numero), vendaCents })
+          }}
+        >
+          <Erro erro={definir.error ? mensagemDoErro(definir.error) : null} />
+          <Field>
+            <FieldLabel htmlFor="limite-dia">Valor por dia (R$)</FieldLabel>
+            <Input id="limite-dia" inputMode="decimal" value={dia} onChange={(e) => setDia(e.target.value)} />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="limite-quantidade">Recebimentos por dia</FieldLabel>
+            <Input id="limite-quantidade" inputMode="numeric" value={quantidade} onChange={(e) => setQuantidade(e.target.value)} />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="limite-venda">Teto por venda (R$)</FieldLabel>
+            <Input id="limite-venda" inputMode="decimal" value={venda} onChange={(e) => setVenda(e.target.value)} />
+          </Field>
+          <Button type="submit" variant="outline" disabled={!valido || definir.isPending}>Salvar limites</Button>
+        </form>
+      </CardContent>
+    </Card>
+  )
+}
 
 /** O link do convite, para o dono mandar também pelo WhatsApp do vendedor. */
 function Convite({ vendedor, aoFechar }: { vendedor: Vendedor; aoFechar: () => void }) {
@@ -165,6 +215,7 @@ export function TelaDaEquipe() {
             </form>
           </CardContent>
         </Card>
+        {editando && <LimitesPorFora key={editando.id + JSON.stringify(editando.limitesPorFora)} vendedor={editando} />}
       </div>
     </div>
   )

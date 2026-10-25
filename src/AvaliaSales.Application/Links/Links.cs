@@ -1,4 +1,5 @@
 using AvaliaSales.Application.Placas;
+using AvaliaSales.Domain.Acesso;
 using AvaliaSales.Domain.Auditoria;
 using AvaliaSales.Domain.Links;
 using AvaliaSales.Domain.Placas;
@@ -20,13 +21,27 @@ public sealed record LeituraDoLink(string? Destino, bool Ativo);
 /// O encurtador do revendedor. A venda com destino no Google cria ou
 /// reaproveita o link do negócio; a tela Links cria o do negócio sem placa.
 /// </summary>
-public sealed class Links(IBancoDeDados banco, IRevendedorAtual atual, Auditoria.Auditoria auditoria, IOptions<OpcoesDaPlataforma> plataforma, TimeProvider relogio)
+public sealed class Links(IBancoDeDados banco, IRevendedorAtual atual, IUsuarioAtual usuario, Auditoria.Auditoria auditoria, IOptions<OpcoesDaPlataforma> plataforma, TimeProvider relogio)
 {
     /// <summary>Sorteios antes de desistir; com 32^6 códigos, chegar aqui é defeito, e não azar.</summary>
     private const int Sorteios = 20;
 
+    /// <summary>O dono vê todos; o vendedor, os links dos clientes das vendas dele e os que ele mesmo criou.</summary>
     public async Task<IReadOnlyList<LinkDto>> Listar(CancellationToken ct) =>
-        (await banco.Links.AsNoTracking().OrderByDescending(l => l.CriadoEm).ToListAsync(ct)).Select(ParaDto).ToList();
+        (await DoUsuario(banco.Links.AsNoTracking()).OrderByDescending(l => l.CriadoEm).ToListAsync(ct)).Select(ParaDto).ToList();
+
+    private IQueryable<LinkCurto> DoUsuario(IQueryable<LinkCurto> links)
+    {
+        if (usuario.Papel != Papel.Vendedor)
+        {
+            return links;
+        }
+
+        var eu = usuario.UsuarioId;
+        var meusClientes = banco.Vendas.Where(v => v.VendedorId == eu).Select(v => (Guid?)v.ClienteId);
+        var meusCodigos = banco.Auditoria.Where(a => a.Acao == AcaoAuditada.LinkCriado && a.UsuarioId == eu).Select(a => a.Referencia);
+        return links.Where(l => (l.ClienteId != null && meusClientes.Contains(l.ClienteId)) || meusCodigos.Contains(l.Codigo));
+    }
 
     public async Task<LinkDto> Criar(GravarLink comando, CancellationToken ct)
     {
@@ -35,10 +50,14 @@ public sealed class Links(IBancoDeDados banco, IRevendedorAtual atual, Auditoria
         await banco.TravarLinksDaRevenda(RevendedorDoToken(), ct);
         if (await banco.Links.AsNoTracking().FirstOrDefaultAsync(l => l.Destino == destino, ct) is { } existente)
         {
-            throw new RegraDeNegocioException($"Este destino já tem o link {plataforma.Value.EnderecoDoLink(existente.Codigo)}.");
+            // O vendedor só recebe o endereço do link que já enxerga; o de outro fica com o dono.
+            throw new RegraDeNegocioException(await DoUsuario(banco.Links.AsNoTracking()).AnyAsync(l => l.Id == existente.Id, ct)
+                ? $"Este destino já tem o link {plataforma.Value.EnderecoDoLink(existente.Codigo)}."
+                : "Este destino já tem um link. Peça ao revendedor.");
         }
 
         var link = await Novo(comando.Titulo, destino, null, ct);
+        auditoria.Registrar(AcaoAuditada.LinkCriado, $"Link {link.Codigo}", link.Codigo, null, destino);
         await banco.SaveChangesAsync(ct);
         await transacao.CommitAsync(ct);
         return ParaDto(link);

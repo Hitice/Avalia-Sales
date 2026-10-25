@@ -122,7 +122,9 @@ public sealed class Vendas(
     IOptions<OpcoesDaPlataforma> plataforma,
     Notificacoes.Notificacoes notificacoes,
     TimeProvider relogio,
-    Financeiro.CustoDasPlacas custoDasPlacas)
+    Financeiro.CustoDasPlacas custoDasPlacas,
+    Clientes.PrivacidadeDoCliente privacidade,
+    Financeiro.RecebimentosPorFora porFora)
 {
     public const int ItensMaximos = 20;
 
@@ -345,11 +347,20 @@ public sealed class Vendas(
             throw new RegraDeNegocioException("Esta venda não tem valor a receber.");
         }
 
+        // O vendedor travado: dois cliques seguidos não passam juntos pelo limite do dia.
+        await using var transacao = await banco.Database.BeginTransactionAsync(ct);
+        await banco.TravarVendedor(venda.VendedorId, ct);
         await ExigirSemCobrancaViva(venda, "Venda com Pix em aberto ou já paga.", ct);
         var grupo = await DoGrupo(venda, ct);
-        await cobrancas.RegistrarPorFora(OrigemDaCobranca.Venda, venda.CobradaPor, meio, grupo.Sum(v => v.ValorCents), ct, grupo.Sum(v => v.ParteDaAvaliaCents));
-        await RegistrarNaPlaca(venda, AcaoAuditada.RecebidoPorFora, meio.ToString(), ct);
+        var total = grupo.Sum(v => v.ValorCents);
+        await porFora.ExigirDentroDoLimite(venda.VendedorId, total, ct);
+        var cobranca = await cobrancas.RegistrarPorFora(OrigemDaCobranca.Venda, venda.CobradaPor, meio, total, ct, grupo.Sum(v => v.ParteDaAvaliaCents));
+        await RegistrarNaPlaca(venda, AcaoAuditada.RecebidoPorFora, $"{meio}, {Financeiro.RecebimentosPorFora.Reais(total)}", ct);
+        var nomeDoCliente = await banco.Clientes.AsNoTracking().Where(c => c.Id == venda.ClienteId).Select(c => c.Nome).SingleAsync(ct);
+        var item = venda.PlacaId is { } placaId ? "placa " + await banco.Placas.Where(p => p.Id == placaId).Select(p => p.Codigo).SingleAsync(ct) : "serviço";
+        await porFora.Registrado(cobranca, venda.VendedorId, $"da venda de {nomeDoCliente} ({item})", $"/painel/vendas/{venda.Id}", venda.Id, ct);
         await banco.SaveChangesAsync(ct);
+        await transacao.CommitAsync(ct);
     }
 
     /// <summary>Confirmação por engano: o dono desfaz, e o razão recebe o estorno.</summary>
@@ -656,8 +667,10 @@ public sealed class Vendas(
             ?? throw new RegraDeNegocioException("Venda não encontrada.");
         var linha = (await Listar(id, ct)).Single();
 
-        var cliente = await banco.Clientes.AsNoTracking().Where(c => c.Id == venda.ClienteId)
+        var inteiro = await banco.Clientes.AsNoTracking().Where(c => c.Id == venda.ClienteId)
             .Select(c => new ClienteDaVenda(c.Id, c.Nome, c.Responsavel, c.Telefone, c.Documento, c.Email)).SingleAsync(ct);
+        var contato = Clientes.PrivacidadeDoCliente.Ver(await privacidade.Libera(inteiro.Id, ct), inteiro.Telefone, inteiro.Documento, inteiro.Email);
+        var cliente = inteiro with { Telefone = contato.Telefone, Documento = contato.Documento, Email = contato.Email };
         var cobranca = await banco.Cobrancas.AsNoTracking()
             .Where(c => c.Origem == OrigemDaCobranca.Venda && c.OrigemId == venda.CobradaPor).OrderByDescending(c => c.CriadaEm)
             .Select(c => new CobrancaDaVenda(c.Situacao, c.Meio, c.ValorCents, c.EstornadoCents, c.CriadaEm, c.PagaEm, c.PixExpiraEm,

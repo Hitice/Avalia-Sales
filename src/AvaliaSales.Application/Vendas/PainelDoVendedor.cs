@@ -21,7 +21,7 @@ public sealed record PlacaDaCarteira(Guid VendaId, string Codigo, Guid ClienteId
 /// carteira das placas que ele vendeu. O vendedor vê só a carteira dele; o
 /// revendedor vê a da revenda inteira. O filtro do revendedor faz o resto.
 /// </summary>
-public sealed class PainelDoVendedor(IBancoDeDados banco, IUsuarioAtual usuario, TimeProvider relogio)
+public sealed class PainelDoVendedor(IBancoDeDados banco, IUsuarioAtual usuario, Clientes.PrivacidadeDoCliente privacidade, TimeProvider relogio)
 {
     private static readonly TimeZoneInfo Brasilia = TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo");
     public const int PlacasNaCarteira = 500;
@@ -74,7 +74,9 @@ public sealed class PainelDoVendedor(IBancoDeDados banco, IUsuarioAtual usuario,
         var leituras = await banco.Leituras.AsNoTracking().Where(l => ids.Contains(l.PlacaId) && l.Dia >= desde)
             .GroupBy(l => l.PlacaId).Select(g => new { PlacaId = g.Key, Total = g.Sum(l => l.Total) }).ToListAsync(ct);
 
-        return linhas.Select(l => new PlacaDaCarteira(l.Id, l.Codigo, l.ClienteId, l.Nome, l.Responsavel, l.Telefone,
+        var liberados = await privacidade.Liberados(linhas.Select(l => l.ClienteId), ct);
+        return linhas.Select(l => new PlacaDaCarteira(l.Id, l.Codigo, l.ClienteId, l.Nome, l.Responsavel,
+            Clientes.PrivacidadeDoCliente.Ver(liberados.Contains(l.ClienteId), l.Telefone, null, null).Telefone,
             Placa.EstadoDe(l.Situacao, l.VenceEm, agora), l.VenceEm, l.TotalLeituras,
             leituras.FirstOrDefault(x => x.PlacaId == l.PlacaId)?.Total ?? 0)).ToList();
     }

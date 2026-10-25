@@ -45,6 +45,9 @@ public enum AcaoAuditada
     SaldoInicialDoCaixaExcluido,
     RenovacaoRecebidaPorFora,
     RenovacaoDesfeita,
+    LinkCriado,
+    RecebimentoConferido,
+    LimiteDePorForaDefinido,
 }
 
 /// <summary>

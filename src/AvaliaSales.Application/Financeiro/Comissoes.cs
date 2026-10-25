@@ -7,7 +7,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AvaliaSales.Application.Financeiro;
 
-public sealed record SaldoDeComissao(Guid VendedorId, string Vendedor, string? ChavePix, long DevidaCents, long RepassadaCents, long AbertaCents, DateTimeOffset? UltimoRepasse);
+/// <summary><paramref name="AguardandoConferenciaCents"/> - parte da comissão em aberto cuja venda foi recebida por fora e o dono ainda não conferiu: não entra em repasse.</summary>
+public sealed record SaldoDeComissao(Guid VendedorId, string Vendedor, string? ChavePix, long DevidaCents, long RepassadaCents, long AbertaCents, DateTimeOffset? UltimoRepasse,
+    long AguardandoConferenciaCents = 0);
 
 public sealed record RepasseDto(Guid Id, Guid VendedorId, string Vendedor, long ValorCents, int Vendas, DateTimeOffset AteVendaEm, DateTimeOffset PagoEm, string? Comprovante,
     DateTimeOffset? DesfeitoEm = null);
@@ -19,7 +21,7 @@ public sealed record NovoRepasse(Guid VendedorId, DateTimeOffset? Ate, string? C
 /// do razão: comissão devida das vendas pagas, menos estornos, menos o já
 /// repassado. A comissão só existe quando o cliente paga.
 /// </summary>
-public sealed class Comissoes(IBancoDeDados banco, IUsuarioAtual usuario, IContas contas, Auditoria.Auditoria auditoria, Notificacoes.Notificacoes notificacoes, TimeProvider relogio)
+public sealed class Comissoes(IBancoDeDados banco, IUsuarioAtual usuario, IContas contas, RecebimentosPorFora porFora, Auditoria.Auditoria auditoria, Notificacoes.Notificacoes notificacoes, TimeProvider relogio)
 {
     public async Task<IReadOnlyList<SaldoDeComissao>> Saldos(CancellationToken ct)
     {
@@ -35,11 +37,20 @@ public sealed class Comissoes(IBancoDeDados banco, IUsuarioAtual usuario, IConta
         var ultimos = await banco.Repasses.AsNoTracking().GroupBy(r => r.VendedorId)
             .Select(g => new { g.Key, Ultimo = g.Max(r => r.PagoEm) }).ToDictionaryAsync(x => x.Key, x => x.Ultimo, ct);
 
+        var aguardando = (await porFora.Pendencias(null, ct)).GroupBy(p => p.VendedorId)
+            .ToDictionary(g => g.Key, g => g.Select(p => (Guid?)p.VendaId).ToList());
+        var semConferir = await banco.Lancamentos.AsNoTracking()
+            .Where(l => l.Tipo == TipoDeLancamento.ComissaoDevida && l.VendedorId != null && aguardando.Keys.Select(k => (Guid?)k).Contains(l.VendedorId))
+            .Select(l => new { l.VendedorId, l.VendaId, l.ValorCents }).ToListAsync(ct);
+
         return vendedores.Select(v =>
         {
+            var retida = aguardando.TryGetValue(v.Id, out var vendasRetidas)
+                ? -semConferir.Where(l => l.VendedorId == v.Id && vendasRetidas.Contains(l.VendaId)).Sum(l => l.ValorCents)
+                : 0;
             var devida = -linhas.Where(l => l.VendedorId == v.Id && l.Tipo == TipoDeLancamento.ComissaoDevida).Sum(l => l.Total);
             var repassada = -linhas.Where(l => l.VendedorId == v.Id && l.Tipo == TipoDeLancamento.ComissaoPaga).Sum(l => l.Total);
-            return new SaldoDeComissao(v.Id, v.Nome, v.ChavePix, devida, repassada, devida - repassada, ultimos.TryGetValue(v.Id, out var u) ? u : null);
+            return new SaldoDeComissao(v.Id, v.Nome, v.ChavePix, devida, repassada, devida - repassada, ultimos.TryGetValue(v.Id, out var u) ? u : null, retida);
         }).ToList();
     }
 
@@ -66,9 +77,11 @@ public sealed class Comissoes(IBancoDeDados banco, IUsuarioAtual usuario, IConta
         var vendedor = await banco.Vendedores.AsNoTracking().SingleOrDefaultAsync(v => v.Id == pedido.VendedorId, ct)
             ?? throw new RegraDeNegocioException("Vendedor não encontrado.");
 
+        // Venda recebida por fora que o dono não conferiu espera: a comissão dela fica fora deste repasse.
+        var retidas = (await porFora.Pendencias(vendedor.Id, ct)).Select(p => (Guid?)p.VendaId).ToList();
         // O corte vale para a comissão, e o estorno dela vai junto mesmo depois do corte: a venda cancelada não é repassada.
         var originais = await banco.Lancamentos
-            .Where(l => l.VendedorId == vendedor.Id && l.Tipo == TipoDeLancamento.ComissaoDevida && l.EstornaId == null && l.OcorridoEm <= ate)
+            .Where(l => l.VendedorId == vendedor.Id && l.Tipo == TipoDeLancamento.ComissaoDevida && l.EstornaId == null && l.OcorridoEm <= ate && !retidas.Contains(l.VendaId))
             .ToListAsync(ct);
         var idsDasOriginais = originais.Select(l => (Guid?)l.Id).ToList();
         var estornos = await banco.Lancamentos
