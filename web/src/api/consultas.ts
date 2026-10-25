@@ -10,7 +10,7 @@ export const consultas = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, retry: 1 } },
   mutationCache: new MutationCache({
     onSuccess: (_dados, _variaveis, _contexto, mutacao) => {
-      if (mutacao.meta?.sucesso) toast.success(mutacao.meta.sucesso)
+      if (mutacao.meta?.sucesso) toast.success(mutacao.meta.sucesso, { id: mutacao.meta.sucesso })
     },
   }),
 })

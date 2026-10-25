@@ -1,6 +1,7 @@
 import QRCode from 'qrcode'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { copiar } from '@/lib/area'
 
 /** O QR e o copia e cola do Pix, para o cliente pagar ali no balcão. */
 export function PixNaTela({ copiaECola, imagemDoGateway }: { copiaECola: string; imagemDoGateway: string | null }) {
@@ -19,7 +20,11 @@ export function PixNaTela({ copiaECola, imagemDoGateway }: { copiaECola: string;
       <img className="mx-auto w-64 rounded-lg border bg-card p-2" alt="QR do Pix para o cliente pagar" src={imagemDoGateway ?? imagem ?? undefined} />
       <Button
         variant="outline"
-        onClick={() => navigator.clipboard.writeText(copiaECola).then(() => { setCopiado(true); setRecusado(false) }, () => setRecusado(true))}
+        onClick={async () => {
+          const copiou = await copiar(copiaECola)
+          setCopiado(copiou)
+          setRecusado(!copiou)
+        }}
       >
         {copiado ? 'Copiado' : 'Copiar Pix copia e cola'}
       </Button>

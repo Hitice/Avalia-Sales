@@ -71,3 +71,56 @@ describe('chamarApi: erros na tela', () => {
     expect(mensagemDoErro(await chamarApi('/x').catch((e: unknown) => e))).toBe('Sem conexão com o servidor.')
   })
 })
+
+describe('chamarApi: gravação repetida', () => {
+  const gravar = (corpo: unknown, caminho = '/financeiro/despesas') => chamarApi(caminho, { method: 'POST', body: JSON.stringify(corpo) })
+
+  it('o mesmo POST enquanto o primeiro não voltou (toque duplo) vai uma vez só e as duas chamadas recebem a resposta', async () => {
+    let soltar: () => void = () => undefined
+    const fetch = vi.fn(() => new Promise<Response>((resolver) => { soltar = () => resolver(resposta({ id: 'd1' }, 201)) }))
+    vi.stubGlobal('fetch', fetch)
+
+    const a = gravar({ valorCents: 1000 })
+    const b = gravar({ valorCents: 1000 })
+    soltar()
+
+    expect(await Promise.all([a, b])).toEqual([{ id: 'd1' }, { id: 'd1' }])
+    expect(fetch).toHaveBeenCalledTimes(1)
+  })
+
+  it('corpo diferente, ou outro caminho, são gravações diferentes', async () => {
+    const fetch = vi.fn(async () => resposta({}, 201))
+    vi.stubGlobal('fetch', fetch)
+
+    await Promise.all([gravar({ valorCents: 1000 }), gravar({ valorCents: 2000 }), gravar({ valorCents: 1000 }, '/financeiro/retiradas')])
+
+    expect(fetch).toHaveBeenCalledTimes(3)
+  })
+
+  it('depois que a primeira terminou, repetir é uma gravação nova', async () => {
+    const fetch = vi.fn(async () => resposta({}, 201))
+    vi.stubGlobal('fetch', fetch)
+
+    await gravar({ valorCents: 1000 })
+    await gravar({ valorCents: 1000 })
+
+    expect(fetch).toHaveBeenCalledTimes(2)
+  })
+
+  it('consulta (GET) nunca é unida: quem pede de novo quer o dado de agora', async () => {
+    const fetch = vi.fn(async () => resposta([]))
+    vi.stubGlobal('fetch', fetch)
+
+    await Promise.all([chamarApi('/vendas'), chamarApi('/vendas')])
+
+    expect(fetch).toHaveBeenCalledTimes(2)
+  })
+
+  it('a falha da primeira chega às duas', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => resposta({ detail: 'Venda recusada.' }, 422)))
+
+    const resultados = await Promise.allSettled([gravar({ a: 1 }), gravar({ a: 1 })])
+
+    expect(resultados.map((r) => r.status)).toEqual(['rejected', 'rejected'])
+  })
+})

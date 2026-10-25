@@ -62,11 +62,33 @@ export async function chamarResposta(caminho: string, opcoes: RequestInit = {}):
   return resposta
 }
 
-export async function chamarApi<T>(caminho: string, opcoes: RequestInit = {}): Promise<T> {
+async function executar<T>(caminho: string, opcoes: RequestInit): Promise<T> {
   const resposta = await chamarResposta(caminho, opcoes)
   if (resposta.status === 204) return undefined as T
   const texto = await resposta.text()
   return (texto ? JSON.parse(texto) : undefined) as T
+}
+
+/** Gravações em andamento, por método, caminho e corpo. */
+const emAndamento = new Map<string, Promise<unknown>>()
+
+/**
+ * Gravação idêntica enquanto a primeira não voltou (toque duplo, Enter repetido)
+ * vai uma vez só: as duas chamadas recebem a mesma resposta. O servidor não
+ * tem chave de idempotência nas gravações, então sem isto o segundo toque
+ * criava outra venda, despesa ou pedido. Consulta (GET) nunca é unida.
+ */
+export function chamarApi<T>(caminho: string, opcoes: RequestInit = {}): Promise<T> {
+  const metodo = (opcoes.method ?? 'GET').toUpperCase()
+  if (metodo === 'GET' || (opcoes.body !== undefined && typeof opcoes.body !== 'string')) return executar<T>(caminho, opcoes)
+
+  const chave = `${metodo} ${caminho} ${opcoes.body ?? ''}`
+  const igual = emAndamento.get(chave)
+  if (igual) return igual as Promise<T>
+
+  const chamada = executar<T>(caminho, opcoes).finally(() => emAndamento.delete(chave))
+  emAndamento.set(chave, chamada)
+  return chamada
 }
 
 export const enviarJson = (metodo: 'POST' | 'PUT' | 'DELETE', corpo?: unknown): RequestInit => ({

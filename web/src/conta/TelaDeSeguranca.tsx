@@ -12,6 +12,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field, FieldDescription, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { useEspera } from '@/lib/espera'
+import { copiar } from '@/lib/area'
+import { toast } from 'sonner'
 
 type Chave = components['schemas']['ChaveDoAutenticador']
 type Situacao = components['schemas']['SituacaoDoSegundoFator']
@@ -64,7 +66,7 @@ export function TelaDeSeguranca() {
             <div className="grid gap-2">
               <p className="text-sm font-medium">Guarde os códigos de recuperação. Cada um entra uma vez, se o celular sumir.</p>
               <ol className="grid grid-cols-2 gap-1 rounded-lg border p-3 font-mono text-sm">{ligar.data.map((c) => <li key={c}>{c}</li>)}</ol>
-              <Button variant="outline" onClick={() => navigator.clipboard.writeText(ligar.data.join('\n'))}>Copiar códigos</Button>
+              <Button variant="outline" onClick={async () => (await copiar(ligar.data.join('\n'))) ? toast.success('Códigos copiados.') : toast.error('Não deu para copiar. Selecione os códigos e copie.')}>Copiar códigos</Button>
             </div>
           )}
           {!ligado && !ligar.data && !chave && !pedirCodigo.isSuccess && (

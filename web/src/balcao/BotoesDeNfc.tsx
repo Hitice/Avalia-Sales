@@ -2,6 +2,7 @@ import { Nfc } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { copiar } from '@/lib/area'
 import { gravarNfc, mensagemDoNfc, nfcDisponivel } from './nfc'
 
 /** O NFC Tools nas lojas: no iPhone nenhum navegador grava NFC, e é o app que o Avalia já usa no balcão. */
@@ -20,7 +21,7 @@ const ehIphone = () => /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigato
 function GravarNoNfcTools({ endereco }: { endereco: string }) {
   const [aberto, setAberto] = useState(false)
   async function abrir() {
-    await navigator.clipboard.writeText(endereco).catch(() => undefined)
+    await copiar(endereco)
     setAberto(true)
     window.open(ehIphone() ? NFC_TOOLS.ios : NFC_TOOLS.android, '_blank', 'noopener')
   }
@@ -82,13 +83,17 @@ export function GravarNfc({ endereco }: { endereco: string }) {
 export function CopiarLink({ rotulo, endereco }: { rotulo: string; endereco: string }) {
   const [copiado, setCopiado] = useState(false)
   const [recusado, setRecusado] = useState(false)
-  const copiar = () => navigator.clipboard.writeText(endereco.toLowerCase()).then(() => { setCopiado(true); setRecusado(false) }, () => setRecusado(true))
+  const aoCopiar = async () => {
+    const copiou = await copiar(endereco.toLowerCase())
+    setCopiado(copiou)
+    setRecusado(!copiou)
+  }
   return (
     <div className="grid gap-1">
       <p className="text-xs text-muted-foreground">{rotulo}</p>
       <div className="flex gap-2">
         <Input readOnly aria-label={rotulo} value={endereco.toLowerCase()} onFocus={(e) => e.target.select()} />
-        <Button variant="outline" onClick={copiar}>{copiado ? 'Copiado' : 'Copiar'}</Button>
+        <Button variant="outline" onClick={aoCopiar}>{copiado ? 'Copiado' : 'Copiar'}</Button>
       </div>
       {recusado && <p role="alert" className="text-xs text-destructive">Não deu para copiar. Toque no endereço, selecione e copie.</p>}
     </div>

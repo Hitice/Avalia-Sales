@@ -1,5 +1,6 @@
 import { ChevronLeft, MessageCircle } from 'lucide-react'
 import { toast } from 'sonner'
+import { copiar } from '@/lib/area'
 import { Link, useParams } from 'react-router'
 import { mensagemDoErro } from '@/api/cliente'
 import { formatarData, formatarDataHora, formatarTelefone, ROTULO_DA_ORDEM, ROTULO_DO_CANCELAMENTO, ROTULO_DO_LANCAMENTO, ROTULO_DO_MEIO, ROTULO_DO_PAGAMENTO, TOM_DA_ORDEM } from '@/api/rotulos'
@@ -180,7 +181,7 @@ function EnviarPix({ codigo, valorCents, cliente }: { codigo: string; valorCents
     <div className="grid gap-2 border-t pt-4">
       <p className="text-sm font-medium">Enviar o Pix ao cliente</p>
       <div className="flex flex-wrap gap-2">
-        <Button variant="outline" onClick={() => navigator.clipboard.writeText(codigo).then(() => toast.success('Código Pix copiado.'))}>Copiar código Pix</Button>
+        <Button variant="outline" onClick={async () => (await copiar(codigo)) ? toast.success('Código Pix copiado.') : toast.error('Não deu para copiar. Selecione o código e copie.')}>Copiar código Pix</Button>
         <Button asChild variant="outline"><a href={`https://wa.me/${numero}?text=${encodeURIComponent(texto)}`} target="_blank" rel="noreferrer noopener"><MessageCircle aria-hidden />Enviar pelo WhatsApp</a></Button>
       </div>
     </div>

@@ -16,6 +16,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input'
 import { percentualOpcional, senhaOpcional, telefoneOpcional, texto } from '@/lib/esquemas'
 import { digitos, mascaraCpf, mascaraTelefone } from '@/lib/mascaras'
+import { copiar } from '@/lib/area'
+import { toast } from 'sonner'
 import { formatarCentavos, paraCentavos } from '@/dinheiro/dinheiro'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useAlterarVendedor, useAtivarVendedor, useConvidarVendedor, useCriarVendedor, useEquipe, useExcluirVendedor } from './consultas'
@@ -52,7 +54,7 @@ function Convite({ vendedor, aoFechar }: { vendedor: Vendedor; aoFechar: () => v
         </DialogHeader>
         <Input readOnly aria-label="Link do convite" value={link} onFocus={(e) => e.target.select()} />
         <div className="grid grid-cols-2 gap-2">
-          <Button variant="outline" onClick={() => navigator.clipboard.writeText(link).then(() => setCopiado(true))}>{copiado ? 'Copiado' : 'Copiar link'}</Button>
+          <Button variant="outline" onClick={async () => (await copiar(link)) ? setCopiado(true) : toast.error('Não deu para copiar. Selecione o link e copie.')}>{copiado ? 'Copiado' : 'Copiar link'}</Button>
           <Button variant="outline" asChild>
             <a href={`https://wa.me/${telefone ? (telefone.length <= 11 ? '55' + telefone : telefone) : ''}?text=${texto}`} target="_blank" rel="noreferrer">WhatsApp</a>
           </Button>

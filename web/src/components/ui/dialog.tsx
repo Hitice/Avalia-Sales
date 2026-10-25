@@ -50,10 +50,13 @@ function DialogContent({
   children,
   showCloseButton = true,
   onOpenAutoFocus,
+  onCloseAutoFocus,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean
 }) {
+  // Quem abriu o diálogo: quase todos abrem por estado, sem DialogTrigger, e o Radix só devolve o foco ao gatilho.
+  const abertoPor = React.useRef<HTMLElement | null>(null)
   return (
     <DialogPortal>
       <DialogOverlay />
@@ -61,10 +64,20 @@ function DialogContent({
         data-slot="dialog-content"
         // Ao abrir, o foco vai para o próprio modal (sem contorno), e não para o
         // primeiro botão: no toque, o Safari desenhava o contorno dele. O Tab segue igual.
-        onOpenAutoFocus={onOpenAutoFocus ?? ((evento) => {
+        onOpenAutoFocus={(evento) => {
+          abertoPor.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+          if (onOpenAutoFocus) return onOpenAutoFocus(evento)
           evento.preventDefault()
           ;(evento.currentTarget as HTMLElement | null)?.focus()
-        })}
+        }}
+        // Ao fechar, o foco volta a quem abriu (WCAG 2.4.3), em vez de cair no <body>.
+        onCloseAutoFocus={(evento) => {
+          onCloseAutoFocus?.(evento)
+          const origem = abertoPor.current
+          if (evento.defaultPrevented || !origem?.isConnected) return
+          evento.preventDefault()
+          origem.focus()
+        }}
         className={cn(
           "fixed top-1/2 left-1/2 z-50 grid w-full largura-com-margem -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl border bg-popover p-4 text-sm text-popover-foreground shadow-lg duration-150 ease-saida outline-none sm:max-w-sm md:p-5 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
           className
