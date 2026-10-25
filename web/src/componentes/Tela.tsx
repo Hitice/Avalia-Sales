@@ -77,15 +77,16 @@ export function Aviso({ children }: { children: ReactNode }) {
   )
 }
 
-/** Situação da placa. Em tabela, com largura fixa: "Ativa" e "Encerrada" ficam do mesmo tamanho e a coluna alinha. */
-export function EtiquetaDoEstado({ estado, largura = false }: { estado: EstadoDaPlaca; largura?: boolean }) {
-  return <Badge variant={TOM_DO_ESTADO[estado]} className={largura ? 'w-24 justify-center' : undefined}>{ROTULO_DO_ESTADO[estado]}</Badge>
+/** Situação da placa. Na coluna de situação da tabela, o selo estica até o mais largo dela (index.css). */
+export function EtiquetaDoEstado({ estado }: { estado: EstadoDaPlaca }) {
+  return <Badge variant={TOM_DO_ESTADO[estado]}>{ROTULO_DO_ESTADO[estado]}</Badge>
 }
 
 /**
  * A tabela dentro do cartão. No celular, as linhas viram cartões na largura
- * toda; no computador, a tabela encosta nas bordas do cartão (index.css).
+ * toda e correm com a página, sem barra de rolagem por cima do texto; no
+ * computador, a tabela encosta nas bordas do cartão (index.css).
  */
 export function Rolagem({ children }: { children: ReactNode }) {
-  return <div data-slot="rolagem" className="-mx-4 px-4 max-md:overflow-x-auto md:-mx-5 md:px-0">{children}</div>
+  return <div data-slot="rolagem" className="-mx-4 px-4 md:-mx-5 md:px-0">{children}</div>
 }

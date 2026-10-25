@@ -320,13 +320,14 @@
  * chega ao fim.
  */
 /*
- * Lista longa rola dentro dela, com o cabeçalho fixo: a página não cresce sem
- * fim e o título da coluna não some. A linha que a busca esconde sai também do
- * cartão do celular, que tem display próprio.
+ * Lista longa no computador rola dentro dela, com o cabeçalho fixo: a página
+ * não cresce sem fim e o título da coluna não some. No celular a lista corre
+ * com a página (md:rolagem-da-tabela). A linha que a busca esconde sai também
+ * do cartão do celular, que tem display próprio.
  */
 @utility rolagem-da-tabela {
   max-height: 70dvh;
-  overflow-y: auto;
+  overflow: auto;
   overscroll-behavior: contain;
 }
 
@@ -339,6 +340,38 @@
 
 [data-slot="table-row"][hidden] {
   display: none !important;
+}
+
+/*
+ * Colunas pelo tipo declarado no cabeçalho (TableHead tipo, copiado para as
+ * células). Número e data em algarismos de mesma largura. No computador,
+ * número à direita; número, data, situação e ações na largura do conteúdo,
+ * e o espaço que sobra fica com as colunas de texto. Na situação, o selo
+ * mais largo dita a coluna e os outros esticam até ele; o texto de apoio
+ * quebra embaixo sem alargar a coluna. Fora de @layer: vence o w-fit do selo.
+ */
+:is([data-slot="table-head"], [data-slot="table-cell"]):is([data-tipo="numero"], [data-tipo="data"]) {
+  font-variant-numeric: tabular-nums;
+}
+@media (width >= 48rem) {
+  :is([data-slot="table-head"], [data-slot="table-cell"]):is([data-tipo="numero"], [data-tipo="data"], [data-tipo="situacao"], [data-tipo="acoes"]) {
+    width: 1px;
+  }
+  :is([data-slot="table-head"], [data-slot="table-cell"]):is([data-tipo="numero"], [data-tipo="acoes"]) {
+    text-align: right;
+  }
+  [data-slot="table-cell"][data-tipo="situacao"] > [data-slot="badge"] {
+    width: 100%;
+  }
+  [data-slot="table-cell"][data-tipo="situacao"] > :not([data-slot="badge"]) {
+    display: block;
+    width: 0;
+    min-width: 100%;
+    white-space: normal;
+  }
+  [data-slot="table-cell"][data-tipo="situacao"] > [data-slot="badge"] ~ :not([data-slot="badge"]) {
+    margin-top: calc(var(--spacing) * 1);
+  }
 }
 
 @utility sombra-de-rolagem {

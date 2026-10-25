@@ -49,11 +49,11 @@ export function TelaDoRazao() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Data</TableHead>
+                    <TableHead tipo="data">Data</TableHead>
                     <TableHead>Tipo</TableHead>
-                    <TableHead>Condição</TableHead>
+                    <TableHead tipo="situacao">Condição</TableHead>
                     <TableHead>Descrição</TableHead>
-                    <TableHead className="text-right">Valor</TableHead>
+                    <TableHead tipo="numero">Valor</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -61,9 +61,9 @@ export function TelaDoRazao() {
                     <TableRow key={l.id}>
                       <TableCell>{formatarDataHora(l.ocorridoEm)}</TableCell>
                       <TableCell>{ROTULO[l.tipo]}</TableCell>
-                      <TableCell>{l.estorno ? <Badge variant="destructive" className="w-20 justify-center">Estorno</Badge> : <span className="text-muted-foreground">-</span>}</TableCell>
-                      <TableCell>{l.descricao}</TableCell>
-                      <TableCell className={`text-right tabular-nums ${l.valorCents < 0 ? 'text-muted-foreground' : ''}`}>{formatarCentavos(l.valorCents)}</TableCell>
+                      <TableCell>{l.estorno ? <Badge variant="erro">Estorno</Badge> : <span className="text-muted-foreground">-</span>}</TableCell>
+                      <TableCell className="min-w-48 whitespace-normal">{l.descricao}</TableCell>
+                      <TableCell className={l.valorCents < 0 ? 'text-muted-foreground' : undefined}>{formatarCentavos(l.valorCents)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

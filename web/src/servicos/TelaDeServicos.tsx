@@ -2,9 +2,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { chamarApi, enviarJson, mensagemDoErro } from '@/api/cliente'
 import { formatarDataHora, ROTULO_DA_ORDEM, TOM_DA_ORDEM } from '@/api/rotulos'
 import type { OrdemDeServico } from '@/api/tipos'
-import { Cabecalho, Erro, EstadoDaConsulta } from '@/componentes/Tela'
+import { type Acao, AcoesDaLinha } from '@/componentes/AcoesDaLinha'
+import { Cabecalho, Erro, EstadoDaConsulta, Rolagem } from '@/componentes/Tela'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
@@ -34,20 +34,15 @@ export function TelaDeServicosDaOperadora() {
       <p className="-mt-2 mb-4 text-sm text-muted-foreground">{aFazer} a fazer.</p>
       <Erro erro={mudar.error ? mensagemDoErro(mudar.error) : null} />
       <ListaDeOrdens ordens={ordens.data} carregando={ordens.isPending} erro={ordens.error} operadora
-        acoes={(o) => (
-          <div className="flex justify-end gap-2">
-            {o.situacao === 'AFazer' && <Button variant="outline" disabled={mudar.isPending} onClick={() => mudar.mutate({ id: o.id, acao: 'iniciar' })}>Iniciar</Button>}
-            {(o.situacao === 'AFazer' || o.situacao === 'EmAndamento') && (
-              <>
-                <Button disabled={mudar.isPending} onClick={() => mudar.mutate({ id: o.id, acao: 'entregar' })}>Entregar</Button>
-                <Button variant="ghost" className="text-destructive" disabled={mudar.isPending} onClick={() => mudar.mutate({ id: o.id, acao: 'cancelar' })}>Cancelar</Button>
-              </>
-            )}
-            {(o.situacao === 'Entregue' || o.situacao === 'Cancelada') && (
-              <Button variant="ghost" disabled={mudar.isPending} onClick={() => mudar.mutate({ id: o.id, acao: 'reabrir' })}>Reabrir</Button>
-            )}
-          </div>
-        )}
+        acoes={(o) => {
+          const acao = (rotulo: string, nome: 'iniciar' | 'entregar' | 'cancelar' | 'reabrir', destrutiva = false): Acao =>
+            ({ rotulo, destrutiva, desabilitada: mudar.isPending, aoClicar: () => mudar.mutate({ id: o.id, acao: nome }) })
+          const aberta = o.situacao === 'AFazer' || o.situacao === 'EmAndamento'
+          return {
+            principal: o.situacao === 'AFazer' ? acao('Iniciar', 'iniciar') : aberta ? acao('Entregar', 'entregar') : acao('Reabrir', 'reabrir'),
+            outras: [o.situacao === 'AFazer' && acao('Entregar', 'entregar'), aberta && acao('Cancelar', 'cancelar', true)],
+          }
+        }}
       />
     </>
   )
@@ -58,39 +53,41 @@ function ListaDeOrdens({ ordens, carregando, erro, operadora = false, acoes }: {
   carregando: boolean
   erro: unknown
   operadora?: boolean
-  acoes?: (o: OrdemDeServico) => React.ReactNode
+  acoes?: (o: OrdemDeServico) => { principal: Acao; outras: (Acao | false)[] }
 }) {
   return (
     <Card>
-      <CardContent className="pt-6">
+      <CardContent>
         <EstadoDaConsulta carregando={carregando} erro={erro} vazio={ordens?.length === 0} textoVazio="Nenhum serviço ainda. Venda um na Nova venda." />
         {ordens && ordens.length > 0 && (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Ordem</TableHead>
-                {operadora && <TableHead>Revenda</TableHead>}
-                <TableHead>Serviço</TableHead>
-                <TableHead>Cliente</TableHead>
-                <TableHead>Situação</TableHead>
-                <TableHead>Desde</TableHead>
-                {acoes && <TableHead><span className="sr-only">Ações</span></TableHead>}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {ordens.map((o) => (
-                <TableRow key={o.id}>
-                  <TableCell className="tabular-nums">{o.numero}</TableCell>
-                  {operadora && <TableCell>{o.revendedor}</TableCell>}
-                  <TableCell className="whitespace-normal">{o.quantidade > 1 ? `${o.quantidade}x ${o.produto}` : o.produto}</TableCell>
-                  <TableCell className="whitespace-normal">{o.cliente}</TableCell>
-                  <TableCell><Badge variant={TOM_DA_ORDEM[o.situacao]}>{ROTULO_DA_ORDEM[o.situacao]}</Badge></TableCell>
-                  <TableCell className="tabular-nums">{formatarDataHora(o.entregueEm ?? o.iniciadaEm ?? o.criadaEm)}</TableCell>
-                  {acoes && <TableCell className="text-right">{acoes(o)}</TableCell>}
+          <Rolagem>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Ordem</TableHead>
+                  {operadora && <TableHead>Revenda</TableHead>}
+                  <TableHead>Serviço</TableHead>
+                  <TableHead>Cliente</TableHead>
+                  <TableHead tipo="situacao">Situação</TableHead>
+                  <TableHead tipo="data">Desde</TableHead>
+                  {acoes && <TableHead tipo="acoes" />}
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {ordens.map((o) => (
+                  <TableRow key={o.id}>
+                    <TableCell className="font-medium tabular-nums">{o.numero}</TableCell>
+                    {operadora && <TableCell className="min-w-32 whitespace-normal">{o.revendedor}</TableCell>}
+                    <TableCell className="whitespace-normal">{o.quantidade > 1 ? `${o.quantidade}x ${o.produto}` : o.produto}</TableCell>
+                    <TableCell className="whitespace-normal">{o.cliente}</TableCell>
+                    <TableCell><Badge variant={TOM_DA_ORDEM[o.situacao]}>{ROTULO_DA_ORDEM[o.situacao]}</Badge></TableCell>
+                    <TableCell>{formatarDataHora(o.entregueEm ?? o.iniciadaEm ?? o.criadaEm)}</TableCell>
+                    {acoes && <TableCell><AcoesDaLinha nome={`ordem ${o.numero}`} {...acoes(o)} /></TableCell>}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Rolagem>
         )}
       </CardContent>
     </Card>

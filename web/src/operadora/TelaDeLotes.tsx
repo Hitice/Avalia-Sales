@@ -80,10 +80,10 @@ export function TelaDeLotes() {
                     <TableRow>
                       <TableHead>Lote</TableHead>
                       <TableHead>Título</TableHead>
-                      <TableHead className="text-right">Placas</TableHead>
-                      <TableHead>Gerado em</TableHead>
+                      <TableHead tipo="numero">Placas</TableHead>
+                      <TableHead tipo="data">Gerado em</TableHead>
                       <TableHead>Revendedor</TableHead>
-                      <TableHead><span className="sr-only">Arquivo</span></TableHead>
+                      <TableHead tipo="acoes" />
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -97,10 +97,10 @@ export function TelaDeLotes() {
                             {lote.arquivadoEm && <Badge variant="neutro">Arquivado</Badge>}
                           </span>
                         </TableCell>
-                        <TableCell className="text-right tabular-nums">{lote.quantidade}</TableCell>
+                        <TableCell>{lote.quantidade}</TableCell>
                         <TableCell>{formatarDataHora(lote.criadoEm)}</TableCell>
                         <TableCell className="min-w-32 whitespace-normal">{lote.revendedor ?? 'Livre'}</TableCell>
-                        <TableCell className="text-right">
+                        <TableCell>
                           <AcoesDaLinha nome={lote.rotulo} principal={{ rotulo: 'Baixar impressão', aoClicar: () => baixar(lote) }} outras={[
                             { rotulo: 'Só SVG', aoClicar: () => baixar(lote, 'Svg') },
                             { rotulo: 'Só PNG', aoClicar: () => baixar(lote, 'Png') },

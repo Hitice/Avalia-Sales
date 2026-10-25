@@ -1,4 +1,3 @@
-import { Ellipsis } from 'lucide-react'
 import { useState } from 'react'
 import { mensagemDoErro } from '@/api/cliente'
 import { ROTULO_DO_CANCELAMENTO } from '@/api/rotulos'
@@ -10,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { formatarCentavos, paraCentavos } from '@/dinheiro/dinheiro'
+import { temAcoesDaVenda } from './situacaoDaVenda'
 import { useCancelarVenda, useCorrigirVenda, useCortesia, useDesfazerRecebimento, useEquipe, useReceberPorFora, useTrocarPlaca } from './consultas'
 
 type Acao = 'Dinheiro' | 'OutroPix' | 'desfazer' | 'cortesia' | 'cancelar'
@@ -39,8 +39,9 @@ const CONFIRMACAO: Record<Acao, string> = {
  * O que se faz com a venda depois do balcão. A API recusa o que não cabe
  * (Pix em aberto, comissão já repassada); a tela só esconde o que nunca cabe.
  */
-export function AcoesDaVenda({ venda, dono, naPagina = false }: { venda: VendaDaLista; dono: boolean; naPagina?: boolean }) {
-  const [aberto, setAberto] = useState(false)
+export function AcoesDaVenda({ venda, dono, aoFechar }: { venda: VendaDaLista; dono: boolean; aoFechar?: () => void }) {
+  // Com aoFechar, a lista abre o modal pelo menu da linha; sem, a página da venda tem o botão.
+  const [aberto, setAberto] = useState(!!aoFechar)
   const [confirmando, setConfirmando] = useState<Acao | null>(null)
   const [codigo, setCodigo] = useState('')
   const [motivo, setMotivo] = useState<MotivoDaBaixa>('DefeitoDeImpressao')
@@ -69,9 +70,13 @@ export function AcoesDaVenda({ venda, dono, naPagina = false }: { venda: VendaDa
   const podeCancelar = dono && ativa && !venda.doSistemaAnterior
   // O vendedor troca na venda dele, com placa que está com ele; a API confere.
   const podeTrocar = ativa && !!venda.codigo
-  if (!ativa || (!dono && !podeReceber && !podeTrocar && !podeCancelar)) return null
+  if (!temAcoesDaVenda(venda, dono)) return null
 
   const fechar = (aberto: boolean) => {
+    if (!aberto && aoFechar) {
+      aoFechar()
+      return
+    }
     setAberto(aberto)
     setConfirmando(null)
     setCodigo('')
@@ -93,11 +98,7 @@ export function AcoesDaVenda({ venda, dono, naPagina = false }: { venda: VendaDa
 
   return (
     <Dialog open={aberto} onOpenChange={fechar}>
-      <DialogTrigger asChild>
-        {naPagina
-          ? <Button variant="outline">Editar ou cancelar</Button>
-          : <Button variant="ghost" size="icon" aria-label={`Mais ações da venda de ${venda.cliente}`} title="Mais ações"><Ellipsis aria-hidden /></Button>}
-      </DialogTrigger>
+      {!aoFechar && <DialogTrigger asChild><Button variant="outline">Editar ou cancelar</Button></DialogTrigger>}
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Placa {venda.codigo}</DialogTitle>

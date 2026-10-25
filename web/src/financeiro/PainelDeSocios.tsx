@@ -149,9 +149,9 @@ export function PainelDeSocios({ competencia }: { competencia: string | undefine
               <TableHeader>
                 <TableRow>
                   <TableHead>Sócio</TableHead>
-                  <TableHead>Data</TableHead>
-                  <TableHead className="text-right">Valor</TableHead>
-                  <TableHead><span className="sr-only">Ações</span></TableHead>
+                  <TableHead tipo="data">Data</TableHead>
+                  <TableHead tipo="numero">Valor</TableHead>
+                  <TableHead tipo="acoes" />
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -162,7 +162,7 @@ export function PainelDeSocios({ competencia }: { competencia: string | undefine
                       <p className="text-xs text-muted-foreground">{ROTULO_DA_RETIRADA[r.natureza]}{r.observacao ? ` - ${r.observacao}` : ''}</p>
                     </TableCell>
                     <TableCell>{formatarData(`${r.data}T12:00:00`)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{formatarCentavos(r.valorCents)}</TableCell>
+                    <TableCell>{formatarCentavos(r.valorCents)}</TableCell>
                     <TableCell>
                       <AcoesDaLinha nome={`retirada de ${r.socio}`} principal={{ rotulo: 'Editar', aoClicar: () => setRetirada(r) }}
                         outras={[{ rotulo: 'Excluir', destrutiva: true, desabilitada: excluirRetirada.isPending, aoClicar: () => excluirRetirada.mutate(r.id) }]} />
@@ -186,8 +186,8 @@ export function PainelDeSocios({ competencia }: { competencia: string | undefine
               <TableHeader>
                 <TableRow>
                   <TableHead>Sócio</TableHead>
-                  <TableHead className="text-right">Retiradas</TableHead>
-                  <TableHead><span className="sr-only">Ações</span></TableHead>
+                  <TableHead tipo="numero">Retiradas</TableHead>
+                  <TableHead tipo="acoes" />
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -197,7 +197,7 @@ export function PainelDeSocios({ competencia }: { competencia: string | undefine
                       <p className="font-medium">{s.nome}</p>
                       {s.cpf && <p className="text-xs text-muted-foreground">CPF {mascaraCpf(s.cpf)}</p>}
                     </TableCell>
-                    <TableCell className="text-right tabular-nums">{s.retiradas}</TableCell>
+                    <TableCell>{s.retiradas}</TableCell>
                     <TableCell>
                       <AcoesDaLinha nome={s.nome} principal={{ rotulo: 'Editar', aoClicar: () => setSocio(s) }}
                         outras={[{ rotulo: 'Excluir', destrutiva: true, desabilitada: excluirSocio.isPending, aoClicar: () => excluirSocio.mutate(s.id) }]} />

@@ -42,21 +42,21 @@ export function TelaDeClientes() {
                   <TableRow>
                     <TableHead>Cliente</TableHead>
                     <TableHead>Telefone</TableHead>
-                    <TableHead className="text-right">Placas</TableHead>
-                    <TableHead>Desde</TableHead>
+                    <TableHead tipo="numero">Placas</TableHead>
+                    <TableHead tipo="data">Desde</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {clientes.data.map((c) => (
                     <TableRow key={c.id}>
-                      <TableCell>
+                      <TableCell className="min-w-48 whitespace-normal">
                         <button type="button" className="text-left font-medium underline-offset-4 hover:underline" onClick={() => setAberto(c.id)}>
                           {c.nome} {c.anonimizado && <Badge variant="neutro">Anonimizado</Badge>}
                         </button>
                         {!c.anonimizado && <p className="text-xs text-muted-foreground">{c.responsavel}{c.email ? `, ${c.email}` : ''}</p>}
                       </TableCell>
                       <TableCell className="tabular-nums">{c.telefone ? formatarTelefone(c.telefone) : '-'}</TableCell>
-                      <TableCell className="text-right tabular-nums">{c.placas}</TableCell>
+                      <TableCell>{c.placas}</TableCell>
                       <TableCell>{formatarData(c.criadoEm)}</TableCell>
                     </TableRow>
                   ))}

@@ -6,10 +6,14 @@ import { Cabecalho, Erro, EstadoDaConsulta, Rolagem } from '@/componentes/Tela'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Field, FieldLabel } from '@/components/ui/field'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { formatarCentavos } from '@/dinheiro/dinheiro'
 import { useDespachar, useIniciarProducao, useLotes, usePedidosDaOperadora, useRegistrarPagamento } from './consultas'
+
+type Lote = NonNullable<ReturnType<typeof useLotes>['data']>[number]
 
 /** A fila da operadora: pedido pago ganha um lote livre da mesma quantidade. */
 export function TelaDePedidos() {
@@ -18,13 +22,13 @@ export function TelaDePedidos() {
   const pagar = useRegistrarPagamento()
   const despachar = useDespachar()
   const producao = useIniciarProducao()
-  const [loteEscolhido, setLoteEscolhido] = useState<Record<string, string>>({})
+  const [despachando, setDespachando] = useState<Pedido | null>(null)
   const livres = (pedido: Pedido) => (lotes.data ?? []).filter((l) => !l.despachadoEm && l.quantidade === pedido.quantidade)
 
   return (
     <>
       <Cabecalho titulo="Pedidos" />
-      <Erro erro={pagar.error ?? despachar.error ?? producao.error} />
+      <Erro erro={pagar.error ?? producao.error} />
       <Card className="mt-3">
         <CardContent>
           <EstadoDaConsulta carregando={pedidos.isPending} erro={pedidos.error} vazio={pedidos.data?.length === 0} textoVazio="Nenhum pedido ainda." />
@@ -34,71 +38,89 @@ export function TelaDePedidos() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Revendedor</TableHead>
-                    <TableHead className="text-right">Placas</TableHead>
-                    <TableHead className="text-right">Valor</TableHead>
-                    <TableHead>Pedido em</TableHead>
-                    <TableHead>Situação</TableHead>
+                    <TableHead tipo="numero">Placas</TableHead>
+                    <TableHead tipo="numero">Valor</TableHead>
+                    <TableHead tipo="data">Pedido em</TableHead>
+                    <TableHead tipo="situacao">Situação</TableHead>
                     <TableHead>Lote</TableHead>
-                    <TableHead><span className="sr-only">Ação</span></TableHead>
+                    <TableHead tipo="acoes" />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {pedidos.data.map((pedido) => (
-                    <TableRow key={pedido.id}>
-                      <TableCell className="min-w-32 font-medium whitespace-normal">{pedido.revendedor}</TableCell>
-                      <TableCell className="text-right tabular-nums">{pedido.quantidade}</TableCell>
-                      <TableCell className="text-right tabular-nums">{formatarCentavos(pedido.valorCents)}</TableCell>
-                      <TableCell>{formatarDataHora(pedido.criadoEm)}</TableCell>
-                      <TableCell><Badge variant={TOM_DO_PEDIDO[pedido.situacao]}>{rotuloDoPedido(pedido)}</Badge></TableCell>
-                      <TableCell>{pedido.lote ?? '-'}</TableCell>
-                      <TableCell className="text-right">
-                        {pedido.situacao === 'AguardandoPagamento' && (
-                          <Button variant="outline" disabled={pagar.isPending} onClick={() => pagar.mutate(pedido.id)}>Registrar pagamento</Button>
-                        )}
-                        {(pedido.situacao === 'Pago' || pedido.situacao === 'EmProducao') && (
-                          livres(pedido).length === 0
-                            ? (
-                                <div className="flex items-center justify-end gap-2">
-                                  {pedido.situacao === 'Pago' && <Button variant="outline" disabled={producao.isPending} onClick={() => producao.mutate(pedido.id)}>Iniciar produção</Button>}
-                                  <span className="text-sm text-muted-foreground">Gere um lote de {pedido.quantidade}</span>
-                                </div>
-                              )
-                            : (
-                                <div className="flex justify-end gap-2">
-                                  <Select value={loteEscolhido[pedido.id] ?? ''} onValueChange={(v) => setLoteEscolhido({ ...loteEscolhido, [pedido.id]: v })}>
-                                    <SelectTrigger aria-label="Lote" className="w-32"><SelectValue placeholder="Lote" /></SelectTrigger>
-                                    <SelectContent>
-                                      {livres(pedido).map((l) => <SelectItem key={l.id} value={String(l.numero)}>{l.rotulo}</SelectItem>)}
-                                    </SelectContent>
-                                  </Select>
-                                  <AcoesDaLinha
-                                    nome={`pedido de ${pedido.revendedor}`}
-                                    principal={{
-                                      rotulo: 'Despachar',
-                                      desabilitada: !loteEscolhido[pedido.id] || despachar.isPending,
-                                      aoClicar: () => despachar.mutate({ id: pedido.id, lote: Number(loteEscolhido[pedido.id]), retirada: false }),
-                                    }}
-                                    outras={[
-                                      {
-                                        rotulo: 'Pronto para retirada',
-                                        desabilitada: !loteEscolhido[pedido.id] || despachar.isPending,
-                                        aoClicar: () => despachar.mutate({ id: pedido.id, lote: Number(loteEscolhido[pedido.id]), retirada: true }),
-                                      },
-                                      pedido.situacao === 'Pago' && { rotulo: 'Iniciar produção', desabilitada: producao.isPending, aoClicar: () => producao.mutate(pedido.id) },
-                                    ]}
-                                  />
-                                </div>
-                              )
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {pedidos.data.map((pedido) => {
+                    const aDespachar = pedido.situacao === 'Pago' || pedido.situacao === 'EmProducao'
+                    const semLote = aDespachar && livres(pedido).length === 0
+                    return (
+                      <TableRow key={pedido.id}>
+                        <TableCell className="min-w-32 font-medium whitespace-normal">{pedido.revendedor}</TableCell>
+                        <TableCell>{pedido.quantidade}</TableCell>
+                        <TableCell>{formatarCentavos(pedido.valorCents)}</TableCell>
+                        <TableCell>{formatarDataHora(pedido.criadoEm)}</TableCell>
+                        <TableCell><Badge variant={TOM_DO_PEDIDO[pedido.situacao]}>{rotuloDoPedido(pedido)}</Badge></TableCell>
+                        <TableCell>{pedido.lote ?? (semLote ? <span className="text-muted-foreground">Gere um lote de {pedido.quantidade}</span> : '-')}</TableCell>
+                        <TableCell>
+                          <AcoesDaLinha
+                            nome={`pedido de ${pedido.revendedor}`}
+                            principal={
+                              pedido.situacao === 'AguardandoPagamento'
+                                ? { rotulo: 'Registrar pagamento', desabilitada: pagar.isPending, aoClicar: () => pagar.mutate(pedido.id) }
+                                : aDespachar && !semLote && { rotulo: 'Despachar', aoClicar: () => { despachar.reset(); setDespachando(pedido) } }
+                            }
+                            outras={[
+                              pedido.situacao === 'Pago' && { rotulo: 'Iniciar produção', desabilitada: producao.isPending, aoClicar: () => producao.mutate(pedido.id) },
+                            ]}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
                 </TableBody>
               </Table>
             </Rolagem>
           )}
         </CardContent>
       </Card>
+      {despachando && (
+        <Despacho pedido={despachando} lotes={livres(despachando)} ocupado={despachar.isPending} erro={despachar.error}
+          aoFechar={() => setDespachando(null)}
+          aoDespachar={(lote, retirada) => despachar.mutate({ id: despachando.id, lote, retirada }, { onSuccess: () => setDespachando(null) })} />
+      )}
     </>
+  )
+}
+
+/** O lote livre da mesma quantidade vai para a revenda: enviado pelo correio ou pronto para ela retirar. */
+function Despacho({ pedido, lotes, ocupado, erro, aoFechar, aoDespachar }: {
+  pedido: Pedido
+  lotes: Lote[]
+  ocupado: boolean
+  erro: unknown
+  aoFechar: () => void
+  aoDespachar: (lote: number, retirada: boolean) => void
+}) {
+  const [lote, setLote] = useState(lotes.length === 1 ? String(lotes[0].numero) : '')
+  return (
+    <Dialog open onOpenChange={(aberto) => !aberto && aoFechar()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Despachar pedido</DialogTitle>
+          <DialogDescription>{pedido.revendedor}, {pedido.quantidade} placas.</DialogDescription>
+        </DialogHeader>
+        <Erro erro={erro} />
+        <Field>
+          <FieldLabel htmlFor="lote-do-despacho">Lote</FieldLabel>
+          <Select value={lote} onValueChange={setLote}>
+            <SelectTrigger id="lote-do-despacho" className="w-full"><SelectValue placeholder="Escolha" /></SelectTrigger>
+            <SelectContent>
+              {lotes.map((l) => <SelectItem key={l.id} value={String(l.numero)}>{l.rotulo}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </Field>
+        <DialogFooter>
+          <Button variant="outline" disabled={!lote || ocupado} onClick={() => aoDespachar(Number(lote), true)}>Pronto para retirada</Button>
+          <Button disabled={!lote || ocupado} onClick={() => aoDespachar(Number(lote), false)}>Despachar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }

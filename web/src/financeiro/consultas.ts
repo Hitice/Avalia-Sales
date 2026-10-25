@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { chamarApi, enviarJson } from '@/api/cliente'
-import type { CategoriaDeDespesa, Despesa, DreDoMes, MesDoFinanceiro, MesDoHistorico, NaturezaDaRetirada, Retirada, Socio } from '@/api/tipos'
+import type { Caixa, CategoriaDeDespesa, Despesa, DreDoMes, MesDoFinanceiro, MesDoHistorico, NaturezaDaRetirada, Retirada, Socio } from '@/api/tipos'
 
 const doMes = (competencia: string | undefined) => (competencia ? `?competencia=${competencia}` : '')
 
@@ -41,6 +41,11 @@ export const useSalvarRetirada = () =>
   useGravar(({ id, ...r }: GravarRetirada & { id?: string }) =>
     chamarApi<Retirada>(id ? `/financeiro/retiradas/${id}` : '/financeiro/retiradas', enviarJson(id ? 'PUT' : 'POST', r)))
 export const useExcluirRetirada = () => useGravar((id: string) => chamarApi(`/financeiro/retiradas/${id}`, { method: 'DELETE' }))
+
+export const useCaixa = () => useQuery({ queryKey: ['financeiro', 'caixa'], queryFn: () => chamarApi<Caixa>('/financeiro/caixa') })
+export const useSalvarSaldoInicial = () =>
+  useGravar((s: { competencia: string; valorCents: number }) => chamarApi<Caixa>('/financeiro/caixa', enviarJson('PUT', s)))
+export const useExcluirSaldoInicial = () => useGravar(() => chamarApi('/financeiro/caixa', { method: 'DELETE' }))
 
 export const useFecharMes = () => useGravar((competencia: string) => chamarApi('/financeiro/fechamentos', enviarJson('POST', { competencia })))
 export const useReabrirMes = () =>

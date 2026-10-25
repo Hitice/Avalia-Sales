@@ -4,7 +4,8 @@ import { useState } from 'react'
 import { chamarApi, chamarResposta, mensagemDoErro } from '@/api/cliente'
 import { ROTULO_DA_ACAO, formatarDataHora } from '@/api/rotulos'
 import type { PaginaDeAuditoria, RegistroDeAuditoria } from '@/api/tipos'
-import { Cabecalho, Erro, EstadoDaConsulta } from '@/componentes/Tela'
+import { AcoesDaLinha } from '@/componentes/AcoesDaLinha'
+import { Cabecalho, Erro, EstadoDaConsulta, Rolagem } from '@/componentes/Tela'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -57,35 +58,35 @@ export function TelaDeAuditoria() {
       </div>
       <Erro erro={erroDaExportacao ? mensagemDoErro(erroDaExportacao) : null} />
       <Card>
-        <CardContent className="grid gap-4 pt-6">
+        <CardContent className="grid gap-4">
           <EstadoDaConsulta carregando={consulta.isPending} erro={consulta.error} vazio={consulta.data?.registros.length === 0} textoVazio="Nada registrado." />
           {consulta.data && consulta.data.registros.length > 0 && (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Quando</TableHead>
-                  <TableHead>Quem</TableHead>
-                  <TableHead>Ação</TableHead>
-                  <TableHead>Alvo</TableHead>
-                  <TableHead>Mudança</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {consulta.data.registros.map((r) => (
-                  <TableRow key={r.id}>
-                    <TableCell className="whitespace-nowrap tabular-nums">{formatarDataHora(r.ocorridoEm)}</TableCell>
-                    <TableCell>{r.quem}</TableCell>
-                    <TableCell><Badge variant="secondary">{ROTULO_DA_ACAO[r.acao]}</Badge></TableCell>
-                    <TableCell className="whitespace-normal">{r.alvo}</TableCell>
-                    <TableCell>
-                      {r.antes || r.depois
-                        ? <Button variant="outline" size="sm" onClick={() => setAberto(r)}>Visualizar histórico</Button>
-                        : <span className="text-muted-foreground">-</span>}
-                    </TableCell>
+            <Rolagem>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead tipo="data">Quando</TableHead>
+                    <TableHead>Quem</TableHead>
+                    <TableHead tipo="situacao">Ação</TableHead>
+                    <TableHead>Alvo</TableHead>
+                    <TableHead tipo="acoes" />
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {consulta.data.registros.map((r) => (
+                    <TableRow key={r.id}>
+                      <TableCell>{formatarDataHora(r.ocorridoEm)}</TableCell>
+                      <TableCell className="min-w-32 whitespace-normal">{r.quem}</TableCell>
+                      <TableCell><Badge variant="secondary">{ROTULO_DA_ACAO[r.acao]}</Badge></TableCell>
+                      <TableCell className="min-w-48 whitespace-normal">{r.alvo}</TableCell>
+                      <TableCell>
+                        <AcoesDaLinha nome={`registro de ${formatarDataHora(r.ocorridoEm)}`} principal={!!(r.antes || r.depois) && { rotulo: 'Ver mudança', aoClicar: () => setAberto(r) }} />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Rolagem>
           )}
           <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
             <span className="text-muted-foreground tabular-nums">{total === 0 ? 'Nenhum registro' : `${primeiro} a ${Math.min(pagina * POR_PAGINA, total)} de ${total}`}</span>

@@ -2,6 +2,7 @@ import { importLibrary, setOptions } from '@googlemaps/js-api-loader'
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { chamarApi } from '@/api/cliente'
+import { AcoesDaLinha } from '@/componentes/AcoesDaLinha'
 import { Aviso, Cabecalho, EstadoDaConsulta, Rolagem } from '@/componentes/Tela'
 import { Card, CardContent } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -82,23 +83,22 @@ export function TelaDoMapa() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Negócio</TableHead>
-                    <TableHead className="text-right">Placas</TableHead>
-                    <TableHead className="text-right">No ar</TableHead>
-                    <TableHead className="text-right">Leituras em 30 dias</TableHead>
-                    <TableHead><span className="sr-only">Abrir</span></TableHead>
+                    <TableHead tipo="numero">Placas</TableHead>
+                    <TableHead tipo="numero">No ar</TableHead>
+                    <TableHead tipo="numero">Leituras em 30 dias</TableHead>
+                    <TableHead tipo="acoes" />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {visiveis.map((l) => (
                     <TableRow key={l.clienteId}>
                       <TableCell className="font-medium">{l.nome}</TableCell>
-                      <TableCell className="text-right tabular-nums">{l.placas}</TableCell>
-                      <TableCell className="text-right tabular-nums">{l.placasNoAr}</TableCell>
-                      <TableCell className="text-right tabular-nums">{l.leituras30Dias}</TableCell>
-                      <TableCell className="text-right">
-                        <a className="text-sm underline underline-offset-4" target="_blank" rel="noreferrer noopener" href={`https://www.google.com/maps/place/?q=place_id:${encodeURIComponent(l.lugarNoGoogle)}`}>
-                          Abrir no Google Maps
-                        </a>
+                      <TableCell>{l.placas}</TableCell>
+                      <TableCell>{l.placasNoAr}</TableCell>
+                      <TableCell>{l.leituras30Dias}</TableCell>
+                      <TableCell>
+                        <AcoesDaLinha nome={l.nome}
+                          principal={{ rotulo: 'Abrir no Google Maps', href: `https://www.google.com/maps/place/?q=place_id:${encodeURIComponent(l.lugarNoGoogle)}` }} />
                       </TableCell>
                     </TableRow>
                   ))}

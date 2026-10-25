@@ -3,7 +3,9 @@ import { Link } from 'react-router'
 import { mensagemDoErro } from '@/api/cliente'
 import { formatarData, formatarDataHora } from '@/api/rotulos'
 import type { SaldoDeComissao } from '@/api/tipos'
+import { AcoesDaLinha } from '@/componentes/AcoesDaLinha'
 import { Cabecalho, Erro, EstadoDaConsulta, Rolagem } from '@/componentes/Tela'
+import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
@@ -54,23 +56,23 @@ export function TelaDeComissoes() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Vendedor</TableHead>
-                      <TableHead className="text-right">Devida</TableHead>
-                      <TableHead className="text-right">Repassada</TableHead>
-                      <TableHead className="text-right">A pagar</TableHead>
-                      <TableHead>Último repasse</TableHead>
-                      <TableHead><span className="sr-only">Ação</span></TableHead>
+                      <TableHead tipo="numero">Devida</TableHead>
+                      <TableHead tipo="numero">Repassada</TableHead>
+                      <TableHead tipo="numero">A pagar</TableHead>
+                      <TableHead tipo="data">Último repasse</TableHead>
+                      <TableHead tipo="acoes" />
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {saldos.data.map((s) => (
                       <TableRow key={s.vendedorId}>
-                        <TableCell><p className="font-medium">{s.vendedor}</p>{s.chavePix && <p className="text-xs text-muted-foreground">Pix {s.chavePix}</p>}</TableCell>
-                        <TableCell className="text-right tabular-nums">{formatarCentavos(s.devidaCents)}</TableCell>
-                        <TableCell className="text-right tabular-nums">{formatarCentavos(s.repassadaCents)}</TableCell>
-                        <TableCell className={`text-right font-medium tabular-nums ${s.abertaCents < 0 ? 'text-destructive' : ''}`}>{formatarCentavos(s.abertaCents)}</TableCell>
+                        <TableCell className="min-w-48 whitespace-normal"><p className="font-medium">{s.vendedor}</p>{s.chavePix && <p className="text-xs text-muted-foreground">Pix {s.chavePix}</p>}</TableCell>
+                        <TableCell>{formatarCentavos(s.devidaCents)}</TableCell>
+                        <TableCell>{formatarCentavos(s.repassadaCents)}</TableCell>
+                        <TableCell className={`font-medium ${s.abertaCents < 0 ? 'text-destructive' : ''}`}>{formatarCentavos(s.abertaCents)}</TableCell>
                         <TableCell>{formatarData(s.ultimoRepasse)}</TableCell>
-                        <TableCell className="text-right">
-                          <Button variant="outline" disabled={s.abertaCents <= 0} onClick={() => { setEscolhido(s); repassar.reset() }}>Repassar</Button>
+                        <TableCell>
+                          <AcoesDaLinha nome={s.vendedor} principal={s.abertaCents > 0 && { rotulo: 'Repassar', aoClicar: () => { setEscolhido(s); repassar.reset() } }} />
                         </TableCell>
                       </TableRow>
                     ))}
@@ -89,13 +91,14 @@ export function TelaDeComissoes() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Pago em</TableHead>
+                      <TableHead tipo="data">Pago em</TableHead>
                       <TableHead>Vendedor</TableHead>
-                      <TableHead className="text-right">Valor</TableHead>
-                      <TableHead className="text-right">Vendas</TableHead>
-                      <TableHead>Até as vendas de</TableHead>
+                      <TableHead tipo="numero">Valor</TableHead>
+                      <TableHead tipo="numero">Vendas</TableHead>
+                      <TableHead tipo="data">Até as vendas de</TableHead>
                       <TableHead>Comprovante</TableHead>
-                      <TableHead><span className="sr-only">Ações</span></TableHead>
+                      <TableHead tipo="situacao">Situação</TableHead>
+                      <TableHead tipo="acoes" />
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -103,14 +106,15 @@ export function TelaDeComissoes() {
                       <TableRow key={r.id}>
                         <TableCell>{formatarDataHora(r.pagoEm)}</TableCell>
                         <TableCell>{r.vendedor}</TableCell>
-                        <TableCell className="text-right tabular-nums">{formatarCentavos(r.valorCents)}</TableCell>
-                        <TableCell className="text-right tabular-nums">{r.vendas}</TableCell>
+                        <TableCell>{formatarCentavos(r.valorCents)}</TableCell>
+                        <TableCell>{r.vendas}</TableCell>
                         <TableCell>{formatarData(r.ateVendaEm)}</TableCell>
-                        <TableCell>{r.comprovante ?? '-'}</TableCell>
-                        <TableCell className="text-right">
-                          {r.desfeitoEm
-                            ? <span className="text-sm text-muted-foreground">Desfeito</span>
-                            : ultimos.has(r.id) && <Button variant="ghost" size="sm" disabled={desfazer.isPending} onClick={() => desfazer.mutate(r.id)}>Desfazer</Button>}
+                        <TableCell className="min-w-32 whitespace-normal">{r.comprovante ?? '-'}</TableCell>
+                        <TableCell><Badge variant={r.desfeitoEm ? 'neutro' : 'sucesso'}>{r.desfeitoEm ? 'Desfeito' : 'Pago'}</Badge></TableCell>
+                        <TableCell>
+                          <AcoesDaLinha nome={`repasse de ${r.vendedor}`} outras={[
+                            !r.desfeitoEm && ultimos.has(r.id) && { rotulo: 'Desfazer', destrutiva: true, desabilitada: desfazer.isPending, aoClicar: () => desfazer.mutate(r.id) },
+                          ]} />
                         </TableCell>
                       </TableRow>
                     ))}

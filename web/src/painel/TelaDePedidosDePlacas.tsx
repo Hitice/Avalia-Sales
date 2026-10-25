@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { mensagemDoErro } from '@/api/cliente'
 import { formatarDataHora, rotuloDoPedido, TOM_DO_PEDIDO } from '@/api/rotulos'
+import { AcoesDaLinha } from '@/componentes/AcoesDaLinha'
 import { Cabecalho, Erro, EstadoDaConsulta, Rolagem } from '@/componentes/Tela'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -41,42 +42,40 @@ export function TelaDePedidosDePlacas() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Pedido em</TableHead>
-                      <TableHead className="text-right">Placas</TableHead>
-                      <TableHead className="text-right">Valor</TableHead>
-                      <TableHead>Situação</TableHead>
+                      <TableHead tipo="data">Pedido em</TableHead>
+                      <TableHead tipo="numero">Placas</TableHead>
+                      <TableHead tipo="numero">Valor</TableHead>
+                      <TableHead tipo="situacao">Situação</TableHead>
                       <TableHead>Lote</TableHead>
-                      <TableHead><span className="sr-only">Ação</span></TableHead>
+                      <TableHead tipo="acoes" />
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {pedidos.data.map((p) => (
                       <TableRow key={p.id}>
                         <TableCell>{formatarDataHora(p.criadoEm)}</TableCell>
-                        <TableCell className="text-right tabular-nums">{p.quantidade}</TableCell>
-                        <TableCell className="text-right tabular-nums">
+                        <TableCell>{p.quantidade}</TableCell>
+                        <TableCell>
                           {formatarCentavos(p.valorCents)}
                           {p.cupom && <span className="block text-xs text-muted-foreground">cupom {p.cupom}, menos {formatarCentavos(p.descontoCents)}</span>}
                         </TableCell>
                         <TableCell><Badge variant={TOM_DO_PEDIDO[p.situacao]}>{rotuloDoPedido(p)}</Badge></TableCell>
                         <TableCell>{p.lote ?? '-'}</TableCell>
-                        <TableCell className="text-right">
+                        <TableCell>
                           {p.situacao === 'AguardandoPagamento' && (
-                            <div className="flex justify-end gap-2">
-                              <Button
-                                disabled={pagar.isPending}
-                                onClick={async () => {
+                            <AcoesDaLinha nome={`pedido de ${p.quantidade} placas`}
+                              principal={{
+                                rotulo: 'Pagar',
+                                desabilitada: pagar.isPending,
+                                aoClicar: async () => {
                                   // A página do Pagar.me abre em outra aba; o pedido fica pago aqui quando o pagamento cai.
                                   const aba = window.open('', '_blank')
                                   const url = p.urlDePagamento ?? (await pagar.mutateAsync(p.id).catch(() => null))?.url
                                   if (url && aba) aba.location.href = url
                                   else aba?.close()
-                                }}
-                              >
-                                Pagar
-                              </Button>
-                              {!p.urlDePagamento && <Button variant="ghost" onClick={() => cancelar.mutate(p.id)}>Cancelar</Button>}
-                            </div>
+                                },
+                              }}
+                              outras={[!p.urlDePagamento && { rotulo: 'Cancelar', destrutiva: true, aoClicar: () => cancelar.mutate(p.id) }]} />
                           )}
                         </TableCell>
                       </TableRow>

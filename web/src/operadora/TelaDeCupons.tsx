@@ -88,20 +88,20 @@ export function TelaDeCupons() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Código</TableHead>
-                      <TableHead className="text-right">Desconto</TableHead>
-                      <TableHead>Vale até</TableHead>
-                      <TableHead className="text-right">Usos</TableHead>
-                      <TableHead>Situação</TableHead>
-                      <TableHead><span className="sr-only">Ações</span></TableHead>
+                      <TableHead tipo="numero">Desconto</TableHead>
+                      <TableHead tipo="data">Vale até</TableHead>
+                      <TableHead tipo="numero">Usos</TableHead>
+                      <TableHead tipo="situacao">Situação</TableHead>
+                      <TableHead tipo="acoes" />
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {cupons.data.map((c) => (
                       <TableRow key={c.id}>
                         <TableCell className="font-medium tabular-nums">{c.codigo}</TableCell>
-                        <TableCell className="text-right tabular-nums">{c.descontoBps !== null ? formatarBps(c.descontoBps) : formatarCentavos(c.descontoCents ?? 0)}</TableCell>
+                        <TableCell>{c.descontoBps !== null ? formatarBps(c.descontoBps) : formatarCentavos(c.descontoCents ?? 0)}</TableCell>
                         <TableCell>{c.validoAte ? formatarData(c.validoAte) : 'Sem prazo'}</TableCell>
-                        <TableCell className="text-right tabular-nums">{c.usos}{c.usosMaximos ? ` de ${c.usosMaximos}` : ''}</TableCell>
+                        <TableCell>{c.usos}{c.usosMaximos ? ` de ${c.usosMaximos}` : ''}</TableCell>
                         <TableCell><Badge variant={c.ativo ? 'sucesso' : 'neutro'}>{c.ativo ? 'Ativo' : 'Desligado'}</Badge></TableCell>
                         <TableCell>
                           <AcoesDaLinha nome={c.codigo} principal={{ rotulo: 'Editar', aoClicar: () => editar(c) }} outras={[

@@ -2,34 +2,43 @@
 
 import * as React from "react"
 import { cn } from "cn"
+import { useRegiaoRolavel } from "@/lib/regiaoRolavel"
 import { Input } from "./input"
 
 /**
- * Copia o título de cada coluna para as células (data-rotulo), que o CSS do
- * celular mostra em cima do valor. A primeira coluna é o título do cartão e a
- * coluna sem título visível (ações) ocupa a linha toda: não levam rótulo.
+ * O que a coluna guarda, declarado só no cabeçalho (TableHead). No
+ * computador (index.css): número à direita e data, selo e ações na largura do
+ * conteúdo, para o texto ficar com o resto; selos da coluna com a largura do
+ * maior; ações sempre no "⋯" (AcoesDaLinha), na última coluna.
  */
-function rotular(tabela: HTMLTableElement | null) {
+export type TipoDaColuna = "texto" | "numero" | "data" | "situacao" | "acoes"
+
+/**
+ * Copia o título e o tipo de cada coluna para as células (data-rotulo e
+ * data-tipo). O CSS do celular mostra o rótulo ao lado do valor; a primeira
+ * coluna é o título do cartão e a de ações ocupa a linha toda, sem rótulo.
+ */
+function marcarColunas(tabela: HTMLTableElement | null) {
   if (!tabela?.tHead) return
-  const titulos = Array.from(tabela.tHead.rows[0]?.cells ?? []).map((th, i) =>
-    i === 0 || th.querySelector(".sr-only") ? null : th.textContent?.trim() || null)
+  const cabecalhos = Array.from(tabela.tHead.rows[0]?.cells ?? [])
+  const titulos = cabecalhos.map((th, i) =>
+    i === 0 || th.dataset.tipo === "acoes" || th.querySelector(".sr-only") ? null : th.textContent?.trim() || null)
+  const tipos = cabecalhos.map((th) => th.dataset.tipo ?? null)
   for (const corpo of Array.from(tabela.tBodies)) {
     for (const linha of Array.from(corpo.rows)) {
+      const alinhada = linha.cells.length === cabecalhos.length
       Array.from(linha.cells).forEach((celula, i) => {
-        const rotulo = linha.cells.length === titulos.length ? titulos[i] : null
+        const rotulo = alinhada ? titulos[i] : null
         if (rotulo) celula.dataset.rotulo = rotulo
         else delete celula.dataset.rotulo
+        const tipo = alinhada ? tipos[i] : null
+        if (tipo) celula.dataset.tipo = tipo
+        else delete celula.dataset.tipo
       })
     }
   }
 }
 
-/**
- * No celular (abaixo de md) cada linha vira um cartão: a tabela larga cortava
- * colunas a 390 px. No computador, tabela do painel (DESIGN.md): cabeçalho em
- * 12 px sobre o cinza-50, linhas de 44 px com fio claro, e a primeira e a
- * última coluna alinhadas ao texto do cartão.
- */
 /** Sem acento e em minúsculas: "Ótica" acha "otica". */
 const normalizar = (texto: string) => texto.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase()
 
@@ -50,13 +59,17 @@ function filtrar(tabela: HTMLTableElement | null, termo: string) {
 const LINHAS_PARA_BUSCA = 7
 
 /**
- * Toda tabela rola dentro dela com o cabeçalho fixo e, a partir de sete
- * linhas, ganha a busca: o texto filtra pelo que aparece na linha, sem
- * acento. Tabela paginada pela API busca só na página aberta; a tela dela tem
- * o filtro que vai à API.
+ * No celular (abaixo de md) cada linha vira um cartão e a lista corre com a
+ * página, sem rolagem própria. No computador, tabela do painel (DESIGN.md):
+ * rola dentro dela com o cabeçalho fixo, cabeçalho em 12 px sobre o cinza-50,
+ * linhas de 44 px com fio claro. Nos dois, a partir de sete linhas ganha a
+ * busca: o texto filtra pelo que aparece na linha, sem acento. Tabela
+ * paginada pela API busca só na página aberta; a tela dela tem o filtro que
+ * vai à API.
  */
 function Table({ className, ...props }: React.ComponentProps<"table">) {
   const ref = React.useRef<HTMLTableElement>(null)
+  const area = useRegiaoRolavel<HTMLDivElement>("Lista")
   const [termo, setTermo] = React.useState("")
   const [contagem, setContagem] = React.useState({ total: 0, visiveis: 0 })
   const termoAtual = React.useRef(termo)
@@ -64,7 +77,7 @@ function Table({ className, ...props }: React.ComponentProps<"table">) {
 
   const atualizar = React.useCallback(() => {
     const tabela = ref.current
-    rotular(tabela)
+    marcarColunas(tabela)
     const nova = filtrar(tabela, termoAtual.current)
     setContagem((velha) => (velha.total === nova.total && velha.visiveis === nova.visiveis ? velha : nova))
   }, [])
@@ -86,8 +99,7 @@ function Table({ className, ...props }: React.ComponentProps<"table">) {
           {termo.trim() && <p className="shrink-0 text-xs text-muted-foreground" aria-live="polite">{contagem.visiveis} de {contagem.total}</p>}
         </div>
       )}
-      {/* Área que rola recebe foco: quem usa teclado também rola a lista. */}
-      <div className="rolagem-da-tabela md:sombra-de-rolagem md:overflow-x-auto" tabIndex={0} role="region" aria-label="Lista">
+      <div ref={area} className="md:rolagem-da-tabela md:sombra-de-rolagem">
         <table
           ref={ref}
           data-slot="table"
@@ -146,16 +158,20 @@ function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
   )
 }
 
-function TableHead({ className, ...props }: React.ComponentProps<"th">) {
+/** Título da coluna. A coluna de ações não precisa de texto: o leitor de tela ouve "Ações". */
+function TableHead({ className, tipo = "texto", children, ...props }: React.ComponentProps<"th"> & { tipo?: TipoDaColuna }) {
   return (
     <th
       data-slot="table-head"
+      data-tipo={tipo}
       className={cn(
         "h-9 px-3 text-left align-middle text-xs font-medium whitespace-nowrap text-muted-foreground md:first:pl-5 md:last:pr-5 [&:has([role=checkbox])]:pr-0",
         className
       )}
       {...props}
-    />
+    >
+      {tipo === "acoes" && !children ? <span className="sr-only">Ações</span> : children}
+    </th>
   )
 }
 
@@ -166,14 +182,13 @@ function TableCell({ className, ...props }: React.ComponentProps<"td">) {
       className={cn(
         "h-11 px-3 py-1 align-middle whitespace-nowrap md:first:pl-5 md:last:pr-5 [&:has([role=checkbox])]:pr-0",
         // Celular: a primeira célula é o título do cartão; com rótulo, uma linha de rótulo à esquerda e valor à direita;
-        // sem rótulo e não primeira, as ações, numa fileira de botões de mesma largura.
-        "max-md:h-auto max-md:min-w-0 max-md:p-0 max-md:whitespace-normal",
+        // sem rótulo e não primeira, as ações, numa fileira de botões de mesma largura. Texto longo quebra em qualquer
+        // ponto em vez de passar da largura do cartão.
+        "max-md:h-auto max-md:min-w-0 max-md:p-0 max-md:wrap-anywhere max-md:whitespace-normal",
         "max-md:first:pb-2 max-md:first:text-base max-md:first:font-semibold",
         // O rótulo flutua à esquerda e o valor, inteiro (mesmo com mais de um pedaço), fica à direita.
         "max-md:data-[rotulo]:flow-root max-md:data-[rotulo]:py-1.5 max-md:data-[rotulo]:text-right",
         "max-md:before:float-left max-md:before:pr-4 max-md:before:text-left max-md:before:text-sm max-md:before:font-normal max-md:before:text-muted-foreground max-md:rotulo-da-celula",
-        // Computador: botões lado a lado quebram para a linha de baixo antes de a tabela passar da largura do cartão.
-        "md:[&>div.flex]:flex-wrap",
         "max-md:[&:not([data-rotulo]):not(:first-child)]:pt-3 max-md:[&:not([data-rotulo]):not(:first-child)>div]:grid max-md:[&:not([data-rotulo]):not(:first-child)>div]:auto-cols-fr max-md:[&:not([data-rotulo]):not(:first-child)>div]:grid-flow-col",
         className
       )}
@@ -197,11 +212,11 @@ function TableCaption({
 
 export {
   Table,
-  TableHeader,
   TableBody,
+  TableCaption,
+  TableCell,
   TableFooter,
   TableHead,
+  TableHeader,
   TableRow,
-  TableCell,
-  TableCaption,
 }

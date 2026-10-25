@@ -137,9 +137,19 @@ Tailwind estão desligados em `index.css` (`--color-*: initial` e os outros):
 - Tabela (`components/ui/table.tsx` dentro de `Rolagem`) - no computador,
   encosta nas bordas do cartão, cabeçalho de 36 px em 12 px sobre o cinza-50
   (vira o topo do cartão), linha de 44 px com fio cinza-100 e cinza-50 sob o
-  ponteiro; com título no cartão, o título ganha o fio de baixo. No celular,
-  cada linha vira um cartão com o rótulo da coluna à esquerda. Mais de uma
-  ação por linha usa `AcoesDaLinha`.
+  ponteiro; com título no cartão, o título ganha o fio de baixo. O tipo da
+  coluna vai só no cabeçalho (`TableHead tipo`): `numero` à direita, `data`,
+  `numero` em algarismos de mesma largura, `situacao` com os selos da coluna
+  na largura do maior e o texto de apoio embaixo, `acoes` na última coluna;
+  número, data, situação e ações ficam na largura do conteúdo e o resto vai
+  para o texto. Ação da linha é sempre `AcoesDaLinha`: no computador, o
+  mesmo "⋯" em toda linha, com a principal primeiro; botão e formulário
+  dentro da célula não entram (a ação abre um modal). Lista longa rola dentro
+  da tabela com o cabeçalho fixo e, a partir de sete linhas, ganha a busca.
+  No celular, cada linha vira um cartão com o rótulo da coluna à esquerda,
+  a primeira ação em botão e o resto no "⋯"; a lista corre com a página,
+  sem rolagem própria. A área que rola só vira parada de tabulação quando
+  rola e não tem link nem botão (`useRegiaoRolavel`).
 - Selo (`components/ui/badge.tsx`) - 22 px, raio cheio, 12 px em 500, ponto
   de 6 px na cor do texto. Variantes `sucesso`, `atencao`, `erro`, `info` e
   `neutro` para situação; `default` (cor da marca) só para contagem, como itens

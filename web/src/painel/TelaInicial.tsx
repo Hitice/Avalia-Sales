@@ -108,20 +108,20 @@ export function TelaInicial() {
                     <Table className="max-md:hidden">
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="w-20">Hora</TableHead>
+                          <TableHead tipo="data">Hora</TableHead>
                           <TableHead>Cliente</TableHead>
                           <TableHead>Item</TableHead>
-                          <TableHead className="text-right">Valor</TableHead>
-                          <TableHead className="w-48">Situação</TableHead>
+                          <TableHead tipo="numero">Valor</TableHead>
+                          <TableHead tipo="situacao">Situação</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {dados.hoje.map((v) => (
                           <TableRow key={v.id}>
-                            <TableCell className="text-muted-foreground tabular-nums">{hora.format(Date.parse(v.vendidaEm))}</TableCell>
+                            <TableCell className="text-muted-foreground">{hora.format(Date.parse(v.vendidaEm))}</TableCell>
                             <TableCell className="min-w-40 whitespace-normal">{v.cliente}</TableCell>
                             <TableCell className="min-w-40 whitespace-normal text-muted-foreground">{item(v)}</TableCell>
-                            <TableCell className="text-right tabular-nums">{formatarCentavos(v.valorCents)}</TableCell>
+                            <TableCell>{formatarCentavos(v.valorCents)}</TableCell>
                             <TableCell><Badge variant={tomDaVenda(v)}>{rotuloDaVenda(v)}</Badge></TableCell>
                           </TableRow>
                         ))}

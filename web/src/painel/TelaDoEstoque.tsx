@@ -70,11 +70,11 @@ export function TelaDoEstoque() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Código</TableHead>
-                      <TableHead>Situação</TableHead>
+                      <TableHead tipo="situacao">Situação</TableHead>
                       <TableHead>Com</TableHead>
-                      <TableHead>Vence em</TableHead>
-                      <TableHead className="text-right">Leituras</TableHead>
-                      {dono && <TableHead><span className="sr-only">Ações</span></TableHead>}
+                      <TableHead tipo="data">Vence em</TableHead>
+                      <TableHead tipo="numero">Leituras</TableHead>
+                      {dono && <TableHead tipo="acoes" />}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -82,14 +82,12 @@ export function TelaDoEstoque() {
                       <TableRow key={p.codigo}>
                         <TableCell><Link className="font-medium tabular-nums underline-offset-4 hover:underline" to={`/placa/${p.codigo}`}>{p.codigo}</Link></TableCell>
                         <TableCell>
-                          <span className="flex flex-wrap items-center gap-1.5">
-                            <EtiquetaDoEstado estado={p.estado} largura />
-                            {p.motivoDaBaixa && <span className="text-xs text-muted-foreground">{ROTULO_DA_BAIXA[p.motivoDaBaixa] ?? MOTIVO_DO_SISTEMA[p.motivoDaBaixa]}</span>}
-                          </span>
+                          <EtiquetaDoEstado estado={p.estado} />
+                          {p.motivoDaBaixa && <span className="text-xs text-muted-foreground max-md:ml-2">{ROTULO_DA_BAIXA[p.motivoDaBaixa] ?? MOTIVO_DO_SISTEMA[p.motivoDaBaixa]}</span>}
                         </TableCell>
                         <TableCell>{p.consignadaANome ?? '-'}</TableCell>
                         <TableCell>{formatarData(p.venceEm)}</TableCell>
-                        <TableCell className="text-right tabular-nums">{p.totalLeituras}</TableCell>
+                        <TableCell>{p.totalLeituras}</TableCell>
                         {dono && (
                           <TableCell>
                             <AcoesDaLinha nome={p.codigo} outras={[
@@ -152,9 +150,9 @@ function LotesDaRevenda() {
             <TableHeader>
               <TableRow>
                 <TableHead>Lote</TableHead>
-                <TableHead className="text-right">Em estoque</TableHead>
-                <TableHead className="text-right">Baixadas</TableHead>
-                <TableHead><span className="sr-only">Ações</span></TableHead>
+                <TableHead tipo="numero">Em estoque</TableHead>
+                <TableHead tipo="numero">Baixadas</TableHead>
+                <TableHead tipo="acoes" />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -166,8 +164,8 @@ function LotesDaRevenda() {
                     {l.titulo && <span className="block text-xs text-muted-foreground">{l.titulo}</span>}
                     {l.arquivadoEm && <span className="block text-xs text-muted-foreground">Arquivado</span>}
                   </TableCell>
-                  <TableCell className="text-right tabular-nums">{l.emEstoque}</TableCell>
-                  <TableCell className="text-right tabular-nums">{l.baixadas}</TableCell>
+                  <TableCell>{l.emEstoque}</TableCell>
+                  <TableCell>{l.baixadas}</TableCell>
                   <TableCell>
                     <AcoesDaLinha nome={l.rotulo} outras={[
                       { rotulo: l.arquivadoEm ? 'Desarquivar' : 'Arquivar', desabilitada: arquivar.isPending, aoClicar: () => arquivar.mutate({ id: l.id, arquivado: !l.arquivadoEm }) },

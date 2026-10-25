@@ -1,9 +1,11 @@
 import { Layers } from 'lucide-react'
+import { useState } from 'react'
 import { Link, Navigate, useSearchParams } from 'react-router'
 import { mensagemDoErro } from '@/api/cliente'
 import { formatarDataHora } from '@/api/rotulos'
 import { useSessao } from '@/acesso/sessao'
 import { useContaEncerrada } from '@/app/contaEncerrada'
+import { AcoesDaLinha } from '@/componentes/AcoesDaLinha'
 import { Aviso, Cabecalho, Erro, EstadoDaConsulta, Rolagem } from '@/componentes/Tela'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -12,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { formatarCentavos } from '@/dinheiro/dinheiro'
 import { AcoesDaVenda } from './AcoesDaVenda'
 import { useCobrarDeNovo, useSaldosDeComissao, useVendas } from './consultas'
-import { nomeDoProduto, rotuloDaVenda, tomDaVenda } from './situacaoDaVenda'
+import { nomeDoProduto, podeGerarCobranca, rotuloDaVenda, temAcoesDaVenda, tomDaVenda } from './situacaoDaVenda'
 
 /**
  * As vendas e a comissão de cada uma (a comissão só conta quando o cliente
@@ -43,6 +45,8 @@ function ListaDeVendas({ dono }: { dono: boolean }) {
   const pagas = (vendas.data ?? []).filter((v) => v.pagamento === 'Paga')
   const comissaoPaga = pagas.reduce((s, v) => s + v.comissaoCents, 0)
   // Vendas feitas juntas (mesma cobrança) compartilham o grupo: a lista diz quantas são.
+  const [editando, setEditando] = useState<string | null>(null)
+  const editada = vendas.data?.find((v) => v.id === editando)
   const porGrupo = (vendas.data ?? []).reduce<Record<string, number>>((mapa, v) => (v.grupoId ? { ...mapa, [v.grupoId]: (mapa[v.grupoId] ?? 0) + 1 } : mapa), {})
 
   return (
@@ -68,14 +72,14 @@ function ListaDeVendas({ dono }: { dono: boolean }) {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Data</TableHead>
+                    <TableHead tipo="data">Data</TableHead>
                     <TableHead>Cliente</TableHead>
                     <TableHead>Placa</TableHead>
                     {dono && <TableHead>Vendedor</TableHead>}
-                    <TableHead className="text-right">Valor</TableHead>
-                    <TableHead className="text-right md:max-xl:hidden">Comissão</TableHead>
-                    <TableHead>Pagamento</TableHead>
-                    <TableHead><span className="sr-only">Ação</span></TableHead>
+                    <TableHead tipo="numero">Valor</TableHead>
+                    <TableHead tipo="numero" className="md:max-xl:hidden">Comissão</TableHead>
+                    <TableHead tipo="situacao">Pagamento</TableHead>
+                    <TableHead tipo="acoes" />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -94,16 +98,16 @@ function ListaDeVendas({ dono }: { dono: boolean }) {
                       </TableCell>
                       <TableCell>{v.codigo ? <Link className="tabular-nums underline-offset-4 hover:underline" to={`/placa/${v.codigo}`}>{v.codigo}</Link> : <span className="text-muted-foreground">-</span>}</TableCell>
                       {dono && <TableCell className="min-w-28 whitespace-normal">{v.vendedor}</TableCell>}
-                      <TableCell className="text-right tabular-nums">{formatarCentavos(v.valorCents)}</TableCell>
-                      <TableCell className="text-right tabular-nums md:max-xl:hidden">{formatarCentavos(v.comissaoCents)}</TableCell>
+                      <TableCell>{formatarCentavos(v.valorCents)}</TableCell>
+                      <TableCell className="md:max-xl:hidden">{formatarCentavos(v.comissaoCents)}</TableCell>
                       <TableCell><Badge variant={tomDaVenda(v)}>{rotuloDaVenda(v)}</Badge></TableCell>
                       <TableCell>
-                        <div className="flex items-center justify-end gap-2">
-                          {v.situacao === 'Registrada' && !v.cortesia && !v.doSistemaAnterior && (v.pagamento === null || v.pagamento === 'Falhou' || v.pagamento === 'Cancelada') && (
-                            <Button variant="outline" disabled={cobrar.isPending} onClick={() => cobrar.mutate(v.id)}>Gerar cobrança</Button>
-                          )}
-                          <AcoesDaVenda venda={v} dono={dono} />
-                        </div>
+                        <AcoesDaLinha nome={`venda de ${v.cliente}`}
+                          principal={podeGerarCobranca(v) && { rotulo: 'Gerar cobrança', desabilitada: cobrar.isPending, aoClicar: () => cobrar.mutate(v.id) }}
+                          outras={[
+                            { rotulo: 'Abrir a venda', para: `${dono ? '/painel/vendas' : '/vendedor/vendas'}/${v.id}` },
+                            temAcoesDaVenda(v, dono) && { rotulo: 'Editar ou cancelar', aoClicar: () => setEditando(v.id) },
+                          ]} />
                       </TableCell>
                     </TableRow>
                   ))}
@@ -113,6 +117,7 @@ function ListaDeVendas({ dono }: { dono: boolean }) {
           )}
         </CardContent>
       </Card>
+      {editada && <AcoesDaVenda venda={editada} dono={dono} aoFechar={() => setEditando(null)} />}
     </>
   )
 }

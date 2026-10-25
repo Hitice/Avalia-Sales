@@ -104,9 +104,11 @@ operadora. Nenhuma regra pergunta se a revenda é a Avalia.
 
 ## 5. Telas
 
-Todas no mesmo app, liberadas pelo papel do usuário. Toda tabela rola dentro
-dela, com o cabeçalho fixo, e a partir de sete linhas ganha uma busca pelo
-texto da linha, sem acento. Gravar confirma na tela.
+Todas no mesmo app, liberadas pelo papel do usuário. No computador, toda
+tabela rola dentro dela, com o cabeçalho fixo, e as ações da linha ficam no
+menu "⋯" da última coluna. No celular, cada linha é um cartão que corre com a
+página, e a primeira ação vira botão. A partir de sete linhas, a lista ganha
+uma busca pelo texto da linha, sem acento. Gravar confirma na tela.
 
 ### Acesso e conta
 
@@ -748,6 +750,9 @@ porque está impresso nas placas vendidas.
 
 | Data | Mudança |
 | --- | --- |
+| 25/10/2026 | Financeiro - cartão Caixa com o saldo, o saldo inicial, as entradas e as saídas; o revendedor define, troca ou exclui o saldo inicial pelo cartão. Aporte de sócio na lista de naturezas da retirada. |
+| 25/10/2026 | Tabelas no celular - os cartões correm com a página, sem barra de rolagem por cima do texto; a busca fica em cima e a primeira ação do cartão vira botão. |
+| 25/10/2026 | Tabelas no computador - colunas alinhadas pelo tipo (número à direita, selos da mesma largura) e toda ação da linha no "⋯" da última coluna. Despachar pedido, editar e suspender revendedor passam a abrir em modal. |
 | 25/10/2026 | Caixa da revenda a partir do saldo inicial do mês (o capital de giro), com aporte de sócio; a venda trazida do sistema anterior é reconhecida inteira no mês dela. |
 | 25/10/2026 | Tela de entrada com os logos oficiais do Pagar.me e da Stone, nas cores das marcas; o Resend sai. |
 | 25/10/2026 | Mapa abre mais perto - com oito lugares ou mais, o enquadramento fica com os 80% do meio, e o lugar isolado na ponta da cidade aparece ao arrastar; zoom até o nível da rua. |

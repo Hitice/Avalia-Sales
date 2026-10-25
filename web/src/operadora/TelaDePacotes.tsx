@@ -61,19 +61,19 @@ export function TelaDePacotes() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="text-right">Placas</TableHead>
-                      <TableHead className="text-right">Preço</TableHead>
-                      <TableHead className="text-right">Por placa</TableHead>
-                      <TableHead>Situação</TableHead>
-                      <TableHead><span className="sr-only">Ações</span></TableHead>
+                      <TableHead>Pacote</TableHead>
+                      <TableHead tipo="numero">Preço</TableHead>
+                      <TableHead tipo="numero">Por placa</TableHead>
+                      <TableHead tipo="situacao">Situação</TableHead>
+                      <TableHead tipo="acoes" />
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {pacotes.data.map((pacote) => (
                       <TableRow key={pacote.id}>
-                        <TableCell className="text-right tabular-nums">{pacote.quantidade}</TableCell>
-                        <TableCell className="text-right tabular-nums">{formatarCentavos(pacote.precoCents)}</TableCell>
-                        <TableCell className="text-right tabular-nums">{formatarCentavos(pacote.custoPorPlacaCents)}</TableCell>
+                        <TableCell className="font-medium tabular-nums">{pacote.quantidade} placas</TableCell>
+                        <TableCell>{formatarCentavos(pacote.precoCents)}</TableCell>
+                        <TableCell>{formatarCentavos(pacote.custoPorPlacaCents)}</TableCell>
                         <TableCell><Badge variant={pacote.ativo ? 'sucesso' : 'neutro'}>{pacote.ativo ? 'À venda' : 'Fora de venda'}</Badge></TableCell>
                         <TableCell>
                           <AcoesDaLinha nome={`pacote de ${pacote.quantidade} placas`} principal={{ rotulo: 'Editar', aoClicar: () => editar(pacote) }} outras={[

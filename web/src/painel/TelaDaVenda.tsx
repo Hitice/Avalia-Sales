@@ -49,7 +49,7 @@ export function TelaDaVenda() {
       {(podeCobrar || v.situacao === 'Registrada') && (
         <div className="flex flex-wrap gap-2">
           {podeCobrar && <Button disabled={cobrar.isPending} onClick={() => cobrar.mutate(v.id)}>Gerar cobrança</Button>}
-          <AcoesDaVenda venda={v} dono={dono} naPagina />
+          <AcoesDaVenda venda={v} dono={dono} />
         </div>
       )}
 

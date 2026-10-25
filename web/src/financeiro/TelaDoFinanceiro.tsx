@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { formatarCentavos } from '@/dinheiro/dinheiro'
 import { cn } from '@/lib/utils'
+import { CartaoDoCaixa } from './CartaoDoCaixa'
 import { useDre, useFecharMes, useHistorico, useMeses, useReabrirMes } from './consultas'
 import { mesCorrente, nomeDoMes } from './fatias'
 import { Historico, Rosca } from './Graficos'
@@ -158,6 +159,7 @@ export function TelaDoFinanceiro() {
                 <Demonstrativo dre={d} />
                 <Rosca titulo="Para onde foi o dinheiro" itens={ondeFoi} vazio="Nenhuma saída no mês." empilhada />
                 <div className="grid content-start gap-4">
+                  <CartaoDoCaixa />
                   <Rosca titulo="Despesas por categoria" vazio="Nenhuma despesa no mês." empilhada
                     itens={d.despesasPorCategoria.map((c) => ({ nome: ROTULO_DA_DESPESA[c.categoria], valorCents: c.valorCents }))} />
                   {historico.data && <Historico meses={historico.data} />}

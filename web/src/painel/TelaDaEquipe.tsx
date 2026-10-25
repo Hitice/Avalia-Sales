@@ -112,21 +112,21 @@ export function TelaDaEquipe() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Vendedor</TableHead>
-                      <TableHead className="text-right">Comissão</TableHead>
-                      <TableHead className="text-right">Vendas</TableHead>
-                      <TableHead>Situação</TableHead>
-                      <TableHead><span className="sr-only">Ações</span></TableHead>
+                      <TableHead tipo="numero">Comissão</TableHead>
+                      <TableHead tipo="numero">Vendas</TableHead>
+                      <TableHead tipo="situacao">Situação</TableHead>
+                      <TableHead tipo="acoes" />
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {equipe.data.map((v) => (
                       <TableRow key={v.id}>
-                        <TableCell>
+                        <TableCell className="min-w-48 whitespace-normal">
                           <p className="font-medium">{v.nome}</p>
                           <p className="text-xs break-all text-muted-foreground">{v.email}</p>
                         </TableCell>
-                        <TableCell className="text-right tabular-nums">{formatarBps(v.comissaoEfetivaBps)}{v.comissaoBps === null && <span className="text-muted-foreground"> (padrão)</span>}</TableCell>
-                        <TableCell className="text-right tabular-nums">{v.vendas}</TableCell>
+                        <TableCell>{formatarBps(v.comissaoEfetivaBps)}{v.comissaoBps === null && <span className="text-muted-foreground"> (padrão)</span>}</TableCell>
+                        <TableCell>{v.vendas}</TableCell>
                         <TableCell><Badge variant={!v.ativo ? 'neutro' : v.convitePendente ? 'atencao' : 'sucesso'}>{!v.ativo ? 'Desativado' : v.convitePendente ? 'Convidado' : 'Ativo'}</Badge></TableCell>
                         <TableCell>
                           <AcoesDaLinha nome={v.nome} principal={{ rotulo: 'Editar', aoClicar: () => editar(v) }} outras={[

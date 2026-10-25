@@ -159,12 +159,22 @@ computador ela encosta nas bordas do cartão, com o cabeçalho de 36 px em 12 px
 sobre o cinza-50 como topo do cartão e linhas de 44 px com fio claro. Abaixo
 de 768 px vira cartão (`components/ui/table.tsx`): a primeira coluna é o
 título, as outras levam o rótulo da coluna à esquerda do valor e a coluna de
-ações (título só para leitor de tela) ocupa a linha toda. Tela nova com tabela
-não precisa de nada a mais.
+ações ocupa a linha toda; a lista corre com a página, sem rolagem própria
+(barra de rolagem por cima do texto não existe no celular). No computador a
+lista longa rola dentro da tabela, com o cabeçalho fixo; a partir de sete
+linhas, a busca.
+
+O tipo da coluna vai só no cabeçalho, e o componente alinha o resto:
+`<TableHead tipo="numero">` (à direita, algarismos de mesma largura),
+`"data"`, `"situacao"` (selos da coluna com a largura do maior, texto de
+apoio embaixo) e `"acoes"` (a última, sem texto). Célula não leva
+`text-right`, `tabular-nums` nem largura solta.
 
 No computador a tabela tem de caber no cartão:
-- Linha com mais de uma ação usa `componentes/AcoesDaLinha`: a principal
-  (Editar) visível e as outras no botão "⋯"; no celular, fileira de botões.
+- Toda ação da linha usa `componentes/AcoesDaLinha`: no computador, o mesmo
+  "⋯" em toda linha, a principal primeiro; no celular, a primeira em botão e
+  o resto no "⋯". Botão, campo ou formulário dentro da célula não entram: a
+  ação abre um modal (Despachar, Editar, Suspender).
 - Texto longo (nome de cliente, revenda, vendedor) quebra linha com
   `min-w-* whitespace-normal`; a célula padrão não quebra.
 - Formulário ao lado da tabela só a partir de `xl` (1280 px):

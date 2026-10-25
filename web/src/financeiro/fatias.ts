@@ -40,3 +40,10 @@ export function hoje(agora = new Date()): string {
 export function percentual(parte: number, total: number): string {
   return total > 0 ? `${Math.round((parte * 100) / total)}%` : '0%'
 }
+
+/** O mês a n meses de distância: mesSomado("2026-12", 1) é "2027-01". */
+export function mesSomado(competencia: string, n: number): string {
+  const [ano, mes] = competencia.split('-').map(Number)
+  const data = new Date(ano, mes - 1 + n, 1)
+  return `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}`
+}

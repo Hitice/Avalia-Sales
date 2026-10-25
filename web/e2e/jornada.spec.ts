@@ -37,11 +37,15 @@ test('jornada entre operadora, revenda e vendedora, e cada um vê só o que é d
     await operador.goto('/operadora/pedidos')
     await expect(doPedido().filter({ hasText: 'Aguardando' }).first()).toBeVisible({ timeout: 2_000 })
   }).toPass({ timeout: 20_000 })
-  await doPedido().filter({ hasText: 'Aguardando' }).first().getByRole('button', { name: 'Registrar pagamento' }).click()
-  const pago = doPedido().filter({ hasText: 'Pago' }).first()
-  await pago.getByLabel('Lote').click()
+  // No computador, as ações da linha ficam no "⋯".
+  await doPedido().filter({ hasText: 'Aguardando' }).first().getByRole('button', { name: /^Ações de/ }).click()
+  await operador.getByRole('menuitem', { name: 'Registrar pagamento' }).click()
+  await doPedido().filter({ hasText: 'Pago' }).first().getByRole('button', { name: /^Ações de/ }).click()
+  await operador.getByRole('menuitem', { name: 'Despachar' }).click()
+  const despacho = operador.getByRole('dialog')
+  await despacho.getByLabel('Lote').click()
   await operador.getByRole('option', { name: lote }).click()
-  await pago.getByRole('button', { name: 'Despachar' }).click()
+  await despacho.getByRole('button', { name: 'Despachar' }).click()
   await expect(doPedido().filter({ hasText: lote })).toBeVisible()
 
   // 4. A revenda ativa o lote e consigna uma placa à vendedora.

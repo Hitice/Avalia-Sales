@@ -1,8 +1,8 @@
 import { mensagemDoErro } from '@/api/cliente'
 import { formatarDataHora } from '@/api/rotulos'
+import { AcoesDaLinha } from '@/componentes/AcoesDaLinha'
 import { Cabecalho, Erro, EstadoDaConsulta, Rolagem } from '@/componentes/Tela'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { formatarCentavos } from '@/dinheiro/dinheiro'
@@ -27,29 +27,29 @@ export function TelaDoErp() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Pago em</TableHead>
+                    <TableHead tipo="data">Pago em</TableHead>
                     <TableHead>Revendedor</TableHead>
-                    <TableHead className="text-right">Placas</TableHead>
-                    <TableHead className="text-right">Valor</TableHead>
-                    <TableHead>Situação</TableHead>
+                    <TableHead tipo="numero">Placas</TableHead>
+                    <TableHead tipo="numero">Valor</TableHead>
+                    <TableHead tipo="situacao">Situação</TableHead>
                     <TableHead>Pedido de venda</TableHead>
-                    <TableHead><span className="sr-only">Ação</span></TableHead>
+                    <TableHead tipo="acoes" />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {fila.data.map((e) => (
                     <TableRow key={e.pedidoId}>
                       <TableCell>{formatarDataHora(e.criadoEm)}</TableCell>
-                      <TableCell>{e.cliente}</TableCell>
-                      <TableCell className="text-right tabular-nums">{e.quantidade}</TableCell>
-                      <TableCell className="text-right tabular-nums">{formatarCentavos(e.valorCents)}</TableCell>
-                      <TableCell>
-                        <Badge variant={e.situacao === 'Enviado' ? 'sucesso' : e.situacao === 'Parado' ? 'erro' : 'atencao'}>{ROTULO[e.situacao]}</Badge>
-                        {e.ultimoErro && <p className="mt-1 max-w-64 truncate text-xs text-muted-foreground" title={e.ultimoErro}>{e.tentativas} tentativas: {e.ultimoErro}</p>}
+                      <TableCell className="min-w-48 whitespace-normal">
+                        {e.cliente}
+                        {e.ultimoErro && <p className="text-xs text-muted-foreground">{e.tentativas} tentativas: {e.ultimoErro}</p>}
                       </TableCell>
+                      <TableCell>{e.quantidade}</TableCell>
+                      <TableCell>{formatarCentavos(e.valorCents)}</TableCell>
+                      <TableCell><Badge variant={e.situacao === 'Enviado' ? 'sucesso' : e.situacao === 'Parado' ? 'erro' : 'atencao'}>{ROTULO[e.situacao]}</Badge></TableCell>
                       <TableCell className="tabular-nums">{e.numeroNoErp ?? '-'}</TableCell>
-                      <TableCell className="text-right">
-                        {e.situacao === 'Parado' && <Button variant="outline" onClick={() => reenviar.mutate(e.pedidoId)}>Reenviar</Button>}
+                      <TableCell>
+                        <AcoesDaLinha nome={`pedido de ${e.cliente}`} principal={e.situacao === 'Parado' && { rotulo: 'Reenviar', desabilitada: reenviar.isPending, aoClicar: () => reenviar.mutate(e.pedidoId) }} />
                       </TableCell>
                     </TableRow>
                   ))}

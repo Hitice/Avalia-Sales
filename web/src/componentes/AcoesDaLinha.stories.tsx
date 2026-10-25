@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { AcoesDaLinha } from './AcoesDaLinha'
 
-/** Linha da Equipe: Editar à vista e o resto no "⋯"; no celular, fileira de botões no cartão. */
+/** Linha da Equipe: no computador, tudo no "⋯", Editar primeiro; no celular, Editar à vista e o resto no "⋯" do cartão. */
 function Exemplo({ convidado, comVenda }: { convidado: boolean; comVenda: boolean }) {
   const nada = () => {}
   return (
@@ -11,7 +11,7 @@ function Exemplo({ convidado, comVenda }: { convidado: boolean; comVenda: boolea
         <TableRow>
           <TableHead>Vendedor</TableHead>
           <TableHead>Situação</TableHead>
-          <TableHead><span className="sr-only">Ações</span></TableHead>
+          <TableHead tipo="acoes" />
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -37,3 +37,4 @@ type Historia = StoryObj<typeof meta>
 
 export const Padrao: Historia = {}
 export const SoEditarEDesativar: Historia = { args: { convidado: false, comVenda: true } }
+export const Celular: Historia = { globals: { viewport: { value: 'mobile2', isRotated: false } } }

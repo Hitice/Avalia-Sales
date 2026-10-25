@@ -92,9 +92,9 @@ export function PainelDeDespesas({ competencia }: { competencia: string | undefi
               <TableHeader>
                 <TableRow>
                   <TableHead>Despesa</TableHead>
-                  <TableHead>Data</TableHead>
-                  <TableHead className="text-right">Valor</TableHead>
-                  <TableHead><span className="sr-only">Ações</span></TableHead>
+                  <TableHead tipo="data">Data</TableHead>
+                  <TableHead tipo="numero">Valor</TableHead>
+                  <TableHead tipo="acoes" />
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -105,7 +105,7 @@ export function PainelDeDespesas({ competencia }: { competencia: string | undefi
                       <p className="text-xs text-muted-foreground">{ROTULO_DA_DESPESA[d.categoria]}</p>
                     </TableCell>
                     <TableCell>{formatarData(`${d.data}T12:00:00`)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{formatarCentavos(d.valorCents)}</TableCell>
+                    <TableCell>{formatarCentavos(d.valorCents)}</TableCell>
                     <TableCell>
                       <AcoesDaLinha nome={d.descricao} principal={{ rotulo: 'Editar', aoClicar: () => setAberta(d) }}
                         outras={[{ rotulo: 'Excluir', destrutiva: true, desabilitada: excluir.isPending, aoClicar: () => excluir.mutate(d.id) }]} />

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { fatias, hoje, mesCorrente, percentual } from './fatias'
+import { fatias, hoje, mesCorrente, mesSomado, percentual } from './fatias'
 
 describe('fatias', () => {
   it('mantém até quatro partes, da maior para a menor', () => {
@@ -31,5 +31,13 @@ describe('percentual', () => {
   it('arredonda e não divide por zero', () => {
     expect(percentual(1, 3)).toBe('33%')
     expect(percentual(5, 0)).toBe('0%')
+  })
+})
+
+describe('mesSomado', () => {
+  it('passa a virada do ano nos dois sentidos', () => {
+    expect(mesSomado('2026-12', 1)).toBe('2027-01')
+    expect(mesSomado('2026-01', -2)).toBe('2025-11')
+    expect(mesSomado('2026-10', 0)).toBe('2026-10')
   })
 })

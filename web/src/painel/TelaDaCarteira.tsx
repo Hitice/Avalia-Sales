@@ -1,11 +1,10 @@
-import { MessageCircle } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router'
 import { formatarData, formatarTelefone } from '@/api/rotulos'
 import type { PlacaDaCarteira } from '@/api/tipos'
 import { useSessao } from '@/acesso/sessao'
+import { AcoesDaLinha } from '@/componentes/AcoesDaLinha'
 import { Cabecalho, EstadoDaConsulta, EtiquetaDoEstado, Rolagem } from '@/componentes/Tela'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
@@ -59,10 +58,10 @@ export function TelaDaCarteira() {
                   <TableRow>
                     <TableHead>Cliente</TableHead>
                     <TableHead>Placa</TableHead>
-                    <TableHead>Situação</TableHead>
-                    <TableHead>Vence em</TableHead>
-                    <TableHead className="text-right">Leituras em 30 dias</TableHead>
-                    <TableHead><span className="sr-only">Ações</span></TableHead>
+                    <TableHead tipo="situacao">Situação</TableHead>
+                    <TableHead tipo="data">Vence em</TableHead>
+                    <TableHead tipo="numero">Leituras em 30 dias</TableHead>
+                    <TableHead tipo="acoes" />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -73,14 +72,12 @@ export function TelaDaCarteira() {
                         <p className="text-xs font-normal text-muted-foreground">{p.responsavel}, {formatarTelefone(p.telefone)}</p>
                       </TableCell>
                       <TableCell><Link className="tabular-nums underline-offset-4 hover:underline" to={`/placa/${p.codigo}`}>{p.codigo}</Link></TableCell>
-                      <TableCell><EtiquetaDoEstado estado={p.estado} largura /></TableCell>
+                      <TableCell><EtiquetaDoEstado estado={p.estado} /></TableCell>
                       <TableCell>{formatarData(p.venceEm)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{p.leiturasEm30Dias} <span className="text-xs text-muted-foreground">de {p.totalLeituras}</span></TableCell>
+                      <TableCell>{p.leiturasEm30Dias} <span className="text-xs text-muted-foreground">de {p.totalLeituras}</span></TableCell>
                       <TableCell>
-                        <div className="flex items-center justify-end gap-2">
-                          <Button asChild variant="outline"><Link to={`/placa/${p.codigo}`}>Renovar</Link></Button>
-                          <Button asChild variant="ghost"><a href={whatsapp(p)} target="_blank" rel="noreferrer noopener"><MessageCircle aria-hidden />WhatsApp</a></Button>
-                        </div>
+                        <AcoesDaLinha nome={`placa ${p.codigo}`} principal={{ rotulo: 'Renovar', para: `/placa/${p.codigo}` }}
+                          outras={[{ rotulo: 'WhatsApp', href: whatsapp(p) }]} />
                       </TableCell>
                     </TableRow>
                   ))}
