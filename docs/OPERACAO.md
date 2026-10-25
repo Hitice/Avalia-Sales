@@ -150,7 +150,8 @@ o workflow compila de novo.
 - Sem `BACKUP_PARA`, as cópias ficam só no disco do VPS: protegem de engano
   (migration, exclusão), não da perda do servidor. Com `BACKUP_PARA` e o Resend,
   a cópia vai anexada por e-mail até 28 MB. O destino fora do VPS que fica é
-  um bucket de armazenamento de objetos (pendência em docs/SDD.md).
+  um bucket de armazenamento de objetos, com o Backblaze B2 recomendado (10 GB
+  sem custo); pendente até o bucket existir (docs/SDD.md, seção 13).
 - O `backup.sh` grava em `.parcial` e só renomeia depois que o
   `pg_restore --list` lê o arquivo e acha os dados de `lancamentos`. Cópia
   cortada ou vazia sai com erro e não apaga as anteriores.
@@ -266,8 +267,19 @@ do `place_id` do negócio no Sales ou do `placeid=` do link de avaliação; link
 Conta encerrada não recebe importação, nem em ensaio: a operadora aprova a
 reabertura em Revendedores antes.
 
-Até a virada, só `--ensaio`: o Sales segue vendendo, e as placas impressas
-leem pelo `avaliaone.com.br/q/`, que nada daqui alcança.
+### Virada do Sales
+
+Feita em 24/10/2026, com os totais conferidos. As placas do Sales estão na
+revenda Avalia, e o sistema anterior repassa `avaliaone.com.br/q/{codigo}`
+para `sales.avaliaone.com.br/q/{codigo}` com 302 e sem cache. Venda, troca,
+renovação, destino e suspensão de placa são feitos só na plataforma.
+
+- O repasse fica para sempre: as placas impressas apontam para
+  `avaliaone.com.br/q/`.
+- Não há volta para o Sales. O que quebrar se corrige na plataforma, ou com a
+  placa regravada (cliente sazonal).
+- Próximo passo - desligar o módulo de vendas do sistema anterior, mantendo o
+  repasse do `/q/`.
 
 ## Logs e erros
 
