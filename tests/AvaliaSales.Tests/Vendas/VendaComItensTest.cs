@@ -53,9 +53,9 @@ public sealed class VendaComItensTest(ApiDeTeste api)
         api.Gateway.Mudar(Guid.Parse(await banco.Texto($"select id::text from cobrancas where origem_id = '{venda}'")).ToString("N"), SituacaoDaCobranca.Paga);
         await Rotinas(DateTimeOffset.UtcNow.AddMinutes(10));
 
-        var ordem = (await operadora.Pegar("/operadora/servicos")).EnumerateArray().Single(o => o.GetProperty("revendedor").GetString() == "Revenda do Pedido Mínimo");
+        var ordem = (await operadora.PegarItens("/operadora/servicos?busca=Revenda%20do%20Pedido%20M%C3%ADnimo")).EnumerateArray().Single(o => o.GetProperty("revendedor").GetString() == "Revenda do Pedido Mínimo");
         Assert.Equal(12, ordem.GetProperty("quantidade").GetInt32());
-        var linha = (await revenda.Dono.Pegar("/vendas")).EnumerateArray().Single(v => v.GetProperty("id").GetGuid() == venda);
+        var linha = (await revenda.Dono.PegarItens("/vendas")).EnumerateArray().Single(v => v.GetProperty("id").GetGuid() == venda);
         Assert.Equal((12, "Paga"), (linha.GetProperty("quantidade").GetInt32(), linha.GetProperty("pagamento").GetString()));
     }
 
@@ -87,7 +87,7 @@ public sealed class VendaComItensTest(ApiDeTeste api)
         Assert.Equal(69_880, await banco.Contar($"select sum(valor_cents) from lancamentos where tipo = 'Receita' and venda_id in ('{ids[0]}', '{ids[1]}', '{ids[2]}')"));
         foreach (var id in ids)
         {
-            var linha = (await revenda.Dono.Pegar("/vendas")).EnumerateArray().Single(v => v.GetProperty("id").GetGuid() == id);
+            var linha = (await revenda.Dono.PegarItens("/vendas")).EnumerateArray().Single(v => v.GetProperty("id").GetGuid() == id);
             Assert.Equal(("Paga", ids[0]), (linha.GetProperty("pagamento").GetString(), linha.GetProperty("grupoId").GetGuid()));
         }
 

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router'
-import type { VendaDaLista } from '@/api/tipos'
+import type { ResumoDasVendas, VendaDaLista } from '@/api/tipos'
 import { Cabecalho, Carregando, Erro, Rolagem, Vazio } from '@/componentes/Tela'
 import { Indicador, Indicadores } from '@/componentes/Indicador'
 import { Badge } from '@/components/ui/badge'
@@ -11,8 +11,8 @@ import { formatarCentavos } from '@/dinheiro/dinheiro'
 import { useContaEncerrada } from '@/app/contaEncerrada'
 import { useDre } from '@/financeiro/consultas'
 import { Rosca } from '@/financeiro/Graficos'
-import { usePlacas, useVendas } from './consultas'
-import { VendasEm30Dias, vendasPorDia } from './VendasEm30Dias'
+import { usePlacas, useResumoDasVendas, useVendasRecentes } from './consultas'
+import { porDiaDe, VendasEm30Dias } from './VendasEm30Dias'
 import { nomeDoProduto, rotuloDaVenda, tomDaVenda } from './situacaoDaVenda'
 
 const hora = new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit' })
@@ -32,12 +32,13 @@ function dataPorExtenso(agora: number) {
  */
 export function TelaInicial() {
   const encerrada = useContaEncerrada()
-  const placas = usePlacas({ pagina: 1 })
-  const vendas = useVendas()
+  const placas = usePlacas({ pagina: 1, tamanho: 1 })
+  const recentes = useVendasRecentes()
+  const resumo = useResumoDasVendas()
   const dre = useDre(undefined)
   // Fixado na abertura da tela: o relógio não muda entre uma renderização e outra.
   const [agora] = useState(() => Date.now())
-  const dados = useMemo(() => montar(vendas.data ?? [], agora), [vendas.data, agora])
+  const dados = useMemo(() => montar(recentes.data?.itens ?? [], resumo.data, agora), [recentes.data, resumo.data, agora])
   const porEstado = placas.data?.porEstado ?? {}
   const d = dre.data
   // No celular a Nova venda já está no título da tela: o vazio não repete o botão.
@@ -56,10 +57,10 @@ export function TelaInicial() {
         {/* No computador a Nova venda está no topo do painel lateral. */}
         {!encerrada && <Button asChild className="lg:hidden"><Link to="/vender">Nova venda</Link></Button>}
       </Cabecalho>
-      <Erro erro={vendas.error} />
+      <Erro erro={recentes.error ?? resumo.error} />
       <Indicadores>{numeros.map((n) => <Indicador key={n.rotulo} rotulo={n.rotulo} valor={n.valor} />)}</Indicadores>
       <div className="mt-3 grid gap-3 md:mt-4 md:gap-4 lg:grid-cols-12">
-        <VendasEm30Dias className="lg:col-span-7" porDia={dados.porDia} carregando={vendas.isPending} />
+        <VendasEm30Dias className="lg:col-span-7" porDia={dados.porDia} carregando={resumo.isPending} />
         {d
           ? (
               <Rosca
@@ -88,7 +89,7 @@ export function TelaInicial() {
             <CardAction><Button asChild variant="link" size="sm" className="-my-2 -mr-2.5"><Link to="/painel/vendas">Ver todas</Link></Button></CardAction>
           </CardHeader>
           <CardContent>
-            {vendas.isPending ? <Carregando linhas={3} /> : dados.hoje.length === 0 ? <Vazio texto="Nenhuma venda hoje." acao={novaVenda} /> : (
+            {recentes.isPending ? <Carregando linhas={3} /> : dados.hoje.length === 0 ? <Vazio texto="Nenhuma venda hoje." acao={novaVenda} /> : (
               <Rolagem>
                 {/* Celular: lista de extrato, cliente em cima e valor à direita; no computador, a tabela do esboço. */}
                 <ul className="-my-1 divide-y md:hidden">
@@ -139,21 +140,18 @@ export function TelaInicial() {
 /** "Placa K7M2PX" ou "10x Kit Mesa". */
 const item = (v: VendaDaLista) => (v.codigo ? `${nomeDoProduto(v)} ${v.codigo}` : nomeDoProduto(v))
 
-/** Venda cancelada não conta nos números; a lista de hoje mostra todas, cada uma com a situação. */
-function montar(vendas: VendaDaLista[], agora: number) {
-  const valendo = vendas.filter((v) => v.situacao === 'Registrada')
+/**
+ * Os números do mês e do gráfico vêm do resumo da API (as vendas inteiras, no mês de Brasília); a lista de hoje, das
+ * mais recentes, com a situação de cada uma. Venda cancelada não conta nos números.
+ */
+function montar(recentes: VendaDaLista[], resumo: ResumoDasVendas | undefined, agora: number) {
   const hoje = new Date(agora)
-  const inicioDoMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1).getTime()
   const inicioDoDia = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate()).getTime()
 
-  const porDia = vendasPorDia(vendas, agora)
-
-  const doMes = valendo.filter((v) => Date.parse(v.vendidaEm) >= inicioDoMes)
-
   return {
-    porDia,
-    hoje: vendas.filter((v) => Date.parse(v.vendidaEm) >= inicioDoDia).sort((a, b) => Date.parse(b.vendidaEm) - Date.parse(a.vendidaEm)).slice(0, 8),
-    vendasNoMes: doMes.length,
-    recebidoNoMesCents: doMes.filter((v) => v.pagamento === 'Paga').reduce((s, v) => s + v.valorCents, 0),
+    porDia: porDiaDe((resumo?.porDia ?? []).map((d) => ({ dia: d.dia, total: d.total })), agora),
+    hoje: recentes.filter((v) => Date.parse(v.vendidaEm) >= inicioDoDia).slice(0, 8),
+    vendasNoMes: resumo?.noMes ?? 0,
+    recebidoNoMesCents: resumo?.recebidoNoMesCents ?? 0,
   }
 }

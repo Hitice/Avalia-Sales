@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { chamarApi, enviarJson, mensagemDoErro } from '@/api/cliente'
 import { formatarDataHora } from '@/api/rotulos'
 import type { Chamado, ChamadoComMensagens, MensagemDoChamado, SituacaoDoChamado } from '@/api/tipos'
@@ -20,8 +20,12 @@ const ROTULO_DA_SITUACAO: Record<SituacaoDoChamado, string> = {
   Resolvido: 'Fechado',
 }
 
-export const useChamados = (base: BaseDosChamados) =>
-  useQuery({ queryKey: ['chat', base], queryFn: () => chamarApi<Chamado[]>(base) })
+/** Junta as mensagens que a tela já tinha com as que chegaram, sem repetir, na ordem da conversa. */
+function juntar(antes: MensagemDoChamado[], novas: MensagemDoChamado[]): MensagemDoChamado[] {
+  const porId = new Map(antes.map((m) => [m.id, m]))
+  for (const m of novas) porId.set(m.id, m)
+  return [...porId.values()].sort((a, b) => Date.parse(a.enviadaEm) - Date.parse(b.enviadaEm) || (a.id < b.id ? -1 : 1))
+}
 
 /** Quanto falta para a Avalia responder, ou há quanto tempo passou. */
 function prazo(c: Chamado, agora: number): { texto: string; atrasado: boolean } | null {
@@ -72,7 +76,11 @@ export function ListaDeChamados({ chamados, aberto, aoAbrir, operadora }: {
   )
 }
 
-/** As mensagens de um chamado, a resposta e o resolver. O aviso ao vivo "chat" refaz a conversa. */
+/**
+ * As mensagens de um chamado, a resposta e o resolver. O aviso ao vivo "chat" refaz a conversa. A API devolve as
+ * mais novas; "Ver mensagens anteriores" busca as que vêm antes da mais antiga que a tela tem, e o que já foi
+ * carregado fica (uma mensagem nova não faz as anteriores sumirem).
+ */
 export function ConversaDoChamado({ base, id, operadora }: { base: BaseDosChamados; id: string; operadora: boolean }) {
   const consultas = useQueryClient()
   const conversa = useQuery({ queryKey: ['chat', base, id], queryFn: () => chamarApi<ChamadoComMensagens>(`${base}/${id}`) })
@@ -86,15 +94,35 @@ export function ConversaDoChamado({ base, id, operadora }: { base: BaseDosChamad
     },
   })
   const resolver = useMutation({ meta: { sucesso: 'Chamado resolvido.' }, mutationFn: () => chamarApi(`${base}/${id}/resolver`, enviarJson('POST', {})), onSuccess: refazer })
+  const [carregadas, setCarregadas] = useState<MensagemDoChamado[]>([])
+  const [haMaisAntigas, setHaMaisAntigas] = useState<boolean | null>(null)
+  const anteriores = useMutation({
+    mutationFn: () => chamarApi<ChamadoComMensagens>(`${base}/${id}?antes=${carregadas[0].id}`),
+    onSuccess: (r) => {
+      setCarregadas((atuais) => juntar(atuais, r.mensagens))
+      setHaMaisAntigas(r.haAnteriores)
+    },
+  })
+  // Guarda o que cada leitura trouxe, no momento em que ela chega (e não num efeito).
+  const [lida, setLida] = useState(conversa.data)
+  if (conversa.data !== lida) {
+    setLida(conversa.data)
+    if (conversa.data) setCarregadas((atuais) => juntar(atuais, conversa.data.mensagens))
+  }
+  // O que a tela já tinha mais o que acabou de chegar: na primeira volta, antes de o efeito guardar, já aparece inteiro.
+  const mensagens = useMemo(() => juntar(carregadas, conversa.data?.mensagens ?? []), [carregadas, conversa.data])
+  const ultima = mensagens.at(-1)?.id
   const fim = useRef<HTMLDivElement>(null)
   // Corpo em bloco: no Chromium atual o scrollIntoView devolve uma Promise, e efeito não pode devolver nada além da limpeza.
+  // Só desce quando chega mensagem nova; carregar as anteriores não tira o leitor de onde está.
   useEffect(() => {
     fim.current?.scrollIntoView({ block: 'end' })
-  }, [conversa.data?.mensagens.length])
+  }, [ultima])
 
   if (conversa.isPending) return <Carregando linhas={2} />
   if (!conversa.data) return <Erro erro={conversa.error} />
-  const { chamado, mensagens } = conversa.data
+  const { chamado } = conversa.data
+  const haAnteriores = haMaisAntigas ?? conversa.data.haAnteriores
 
   return (
     <div className="grid gap-3">
@@ -111,6 +139,12 @@ export function ConversaDoChamado({ base, id, operadora }: { base: BaseDosChamad
         )}
       </div>
       <div className="grid max-h-112 gap-2 overflow-y-auto rounded-lg border bg-card p-3" role="log" aria-label="Mensagens">
+        {haAnteriores && (
+          <Button type="button" variant="outline" size="sm" className="justify-self-center" disabled={anteriores.isPending} onClick={() => anteriores.mutate()}>
+            {anteriores.isPending ? 'Carregando...' : 'Ver mensagens anteriores'}
+          </Button>
+        )}
+        {anteriores.error && <Erro erro={anteriores.error} />}
         {mensagens.map((m) => {
           const minha = m.daOperadora === operadora
           return (

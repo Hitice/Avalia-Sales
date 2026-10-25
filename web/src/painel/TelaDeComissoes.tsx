@@ -4,6 +4,7 @@ import { mensagemDoErro } from '@/api/cliente'
 import { formatarData, formatarDataHora, ROTULO_DO_MEIO } from '@/api/rotulos'
 import type { SaldoDeComissao } from '@/api/tipos'
 import { AcoesDaLinha } from '@/componentes/AcoesDaLinha'
+import { ListaPaginada } from '@/componentes/ListaPaginada'
 import { Cabecalho, Erro, EstadoDaConsulta, Rolagem } from '@/componentes/Tela'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -26,15 +27,6 @@ export function TelaDeComissoes() {
   const saldos = useSaldosDeComissao()
   const repasses = useRepasses()
   const desfazer = useDesfazerRepasse()
-  // Só o último de cada vendedor se desfaz: o seguinte foi calculado contando com ele.
-  // A lista vem do mais recente: o primeiro não desfeito de cada vendedor é o último dele.
-  const ultimos = new Set<string>()
-  const vistos = new Set<string>()
-  for (const r of repasses.data ?? []) {
-    if (r.desfeitoEm || vistos.has(r.vendedorId)) continue
-    vistos.add(r.vendedorId)
-    ultimos.add(r.id)
-  }
   const repassar = useRepassar()
   const [escolhido, setEscolhido] = useState<SaldoDeComissao | null>(null)
   const [ate, setAte] = useState('')
@@ -138,43 +130,44 @@ export function TelaDeComissoes() {
         <Card>
           <CardHeader><CardTitle>Repasses feitos</CardTitle></CardHeader>
           <CardContent>
-            <EstadoDaConsulta carregando={repasses.isPending} erro={repasses.error} vazio={repasses.data?.length === 0} textoVazio="Nenhum repasse registrado." />
-            {repasses.data && repasses.data.length > 0 && (
-              <Rolagem>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead tipo="data">Pago em</TableHead>
-                      <TableHead>Vendedor</TableHead>
-                      <TableHead tipo="numero">Valor</TableHead>
-                      <TableHead tipo="numero">Vendas</TableHead>
-                      <TableHead tipo="data">Até as vendas de</TableHead>
-                      <TableHead>Comprovante</TableHead>
-                      <TableHead tipo="situacao">Situação</TableHead>
-                      <TableHead tipo="acoes" />
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {repasses.data.map((r) => (
-                      <TableRow key={r.id}>
-                        <TableCell>{formatarDataHora(r.pagoEm)}</TableCell>
-                        <TableCell>{r.vendedor}</TableCell>
-                        <TableCell>{formatarCentavos(r.valorCents)}</TableCell>
-                        <TableCell>{r.vendas}</TableCell>
-                        <TableCell>{formatarData(r.ateVendaEm)}</TableCell>
-                        <TableCell className="min-w-32 whitespace-normal">{r.comprovante ?? '-'}</TableCell>
-                        <TableCell><Badge variant={r.desfeitoEm ? 'neutro' : 'sucesso'}>{r.desfeitoEm ? 'Desfeito' : 'Pago'}</Badge></TableCell>
-                        <TableCell>
-                          <AcoesDaLinha nome={`repasse de ${r.vendedor}`} outras={[
-                            !r.desfeitoEm && ultimos.has(r.id) && { rotulo: 'Desfazer', destrutiva: true, desabilitada: desfazer.isPending, aoClicar: () => desfazer.mutate(r.id) },
-                          ]} />
-                        </TableCell>
+            <ListaPaginada lista={repasses} textoVazio="Nenhum repasse registrado." nomeDaBusca="Buscar nos repasses" placeholder="Vendedor ou comprovante">
+              {(itens) => (
+                <Rolagem>
+                  <Table semBusca>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead tipo="data">Pago em</TableHead>
+                        <TableHead>Vendedor</TableHead>
+                        <TableHead tipo="numero">Valor</TableHead>
+                        <TableHead tipo="numero">Vendas</TableHead>
+                        <TableHead tipo="data">Até as vendas de</TableHead>
+                        <TableHead>Comprovante</TableHead>
+                        <TableHead tipo="situacao">Situação</TableHead>
+                        <TableHead tipo="acoes" />
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </Rolagem>
-            )}
+                    </TableHeader>
+                    <TableBody>
+                      {itens.map((r) => (
+                        <TableRow key={r.id}>
+                          <TableCell>{formatarDataHora(r.pagoEm)}</TableCell>
+                          <TableCell>{r.vendedor}</TableCell>
+                          <TableCell>{formatarCentavos(r.valorCents)}</TableCell>
+                          <TableCell>{r.vendas}</TableCell>
+                          <TableCell>{formatarData(r.ateVendaEm)}</TableCell>
+                          <TableCell className="min-w-32 whitespace-normal">{r.comprovante ?? '-'}</TableCell>
+                          <TableCell><Badge variant={r.desfeitoEm ? 'neutro' : 'sucesso'}>{r.desfeitoEm ? 'Desfeito' : 'Pago'}</Badge></TableCell>
+                          <TableCell>
+                            <AcoesDaLinha nome={`repasse de ${r.vendedor}`} outras={[
+                              r.podeDesfazer && { rotulo: 'Desfazer', destrutiva: true, desabilitada: desfazer.isPending, aoClicar: () => desfazer.mutate(r.id) },
+                            ]} />
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </Rolagem>
+              )}
+            </ListaPaginada>
           </CardContent>
         </Card>
       <Dialog open={!!escolhido} onOpenChange={(aberto) => { if (!aberto) setEscolhido(null) }}>

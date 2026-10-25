@@ -10,9 +10,10 @@ public sealed record PlacaDaLista(
     string? Destino, DateTimeOffset? VendidaEm, DateTimeOffset? VenceEm, long TotalLeituras, DateTimeOffset? UltimaLeituraEm,
     MotivoDaBaixa? MotivoDaBaixa = null);
 
-public sealed record PaginaDePlacas(IReadOnlyList<PlacaDaLista> Placas, int Total, IReadOnlyDictionary<EstadoDaPlaca, int> PorEstado);
+/// <summary>A página das placas no formato comum (<see cref="Pagina{T}"/>), com a contagem por estado de tudo o que o filtro de código e de vendedor pega.</summary>
+public sealed record PaginaDePlacas(IReadOnlyList<PlacaDaLista> Itens, int Total, int? Proxima, IReadOnlyDictionary<EstadoDaPlaca, int> PorEstado);
 
-public sealed record FiltroDePlacas(EstadoDaPlaca? Estado, Guid? ConsignadaA, string? Codigo, int Pagina = 1, int Tamanho = 50);
+public sealed record FiltroDePlacas(EstadoDaPlaca? Estado, Guid? ConsignadaA, string? Codigo, int? Pagina = null, int? Tamanho = null);
 
 /// <summary>
 /// O estoque do revendedor e a consignação ao vendedor. A consignação é só
@@ -51,27 +52,59 @@ public sealed class Estoque(IBancoDeDados banco, IUsuarioAtual usuario, IRevende
             consulta = consulta.Where(p => p.Codigo.StartsWith(prefixo));
         }
 
-        // O estado depende da data, então o filtro e a contagem são feitos sobre as linhas leves.
-        var leves = await consulta.OrderBy(p => p.Sequencia)
-            .Select(p => new { p.Id, p.Situacao, p.VenceEm, p.Destino })
-            .ToListAsync(ct);
-        var comEstado = leves.Select(p => (p.Id, Estado: Placa.EstadoDe(p.Situacao, p.VenceEm, agora))).ToList();
-        var porEstado = comEstado.GroupBy(p => p.Estado).ToDictionary(g => g.Key, g => g.Count());
-        var filtradas = filtro.Estado is { } estado ? comEstado.Where(p => p.Estado == estado).ToList() : comEstado;
+        // O estado depende da data: a contagem e o filtro viajam como condição no SQL, com o relógio de agora.
+        var limiteDaCarencia = agora.AddDays(-Placa.CarenciaDias);
+        var fora = new[] { SituacaoDaPlaca.EmEstoque, SituacaoDaPlaca.Suspensa, SituacaoDaPlaca.Baixada };
+        var contagem = await consulta.GroupBy(_ => 1).Select(g => new
+        {
+            EmEstoque = g.Count(p => p.Situacao == SituacaoDaPlaca.EmEstoque),
+            Suspensa = g.Count(p => p.Situacao == SituacaoDaPlaca.Suspensa),
+            Baixada = g.Count(p => p.Situacao == SituacaoDaPlaca.Baixada),
+            Ativa = g.Count(p => !fora.Contains(p.Situacao) && (p.VenceEm == null || p.VenceEm >= agora)),
+            Carencia = g.Count(p => !fora.Contains(p.Situacao) && p.VenceEm != null && p.VenceEm < agora && p.VenceEm >= limiteDaCarencia),
+            Vencida = g.Count(p => !fora.Contains(p.Situacao) && p.VenceEm != null && p.VenceEm < limiteDaCarencia),
+        }).SingleOrDefaultAsync(ct);
+        var porEstado = new Dictionary<EstadoDaPlaca, int>();
+        void Contar(EstadoDaPlaca estado, int? quantos)
+        {
+            if (quantos is > 0)
+            {
+                porEstado[estado] = quantos.Value;
+            }
+        }
 
-        var tamanho = Math.Clamp(filtro.Tamanho, 1, 200);
-        var pagina = Math.Max(1, filtro.Pagina);
-        var ids = filtradas.Skip((pagina - 1) * tamanho).Take(tamanho).Select(p => p.Id).ToList();
-        var placas = await banco.Placas.AsNoTracking().Where(p => ids.Contains(p.Id)).OrderBy(p => p.Sequencia).ToListAsync(ct);
+        Contar(EstadoDaPlaca.EmEstoque, contagem?.EmEstoque);
+        Contar(EstadoDaPlaca.Ativa, contagem?.Ativa);
+        Contar(EstadoDaPlaca.Carencia, contagem?.Carencia);
+        Contar(EstadoDaPlaca.Vencida, contagem?.Vencida);
+        Contar(EstadoDaPlaca.Suspensa, contagem?.Suspensa);
+        Contar(EstadoDaPlaca.Baixada, contagem?.Baixada);
+
+        var filtradas = filtro.Estado switch
+        {
+            EstadoDaPlaca.EmEstoque => consulta.Where(p => p.Situacao == SituacaoDaPlaca.EmEstoque),
+            EstadoDaPlaca.Suspensa => consulta.Where(p => p.Situacao == SituacaoDaPlaca.Suspensa),
+            EstadoDaPlaca.Baixada => consulta.Where(p => p.Situacao == SituacaoDaPlaca.Baixada),
+            EstadoDaPlaca.Ativa => consulta.Where(p => !fora.Contains(p.Situacao) && (p.VenceEm == null || p.VenceEm >= agora)),
+            EstadoDaPlaca.Carencia => consulta.Where(p => !fora.Contains(p.Situacao) && p.VenceEm != null && p.VenceEm < agora && p.VenceEm >= limiteDaCarencia),
+            EstadoDaPlaca.Vencida => consulta.Where(p => !fora.Contains(p.Situacao) && p.VenceEm != null && p.VenceEm < limiteDaCarencia),
+            _ => consulta,
+        };
+        var (pagina, tamanho) = Paginacao.Normalizar(filtro.Pagina, filtro.Tamanho);
+        var total = await filtradas.CountAsync(ct);
+        var placas = total <= Paginacao.Pular(pagina, tamanho) ? []
+            : await filtradas.OrderBy(p => p.Sequencia).Skip(Paginacao.Pular(pagina, tamanho)).Take(tamanho).ToListAsync(ct);
+        var consignadas = placas.Select(p => p.ConsignadaA).Distinct().ToList();
         var nomes = await banco.Vendedores.AsNoTracking()
-            .Where(v => placas.Select(p => p.ConsignadaA).Contains(v.Id))
+            .Where(v => consignadas.Contains(v.Id))
             .ToDictionaryAsync(v => v.Id, v => v.Nome, ct);
 
         return new PaginaDePlacas(
             placas.Select(p => new PlacaDaLista(p.Codigo, p.Sequencia, p.Estado(agora), p.ConsignadaA,
                 p.ConsignadaA is { } c ? nomes.GetValueOrDefault(c) : null, p.Destino, p.VendidaEm, p.VenceEm,
                 p.TotalLeituras, p.UltimaLeituraEm, p.MotivoDaBaixa)).ToList(),
-            filtradas.Count,
+            total,
+            (long)pagina * tamanho < total ? pagina + 1 : null,
             porEstado);
     }
 
@@ -155,15 +188,28 @@ public sealed class Estoque(IBancoDeDados banco, IUsuarioAtual usuario, IRevende
     }
 
     /// <summary>Os lotes que vieram para a revenda, com o que sobra em estoque de cada um.</summary>
-    public async Task<IReadOnlyList<LoteDaRevenda>> Lotes(CancellationToken ct)
+    public async Task<Pagina<LoteDaRevenda>> Lotes(string? busca, PedidoDePagina pedido, CancellationToken ct)
     {
-        var meus = await banco.Lotes.AsNoTracking().Where(l => l.RevendedorId == revendedor.RevendedorId).OrderByDescending(l => l.Numero).ToListAsync(ct);
+        var consulta = banco.Lotes.AsNoTracking().Where(l => l.RevendedorId == revendedor.RevendedorId);
+        var termo = Paginacao.Termo(busca);
+        if (termo.Length > 0)
+        {
+            int? numero = int.TryParse(new string(termo.Where(char.IsAsciiDigit).ToArray()), out var lido) ? lido : null;
+            // Vira lower(...) LIKE no Postgres: a cultura do .NET não entra na consulta.
+#pragma warning disable CA1304, CA1311, CA1862
+            consulta = consulta.Where(l => (l.Titulo != null && l.Titulo.ToLower().Contains(termo)) || (numero != null && l.Numero == numero));
+#pragma warning restore CA1304, CA1311, CA1862
+        }
+
+        var pagina = await consulta.OrderByDescending(l => l.Numero).ThenByDescending(l => l.Id).PaginarAsync(pedido, ct);
+        var ids = pagina.Itens.Select(l => l.Id).ToList();
         var contagem = await banco.Placas.AsNoTracking()
+            .Where(p => ids.Contains(p.LoteId))
             .GroupBy(p => p.LoteId)
             .Select(g => new { g.Key, EmEstoque = g.Count(p => p.Situacao == SituacaoDaPlaca.EmEstoque), Baixadas = g.Count(p => p.Situacao == SituacaoDaPlaca.Baixada) })
             .ToDictionaryAsync(x => x.Key, ct);
-        return meus.Select(l => new LoteDaRevenda(l.Id, l.Rotulo, l.Titulo, l.Categoria, l.Quantidade, l.AtivadoEm, l.ArquivadoEm,
-            contagem.GetValueOrDefault(l.Id)?.EmEstoque ?? 0, contagem.GetValueOrDefault(l.Id)?.Baixadas ?? 0)).ToList();
+        return pagina.Mapear(l => new LoteDaRevenda(l.Id, l.Rotulo, l.Titulo, l.Categoria, l.Quantidade, l.AtivadoEm, l.ArquivadoEm,
+            contagem.GetValueOrDefault(l.Id)?.EmEstoque ?? 0, contagem.GetValueOrDefault(l.Id)?.Baixadas ?? 0));
     }
 
     /// <summary>

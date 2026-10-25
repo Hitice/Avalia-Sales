@@ -5,7 +5,7 @@ import { rotuloDaVenda, tomDaVenda } from './situacaoDaVenda'
 const base: VendaDaLista = {
   id: 'v', codigo: 'K7M2PX', cliente: 'Padaria', produto: 'Placa', vendedorId: 'u', vendedor: 'Bruna', valorCents: 9990, comissaoCents: 2000,
   meio: 'Pix', pagamento: 'Pendente', vendidaEm: '2026-10-24T12:00:00Z', pagaEm: null, situacao: 'Registrada', cortesia: false, pagoPor: null,
-  doSistemaAnterior: false, quantidade: 1,
+  doSistemaAnterior: false, quantidade: 1, itensNoGrupo: 1,
 }
 
 describe('selo da venda', () => {

@@ -32,9 +32,9 @@ public sealed class PainelDoVendedorTest(ApiDeTeste api)
         Assert.Equal(("Ana", 0), (ranking[1].GetProperty("nome").GetString(), ranking[1].GetProperty("vendas").GetInt32()));
         Assert.All(ranking, r => Assert.False(r.TryGetProperty("valorCents", out _)));
 
-        var carteira = (await rui.Pegar("/carteira")).EnumerateArray().Select(p => p.GetProperty("codigo").GetString()).ToList();
+        var carteira = (await rui.PegarItens("/carteira")).EnumerateArray().Select(p => p.GetProperty("codigo").GetString()).ToList();
         Assert.Equal(new[] { revenda.Codigos[0], revenda.Codigos[1] }.Order(), carteira.Order());
-        Assert.Equal(3, (await revenda.Dono.Pegar("/carteira")).GetArrayLength());
+        Assert.Equal(3, (await revenda.Dono.PegarItens("/carteira")).GetArrayLength());
 
         var pix = (await rui.Pegar($"/vendas/{aberta}")).GetProperty("cobranca");
         Assert.Equal("Pendente", pix.GetProperty("situacao").GetString());

@@ -103,8 +103,8 @@ test('jornada entre operadora, revenda e vendedora, e cada um vê só o que é d
   await expect(vendedorB.getByText(negocio)).toHaveCount(0)
   const apiB = await apiComo(CLIENTE_B)
   expect((await apiB.get(`placas/${codigo}`)).ok()).toBeFalsy()
-  const vendasB = await (await apiB.get('vendas')).json() as { codigo: string }[]
-  expect(vendasB.some((v) => v.codigo === codigo)).toBeFalsy()
+  const vendasB = await (await apiB.get('vendas')).json() as { itens: { codigo: string }[] }
+  expect(vendasB.itens.some((v) => v.codigo === codigo)).toBeFalsy()
   await apiB.dispose()
 
   // 8. A operadora vê o pedido da revenda A ativado.

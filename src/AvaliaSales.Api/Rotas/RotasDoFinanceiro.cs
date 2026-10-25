@@ -1,4 +1,5 @@
 using AvaliaSales.Api.Autenticacao;
+using AvaliaSales.Application;
 using AvaliaSales.Application.Financeiro;
 
 namespace AvaliaSales.Api.Rotas;
@@ -24,7 +25,7 @@ public static class RotasDoFinanceiro
             return Results.NoContent();
         });
 
-        dono.MapGet("/despesas", (string? competencia, Despesas despesas, CancellationToken ct) => despesas.Listar(competencia, ct));
+        dono.MapGet("/despesas", (string? competencia, string? busca, [AsParameters] PedidoDePagina pagina, Despesas despesas, CancellationToken ct) => despesas.Listar(competencia, busca, pagina, ct));
         dono.MapPost("/despesas", async (NovaDespesa pedido, Despesas despesas, CancellationToken ct) =>
             Results.Created("/financeiro/despesas", await despesas.Criar(pedido, ct)));
         dono.MapPut("/despesas/{id:guid}", (Guid id, NovaDespesa pedido, Despesas despesas, CancellationToken ct) => despesas.Alterar(id, pedido, ct));
@@ -52,7 +53,7 @@ public static class RotasDoFinanceiro
             return Results.NoContent();
         });
 
-        dono.MapGet("/retiradas", (string? competencia, Socios socios, CancellationToken ct) => socios.Retiradas(competencia, ct));
+        dono.MapGet("/retiradas", (string? competencia, string? busca, [AsParameters] PedidoDePagina pagina, Socios socios, CancellationToken ct) => socios.Retiradas(competencia, busca, pagina, ct));
         dono.MapPost("/retiradas", async (NovaRetirada pedido, Socios socios, CancellationToken ct) =>
             Results.Created("/financeiro/retiradas", await socios.Retirar(pedido, ct)));
         dono.MapPut("/retiradas/{id:guid}", (Guid id, NovaRetirada pedido, Socios socios, CancellationToken ct) => socios.AlterarRetirada(id, pedido, ct));

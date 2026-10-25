@@ -81,7 +81,7 @@ public sealed class FluxoDoErpTest(ApiDeTeste api)
         }
 
         await Rodar();
-        var fila = await operadora.Pegar("/operadora/erp");
+        var fila = await operadora.PegarItens("/operadora/erp");
         var envio = fila.EnumerateArray().Single(e => e.GetProperty("pedidoId").GetGuid() == pedido);
         Assert.Equal("Pendente", envio.GetProperty("situacao").GetString());
         Assert.Equal(1, envio.GetProperty("tentativas").GetInt32());
@@ -90,7 +90,7 @@ public sealed class FluxoDoErpTest(ApiDeTeste api)
         await Rodar();
         await Rodar();
 
-        var depois = (await operadora.Pegar("/operadora/erp")).EnumerateArray().Single(e => e.GetProperty("pedidoId").GetGuid() == pedido);
+        var depois = (await operadora.PegarItens("/operadora/erp")).EnumerateArray().Single(e => e.GetProperty("pedidoId").GetGuid() == pedido);
         Assert.Equal("Enviado", depois.GetProperty("situacao").GetString());
         Assert.Equal(2, erp.Recebidos.Count(r => r.Chave == pedido.ToString()));
     }

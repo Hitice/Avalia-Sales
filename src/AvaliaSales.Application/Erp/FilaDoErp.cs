@@ -21,10 +21,24 @@ public sealed class FilaDoErp(IBancoDeDados banco, TimeProvider relogio)
         banco.EnviosAoErp.Add(new EnvioAoErp(pedido.Id, revendedorId, revendedor.Nome, revendedor.Cnpj, pedido.Quantidade, pedido.ValorCents, relogio.GetUtcNow()));
     }
 
-    public async Task<IReadOnlyList<EnvioDto>> Listar(CancellationToken ct) =>
-        await banco.EnviosAoErp.AsNoTracking().OrderByDescending(e => e.CriadoEm).Take(200)
+    /// <summary>A fila do ERP, do mais novo ao mais antigo; a busca vale para o cliente, o número no ERP e a situação.</summary>
+    public async Task<Pagina<EnvioDto>> Listar(string? busca, PedidoDePagina pedido, CancellationToken ct)
+    {
+        var consulta = banco.EnviosAoErp.AsNoTracking();
+        var termo = Paginacao.Termo(busca);
+        if (termo.Length > 0)
+        {
+            var situacoes = Enum.GetValues<SituacaoDoEnvio>().Where(s => s.ToString().ToLowerInvariant().Contains(termo, StringComparison.Ordinal)).ToList();
+            // Vira lower(...) LIKE no Postgres: a cultura do .NET não entra na consulta.
+#pragma warning disable CA1304, CA1311, CA1862
+            consulta = consulta.Where(e => e.Cliente.ToLower().Contains(termo) || (e.NumeroNoErp != null && e.NumeroNoErp.ToLower().Contains(termo)) || situacoes.Contains(e.Situacao));
+#pragma warning restore CA1304, CA1311, CA1862
+        }
+
+        return await consulta.OrderByDescending(e => e.CriadoEm).ThenByDescending(e => e.PedidoId)
             .Select(e => new EnvioDto(e.PedidoId, e.Cliente, e.Quantidade, e.ValorCents, e.Situacao, e.NumeroNoErp, e.Tentativas, e.UltimoErro, e.CriadoEm))
-            .ToListAsync(ct);
+            .PaginarAsync(pedido, ct);
+    }
 
     public async Task Reenviar(Guid pedidoId, CancellationToken ct)
     {

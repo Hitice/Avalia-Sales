@@ -80,8 +80,8 @@ export async function apiComo(email: string): Promise<APIRequestContext> {
  */
 export async function placaLivre(): Promise<string> {
   const dono = await apiComo(CLIENTE_A)
-  const livres = async () => ((await (await dono.get('placas?estado=EmEstoque')).json()) as { placas: { codigo: string; consignadaA: string | null }[] })
-    .placas.filter((p) => p.consignadaA === null)
+  const livres = async () => ((await (await dono.get('placas?estado=EmEstoque')).json()) as { itens: { codigo: string; consignadaA: string | null }[] })
+    .itens.filter((p) => p.consignadaA === null)
   if ((await livres()).length < 2) {
     const operador = await apiComo(OPERADOR)
     const pacote = ((await (await operador.get('operadora/pacotes')).json()) as { id: string; quantidade: number }[]).find((p) => p.quantidade === 10)!

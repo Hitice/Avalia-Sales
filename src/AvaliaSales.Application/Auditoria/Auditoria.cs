@@ -6,16 +6,12 @@ namespace AvaliaSales.Application.Auditoria;
 
 public sealed record RegistroDto(Guid Id, AcaoAuditada Acao, string Alvo, string Referencia, string? Antes, string? Depois, string Quem, DateTimeOffset OcorridoEm);
 
-public sealed record PaginaDeAuditoria(IReadOnlyList<RegistroDto> Registros, int Total);
-
 /// <summary>
 /// Registra na transação de quem chama (o SaveChanges é dele) e lista para o
 /// dono. Dinheiro e comissão continuam no razão; aqui fica a decisão de quem.
 /// </summary>
 public sealed class Auditoria(IBancoDeDados banco, IUsuarioAtual usuario, IContas contas, TimeProvider relogio)
 {
-    public const int PorPagina = 20;
-
     /// <summary>Teto da exportação: acima disso, filtre por código ou por ação.</summary>
     public const int ExportadosNoMaximo = 10_000;
 
@@ -27,19 +23,17 @@ public sealed class Auditoria(IBancoDeDados banco, IUsuarioAtual usuario, IConta
     /// <paramref name="acao"/>, só aquela ação; com <paramref name="busca"/>, o texto no alvo, no código,
     /// no antes e no depois, no nome da ação ou no nome do vendedor que fez.
     /// </summary>
-    public async Task<PaginaDeAuditoria> Listar(string? referencia, AcaoAuditada? acao, int pagina, CancellationToken ct, string? busca = null)
+    public async Task<Pagina<RegistroDto>> Listar(string? referencia, AcaoAuditada? acao, PedidoDePagina pedido, CancellationToken ct, string? busca = null)
     {
         var consulta = await Buscar(Filtrar(referencia, acao), busca, ct);
-        var total = await consulta.CountAsync(ct);
-        var registros = await consulta.OrderByDescending(r => r.OcorridoEm)
-            .Skip((Math.Max(pagina, 1) - 1) * PorPagina).Take(PorPagina).ToListAsync(ct);
-        return new PaginaDeAuditoria(await ParaDto(registros, ct), total);
+        var pagina = await consulta.OrderByDescending(r => r.OcorridoEm).ThenByDescending(r => r.Id).PaginarAsync(pedido, ct);
+        return new Pagina<RegistroDto>(await ParaDto(pagina.Itens, ct), pagina.Total, pagina.Proxima);
     }
 
     /// <summary>Tudo o que o filtro pega, do mais novo ao mais antigo, até o teto, para o dono guardar ou entregar.</summary>
     public async Task<IReadOnlyList<RegistroDto>> Exportar(string? referencia, AcaoAuditada? acao, CancellationToken ct, string? busca = null)
     {
-        var registros = await (await Buscar(Filtrar(referencia, acao), busca, ct)).OrderByDescending(r => r.OcorridoEm).Take(ExportadosNoMaximo).ToListAsync(ct);
+        var registros = await (await Buscar(Filtrar(referencia, acao), busca, ct)).OrderByDescending(r => r.OcorridoEm).ThenByDescending(r => r.Id).Take(ExportadosNoMaximo).ToListAsync(ct);
         return await ParaDto(registros, ct);
     }
 
@@ -78,7 +72,7 @@ public sealed class Auditoria(IBancoDeDados banco, IUsuarioAtual usuario, IConta
 #pragma warning restore CA1304, CA1311, CA1862
     }
 
-    private async Task<List<RegistroDto>> ParaDto(List<RegistroDeAuditoria> registros, CancellationToken ct)
+    private async Task<List<RegistroDto>> ParaDto(IReadOnlyList<RegistroDeAuditoria> registros, CancellationToken ct)
     {
         var nomes = await contas.Nomes(registros.Where(r => r.UsuarioId != null).Select(r => r.UsuarioId!.Value), ct);
         return registros.Select(r => new RegistroDto(r.Id, r.Acao, r.Alvo, r.Referencia, r.Antes, r.Depois,

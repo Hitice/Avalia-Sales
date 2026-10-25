@@ -7,10 +7,10 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatarCentavos } from '@/dinheiro/dinheiro'
-import { usePainelDoVendedor, usePlacas, useSaldosDeComissao, useVendas } from './consultas'
+import { usePainelDoVendedor, usePlacas, useResumoDasVendas, useSaldosDeComissao, useVendasRecentes } from './consultas'
 import { Indicador, Indicadores } from '@/componentes/Indicador'
 import { rotuloDaVenda, tomDaVenda } from './situacaoDaVenda'
-import { VendasEm30Dias, vendasPorDia } from './VendasEm30Dias'
+import { porDiaDe, VendasEm30Dias } from './VendasEm30Dias'
 import { Rosca } from '@/financeiro/Graficos'
 
 /**
@@ -20,28 +20,23 @@ import { Rosca } from '@/financeiro/Graficos'
  */
 export function TelaDoVendedor() {
   const nome = useSessao((s) => s.perfil?.nome)
-  const vendas = useVendas()
+  const recentes = useVendasRecentes()
+  const resumo = useResumoDasVendas()
   const saldos = useSaldosDeComissao()
   const painel = usePainelDoVendedor()
-  const placas = usePlacas({ pagina: 1 })
-  // Fixado na abertura da tela: o mês não muda entre uma renderização e outra.
-  const [inicioDoMes] = useState(() => {
-    const hoje = new Date()
-    return new Date(hoje.getFullYear(), hoje.getMonth(), 1).getTime()
-  })
-  const validas = (vendas.data ?? []).filter((v) => v.situacao !== 'Cancelada')
-  const doMes = validas.filter((v) => Date.parse(v.vendidaEm) >= inicioDoMes)
-  const esperando = validas.filter((v) => v.pagamento !== 'Paga' && !v.cortesia && v.comissaoCents > 0)
+  const placas = usePlacas({ pagina: 1, tamanho: 1 })
+  const validas = (recentes.data?.itens ?? []).filter((v) => v.situacao !== 'Cancelada')
+  const r = resumo.data
   const saldo = saldos.data?.[0]
+  // Fixado na abertura da tela: o dia não muda entre uma renderização e outra.
   const [agora] = useState(() => Date.now())
-  const porDia = useMemo(() => vendasPorDia(vendas.data ?? [], agora), [vendas.data, agora])
-  const soma = (lista: typeof validas, campo: 'valorCents' | 'comissaoCents') => lista.reduce((s, v) => s + v[campo], 0)
+  const porDia = useMemo(() => porDiaDe((r?.porDia ?? []).map((d) => ({ dia: d.dia, total: d.total })), agora), [r, agora])
 
   const numeros = [
-    { rotulo: 'Vendas no mês', valor: String(doMes.length) },
-    { rotulo: 'Vendido no mês', valor: formatarCentavos(soma(doMes.filter((v) => v.pagamento === 'Paga'), 'valorCents')) },
+    { rotulo: 'Vendas no mês', valor: String(r?.noMes ?? 0) },
+    { rotulo: 'Vendido no mês', valor: formatarCentavos(r?.recebidoNoMesCents ?? 0) },
     { rotulo: 'Comissão a receber', valor: formatarCentavos(saldo?.abertaCents ?? 0), destaque: true },
-    { rotulo: 'A pagar pelo cliente', valor: formatarCentavos(soma(esperando, 'comissaoCents')) },
+    { rotulo: 'A pagar pelo cliente', valor: formatarCentavos(r?.comissaoEsperandoCents ?? 0) },
     { rotulo: 'Comissão recebida', valor: formatarCentavos(saldo?.repassadaCents ?? 0) },
     { rotulo: 'Placas comigo', valor: String(placas.data?.porEstado.EmEstoque ?? 0) },
   ]
@@ -51,7 +46,7 @@ export function TelaDoVendedor() {
       <Cabecalho titulo={nome ? `Olá, ${nome.split(' ')[0]}` : 'Início'}>
         <Button asChild className="lg:hidden"><Link to="/vender">Nova venda</Link></Button>
       </Cabecalho>
-      <Erro erro={vendas.error ?? saldos.error} />
+      <Erro erro={recentes.error ?? resumo.error ?? saldos.error} />
       <Indicadores colunas={3}>
         {numeros.map((n) => <Indicador key={n.rotulo} rotulo={n.rotulo} valor={n.valor} destaque={n.destaque} />)}
       </Indicadores>
@@ -63,21 +58,21 @@ export function TelaDoVendedor() {
         </div>
       )}
       <div className="mt-3 grid gap-3 md:mt-4 md:gap-4 lg:grid-cols-12">
-        <VendasEm30Dias className="lg:col-span-7" porDia={porDia} carregando={vendas.isPending} />
+        <VendasEm30Dias className="lg:col-span-7" porDia={porDia} carregando={resumo.isPending} />
         <Rosca className="lg:col-span-5" titulo="Minha comissão" vazio="Nenhuma comissão ainda."
           itens={[
             { nome: 'A receber', valorCents: Math.max(0, saldo?.abertaCents ?? 0) },
-            { nome: 'Esperando o cliente pagar', valorCents: soma(esperando, 'comissaoCents') },
+            { nome: 'Esperando o cliente pagar', valorCents: r?.comissaoEsperandoCents ?? 0 },
             { nome: 'Recebida', valorCents: saldo?.repassadaCents ?? 0 },
           ]} />
       </div>
       <Card className="mt-3 md:mt-4">
         <CardHeader>
           <CardTitle>Últimas vendas</CardTitle>
-          {validas.length > 5 && <CardAction><Button asChild variant="link" size="sm" className="-my-2 -mr-2.5"><Link to="/vendedor/vendas">Ver todas</Link></Button></CardAction>}
+          {(r?.total ?? 0) > 5 && <CardAction><Button asChild variant="link" size="sm" className="-my-2 -mr-2.5"><Link to="/vendedor/vendas">Ver todas</Link></Button></CardAction>}
         </CardHeader>
         <CardContent>
-          {vendas.isPending ? <Carregando linhas={3} /> : validas.length === 0
+          {recentes.isPending ? <Carregando linhas={3} /> : validas.length === 0
             ? <Vazio texto="Nenhuma venda ainda." acao={<Button asChild variant="outline"><Link to="/vender">Nova venda</Link></Button>} />
             : (
                 <ul className="-my-1 divide-y">

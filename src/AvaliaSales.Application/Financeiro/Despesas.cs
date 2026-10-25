@@ -16,12 +16,23 @@ public sealed record NovaDespesa(DateOnly Data, string Descricao, CategoriaDeDes
 /// </summary>
 public sealed class Despesas(IBancoDeDados banco, Fechamentos fechamentos, TimeProvider relogio)
 {
-    public async Task<IReadOnlyList<DespesaDto>> Listar(string? competencia, CancellationToken ct)
+    /// <summary>As do mês, da data mais recente para trás; a busca vale para a descrição e a categoria.</summary>
+    public async Task<Pagina<DespesaDto>> Listar(string? competencia, string? busca, PedidoDePagina pedido, CancellationToken ct)
     {
         var (de, ate) = Intervalo(string.IsNullOrWhiteSpace(competencia) ? fechamentos.MesCorrente() : Competencias.Conferir(competencia));
-        return await banco.Despesas.AsNoTracking().Where(d => d.Data >= de && d.Data < ate)
-            .OrderByDescending(d => d.Data).ThenByDescending(d => d.CriadaEm)
-            .Select(d => new DespesaDto(d.Id, d.Data, d.Descricao, d.Categoria, d.ValorCents)).ToListAsync(ct);
+        var consulta = banco.Despesas.AsNoTracking().Where(d => d.Data >= de && d.Data < ate);
+        var termo = Paginacao.Termo(busca);
+        if (termo.Length > 0)
+        {
+            var categorias = Enum.GetValues<CategoriaDeDespesa>().Where(c => c.ToString().ToLowerInvariant().Contains(termo, StringComparison.Ordinal)).ToList();
+            // Vira lower(...) LIKE no Postgres: a cultura do .NET não entra na consulta.
+#pragma warning disable CA1304, CA1311, CA1862
+            consulta = consulta.Where(d => d.Descricao.ToLower().Contains(termo) || categorias.Contains(d.Categoria));
+#pragma warning restore CA1304, CA1311, CA1862
+        }
+
+        return await consulta.OrderByDescending(d => d.Data).ThenByDescending(d => d.CriadaEm).ThenByDescending(d => d.Id)
+            .Select(d => new DespesaDto(d.Id, d.Data, d.Descricao, d.Categoria, d.ValorCents)).PaginarAsync(pedido, ct);
     }
 
     public async Task<DespesaDto> Criar(NovaDespesa pedido, CancellationToken ct)

@@ -1,4 +1,5 @@
 using AvaliaSales.Api.Autenticacao;
+using AvaliaSales.Application;
 using AvaliaSales.Application.Links;
 
 namespace AvaliaSales.Api.Rotas;
@@ -10,7 +11,7 @@ public static class RotasDosLinks
     {
         var links = rotas.MapGroup("/links").WithTags("Links");
 
-        links.MapGet("/", (Links casos, CancellationToken ct) => casos.Listar(ct)).RequireAuthorization(Politicas.Equipe);
+        links.MapGet("/", (string? busca, bool? ativos, [AsParameters] PedidoDePagina pagina, Links casos, CancellationToken ct) => casos.Listar(busca, ativos ?? false, pagina, ct)).RequireAuthorization(Politicas.Equipe);
         links.MapPost("/", async (GravarLink comando, Links casos, CancellationToken ct) =>
         {
             var link = await casos.Criar(comando, ct);

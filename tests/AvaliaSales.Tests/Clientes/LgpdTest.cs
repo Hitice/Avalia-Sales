@@ -12,7 +12,7 @@ public sealed class LgpdTest(ApiDeTeste api)
     {
         var revenda = await api.RevendaComEstoque("Revenda da LGPD");
         await revenda.Dono.Postar("/vendas", Cenarios.Venda(revenda.Codigos[0], revenda.ProdutoId, "11922220001"), HttpStatusCode.Created);
-        var cliente = (await revenda.Dono.Pegar("/clientes?busca=padaria")).EnumerateArray().Single();
+        var cliente = (await revenda.Dono.PegarItens("/clientes?busca=padaria")).EnumerateArray().Single();
         var id = cliente.GetProperty("id").GetGuid();
 
         var dados = await revenda.Dono.Pegar($"/clientes/{id}/dados");
@@ -33,7 +33,7 @@ public sealed class LgpdTest(ApiDeTeste api)
         Assert.Equal(System.Text.Json.JsonValueKind.Null, depois.GetProperty("documento").ValueKind);
         Assert.Equal("", depois.GetProperty("telefone").GetString());
         Assert.Equal(14_990, depois.GetProperty("vendas")[0].GetProperty("valorCents").GetInt64());
-        Assert.Empty((await revenda.Dono.Pegar("/clientes?busca=padaria")).EnumerateArray());
+        Assert.Empty((await revenda.Dono.PegarItens("/clientes?busca=padaria")).EnumerateArray());
     }
 
     [Fact]
@@ -42,7 +42,7 @@ public sealed class LgpdTest(ApiDeTeste api)
         var a = await api.RevendaComEstoque("Revenda LGPD A");
         var b = await api.RevendaComEstoque("Revenda LGPD B");
         await a.Dono.Postar("/vendas", Cenarios.Venda(a.Codigos[0], a.ProdutoId, "11922220002"), HttpStatusCode.Created);
-        var id = (await a.Dono.Pegar("/clientes")).EnumerateArray().Single().GetProperty("id").GetGuid();
+        var id = (await a.Dono.PegarItens("/clientes")).EnumerateArray().Single().GetProperty("id").GetGuid();
         var email = $"v-{Guid.NewGuid():N}@teste.com.br";
         await a.Dono.Postar("/equipe", new { nome = "Vê", email, senha = ApiDeTeste.Senha }, HttpStatusCode.Created);
         var vendedor = await api.ClienteLogado(email);

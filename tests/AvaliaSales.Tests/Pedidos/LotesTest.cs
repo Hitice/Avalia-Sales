@@ -21,7 +21,7 @@ public sealed class LotesTest(ApiDeTeste api)
 
         var id = lote.GetProperty("id").GetGuid();
         await operadora.Colocar($"/operadora/lotes/{id}", new { titulo = "Cardápio do Zé", categoria = "Cardapio" });
-        var lido = (await operadora.Pegar("/operadora/lotes")).EnumerateArray().Single(l => l.GetProperty("id").GetGuid() == id);
+        var lido = (await operadora.PegarItens("/operadora/lotes")).EnumerateArray().Single(l => l.GetProperty("id").GetGuid() == id);
         Assert.Equal(("Cardápio do Zé", "Cardapio"), (lido.GetProperty("titulo").GetString(), lido.GetProperty("categoria").GetString()));
     }
 
@@ -51,13 +51,13 @@ public sealed class LotesTest(ApiDeTeste api)
         var operadora = await api.ClienteLogado(await api.CriarOperadora());
         var vendida = revenda.Codigos[0];
         await revenda.Dono.Postar("/vendas", Cenarios.Venda(vendida, revenda.ProdutoId, "11977770011"), HttpStatusCode.Created);
-        var lote = (await revenda.Dono.Pegar("/lotes")).EnumerateArray().Single();
+        var lote = (await revenda.Dono.PegarItens("/lotes")).EnumerateArray().Single();
         var id = lote.GetProperty("id").GetGuid();
 
         // O lote já é da revenda: a operadora não arquiva, o dono arquiva pelo estoque.
         await operadora.Colocar($"/operadora/lotes/{id}/arquivado", new { arquivado = true }, HttpStatusCode.UnprocessableEntity);
         await revenda.Dono.Colocar($"/lotes/{id}/arquivado", new { arquivado = true }, HttpStatusCode.NoContent);
-        var arquivado = (await revenda.Dono.Pegar("/lotes")).EnumerateArray().Single();
+        var arquivado = (await revenda.Dono.PegarItens("/lotes")).EnumerateArray().Single();
         Assert.Equal((0, 9), (arquivado.GetProperty("emEstoque").GetInt32(), arquivado.GetProperty("baixadas").GetInt32()));
 
         await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);

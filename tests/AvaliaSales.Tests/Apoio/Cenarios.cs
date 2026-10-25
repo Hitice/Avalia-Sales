@@ -30,7 +30,7 @@ public static class Cenarios
         var placas = await dono.Pegar("/placas");
         var produto = await ProdutoDoCatalogo(dono, "placa-avaliacao-google", 14_990L);
         return new Revenda(id, dono,
-            placas.GetProperty("placas").EnumerateArray().Select(p => p.GetProperty("codigo").GetString()!).ToList(),
+            placas.GetProperty("itens").EnumerateArray().Select(p => p.GetProperty("codigo").GetString()!).ToList(),
             produto);
     }
 

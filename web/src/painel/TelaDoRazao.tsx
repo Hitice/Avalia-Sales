@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { formatarDataHora, ROTULO_DO_LANCAMENTO as ROTULO } from '@/api/rotulos'
-import { Cabecalho, EstadoDaConsulta, Rolagem } from '@/componentes/Tela'
+import { ListaPaginada } from '@/componentes/ListaPaginada'
+import { Cabecalho, Rolagem } from '@/componentes/Tela'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -19,7 +20,7 @@ export function TelaDoRazao() {
   const meses = useMesesDoRazao()
   const [competencia, setCompetencia] = useState<string | undefined>()
   const razao = useRazao(competencia)
-  const r = razao.data
+  const r = razao.bruto
   // Sem taxa nem serviço da Avalia no mês, o cartão dela não aparece.
   const totais = r ? [
     { rotulo: 'Receita', valor: r.receitaCents },
@@ -43,33 +44,34 @@ export function TelaDoRazao() {
       </Indicadores>
       <Card className="mt-4">
         <CardContent>
-          <EstadoDaConsulta carregando={razao.isPending} erro={razao.error} vazio={r?.lancamentos.length === 0} textoVazio="Nenhum lançamento neste mês." />
-          {r && r.lancamentos.length > 0 && (
-            <Rolagem>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead tipo="data">Data</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead tipo="situacao">Condição</TableHead>
-                    <TableHead>Descrição</TableHead>
-                    <TableHead tipo="numero">Valor</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {r.lancamentos.map((l) => (
-                    <TableRow key={l.id}>
-                      <TableCell>{formatarDataHora(l.ocorridoEm)}</TableCell>
-                      <TableCell>{ROTULO[l.tipo]}</TableCell>
-                      <TableCell>{l.estorno ? <Badge variant="erro">Estorno</Badge> : <span className="text-muted-foreground">-</span>}</TableCell>
-                      <TableCell className="min-w-48 whitespace-normal">{l.descricao}</TableCell>
-                      <TableCell className={l.valorCents < 0 ? 'text-muted-foreground' : undefined}>{formatarCentavos(l.valorCents)}</TableCell>
+          <ListaPaginada lista={razao} textoVazio="Nenhum lançamento neste mês." nomeDaBusca="Buscar nos lançamentos" placeholder="Descrição">
+            {(itens) => (
+              <Rolagem>
+                <Table semBusca>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead tipo="data">Data</TableHead>
+                      <TableHead>Tipo</TableHead>
+                      <TableHead tipo="situacao">Condição</TableHead>
+                      <TableHead>Descrição</TableHead>
+                      <TableHead tipo="numero">Valor</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Rolagem>
-          )}
+                  </TableHeader>
+                  <TableBody>
+                    {itens.map((l) => (
+                      <TableRow key={l.id}>
+                        <TableCell>{formatarDataHora(l.ocorridoEm)}</TableCell>
+                        <TableCell>{ROTULO[l.tipo]}</TableCell>
+                        <TableCell>{l.estorno ? <Badge variant="erro">Estorno</Badge> : <span className="text-muted-foreground">-</span>}</TableCell>
+                        <TableCell className="min-w-48 whitespace-normal">{l.descricao}</TableCell>
+                        <TableCell className={l.valorCents < 0 ? 'text-muted-foreground' : undefined}>{formatarCentavos(l.valorCents)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </Rolagem>
+            )}
+          </ListaPaginada>
         </CardContent>
       </Card>
     </>

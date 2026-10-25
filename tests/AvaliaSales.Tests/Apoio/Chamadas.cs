@@ -19,6 +19,15 @@ public static class Chamadas
     public static async Task<JsonElement> Pegar(this HttpClient cliente, string rota, HttpStatusCode esperado = HttpStatusCode.OK) =>
         await Ler(await cliente.GetAsync(rota, TestContext.Current.CancellationToken), esperado);
 
+    /// <summary>A lista paginada (<c>{ itens, total, proxima }</c>): confere o envelope e devolve só os itens.</summary>
+    public static async Task<JsonElement> PegarItens(this HttpClient cliente, string rota)
+    {
+        var pagina = await cliente.Pegar(rota);
+        Assert.Equal(JsonValueKind.Array, pagina.GetProperty("itens").ValueKind);
+        Assert.True(pagina.GetProperty("total").GetInt32() >= pagina.GetProperty("itens").GetArrayLength());
+        return pagina.GetProperty("itens");
+    }
+
     public static async Task<JsonElement> Colocar(this HttpClient cliente, string rota, object corpo, HttpStatusCode esperado = HttpStatusCode.OK) =>
         await Ler(await cliente.PutAsJsonAsync(rota, corpo, Json, TestContext.Current.CancellationToken), esperado);
 

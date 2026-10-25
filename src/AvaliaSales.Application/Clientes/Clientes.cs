@@ -31,9 +31,10 @@ public sealed record DadosDoCliente(
 /// </summary>
 public sealed class Clientes(IBancoDeDados banco, IRevendedorAtual atual, Auditoria.Auditoria auditoria, TimeProvider relogio)
 {
-    public async Task<IReadOnlyList<ClienteDaLista>> Listar(string? busca, CancellationToken ct)
+    /// <summary>Por nome (o Id desempata); a busca vale para o nome, o responsável, o telefone e o documento.</summary>
+    public async Task<Pagina<ClienteDaLista>> Listar(string? busca, PedidoDePagina pedido, CancellationToken ct)
     {
-        var termo = (busca ?? string.Empty).Trim().ToLowerInvariant();
+        var termo = Paginacao.Termo(busca);
         var digitos = new string(termo.Where(char.IsAsciiDigit).ToArray());
         var consulta = banco.Clientes.AsNoTracking();
         if (termo.Length > 0)
@@ -45,10 +46,10 @@ public sealed class Clientes(IBancoDeDados banco, IRevendedorAtual atual, Audito
 #pragma warning restore CA1304, CA1311, CA1862
         }
 
-        return await consulta.OrderBy(c => c.Nome).Take(200)
+        return await consulta.OrderBy(c => c.Nome).ThenBy(c => c.Id)
             .Select(c => new ClienteDaLista(c.Id, c.Nome, c.Responsavel, c.Telefone, c.Documento, c.Email,
                 banco.Vendas.Count(v => v.ClienteId == c.Id && v.PlacaId != null && v.Situacao == Domain.Vendas.SituacaoDaVenda.Registrada), c.CriadoEm, c.AnonimizadoEm != null))
-            .ToListAsync(ct);
+            .PaginarAsync(pedido, ct);
     }
 
     public async Task<DadosDoCliente> Exportar(Guid id, CancellationToken ct)

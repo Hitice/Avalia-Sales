@@ -6,14 +6,15 @@ import { formatarDataHora } from '@/api/rotulos'
 import { useSessao } from '@/acesso/sessao'
 import { useContaEncerrada } from '@/app/contaEncerrada'
 import { AcoesDaLinha } from '@/componentes/AcoesDaLinha'
-import { Aviso, Cabecalho, Erro, EstadoDaConsulta, Rolagem } from '@/componentes/Tela'
+import { ListaPaginada } from '@/componentes/ListaPaginada'
+import { Aviso, Cabecalho, Erro, Rolagem } from '@/componentes/Tela'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { formatarCentavos } from '@/dinheiro/dinheiro'
 import { AcoesDaVenda } from './AcoesDaVenda'
-import { useCobrarDeNovo, useSaldosDeComissao, useVendas } from './consultas'
+import { useCobrarDeNovo, useResumoDasVendas, useSaldosDeComissao, useVendas } from './consultas'
 import { nomeDoProduto, podeGerarCobranca, rotuloDaVenda, temAcoesDaVenda, tomDaVenda } from './situacaoDaVenda'
 
 /**
@@ -39,15 +40,12 @@ export function TelaDeVendas() {
 function ListaDeVendas({ dono }: { dono: boolean }) {
   const encerrada = useContaEncerrada()
   const vendas = useVendas()
+  const resumo = useResumoDasVendas().data
   const cobrar = useCobrarDeNovo()
   const saldo = useSaldosDeComissao()
   const meu = dono ? undefined : saldo.data?.[0]
-  const pagas = (vendas.data ?? []).filter((v) => v.pagamento === 'Paga')
-  const comissaoPaga = pagas.reduce((s, v) => s + v.comissaoCents, 0)
-  // Vendas feitas juntas (mesma cobrança) compartilham o grupo: a lista diz quantas são.
   const [editando, setEditando] = useState<string | null>(null)
-  const editada = vendas.data?.find((v) => v.id === editando)
-  const porGrupo = (vendas.data ?? []).reduce<Record<string, number>>((mapa, v) => (v.grupoId ? { ...mapa, [v.grupoId]: (mapa[v.grupoId] ?? 0) + 1 } : mapa), {})
+  const editada = vendas.itens?.find((v) => v.id === editando)
 
   return (
     <>
@@ -58,63 +56,64 @@ function ListaDeVendas({ dono }: { dono: boolean }) {
           Comissão a receber: <span className="font-semibold tabular-nums">{formatarCentavos(meu.abertaCents)}</span>. Já recebida: <span className="tabular-nums">{formatarCentavos(meu.repassadaCents)}</span>.
         </p>
       )}
-      {vendas.data && vendas.data.length > 0 && (
+      {resumo && resumo.total > 0 && (
         <p className="mb-3 text-sm text-muted-foreground">
-          {pagas.length} de {vendas.data.length} vendas pagas. Comissão das pagas: <span className="font-medium text-foreground tabular-nums">{formatarCentavos(comissaoPaga)}</span>
+          {resumo.pagas} de {resumo.total} vendas pagas. Comissão das pagas: <span className="font-medium text-foreground tabular-nums">{formatarCentavos(resumo.comissaoPagaCents)}</span>
         </p>
       )}
       <Card>
         <CardContent>
-          <EstadoDaConsulta carregando={vendas.isPending} erro={vendas.error} vazio={vendas.data?.length === 0} textoVazio="Nenhuma venda ainda."
-            acao={!encerrada && <Button asChild variant="outline"><Link to="/vender">Nova venda</Link></Button>} />
-          {vendas.data && vendas.data.length > 0 && (
-            <Rolagem>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead tipo="data">Data</TableHead>
-                    <TableHead>Cliente</TableHead>
-                    <TableHead>Placa</TableHead>
-                    {dono && <TableHead>Vendedor</TableHead>}
-                    <TableHead tipo="numero">Valor</TableHead>
-                    <TableHead tipo="numero" className="md:max-xl:hidden">Comissão</TableHead>
-                    <TableHead tipo="situacao">Pagamento</TableHead>
-                    <TableHead tipo="acoes" />
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {vendas.data.map((v) => (
-                    <TableRow key={v.id}>
-                      <TableCell>{formatarDataHora(v.vendidaEm)}</TableCell>
-                      <TableCell className="min-w-40 whitespace-normal">
-                        <Link className="font-medium underline-offset-4 hover:underline" to={`${dono ? '/painel/vendas' : '/vendedor/vendas'}/${v.id}`}>{v.cliente}</Link>
-                        <p className="text-xs text-muted-foreground">{nomeDoProduto(v)}</p>
-                        {v.grupoId && (
-                          <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
-                            <Layers aria-hidden className="size-3" />
-                            {(porGrupo[v.grupoId] ?? 1) > 1 ? `Venda com ${porGrupo[v.grupoId]} itens` : 'Venda com mais itens'}
-                          </p>
-                        )}
-                      </TableCell>
-                      <TableCell>{v.codigo ? <Link className="tabular-nums underline-offset-4 hover:underline" to={`/placa/${v.codigo}`}>{v.codigo}</Link> : <span className="text-muted-foreground">-</span>}</TableCell>
-                      {dono && <TableCell className="min-w-28 whitespace-normal">{v.vendedor}</TableCell>}
-                      <TableCell>{formatarCentavos(v.valorCents)}</TableCell>
-                      <TableCell className="md:max-xl:hidden">{formatarCentavos(v.comissaoCents)}</TableCell>
-                      <TableCell><Badge variant={tomDaVenda(v)}>{rotuloDaVenda(v)}</Badge></TableCell>
-                      <TableCell>
-                        <AcoesDaLinha nome={`venda de ${v.cliente}`}
-                          principal={podeGerarCobranca(v) && { rotulo: 'Gerar cobrança', desabilitada: cobrar.isPending, aoClicar: () => cobrar.mutate(v.id) }}
-                          outras={[
-                            { rotulo: 'Abrir a venda', para: `${dono ? '/painel/vendas' : '/vendedor/vendas'}/${v.id}` },
-                            temAcoesDaVenda(v, dono) && { rotulo: 'Editar ou cancelar', aoClicar: () => setEditando(v.id) },
-                          ]} />
-                      </TableCell>
+          <ListaPaginada lista={vendas} textoVazio="Nenhuma venda ainda." nomeDaBusca="Buscar nas vendas" placeholder="Cliente, placa, produto ou vendedor"
+            acaoVazia={!encerrada && <Button asChild variant="outline"><Link to="/vender">Nova venda</Link></Button>}>
+            {(itens) => (
+              <Rolagem>
+                <Table semBusca>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead tipo="data">Data</TableHead>
+                      <TableHead>Cliente</TableHead>
+                      <TableHead>Placa</TableHead>
+                      {dono && <TableHead>Vendedor</TableHead>}
+                      <TableHead tipo="numero">Valor</TableHead>
+                      <TableHead tipo="numero" className="md:max-xl:hidden">Comissão</TableHead>
+                      <TableHead tipo="situacao">Pagamento</TableHead>
+                      <TableHead tipo="acoes" />
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Rolagem>
-          )}
+                  </TableHeader>
+                  <TableBody>
+                    {itens.map((v) => (
+                      <TableRow key={v.id}>
+                        <TableCell>{formatarDataHora(v.vendidaEm)}</TableCell>
+                        <TableCell className="min-w-40 whitespace-normal">
+                          <Link className="font-medium underline-offset-4 hover:underline" to={`${dono ? '/painel/vendas' : '/vendedor/vendas'}/${v.id}`}>{v.cliente}</Link>
+                          <p className="text-xs text-muted-foreground">{nomeDoProduto(v)}</p>
+                          {v.grupoId && (
+                            <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
+                              <Layers aria-hidden className="size-3" />
+                              {v.itensNoGrupo > 1 ? `Venda com ${v.itensNoGrupo} itens` : 'Venda com mais itens'}
+                            </p>
+                          )}
+                        </TableCell>
+                        <TableCell>{v.codigo ? <Link className="tabular-nums underline-offset-4 hover:underline" to={`/placa/${v.codigo}`}>{v.codigo}</Link> : <span className="text-muted-foreground">-</span>}</TableCell>
+                        {dono && <TableCell className="min-w-28 whitespace-normal">{v.vendedor}</TableCell>}
+                        <TableCell>{formatarCentavos(v.valorCents)}</TableCell>
+                        <TableCell className="md:max-xl:hidden">{formatarCentavos(v.comissaoCents)}</TableCell>
+                        <TableCell><Badge variant={tomDaVenda(v)}>{rotuloDaVenda(v)}</Badge></TableCell>
+                        <TableCell>
+                          <AcoesDaLinha nome={`venda de ${v.cliente}`}
+                            principal={podeGerarCobranca(v) && { rotulo: 'Gerar cobrança', desabilitada: cobrar.isPending, aoClicar: () => cobrar.mutate(v.id) }}
+                            outras={[
+                              { rotulo: 'Abrir a venda', para: `${dono ? '/painel/vendas' : '/vendedor/vendas'}/${v.id}` },
+                              temAcoesDaVenda(v, dono) && { rotulo: 'Editar ou cancelar', aoClicar: () => setEditando(v.id) },
+                            ]} />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </Rolagem>
+            )}
+          </ListaPaginada>
         </CardContent>
       </Card>
       {editada && <AcoesDaVenda venda={editada} dono={dono} aoFechar={() => setEditando(null)} />}

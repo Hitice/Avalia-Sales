@@ -40,7 +40,7 @@ public sealed class CaixaTest(ApiDeTeste api)
             .GetProperty("id").GetGuid();
         var lia = await api.ClienteLogado(email);
         await lia.Postar("/vendas", Cenarios.Venda(revenda.Codigos[0], revenda.ProdutoId, "11955550101", documento: null), HttpStatusCode.Created);
-        var venda = (await revenda.Dono.Pegar("/vendas")).EnumerateArray().Single(v => v.GetProperty("codigo").GetString() == revenda.Codigos[0]).GetProperty("id").GetGuid();
+        var venda = (await revenda.Dono.PegarItens("/vendas")).EnumerateArray().Single(v => v.GetProperty("codigo").GetString() == revenda.Codigos[0]).GetProperty("id").GetGuid();
         await lia.Postar($"/vendas/{venda}/recebimento", new { meio = "Dinheiro" }, HttpStatusCode.NoContent);
         await revenda.Dono.Postar("/comissoes/conferencia", new { });
         await revenda.Dono.Postar("/repasses", new { vendedorId }, HttpStatusCode.Created);
@@ -73,7 +73,7 @@ public sealed class CaixaTest(ApiDeTeste api)
         Assert.Equal(0, Valor(depois, "saidasCents"));
         Assert.Equal(80_000, Valor(depois, "saldoCents"));
 
-        var linhas = (await revenda.Dono.Pegar($"/razao?competencia={MesCorrente}")).GetProperty("lancamentos").EnumerateArray()
+        var linhas = (await revenda.Dono.Pegar($"/razao?competencia={MesCorrente}")).GetProperty("lancamentos").GetProperty("itens").EnumerateArray()
             .Where(l => l.GetProperty("tipo").GetString() == "SaldoInicialDoCaixa").ToList();
         Assert.Equal(2, linhas.Count);
         Assert.Contains(linhas, l => l.GetProperty("estorno").GetBoolean() && l.GetProperty("valorCents").GetInt64() == -100_000);

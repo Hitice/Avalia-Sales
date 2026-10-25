@@ -6,8 +6,6 @@ namespace AvaliaSales.Application.Auditoria;
 
 public sealed record RegistroDaOperadoraDto(Guid Id, string Acao, string? Referencia, string? Corpo, string Quem, DateTimeOffset OcorridoEm);
 
-public sealed record PaginaDaOperadora(IReadOnlyList<RegistroDaOperadoraDto> Registros, int Total);
-
 /// <summary>
 /// Quem da operadora mudou o quê na plataforma. O registro sai do middleware do
 /// grupo /operadora, uma linha por escrita que deu certo; aqui só a leitura e a
@@ -15,17 +13,14 @@ public sealed record PaginaDaOperadora(IReadOnlyList<RegistroDaOperadoraDto> Reg
 /// </summary>
 public sealed class AuditoriaDaOperadora(IBancoDeDados banco, IContas contas)
 {
-    public async Task<PaginaDaOperadora> Listar(string? busca, int pagina, CancellationToken ct)
+    public async Task<Pagina<RegistroDaOperadoraDto>> Listar(string? busca, PedidoDePagina pedido, CancellationToken ct)
     {
-        var consulta = Filtrar(busca);
-        var total = await consulta.CountAsync(ct);
-        var registros = await consulta.OrderByDescending(r => r.OcorridoEm)
-            .Skip((Math.Max(pagina, 1) - 1) * Auditoria.PorPagina).Take(Auditoria.PorPagina).ToListAsync(ct);
-        return new PaginaDaOperadora(await ParaDto(registros, ct), total);
+        var pagina = await Filtrar(busca).OrderByDescending(r => r.OcorridoEm).ThenByDescending(r => r.Id).PaginarAsync(pedido, ct);
+        return new Pagina<RegistroDaOperadoraDto>(await ParaDto(pagina.Itens, ct), pagina.Total, pagina.Proxima);
     }
 
     public async Task<IReadOnlyList<RegistroDaOperadoraDto>> Exportar(string? busca, CancellationToken ct) =>
-        await ParaDto(await Filtrar(busca).OrderByDescending(r => r.OcorridoEm).Take(Auditoria.ExportadosNoMaximo).ToListAsync(ct), ct);
+        await ParaDto(await Filtrar(busca).OrderByDescending(r => r.OcorridoEm).ThenByDescending(r => r.Id).Take(Auditoria.ExportadosNoMaximo).ToListAsync(ct), ct);
 
     /// <summary>A busca acha pela rota ou pelo alvo: "despacho", "cupons", o id do pedido.</summary>
     private IQueryable<RegistroDaOperadora> Filtrar(string? busca)
@@ -43,7 +38,7 @@ public sealed class AuditoriaDaOperadora(IBancoDeDados banco, IContas contas)
         return consulta;
     }
 
-    private async Task<List<RegistroDaOperadoraDto>> ParaDto(List<RegistroDaOperadora> registros, CancellationToken ct)
+    private async Task<List<RegistroDaOperadoraDto>> ParaDto(IReadOnlyList<RegistroDaOperadora> registros, CancellationToken ct)
     {
         var nomes = await contas.Nomes(registros.Select(r => r.UsuarioId), ct);
         return registros.Select(r => new RegistroDaOperadoraDto(r.Id, r.Acao, r.Referencia, r.Corpo,

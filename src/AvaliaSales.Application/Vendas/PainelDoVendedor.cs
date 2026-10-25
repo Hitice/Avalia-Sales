@@ -9,6 +9,14 @@ namespace AvaliaSales.Application.Vendas;
 /// <summary>Uma linha do ranking do mês: posição, primeiro nome e vendas pagas. Valor e comissão dos outros não aparecem.</summary>
 public sealed record PosicaoNoRanking(int Posicao, string Nome, int Vendas, bool Voce);
 
+/// <summary>Quais placas da carteira: todas, as que vencem em até 30 dias ou as que já venceram (carência inclusa).</summary>
+public enum FiltroDaCarteira
+{
+    Todas,
+    Vencendo,
+    Vencidas,
+}
+
 /// <summary>O mês do vendedor: a meta que o revendedor definiu, o que ele já vendeu pago e o ranking da equipe.</summary>
 public sealed record ResumoDoVendedor(long? MetaMensalCents, long VendidoNoMesCents, int VendasNoMes, IReadOnlyList<PosicaoNoRanking> Ranking);
 
@@ -24,7 +32,6 @@ public sealed record PlacaDaCarteira(Guid VendaId, string Codigo, Guid ClienteId
 public sealed class PainelDoVendedor(IBancoDeDados banco, IUsuarioAtual usuario, Clientes.PrivacidadeDoCliente privacidade, TimeProvider relogio)
 {
     private static readonly TimeZoneInfo Brasilia = TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo");
-    public const int PlacasNaCarteira = 500;
 
     /// <summary>Venda paga no mês de Brasília conta: venda registrada, sem cortesia, com a cobrança dela paga.</summary>
     public async Task<ResumoDoVendedor> Resumo(CancellationToken ct)
@@ -50,34 +57,61 @@ public sealed class PainelDoVendedor(IBancoDeDados banco, IUsuarioAtual usuario,
         return new ResumoDoVendedor(equipe.FirstOrDefault(v => v.Id == eu)?.MetaMensalCents, minhas?.ValorCents ?? 0, minhas?.Vendas ?? 0, ranking);
     }
 
-    /// <summary>As placas vendidas e ainda de pé, da que vence primeiro à que vence por último, com as leituras dos últimos 30 dias.</summary>
-    public async Task<IReadOnlyList<PlacaDaCarteira>> Carteira(CancellationToken ct)
+    /// <summary>
+    /// As placas vendidas e ainda de pé, da que vence primeiro à que vence por último, com as leituras dos últimos
+    /// 30 dias. A busca vale para o cliente, o telefone e o código da placa.
+    /// </summary>
+    public async Task<Pagina<PlacaDaCarteira>> Carteira(string? busca, FiltroDaCarteira filtro, PedidoDePagina pedido, CancellationToken ct)
     {
+        var agora = relogio.GetUtcNow();
         var consulta = banco.Vendas.AsNoTracking().Where(v => v.Situacao == SituacaoDaVenda.Registrada && v.PlacaId != null);
         if (usuario.Papel == Papel.Vendedor)
         {
             consulta = consulta.Where(v => v.VendedorId == usuario.UsuarioId);
         }
 
-        var linhas = await (
+        var juntas =
             from v in consulta
             join p in banco.Placas on v.PlacaId equals p.Id
             join c in banco.Clientes on v.ClienteId equals c.Id
             where p.Situacao != SituacaoDaPlaca.Baixada && c.AnonimizadoEm == null
-            orderby p.VenceEm
-            select new { v.Id, p.Codigo, PlacaId = p.Id, p.Situacao, p.VenceEm, p.TotalLeituras, ClienteId = c.Id, c.Nome, c.Responsavel, c.Telefone })
-            .Take(PlacasNaCarteira).ToListAsync(ct);
+            select new { v.Id, p.Codigo, PlacaId = p.Id, p.Situacao, p.VenceEm, p.TotalLeituras, ClienteId = c.Id, c.Nome, c.Responsavel, c.Telefone };
+        var fora = new[] { SituacaoDaPlaca.EmEstoque, SituacaoDaPlaca.Suspensa, SituacaoDaPlaca.Baixada };
+        var emTrintaDias = agora.AddDays(30);
+        juntas = filtro switch
+        {
+            FiltroDaCarteira.Vencendo => juntas.Where(x => !fora.Contains(x.Situacao) && x.VenceEm != null && x.VenceEm >= agora && x.VenceEm <= emTrintaDias),
+            FiltroDaCarteira.Vencidas => juntas.Where(x => !fora.Contains(x.Situacao) && x.VenceEm != null && x.VenceEm < agora),
+            _ => juntas,
+        };
+        var termo = Paginacao.Termo(busca);
+        var digitos = new string(termo.Where(char.IsAsciiDigit).ToArray());
+        // O vendedor vê o telefone mascarado do cliente que não cadastrou: buscar por ele deixaria adivinhar o número inteiro.
+        var buscaPorTelefone = usuario.Papel != Papel.Vendedor;
+        if (termo.Length > 0)
+        {
+            // Vira lower(...) LIKE no Postgres: a cultura do .NET não entra na consulta.
+#pragma warning disable CA1304, CA1311, CA1862
+            juntas = juntas.Where(x => x.Nome.ToLower().Contains(termo) || x.Responsavel.ToLower().Contains(termo) || x.Codigo.ToLower().Contains(termo)
+                || (buscaPorTelefone && digitos.Length >= 4 && x.Telefone.Contains(digitos)));
+#pragma warning restore CA1304, CA1311, CA1862
+        }
 
-        var agora = relogio.GetUtcNow();
+        var (numeroDaPagina, tamanho) = Paginacao.Normalizar(pedido);
+        var total = await juntas.CountAsync(ct);
+        var linhas = total <= Paginacao.Pular(numeroDaPagina, tamanho) ? []
+            : await juntas.OrderBy(x => x.VenceEm == null).ThenBy(x => x.VenceEm).ThenBy(x => x.Id)
+                .Skip(Paginacao.Pular(numeroDaPagina, tamanho)).Take(tamanho).ToListAsync(ct);
+
         var desde = DateOnly.FromDateTime(agora.UtcDateTime).AddDays(-Placas.FichaDaPlaca.DiasDeLeitura);
         var ids = linhas.Select(l => l.PlacaId).ToList();
         var leituras = await banco.Leituras.AsNoTracking().Where(l => ids.Contains(l.PlacaId) && l.Dia >= desde)
             .GroupBy(l => l.PlacaId).Select(g => new { PlacaId = g.Key, Total = g.Sum(l => l.Total) }).ToListAsync(ct);
 
         var liberados = await privacidade.Liberados(linhas.Select(l => l.ClienteId), ct);
-        return linhas.Select(l => new PlacaDaCarteira(l.Id, l.Codigo, l.ClienteId, l.Nome, l.Responsavel,
+        return Paginacao.Montar(linhas.Select(l => new PlacaDaCarteira(l.Id, l.Codigo, l.ClienteId, l.Nome, l.Responsavel,
             Clientes.PrivacidadeDoCliente.Ver(liberados.Contains(l.ClienteId), l.Telefone, null, null).Telefone,
             Placa.EstadoDe(l.Situacao, l.VenceEm, agora), l.VenceEm, l.TotalLeituras,
-            leituras.FirstOrDefault(x => x.PlacaId == l.PlacaId)?.Total ?? 0)).ToList();
+            leituras.FirstOrDefault(x => x.PlacaId == l.PlacaId)?.Total ?? 0)).ToList(), total, numeroDaPagina, tamanho);
     }
 }

@@ -17,7 +17,8 @@ function abrir() {
       envios.push(JSON.parse(String(opcoes.body)))
       return new Response('{}', { status: 200 })
     }
-    return new Response(JSON.stringify(url.endsWith('/comissoes') ? [saldo] : []), { status: 200 })
+    const vazia = { itens: [], total: 0, proxima: null }
+    return new Response(JSON.stringify(url.endsWith('/comissoes') ? [saldo] : url.includes('/repasses') ? vazia : []), { status: 200 })
   }))
   render(<MemoryRouter><QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><TelaDeComissoes /></QueryClientProvider></MemoryRouter>)
   return envios

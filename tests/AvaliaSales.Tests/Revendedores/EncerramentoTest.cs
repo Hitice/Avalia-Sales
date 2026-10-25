@@ -163,11 +163,11 @@ public sealed class EncerramentoTest(ApiDeTeste api)
         var pedido = await dono.Postar("/revenda/reabertura", new { motivo = "Voltamos a vender" });
         Assert.NotEqual(System.Text.Json.JsonValueKind.Null, pedido.GetProperty("reaberturaPedidaEm").ValueKind);
         await dono.Postar("/revenda/reabertura", new { }, HttpStatusCode.UnprocessableEntity);
-        var chamado = Assert.Single((await dono.Pegar("/chamados")).EnumerateArray());
+        var chamado = Assert.Single((await dono.PegarItens("/chamados")).EnumerateArray());
         Assert.Equal("Reabertura da conta", chamado.GetProperty("assunto").GetString());
 
         var operadora = await api.ClienteLogado(await api.CriarOperadora());
-        var lista = (await operadora.Pegar("/operadora/revendedores")).EnumerateArray().Single(r => r.GetProperty("id").GetGuid() == revendedor);
+        var lista = (await operadora.PegarItens("/operadora/revendedores?busca=Revenda%20Que%20Volta")).EnumerateArray().Single(r => r.GetProperty("id").GetGuid() == revendedor);
         Assert.NotEqual(System.Text.Json.JsonValueKind.Null, lista.GetProperty("reaberturaPedidaEm").ValueKind);
         await operadora.Postar($"/operadora/revendedores/{revendedor}/reabertura", new { }, HttpStatusCode.NoContent);
 

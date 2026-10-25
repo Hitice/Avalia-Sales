@@ -12,7 +12,8 @@ namespace AvaliaSales.Application.Pedidos;
 public sealed record PedidoDto(
     Guid Id, Guid RevendedorId, string Revendedor, int Quantidade, long ValorCents, SituacaoDoPedido Situacao,
     DateTimeOffset CriadoEm, DateTimeOffset? PagoEm, string? Lote, DateTimeOffset? DespachadoEm, DateTimeOffset? AtivadoEm, DateTimeOffset? ProducaoEm,
-    long PrecoDoPacoteCents, string? Cupom, long DescontoCents, string? UrlDePagamento, bool Retirada);
+    long PrecoDoPacoteCents, string? Cupom, long DescontoCents, string? UrlDePagamento, bool Retirada,
+    bool HaLoteLivre = false);
 
 public sealed record AtivacaoDto(string Lote, int Placas, string PrimeiroCodigo, string UltimoCodigo);
 
@@ -33,9 +34,32 @@ public sealed class PedidosDePlacas(
     IOptions<OpcoesDaPlataforma> plataforma,
     TimeProvider relogio)
 {
-    public async Task<IReadOnlyList<PedidoDto>> Listar(CancellationToken ct)
+    /// <summary>
+    /// A página dos pedidos, do mais novo ao mais antigo. Com <paramref name="busca"/>, o texto no nome do revendedor,
+    /// no cupom ou no número do lote. <see cref="PedidoDto.HaLoteLivre"/> diz se a operadora tem lote gerado e ainda
+    /// não despachado com a quantidade do pedido.
+    /// </summary>
+    public async Task<Pagina<PedidoDto>> Listar(string? busca, PedidoDePagina pedido, CancellationToken ct)
     {
-        var pedidos = await banco.Pedidos.AsNoTracking().OrderByDescending(p => p.CriadoEm).ToListAsync(ct);
+        var consulta = banco.Pedidos.AsNoTracking();
+        var termo = Paginacao.Termo(busca);
+        if (termo.Length > 0)
+        {
+            int? numero = int.TryParse(new string(termo.Where(char.IsAsciiDigit).ToArray()), out var lido) ? lido : null;
+            // Vira lower(...) LIKE no Postgres: a cultura do .NET não entra na consulta.
+#pragma warning disable CA1304, CA1311, CA1862
+            consulta = consulta.Where(p => banco.Revendedores.Any(r => r.Id == p.RevendedorId && r.Nome.ToLower().Contains(termo))
+                || (p.Cupom != null && p.Cupom.ToLower().Contains(termo))
+                || (numero != null && banco.Lotes.Any(l => l.Id == p.LoteId && l.Numero == numero)));
+#pragma warning restore CA1304, CA1311, CA1862
+        }
+
+        var pagina = await consulta.OrderByDescending(p => p.CriadoEm).ThenByDescending(p => p.Id).PaginarAsync(pedido, ct);
+        return new Pagina<PedidoDto>(await Dtos(pagina.Itens, ct), pagina.Total, pagina.Proxima);
+    }
+
+    private async Task<List<PedidoDto>> Dtos(IReadOnlyList<PedidoDePlacas> pedidos, CancellationToken ct)
+    {
         var revendedores = await banco.Revendedores.AsNoTracking()
             .Where(r => pedidos.Select(p => p.RevendedorId).Contains(r.Id))
             .ToDictionaryAsync(r => r.Id, r => r.Nome, ct);
@@ -50,10 +74,15 @@ public sealed class PedidosDePlacas(
             .Select(c => new { c.OrigemId, c.UrlDoLink, c.CriadaEm })
             .ToListAsync(ct);
         var linkDe = links.GroupBy(l => l.OrigemId!.Value).ToDictionary(g => g.Key, g => g.OrderByDescending(l => l.CriadaEm).First().UrlDoLink);
+        var quantidades = pedidos.Where(p => p.Situacao is SituacaoDoPedido.Pago or SituacaoDoPedido.EmProducao).Select(p => p.Quantidade).Distinct().ToList();
+        var comLoteLivre = await banco.Lotes.AsNoTracking()
+            .Where(l => l.DespachadoEm == null && l.ArquivadoEm == null && quantidades.Contains(l.Quantidade))
+            .Select(l => l.Quantidade).Distinct().ToListAsync(ct);
         return pedidos.Select(p => new PedidoDto(
             p.Id, p.RevendedorId, revendedores.GetValueOrDefault(p.RevendedorId, ""), p.Quantidade, p.ValorCents, p.Situacao,
             p.CriadoEm, p.PagoEm, p.LoteId is { } l && lotes.TryGetValue(l, out var n) ? Lote.Rotular(n) : null,
-            p.DespachadoEm, p.AtivadoEm, p.ProducaoEm, p.PrecoDoPacoteCents, p.Cupom, p.DescontoCents, linkDe.GetValueOrDefault(p.Id), p.Retirada)).ToList();
+            p.DespachadoEm, p.AtivadoEm, p.ProducaoEm, p.PrecoDoPacoteCents, p.Cupom, p.DescontoCents, linkDe.GetValueOrDefault(p.Id), p.Retirada,
+            comLoteLivre.Contains(p.Quantidade))).ToList();
     }
 
     /// <summary>Sem contrato de revenda assinado, não há pedido. O cupom é conferido e gasto aqui.</summary>
@@ -100,7 +129,7 @@ public sealed class PedidosDePlacas(
             """);
         await banco.SaveChangesAsync(ct);
         await transacao.CommitAsync(ct);
-        return (await Listar(ct)).Single(p => p.Id == pedido.Id);
+        return (await Dtos([pedido], ct))[0];
     }
 
     /// <summary>

@@ -1,14 +1,17 @@
 import { useState } from 'react'
-import { Cabecalho, EstadoDaConsulta } from '@/componentes/Tela'
+import { ListaPaginada } from '@/componentes/ListaPaginada'
+import { Cabecalho } from '@/componentes/Tela'
 import { Card, CardContent } from '@/components/ui/card'
-import { ConversaDoChamado, HORARIO_DE_ATENDIMENTO, ListaDeChamados, useChamados } from './Chamados'
+import { ConversaDoChamado, HORARIO_DE_ATENDIMENTO, ListaDeChamados } from './Chamados'
+import { useChamados, useResumoDaFila } from './consultas'
 
 /** A fila da operadora: o que espera a Avalia vem primeiro, pelo prazo, com o atrasado em vermelho. */
 export function TelaDeAtendimento() {
   const chamados = useChamados('/operadora/chamados')
   const [aberto, setAberto] = useState<string | null>(null)
-  const esperando = chamados.data?.filter((c) => c.situacao === 'AguardandoAvalia').length ?? 0
-  const atrasados = chamados.data?.filter((c) => c.atrasado).length ?? 0
+  const fila = useResumoDaFila().data
+  const esperando = fila?.esperando ?? 0
+  const atrasados = fila?.atrasados ?? 0
 
   return (
     <>
@@ -19,8 +22,9 @@ export function TelaDeAtendimento() {
       <div className="grid gap-4 lg:lateral-e-lista-88">
         <Card className="self-start">
           <CardContent className="grid gap-1 p-2">
-            <EstadoDaConsulta carregando={chamados.isPending} erro={chamados.error} vazio={chamados.data?.length === 0} textoVazio="Nenhum chamado." />
-            {chamados.data && <ListaDeChamados chamados={chamados.data} aberto={aberto} aoAbrir={setAberto} operadora />}
+            <ListaPaginada lista={chamados} textoVazio="Nenhum chamado." nomeDaBusca="Buscar nos chamados" placeholder="Revendedor, assunto ou número">
+              {(itens) => <ListaDeChamados chamados={itens} aberto={aberto} aoAbrir={setAberto} operadora />}
+            </ListaPaginada>
           </CardContent>
         </Card>
         {aberto

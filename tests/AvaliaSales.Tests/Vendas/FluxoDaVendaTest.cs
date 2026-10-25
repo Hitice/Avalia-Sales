@@ -24,7 +24,7 @@ public sealed class FluxoDaVendaTest(ApiDeTeste api)
         var bruna = await api.ClienteLogado(vendedor.GetProperty("email").GetString()!);
         var minhas = await bruna.Pegar("/placas");
         Assert.Equal(3, minhas.GetProperty("total").GetInt32());
-        var codigo = minhas.GetProperty("placas")[0].GetProperty("codigo").GetString()!;
+        var codigo = minhas.GetProperty("itens")[0].GetProperty("codigo").GetString()!;
 
         var venda = await bruna.Postar("/vendas", Cenarios.Venda(codigo.ToLowerInvariant(), revenda.ProdutoId, "(11) 98888-0001", valor: 19_990), HttpStatusCode.Created);
 
@@ -33,7 +33,7 @@ public sealed class FluxoDaVendaTest(ApiDeTeste api)
         var pedidoNoGateway = api.Gateway.Criados.Last();
         Assert.Equal(19_990, pedidoNoGateway.ValorCents);
 
-        var lista = await bruna.Pegar("/vendas");
+        var lista = await bruna.PegarItens("/vendas");
         var linha = lista.EnumerateArray().Single();
         Assert.Equal(4_998, linha.GetProperty("comissaoCents").GetInt64());
         Assert.Equal("Bruna Lima", linha.GetProperty("vendedor").GetString());

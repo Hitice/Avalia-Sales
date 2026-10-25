@@ -26,9 +26,29 @@ public sealed class Links(IBancoDeDados banco, IRevendedorAtual atual, IUsuarioA
     /// <summary>Sorteios antes de desistir; com 32^6 códigos, chegar aqui é defeito, e não azar.</summary>
     private const int Sorteios = 20;
 
-    /// <summary>O dono vê todos; o vendedor, os links dos clientes das vendas dele e os que ele mesmo criou.</summary>
-    public async Task<IReadOnlyList<LinkDto>> Listar(CancellationToken ct) =>
-        (await DoUsuario(banco.Links.AsNoTracking()).OrderByDescending(l => l.CriadoEm).ToListAsync(ct)).Select(ParaDto).ToList();
+    /// <summary>
+    /// Do mais novo ao mais antigo; a busca vale para o título, o código e o destino. Com <paramref name="soAtivos"/>, só os ligados.
+    /// O dono vê todos; o vendedor, os links dos clientes das vendas dele e os que ele mesmo criou - a busca roda só dentro disso.
+    /// </summary>
+    public async Task<Pagina<LinkDto>> Listar(string? busca, bool soAtivos, PedidoDePagina pedido, CancellationToken ct)
+    {
+        var consulta = DoUsuario(banco.Links.AsNoTracking());
+        if (soAtivos)
+        {
+            consulta = consulta.Where(l => l.Ativo);
+        }
+
+        var termo = Paginacao.Termo(busca);
+        if (termo.Length > 0)
+        {
+            // Vira lower(...) LIKE no Postgres: a cultura do .NET não entra na consulta.
+#pragma warning disable CA1304, CA1311, CA1862
+            consulta = consulta.Where(l => l.Titulo.ToLower().Contains(termo) || l.Codigo.ToLower().Contains(termo) || l.Destino.ToLower().Contains(termo));
+#pragma warning restore CA1304, CA1311, CA1862
+        }
+
+        return (await consulta.OrderByDescending(l => l.CriadoEm).ThenByDescending(l => l.Id).PaginarAsync(pedido, ct)).Mapear(ParaDto);
+    }
 
     private IQueryable<LinkCurto> DoUsuario(IQueryable<LinkCurto> links)
     {

@@ -64,10 +64,11 @@ const LINHAS_PARA_BUSCA = 7
  * rola dentro dela com o cabeçalho fixo, cabeçalho em 12 px sobre o cinza-50,
  * linhas de 44 px com fio claro. Nos dois, a partir de sete linhas ganha a
  * busca: o texto filtra pelo que aparece na linha, sem acento. Tabela
- * paginada pela API busca só na página aberta; a tela dela tem o filtro que
- * vai à API.
+ * paginada pela API não usa essa busca (ela só enxergaria a página aberta):
+ * leva `semBusca`, e a tela põe o campo que manda o termo à API
+ * (`ListaPaginada`).
  */
-function Table({ className, ...props }: React.ComponentProps<"table">) {
+function Table({ className, semBusca = false, ...props }: React.ComponentProps<"table"> & { semBusca?: boolean }) {
   const ref = React.useRef<HTMLTableElement>(null)
   const area = useRegiaoRolavel<HTMLDivElement>("Lista")
   const [termo, setTermo] = React.useState("")
@@ -90,7 +91,7 @@ function Table({ className, ...props }: React.ComponentProps<"table">) {
     return () => observador.disconnect()
   }, [atualizar])
 
-  const comBusca = contagem.total >= LINHAS_PARA_BUSCA || termo.length > 0
+  const comBusca = !semBusca && (contagem.total >= LINHAS_PARA_BUSCA || termo.length > 0)
   return (
     <div data-slot="table-container" className="relative w-full">
       {comBusca && (

@@ -16,7 +16,7 @@ public sealed class CancelamentoETesteTest(ApiDeTeste api)
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     private static async Task<Guid> VendaDe(HttpClient quem, string codigo) =>
-        (await quem.Pegar("/vendas")).EnumerateArray().Single(v => v.GetProperty("codigo").GetString() == codigo && v.GetProperty("situacao").GetString() == "Registrada").GetProperty("id").GetGuid();
+        (await quem.PegarItens("/vendas")).EnumerateArray().Single(v => v.GetProperty("codigo").GetString() == codigo && v.GetProperty("situacao").GetString() == "Registrada").GetProperty("id").GetGuid();
 
     /// <summary>Uma volta das rotinas do Worker com o relógio onde o teste mandar.</summary>
     private async Task Rotinas(DateTimeOffset quando)
@@ -166,7 +166,7 @@ public sealed class CancelamentoETesteTest(ApiDeTeste api)
 
         await Rotinas(DateTimeOffset.UtcNow.AddDays(8));
         Assert.Equal(1, await banco.Contar($"select count(*) from placas where codigo = '{codigo}' and situacao = 'Suspensa'"));
-        var lista = (await revenda.Dono.Pegar("/vendas")).EnumerateArray().Single(v => v.GetProperty("id").GetGuid() == venda);
+        var lista = (await revenda.Dono.PegarItens("/vendas")).EnumerateArray().Single(v => v.GetProperty("id").GetGuid() == venda);
         Assert.NotEqual(JsonValueKind.Null, lista.GetProperty("testeExpiradoEm").ValueKind);
 
         // Pagou depois: a placa volta e os 12 meses contam do pagamento.

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { chamarApi, chamarResposta, enviarJson } from '@/api/cliente'
-import type { CategoriaDoLote, Cupom, EnvioAoErp, Lote, Pacote, Pedido, Revendedor } from '@/api/tipos'
+import type { CategoriaDoLote, Cupom, EnvioAoErp, Lote, Pacote, Pagina, PaginaDeLotes, Pedido, Revendedor } from '@/api/tipos'
+import { useListaPaginada } from '@/lib/paginacao'
 
 const chaves = {
   pedidos: ['operadora', 'pedidos'] as const,
@@ -9,10 +10,15 @@ const chaves = {
   revendedores: ['operadora', 'revendedores'] as const,
 }
 
-export const usePedidosDaOperadora = () => useQuery({ queryKey: chaves.pedidos, queryFn: () => chamarApi<Pedido[]>('/operadora/pedidos') })
-export const useLotes = () => useQuery({ queryKey: chaves.lotes, queryFn: () => chamarApi<Lote[]>('/operadora/lotes') })
+export const usePedidosDaOperadora = () => useListaPaginada<Pedido>(chaves.pedidos, '/operadora/pedidos')
+/** Sem os arquivados, a menos que a tela peça; `bruto.arquivados` diz quantos ficaram de fora. */
+export const useLotes = (arquivados: boolean) =>
+  useListaPaginada<Lote, PaginaDeLotes>([...chaves.lotes, 'lista'], '/operadora/lotes', { filtros: { arquivados } })
+/** Os lotes gerados e ainda não despachados com a quantidade do pedido, para escolher no despacho. */
+export const useLotesLivres = (quantidade: number) =>
+  useQuery({ queryKey: [...chaves.lotes, 'livres', quantidade], queryFn: () => chamarApi<Pagina<Lote>>(`/operadora/lotes?livres=true&quantidade=${quantidade}&tamanho=100`) })
 export const usePacotesDaOperadora = () => useQuery({ queryKey: chaves.pacotes, queryFn: () => chamarApi<Pacote[]>('/operadora/pacotes') })
-export const useRevendedores = () => useQuery({ queryKey: chaves.revendedores, queryFn: () => chamarApi<Revendedor[]>('/operadora/revendedores') })
+export const useRevendedores = () => useListaPaginada<Revendedor>(chaves.revendedores, '/operadora/revendedores')
 
 /** Toda gravação da operadora refaz as listas dela: pedido, lote e revendedor andam juntos. */
 function useGravar<T>(fazer: (dados: T) => Promise<unknown>) {
@@ -57,11 +63,11 @@ export async function baixarImpressao(lote: Lote, formato: FormatoDaImpressao = 
 }
 
 export type GravarCupom = { codigo: string; descontoBps: number | null; descontoCents: number | null; validoAte: string | null; usosMaximos: number | null }
-export const useCupons = () => useQuery({ queryKey: ['operadora', 'cupons'], queryFn: () => chamarApi<Cupom[]>('/operadora/cupons') })
+export const useCupons = () => useListaPaginada<Cupom>(['operadora', 'cupons'], '/operadora/cupons')
 export const useCriarCupom = () => useGravar((c: GravarCupom) => chamarApi('/operadora/cupons', enviarJson('POST', c)))
 export const useAlterarCupom = () => useGravar(({ id, ...c }: GravarCupom & { id: string }) => chamarApi(`/operadora/cupons/${id}`, enviarJson('PUT', c)))
 export const useAtivarCupom = () => useGravar(({ id, ativo }: { id: string; ativo: boolean }) => chamarApi(`/operadora/cupons/${id}/ativo`, enviarJson('PUT', { ativo })))
 export const useExcluirCupom = () => useGravar((id: string) => chamarApi(`/operadora/cupons/${id}`, { method: 'DELETE' }))
 
-export const useFilaDoErp = () => useQuery({ queryKey: ['operadora', 'erp'], queryFn: () => chamarApi<EnvioAoErp[]>('/operadora/erp') })
+export const useFilaDoErp = () => useListaPaginada<EnvioAoErp>(['operadora', 'erp'], '/operadora/erp')
 export const useReenviarAoErp = () => useGravar((pedidoId: string) => chamarApi(`/operadora/erp/${pedidoId}/reenvio`, enviarJson('POST', {})))

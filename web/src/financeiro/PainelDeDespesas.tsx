@@ -7,7 +7,8 @@ import { ROTULO_DA_DESPESA, formatarData } from '@/api/rotulos'
 import type { CategoriaDeDespesa, Despesa } from '@/api/tipos'
 import { AcoesDaLinha } from '@/componentes/AcoesDaLinha'
 import { Campo } from '@/componentes/Campo'
-import { Erro, EstadoDaConsulta } from '@/componentes/Tela'
+import { ListaPaginada } from '@/componentes/ListaPaginada'
+import { Erro } from '@/componentes/Tela'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -86,35 +87,36 @@ export function PainelDeDespesas({ competencia }: { competencia: string | undefi
       <Erro erro={excluir.error ? mensagemDoErro(excluir.error) : null} />
       <Card>
         <CardContent>
-          <EstadoDaConsulta carregando={despesas.isPending} erro={despesas.error} vazio={despesas.data?.length === 0} textoVazio="Nenhuma despesa no mês." />
-          {despesas.data && despesas.data.length > 0 && (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Despesa</TableHead>
-                  <TableHead tipo="data">Data</TableHead>
-                  <TableHead tipo="numero">Valor</TableHead>
-                  <TableHead tipo="acoes" />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {despesas.data.map((d) => (
-                  <TableRow key={d.id}>
-                    <TableCell className="min-w-40 whitespace-normal">
-                      <p className="font-medium">{d.descricao}</p>
-                      <p className="text-xs text-muted-foreground">{ROTULO_DA_DESPESA[d.categoria]}</p>
-                    </TableCell>
-                    <TableCell>{formatarData(`${d.data}T12:00:00`)}</TableCell>
-                    <TableCell>{formatarCentavos(d.valorCents)}</TableCell>
-                    <TableCell>
-                      <AcoesDaLinha nome={d.descricao} principal={{ rotulo: 'Editar', aoClicar: () => setAberta(d) }}
-                        outras={[{ rotulo: 'Excluir', destrutiva: true, desabilitada: excluir.isPending, aoClicar: () => excluir.mutate(d.id) }]} />
-                    </TableCell>
+          <ListaPaginada lista={despesas} textoVazio="Nenhuma despesa no mês." nomeDaBusca="Buscar nas despesas" placeholder="Descrição ou categoria">
+            {(itens) => (
+              <Table semBusca>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Despesa</TableHead>
+                    <TableHead tipo="data">Data</TableHead>
+                    <TableHead tipo="numero">Valor</TableHead>
+                    <TableHead tipo="acoes" />
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
+                </TableHeader>
+                <TableBody>
+                  {itens.map((d) => (
+                    <TableRow key={d.id}>
+                      <TableCell className="min-w-40 whitespace-normal">
+                        <p className="font-medium">{d.descricao}</p>
+                        <p className="text-xs text-muted-foreground">{ROTULO_DA_DESPESA[d.categoria]}</p>
+                      </TableCell>
+                      <TableCell>{formatarData(`${d.data}T12:00:00`)}</TableCell>
+                      <TableCell>{formatarCentavos(d.valorCents)}</TableCell>
+                      <TableCell>
+                        <AcoesDaLinha nome={d.descricao} principal={{ rotulo: 'Editar', aoClicar: () => setAberta(d) }}
+                          outras={[{ rotulo: 'Excluir', destrutiva: true, desabilitada: excluir.isPending, aoClicar: () => excluir.mutate(d.id) }]} />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </ListaPaginada>
         </CardContent>
       </Card>
       {aberta && <FormularioDeDespesa despesa={aberta === 'nova' ? null : aberta} aoFechar={() => setAberta(null)} />}

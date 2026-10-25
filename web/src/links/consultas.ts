@@ -1,12 +1,14 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { chamarApi, enviarJson } from '@/api/cliente'
 import type { DestinoInformado, LinkCurto } from '@/api/tipos'
+import { useListaPaginada } from '@/lib/paginacao'
 
 export type GravarLink = { titulo: string; destino: DestinoInformado }
 
 const chave = ['links'] as const
 
-export const useLinks = () => useQuery({ queryKey: chave, queryFn: () => chamarApi<LinkCurto[]>('/links') })
+/** Os links em páginas; `soAtivos` deixa só os ligados (a gravação em tag NFC). */
+export const useLinks = (soAtivos = false) => useListaPaginada<LinkCurto>([...chave, soAtivos ? 'ativos' : 'todos'], '/links', { filtros: { ativos: soAtivos || undefined } })
 
 function useGravar<T>(fazer: (dados: T) => Promise<unknown>) {
   const cliente = useQueryClient()

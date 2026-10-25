@@ -8,6 +8,7 @@ import { ROTULO_DA_RETIRADA, formatarData } from '@/api/rotulos'
 import type { NaturezaDaRetirada, Retirada, Socio } from '@/api/tipos'
 import { AcoesDaLinha } from '@/componentes/AcoesDaLinha'
 import { Campo } from '@/componentes/Campo'
+import { ListaPaginada } from '@/componentes/ListaPaginada'
 import { Erro, EstadoDaConsulta } from '@/componentes/Tela'
 import { Button } from '@/components/ui/button'
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -142,36 +143,36 @@ export function PainelDeSocios({ competencia }: { competencia: string | undefine
           <CardAction><Button disabled={lista.length === 0} onClick={() => setRetirada('nova')}>Nova retirada</Button></CardAction>
         </CardHeader>
         <CardContent>
-          <EstadoDaConsulta carregando={retiradas.isPending} erro={retiradas.error} vazio={retiradas.data?.length === 0}
-            textoVazio={lista.length === 0 ? 'Cadastre os sócios do contrato para lançar retirada.' : 'Nenhuma retirada no mês.'} />
-          {retiradas.data && retiradas.data.length > 0 && (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Sócio</TableHead>
-                  <TableHead tipo="data">Data</TableHead>
-                  <TableHead tipo="numero">Valor</TableHead>
-                  <TableHead tipo="acoes" />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {retiradas.data.map((r) => (
-                  <TableRow key={r.id}>
-                    <TableCell className="min-w-36 whitespace-normal">
-                      <p className="font-medium">{r.socio}</p>
-                      <p className="text-xs text-muted-foreground">{ROTULO_DA_RETIRADA[r.natureza]}{r.observacao ? ` - ${r.observacao}` : ''}</p>
-                    </TableCell>
-                    <TableCell>{formatarData(`${r.data}T12:00:00`)}</TableCell>
-                    <TableCell>{formatarCentavos(r.valorCents)}</TableCell>
-                    <TableCell>
-                      <AcoesDaLinha nome={`retirada de ${r.socio}`} principal={{ rotulo: 'Editar', aoClicar: () => setRetirada(r) }}
-                        outras={[{ rotulo: 'Excluir', destrutiva: true, desabilitada: excluirRetirada.isPending, aoClicar: () => excluirRetirada.mutate(r.id) }]} />
-                    </TableCell>
+          <ListaPaginada lista={retiradas} textoVazio={lista.length === 0 ? 'Cadastre os sócios do contrato para lançar retirada.' : 'Nenhuma retirada no mês.'} nomeDaBusca="Buscar nas retiradas" placeholder="Sócio ou observação">
+            {(itens) => (
+              <Table semBusca>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Sócio</TableHead>
+                    <TableHead tipo="data">Data</TableHead>
+                    <TableHead tipo="numero">Valor</TableHead>
+                    <TableHead tipo="acoes" />
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
+                </TableHeader>
+                <TableBody>
+                  {itens.map((r) => (
+                    <TableRow key={r.id}>
+                      <TableCell className="min-w-36 whitespace-normal">
+                        <p className="font-medium">{r.socio}</p>
+                        <p className="text-xs text-muted-foreground">{ROTULO_DA_RETIRADA[r.natureza]}{r.observacao ? ` - ${r.observacao}` : ''}</p>
+                      </TableCell>
+                      <TableCell>{formatarData(`${r.data}T12:00:00`)}</TableCell>
+                      <TableCell>{formatarCentavos(r.valorCents)}</TableCell>
+                      <TableCell>
+                        <AcoesDaLinha nome={`retirada de ${r.socio}`} principal={{ rotulo: 'Editar', aoClicar: () => setRetirada(r) }}
+                          outras={[{ rotulo: 'Excluir', destrutiva: true, desabilitada: excluirRetirada.isPending, aoClicar: () => excluirRetirada.mutate(r.id) }]} />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </ListaPaginada>
         </CardContent>
       </Card>
       <Card>

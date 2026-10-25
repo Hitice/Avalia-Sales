@@ -3,13 +3,15 @@ import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import { chamarApi, enviarJson, mensagemDoErro } from '@/api/cliente'
 import type { Chamado } from '@/api/tipos'
-import { Cabecalho, Erro, EstadoDaConsulta } from '@/componentes/Tela'
+import { ListaPaginada } from '@/componentes/ListaPaginada'
+import { Cabecalho, Erro } from '@/componentes/Tela'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { ConversaDoChamado, HORARIO_DE_ATENDIMENTO, ListaDeChamados, useChamados } from './Chamados'
+import { ConversaDoChamado, HORARIO_DE_ATENDIMENTO, ListaDeChamados } from './Chamados'
+import { useChamados } from './consultas'
 
 /** O dono fala com a Avalia em chamados: abre, acompanha a resposta e marca como resolvido. */
 export function TelaDeSuporte() {
@@ -25,8 +27,9 @@ export function TelaDeSuporte() {
         <Card className="self-start">
           <CardContent className="grid gap-1 p-2">
             {aberto && <Button variant="ghost" className="justify-start" onClick={() => setAberto(null)}><Plus aria-hidden />Novo chamado</Button>}
-            <EstadoDaConsulta carregando={chamados.isPending} erro={chamados.error} vazio={chamados.data?.length === 0} textoVazio="Nenhum chamado." />
-            {chamados.data && <ListaDeChamados chamados={chamados.data} aberto={aberto} aoAbrir={setAberto} operadora={false} />}
+            <ListaPaginada lista={chamados} textoVazio="Nenhum chamado." nomeDaBusca="Buscar nos chamados" placeholder="Assunto ou número">
+              {(itens) => <ListaDeChamados chamados={itens} aberto={aberto} aoAbrir={setAberto} operadora={false} />}
+            </ListaPaginada>
           </CardContent>
         </Card>
         {aberto

@@ -19,7 +19,7 @@ function abrir() {
       corpos.push(JSON.parse(String(opcoes.body)))
       return new Response(JSON.stringify(cupom), { status: 200 })
     }
-    return new Response(JSON.stringify([cupom]), { status: 200 })
+    return new Response(JSON.stringify({ itens: [cupom], total: 1, proxima: null }), { status: 200 })
   }))
   render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><TelaDeCupons /></QueryClientProvider>)
   return corpos

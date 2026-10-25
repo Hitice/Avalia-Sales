@@ -41,7 +41,7 @@ public static class RotasDaOperadora
             return Results.NoContent();
         });
 
-        operadora.MapGet("/cupons", (Cupons cupons, CancellationToken ct) => cupons.Listar(ct));
+        operadora.MapGet("/cupons", (string? busca, [AsParameters] PedidoDePagina pagina, Cupons cupons, CancellationToken ct) => cupons.Listar(busca, pagina, ct));
         operadora.MapPost("/cupons", async (GravarCupom pedido, Cupons cupons, CancellationToken ct) =>
             Results.Created("/operadora/cupons", await cupons.Criar(pedido, ct)));
         operadora.MapPut("/cupons/{id:guid}", (Guid id, GravarCupom pedido, Cupons cupons, CancellationToken ct) => cupons.Alterar(id, pedido, ct));
@@ -56,7 +56,8 @@ public static class RotasDaOperadora
             return Results.NoContent();
         });
 
-        operadora.MapGet("/lotes", (Lotes lotes, CancellationToken ct) => lotes.Listar(ct));
+        operadora.MapGet("/lotes", (bool? arquivados, bool? livres, int? quantidade, string? busca, [AsParameters] PedidoDePagina pagina, Lotes lotes, CancellationToken ct) =>
+            lotes.Listar(new FiltroDeLotes(arquivados ?? false, livres ?? false, quantidade, busca), pagina, ct));
         operadora.MapPost("/lotes", async (GerarLote pedido, Lotes lotes, CancellationToken ct) =>
             Results.Created("/operadora/lotes", await lotes.Gerar(pedido, ct)));
         operadora.MapPut("/lotes/{id:guid}", (Guid id, DescreverLote pedido, Lotes lotes, CancellationToken ct) => lotes.Descrever(id, pedido, ct));
@@ -88,7 +89,7 @@ public static class RotasDaOperadora
             await revendedores.Reativar(id, ct);
             return Results.NoContent();
         });
-        operadora.MapGet("/pedidos", (PedidosDePlacas pedidos, CancellationToken ct) => pedidos.Listar(ct));
+        operadora.MapGet("/pedidos", (string? busca, [AsParameters] PedidoDePagina pagina, PedidosDePlacas pedidos, CancellationToken ct) => pedidos.Listar(busca, pagina, ct));
         operadora.MapPost("/pedidos/{id:guid}/pagamento", async (Guid id, PedidosDePlacas pedidos, CancellationToken ct) =>
         {
             await pedidos.RegistrarPagamento(id, ct);
@@ -105,14 +106,14 @@ public static class RotasDaOperadora
             return Results.NoContent();
         });
 
-        operadora.MapGet("/erp", (Application.Erp.FilaDoErp fila, CancellationToken ct) => fila.Listar(ct));
+        operadora.MapGet("/erp", (string? busca, [AsParameters] PedidoDePagina pagina, Application.Erp.FilaDoErp fila, CancellationToken ct) => fila.Listar(busca, pagina, ct));
         operadora.MapPost("/erp/{pedidoId:guid}/reenvio", async (Guid pedidoId, Application.Erp.FilaDoErp fila, CancellationToken ct) =>
         {
             await fila.Reenviar(pedidoId, ct);
             return Results.NoContent();
         });
 
-        operadora.MapGet("/revendedores", (Revendedores revendedores, CancellationToken ct) => revendedores.Listar(ct));
+        operadora.MapGet("/revendedores", (string? busca, [AsParameters] PedidoDePagina pagina, Revendedores revendedores, CancellationToken ct) => revendedores.Listar(busca, pagina, ct));
         operadora.MapPut("/revendedores/{id:guid}/recebedor", async (Guid id, DefinirRecebedor pedido, Revendedores revendedores, CancellationToken ct) =>
         {
             await revendedores.DefinirRecebedor(id, pedido.Recebedor, ct);
@@ -143,8 +144,8 @@ public static class RotasDaOperadora
         });
 
         // O que a operadora mudou na plataforma, registrado pelo middleware AuditoriaDaOperadoraNaRota.
-        operadora.MapGet("/auditoria", (string? busca, int? pagina, Application.Auditoria.AuditoriaDaOperadora auditoria, CancellationToken ct) =>
-            auditoria.Listar(busca, pagina ?? 1, ct));
+        operadora.MapGet("/auditoria", (string? busca, [AsParameters] PedidoDePagina pagina, Application.Auditoria.AuditoriaDaOperadora auditoria, CancellationToken ct) =>
+            auditoria.Listar(busca, pagina, ct));
         operadora.MapGet("/auditoria/exportar", async (string? busca, Application.Auditoria.AuditoriaDaOperadora auditoria, CancellationToken ct) =>
         {
             var json = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(await auditoria.Exportar(busca, ct), RotasDaRevenda.Exportacao);

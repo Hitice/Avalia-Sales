@@ -272,7 +272,12 @@ export interface paths {
         };
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    busca?: string;
+                    situacao?: components["schemas"]["SituacaoDaOrdem"];
+                    Pagina?: number;
+                    Tamanho?: number;
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;
@@ -285,7 +290,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["OrdemDto"][];
+                        "application/json": components["schemas"]["PaginaOfOrdemDto"];
                     };
                 };
             };
@@ -1384,7 +1389,12 @@ export interface paths {
         };
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    busca?: string;
+                    situacao?: components["schemas"]["SituacaoDaOrdem"];
+                    Pagina?: number;
+                    Tamanho?: number;
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;
@@ -1397,7 +1407,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["OrdemDto"][];
+                        "application/json": components["schemas"]["PaginaOfOrdemDto"];
                     };
                 };
             };
@@ -1701,7 +1711,12 @@ export interface paths {
         };
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    busca?: string;
+                    ativos?: boolean;
+                    Pagina?: number;
+                    Tamanho?: number;
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;
@@ -1714,7 +1729,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["LinkDto"][];
+                        "application/json": components["schemas"]["PaginaOfLinkDto"];
                     };
                 };
             };
@@ -2011,7 +2026,11 @@ export interface paths {
         };
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    busca?: string;
+                    Pagina?: number;
+                    Tamanho?: number;
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;
@@ -2024,7 +2043,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["CupomDto"][];
+                        "application/json": components["schemas"]["PaginaOfCupomDto"];
                     };
                 };
             };
@@ -2166,7 +2185,14 @@ export interface paths {
         };
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    arquivados?: boolean;
+                    livres?: boolean;
+                    quantidade?: number;
+                    busca?: string;
+                    Pagina?: number;
+                    Tamanho?: number;
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;
@@ -2179,7 +2205,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["LoteDto"][];
+                        "application/json": components["schemas"]["PaginaDeLotes"];
                     };
                 };
             };
@@ -2416,7 +2442,11 @@ export interface paths {
         };
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    busca?: string;
+                    Pagina?: number;
+                    Tamanho?: number;
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;
@@ -2429,7 +2459,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["PedidoDto"][];
+                        "application/json": components["schemas"]["PaginaOfPedidoDto"];
                     };
                 };
             };
@@ -2560,7 +2590,11 @@ export interface paths {
         };
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    busca?: string;
+                    Pagina?: number;
+                    Tamanho?: number;
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;
@@ -2573,7 +2607,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["EnvioDto"][];
+                        "application/json": components["schemas"]["PaginaOfEnvioDto"];
                     };
                 };
             };
@@ -2630,7 +2664,11 @@ export interface paths {
         };
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    busca?: string;
+                    Pagina?: number;
+                    Tamanho?: number;
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;
@@ -2643,7 +2681,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["RevendedorDto"][];
+                        "application/json": components["schemas"]["PaginaOfRevendedorDto"];
                     };
                 };
             };
@@ -2834,7 +2872,8 @@ export interface paths {
             parameters: {
                 query?: {
                     busca?: string;
-                    pagina?: number;
+                    Pagina?: number;
+                    Tamanho?: number;
                 };
                 header?: never;
                 path?: never;
@@ -2848,7 +2887,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["PaginaDaOperadora"];
+                        "application/json": components["schemas"]["PaginaOfRegistroDaOperadoraDto"];
                     };
                 };
             };
@@ -3014,7 +3053,11 @@ export interface paths {
         };
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    busca?: string;
+                    Pagina?: number;
+                    Tamanho?: number;
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;
@@ -3027,7 +3070,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["PedidoDto"][];
+                        "application/json": components["schemas"]["PaginaOfPedidoDto"];
                     };
                 };
             };
@@ -3140,7 +3183,11 @@ export interface paths {
         };
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    busca?: string;
+                    Pagina?: number;
+                    Tamanho?: number;
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;
@@ -3153,7 +3200,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["LoteDaRevenda"][];
+                        "application/json": components["schemas"]["PaginaOfLoteDaRevenda"];
                     };
                 };
             };
@@ -3926,7 +3973,11 @@ export interface paths {
         };
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    busca?: string;
+                    Pagina?: number;
+                    Tamanho?: number;
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;
@@ -3939,7 +3990,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["RepasseDto"][];
+                        "application/json": components["schemas"]["PaginaOfRepasseDto"];
                     };
                 };
             };
@@ -4019,6 +4070,9 @@ export interface paths {
             parameters: {
                 query?: {
                     competencia?: string;
+                    busca?: string;
+                    Pagina?: number;
+                    Tamanho?: number;
                 };
                 header?: never;
                 path?: never;
@@ -4128,7 +4182,8 @@ export interface paths {
                     referencia?: string;
                     acao?: components["schemas"]["AcaoAuditada"];
                     busca?: string;
-                    pagina?: number;
+                    Pagina?: number;
+                    Tamanho?: number;
                 };
                 header?: never;
                 path?: never;
@@ -4142,7 +4197,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["PaginaDeAuditoria"];
+                        "application/json": components["schemas"]["PaginaOfRegistroDto"];
                     };
                 };
             };
@@ -4205,6 +4260,8 @@ export interface paths {
             parameters: {
                 query?: {
                     busca?: string;
+                    Pagina?: number;
+                    Tamanho?: number;
                 };
                 header?: never;
                 path?: never;
@@ -4218,7 +4275,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["ClienteDaLista"][];
+                        "application/json": components["schemas"]["PaginaOfClienteDaLista"];
                     };
                 };
             };
@@ -5057,6 +5114,9 @@ export interface paths {
             parameters: {
                 query?: {
                     competencia?: string;
+                    busca?: string;
+                    Pagina?: number;
+                    Tamanho?: number;
                 };
                 header?: never;
                 path?: never;
@@ -5070,7 +5130,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["DespesaDto"][];
+                        "application/json": components["schemas"]["PaginaOfDespesaDto"];
                     };
                 };
             };
@@ -5366,6 +5426,9 @@ export interface paths {
             parameters: {
                 query?: {
                     competencia?: string;
+                    busca?: string;
+                    Pagina?: number;
+                    Tamanho?: number;
                 };
                 header?: never;
                 path?: never;
@@ -5379,7 +5442,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["RetiradaDto"][];
+                        "application/json": components["schemas"]["PaginaOfRetiradaDto"];
                     };
                 };
             };
@@ -5486,7 +5549,8 @@ export interface paths {
                     estado?: components["schemas"]["EstadoDaPlaca"];
                     consignadaA?: string;
                     codigo?: string;
-                    pagina?: number;
+                    Pagina?: number;
+                    Tamanho?: number;
                 };
                 header?: never;
                 path?: never;
@@ -5705,7 +5769,11 @@ export interface paths {
         };
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    busca?: string;
+                    Pagina?: number;
+                    Tamanho?: number;
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;
@@ -5718,7 +5786,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["VendaDaLista"][];
+                        "application/json": components["schemas"]["PaginaOfVendaDaLista"];
                     };
                 };
             };
@@ -5746,6 +5814,41 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/vendas/resumo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ResumoDasVendas"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -5796,7 +5899,12 @@ export interface paths {
         };
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    busca?: string;
+                    filtro?: components["schemas"]["FiltroDaCarteira"];
+                    Pagina?: number;
+                    Tamanho?: number;
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;
@@ -5809,7 +5917,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["PlacaDaCarteira"][];
+                        "application/json": components["schemas"]["PaginaOfPlacaDaCarteira"];
                     };
                 };
             };
@@ -6161,7 +6269,11 @@ export interface paths {
         };
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    busca?: string;
+                    Pagina?: number;
+                    Tamanho?: number;
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;
@@ -6174,7 +6286,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["ChamadoDto"][];
+                        "application/json": components["schemas"]["PaginaOfChamadoDto"];
                     };
                 };
             };
@@ -6217,7 +6329,10 @@ export interface paths {
         };
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    antes?: string;
+                    tamanho?: number;
+                };
                 header?: never;
                 path: {
                     id: string;
@@ -6328,6 +6443,45 @@ export interface paths {
         };
         get: {
             parameters: {
+                query?: {
+                    busca?: string;
+                    Pagina?: number;
+                    Tamanho?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PaginaOfChamadoDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/operadora/chamados/resumo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
                 query?: never;
                 header?: never;
                 path?: never;
@@ -6341,7 +6495,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["ChamadoDto"][];
+                        "application/json": components["schemas"]["ResumoDaFila"];
                     };
                 };
             };
@@ -6363,7 +6517,10 @@ export interface paths {
         };
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    antes?: string;
+                    tamanho?: number;
+                };
                 header?: never;
                 path: {
                     id: string;
@@ -6768,9 +6925,12 @@ export interface components {
          * @enum {unknown}
          */
         CategoriaDoLote: "Placa" | "Cracha" | "Cardapio" | "Teste" | "Outro";
+        /** @description As mensagens vêm da mais antiga à mais nova; HaAnteriores diz se há mais antigas que as devolvidas. */
         ChamadoComMensagens: {
             chamado: components["schemas"]["ChamadoDto"];
             mensagens: components["schemas"]["MensagemDto"][];
+            /** @default false */
+            haAnteriores: boolean;
         };
         ChamadoDto: {
             /** Format: uuid */
@@ -7153,6 +7313,8 @@ export interface components {
             historico: components["schemas"]["RegistroDto"][];
             ultimaRenovacao?: null | components["schemas"]["RenovacaoDaFicha"];
         };
+        /** @enum {unknown} */
+        FiltroDaCarteira: "Todas" | "Vencendo" | "Vencidas" | null;
         /** @enum {unknown} */
         FormatoDaImpressao: "SvgEPng" | "Svg" | "Png" | null;
         GerarLote: {
@@ -7631,23 +7793,213 @@ export interface components {
             /** Format: date-time */
             pixExpiraEm: null | string;
         };
-        PaginaDaOperadora: {
-            registros: components["schemas"]["RegistroDaOperadoraDto"][];
+        /** @description A página dos lotes no formato comum, com quantos arquivados o filtro deixou de fora (para "Ver arquivados"). */
+        PaginaDeLotes: {
+            itens: components["schemas"]["LoteDto"][];
             /** Format: int32 */
             total: number;
-        };
-        PaginaDeAuditoria: {
-            registros: components["schemas"]["RegistroDto"][];
             /** Format: int32 */
-            total: number;
+            proxima: null | number;
+            /** Format: int32 */
+            arquivados: number;
         };
+        /** @description A página das placas no formato comum (Pagina&lt;T&gt;), com a contagem por estado de tudo o que o filtro de código e de vendedor pega. */
         PaginaDePlacas: {
-            placas: components["schemas"]["PlacaDaLista"][];
+            itens: components["schemas"]["PlacaDaLista"][];
             /** Format: int32 */
             total: number;
+            /** Format: int32 */
+            proxima: null | number;
             porEstado: {
                 [key: string]: number;
             };
+        };
+        /**
+         * @description Resposta de toda listagem que cresce com o uso. Total é o que o filtro pega (não só a
+         *     página); Proxima é o número da próxima página, ou nulo na última.
+         */
+        PaginaOfChamadoDto: {
+            itens: components["schemas"]["ChamadoDto"][];
+            /** Format: int32 */
+            total: number;
+            /** Format: int32 */
+            proxima: null | number;
+        };
+        /**
+         * @description Resposta de toda listagem que cresce com o uso. Total é o que o filtro pega (não só a
+         *     página); Proxima é o número da próxima página, ou nulo na última.
+         */
+        PaginaOfClienteDaLista: {
+            itens: components["schemas"]["ClienteDaLista"][];
+            /** Format: int32 */
+            total: number;
+            /** Format: int32 */
+            proxima: null | number;
+        };
+        /**
+         * @description Resposta de toda listagem que cresce com o uso. Total é o que o filtro pega (não só a
+         *     página); Proxima é o número da próxima página, ou nulo na última.
+         */
+        PaginaOfCupomDto: {
+            itens: components["schemas"]["CupomDto"][];
+            /** Format: int32 */
+            total: number;
+            /** Format: int32 */
+            proxima: null | number;
+        };
+        /**
+         * @description Resposta de toda listagem que cresce com o uso. Total é o que o filtro pega (não só a
+         *     página); Proxima é o número da próxima página, ou nulo na última.
+         */
+        PaginaOfDespesaDto: {
+            itens: components["schemas"]["DespesaDto"][];
+            /** Format: int32 */
+            total: number;
+            /** Format: int32 */
+            proxima: null | number;
+        };
+        /**
+         * @description Resposta de toda listagem que cresce com o uso. Total é o que o filtro pega (não só a
+         *     página); Proxima é o número da próxima página, ou nulo na última.
+         */
+        PaginaOfEnvioDto: {
+            itens: components["schemas"]["EnvioDto"][];
+            /** Format: int32 */
+            total: number;
+            /** Format: int32 */
+            proxima: null | number;
+        };
+        /**
+         * @description Resposta de toda listagem que cresce com o uso. Total é o que o filtro pega (não só a
+         *     página); Proxima é o número da próxima página, ou nulo na última.
+         */
+        PaginaOfLancamentoDto: {
+            itens: components["schemas"]["LancamentoDto"][];
+            /** Format: int32 */
+            total: number;
+            /** Format: int32 */
+            proxima: null | number;
+        };
+        /**
+         * @description Resposta de toda listagem que cresce com o uso. Total é o que o filtro pega (não só a
+         *     página); Proxima é o número da próxima página, ou nulo na última.
+         */
+        PaginaOfLinkDto: {
+            itens: components["schemas"]["LinkDto"][];
+            /** Format: int32 */
+            total: number;
+            /** Format: int32 */
+            proxima: null | number;
+        };
+        /**
+         * @description Resposta de toda listagem que cresce com o uso. Total é o que o filtro pega (não só a
+         *     página); Proxima é o número da próxima página, ou nulo na última.
+         */
+        PaginaOfLoteDaRevenda: {
+            itens: components["schemas"]["LoteDaRevenda"][];
+            /** Format: int32 */
+            total: number;
+            /** Format: int32 */
+            proxima: null | number;
+        };
+        /**
+         * @description Resposta de toda listagem que cresce com o uso. Total é o que o filtro pega (não só a
+         *     página); Proxima é o número da próxima página, ou nulo na última.
+         */
+        PaginaOfOrdemDto: {
+            itens: components["schemas"]["OrdemDto"][];
+            /** Format: int32 */
+            total: number;
+            /** Format: int32 */
+            proxima: null | number;
+        };
+        /**
+         * @description Resposta de toda listagem que cresce com o uso. Total é o que o filtro pega (não só a
+         *     página); Proxima é o número da próxima página, ou nulo na última.
+         */
+        PaginaOfPedidoDto: {
+            itens: components["schemas"]["PedidoDto"][];
+            /** Format: int32 */
+            total: number;
+            /** Format: int32 */
+            proxima: null | number;
+        };
+        /**
+         * @description Resposta de toda listagem que cresce com o uso. Total é o que o filtro pega (não só a
+         *     página); Proxima é o número da próxima página, ou nulo na última.
+         */
+        PaginaOfPlacaDaCarteira: {
+            itens: components["schemas"]["PlacaDaCarteira"][];
+            /** Format: int32 */
+            total: number;
+            /** Format: int32 */
+            proxima: null | number;
+        };
+        /**
+         * @description Resposta de toda listagem que cresce com o uso. Total é o que o filtro pega (não só a
+         *     página); Proxima é o número da próxima página, ou nulo na última.
+         */
+        PaginaOfRegistroDaOperadoraDto: {
+            itens: components["schemas"]["RegistroDaOperadoraDto"][];
+            /** Format: int32 */
+            total: number;
+            /** Format: int32 */
+            proxima: null | number;
+        };
+        /**
+         * @description Resposta de toda listagem que cresce com o uso. Total é o que o filtro pega (não só a
+         *     página); Proxima é o número da próxima página, ou nulo na última.
+         */
+        PaginaOfRegistroDto: {
+            itens: components["schemas"]["RegistroDto"][];
+            /** Format: int32 */
+            total: number;
+            /** Format: int32 */
+            proxima: null | number;
+        };
+        /**
+         * @description Resposta de toda listagem que cresce com o uso. Total é o que o filtro pega (não só a
+         *     página); Proxima é o número da próxima página, ou nulo na última.
+         */
+        PaginaOfRepasseDto: {
+            itens: components["schemas"]["RepasseDto"][];
+            /** Format: int32 */
+            total: number;
+            /** Format: int32 */
+            proxima: null | number;
+        };
+        /**
+         * @description Resposta de toda listagem que cresce com o uso. Total é o que o filtro pega (não só a
+         *     página); Proxima é o número da próxima página, ou nulo na última.
+         */
+        PaginaOfRetiradaDto: {
+            itens: components["schemas"]["RetiradaDto"][];
+            /** Format: int32 */
+            total: number;
+            /** Format: int32 */
+            proxima: null | number;
+        };
+        /**
+         * @description Resposta de toda listagem que cresce com o uso. Total é o que o filtro pega (não só a
+         *     página); Proxima é o número da próxima página, ou nulo na última.
+         */
+        PaginaOfRevendedorDto: {
+            itens: components["schemas"]["RevendedorDto"][];
+            /** Format: int32 */
+            total: number;
+            /** Format: int32 */
+            proxima: null | number;
+        };
+        /**
+         * @description Resposta de toda listagem que cresce com o uso. Total é o que o filtro pega (não só a
+         *     página); Proxima é o número da próxima página, ou nulo na última.
+         */
+        PaginaOfVendaDaLista: {
+            itens: components["schemas"]["VendaDaLista"][];
+            /** Format: int32 */
+            total: number;
+            /** Format: int32 */
+            proxima: null | number;
         };
         /**
          * @description O papel de quem entra. A operadora é a Avalia operando a plataforma e não
@@ -7703,6 +8055,8 @@ export interface components {
             descontoCents: number;
             urlDePagamento: null | string;
             retirada: boolean;
+            /** @default false */
+            haLoteLivre: boolean;
         };
         /** @description Um recebimento por fora que o dono ainda não conferiu; a comissão dele não entra em repasse até a conferência. */
         PendenteDeConferencia: {
@@ -7881,6 +8235,8 @@ export interface components {
             comprovante: null | string;
             /** Format: date-time */
             desfeitoEm?: null | string;
+            /** @default false */
+            podeDesfazer: boolean;
         };
         /** @description A resposta do cadastro é a mesma para e-mail e CNPJ novos ou já cadastrados. */
         RespostaDoCadastro: {
@@ -7889,6 +8245,33 @@ export interface components {
         ResultadoDaConferencia: {
             /** Format: int32 */
             conferidos: number;
+        };
+        /** @description A fila inteira da operadora, e não só a página aberta: quantos esperam resposta e quantos já passaram do prazo. */
+        ResumoDaFila: {
+            /** Format: int32 */
+            esperando: number;
+            /** Format: int32 */
+            atrasados: number;
+        };
+        /**
+         * @description As vendas somadas inteiras, para a tela não somar só a página que abriu. NoMes e
+         *     RecebidoNoMesCents contam venda registrada do mês de Brasília; ComissaoEsperandoCents
+         *     é a comissão das registradas ainda sem pagamento do cliente.
+         */
+        ResumoDasVendas: {
+            /** Format: int32 */
+            total: number;
+            /** Format: int32 */
+            pagas: number;
+            /** Format: int64 */
+            comissaoPagaCents: number;
+            /** Format: int32 */
+            noMes: number;
+            /** Format: int64 */
+            recebidoNoMesCents: number;
+            /** Format: int64 */
+            comissaoEsperandoCents: number;
+            porDia: components["schemas"]["VendasDoDia"][];
         };
         ResumoDoMes: {
             competencia: string;
@@ -7900,7 +8283,7 @@ export interface components {
             comissaoCents: number;
             /** Format: int64 */
             liquidoCents: number;
-            lancamentos: components["schemas"]["LancamentoDto"][];
+            lancamentos: components["schemas"]["PaginaOfLancamentoDto"];
         };
         /** @description O mês do vendedor: a meta que o revendedor definiu, o que ele já vendeu pago e o ranking da equipe. */
         ResumoDoVendedor: {
@@ -8089,6 +8472,11 @@ export interface components {
             quantidade: number;
             /** Format: uuid */
             grupoId?: null | string;
+            /**
+             * Format: int32
+             * @default 1
+             */
+            itensNoGrupo: number;
         };
         /** @description Estado - o EstadoDaPlaca de hoje, por nome; nulo na venda de serviço. */
         VendaDoCliente: {
@@ -8128,6 +8516,13 @@ export interface components {
             cobranca: null | components["schemas"]["CobrancaDto"];
             semCobranca: null | string;
             linkCurto?: null | string;
+        };
+        /** @description Um dia (de Brasília) e quantas vendas valendo houve nele. */
+        VendasDoDia: {
+            /** Format: date */
+            dia: string;
+            /** Format: int32 */
+            total: number;
         };
         VendasRegistradas: {
             vendas: components["schemas"]["VendaRegistrada"][];

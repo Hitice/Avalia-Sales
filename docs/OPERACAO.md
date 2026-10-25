@@ -357,6 +357,42 @@ renovação, destino e suspensão de placa são feitos só na plataforma.
 - Próximo passo - desligar o módulo de vendas do sistema anterior, mantendo o
   repasse do `/q/`.
 
+## Listagens paginadas
+
+Toda rota GET que devolve uma lista que cresce com o uso responde no mesmo
+formato, com o limite aplicado no servidor (`Application/Pagina.cs`):
+
+```json
+{ "itens": [ ... ], "total": 230, "proxima": 2 }
+```
+
+- Parâmetros: `pagina` (a partir de 1) e `tamanho`. Sem `tamanho`, 50; acima
+  de 100, vale 100; abaixo de 1, 50; `pagina` abaixo de 1 vale 1. Valor fora
+  da faixa é corrigido, e não recusado. Página depois da última devolve
+  `itens` vazio, o `total` certo e `proxima` nulo.
+- `total` é o do filtro (`busca` e filtros da rota), e não só da página.
+  `proxima` é o número da próxima página, ou nulo na última.
+- Ordem total: o último critério é sempre o `Id`, para o Postgres não
+  repetir nem pular item entre uma página e a outra quando o horário empata.
+- `busca` (texto livre) compara em minúsculas e com acento, como a de
+  clientes e a da auditoria já faziam; vale antes da página. O front manda o termo à API; a busca local da tabela fica ligada só
+  em tabela que não é paginada (`<Table semBusca>` nas outras).
+- Rotas: `/vendas`, `/clientes`, `/carteira`, `/placas`, `/lotes`, `/pedidos`,
+  `/chamados`, `/links`, `/servicos`, `/repasses`, `/razao` (os lançamentos
+  do mês, em `lancamentos`), `/financeiro/despesas`, `/financeiro/retiradas`,
+  `/auditoria`, e da operadora `/operadora/pedidos`, `/lotes`, `/erp`,
+  `/cupons`, `/revendedores`, `/servicos`, `/chamados`, `/auditoria`.
+  `/placas` e `/operadora/lotes` trazem campos a mais (`porEstado`,
+  `arquivados`). `GET /chamados/{id}` devolve as mensagens mais novas e
+  `antes={idDaMensagemMaisAntiga}` busca as anteriores (`haAnteriores`).
+- Números que a tela mostra sobre a lista inteira vêm de rota própria, e não
+  da soma da página: `/vendas/resumo`, `/operadora/chamados/resumo`,
+  `?situacao=AFazer&tamanho=1` em `/servicos`.
+- Não paginam, por serem limitadas pelo desenho: `/notificacoes` (as 30 mais
+  recentes e a contagem exata de não lidas), `/equipe`, `/pacotes`,
+  `/catalogo`, `/financeiro/socios`, `/financeiro/meses` e os selos de
+  mês, `/razao/meses`, `/mapa` (tem tela própria).
+
 ## Logs e erros
 
 - `docker compose -f docker-compose.producao.yml logs -f api worker`.

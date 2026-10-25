@@ -1,8 +1,10 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { chamarApi, enviarJson, mensagemDoErro } from '@/api/cliente'
 import { formatarData, formatarTelefone } from '@/api/rotulos'
-import { Cabecalho, Erro, EstadoDaConsulta, Rolagem } from '@/componentes/Tela'
+import type { ClienteDaLista } from '@/api/tipos'
+import { ListaPaginada } from '@/componentes/ListaPaginada'
+import { Cabecalho, Erro, Rolagem } from '@/componentes/Tela'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -11,65 +13,60 @@ import { Field, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { digitos, mascaraDocumento, mascaraTelefone } from '@/lib/mascaras'
+import { useListaPaginada } from '@/lib/paginacao'
 import { FichaDoCliente } from './FichaDoCliente'
-
-type Cliente = { id: string; nome: string; responsavel: string; telefone: string; documento: string | null; email: string | null; placas: number; criadoEm: string; anonimizado: boolean }
 
 /**
  * Os clientes da revenda. A ficha de cada um (clique no nome) edita, junta
  * duplicados, exporta e anonimiza; o cliente novo pode entrar antes da venda.
  */
 export function TelaDeClientes() {
-  const [busca, setBusca] = useState('')
   const [aberto, setAberto] = useState<string | null>(null)
   const [cadastrando, setCadastrando] = useState(false)
-  const clientes = useQuery({ queryKey: ['clientes', busca], queryFn: () => chamarApi<Cliente[]>(`/clientes?busca=${encodeURIComponent(busca)}`) })
+  const clientes = useListaPaginada<ClienteDaLista>(['clientes', 'lista'], '/clientes')
 
   return (
     <>
       <Cabecalho titulo="Clientes">
-        <Input type="search" aria-label="Buscar cliente" placeholder="Nome, telefone ou CNPJ" className="w-64" value={busca} onChange={(e) => setBusca(e.target.value)} />
         <Button onClick={() => setCadastrando(true)}>Cadastrar cliente</Button>
       </Cabecalho>
       <Card className="mt-3">
         <CardContent>
-          <EstadoDaConsulta carregando={clientes.isPending} erro={clientes.error} vazio={clientes.data?.length === 0} textoVazio="Nenhum cliente encontrado."
-            acao={<Button variant="outline" onClick={() => setCadastrando(true)}>Cadastrar cliente</Button>} />
-          {clientes.data && clientes.data.length > 0 && (
-            <Rolagem>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Cliente</TableHead>
-                    <TableHead>Telefone</TableHead>
-                    <TableHead tipo="numero">Placas</TableHead>
-                    <TableHead tipo="data">Desde</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {clientes.data.map((c) => (
-                    <TableRow key={c.id}>
-                      <TableCell className="min-w-48 whitespace-normal">
-                        <button type="button" className="text-left font-medium underline-offset-4 hover:underline" onClick={() => setAberto(c.id)}>
-                          {c.nome} {c.anonimizado && <Badge variant="neutro">Anonimizado</Badge>}
-                        </button>
-                        {!c.anonimizado && <p className="text-xs text-muted-foreground">{c.responsavel}{c.email ? `, ${c.email}` : ''}</p>}
-                      </TableCell>
-                      <TableCell className="tabular-nums">{c.telefone ? formatarTelefone(c.telefone) : '-'}</TableCell>
-                      <TableCell>{c.placas}</TableCell>
-                      <TableCell>{formatarData(c.criadoEm)}</TableCell>
+          <ListaPaginada lista={clientes} textoVazio="Nenhum cliente encontrado." nomeDaBusca="Buscar cliente" placeholder="Nome, telefone ou CNPJ"
+            acaoVazia={<Button variant="outline" onClick={() => setCadastrando(true)}>Cadastrar cliente</Button>}>
+            {(itens) => (
+              <Rolagem>
+                <Table semBusca>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Cliente</TableHead>
+                      <TableHead>Telefone</TableHead>
+                      <TableHead tipo="numero">Placas</TableHead>
+                      <TableHead tipo="data">Desde</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Rolagem>
-          )}
+                  </TableHeader>
+                  <TableBody>
+                    {itens.map((c) => (
+                      <TableRow key={c.id}>
+                        <TableCell className="min-w-48 whitespace-normal">
+                          <button type="button" className="text-left font-medium underline-offset-4 hover:underline" onClick={() => setAberto(c.id)}>
+                            {c.nome} {c.anonimizado && <Badge variant="neutro">Anonimizado</Badge>}
+                          </button>
+                          {!c.anonimizado && <p className="text-xs text-muted-foreground">{c.responsavel}{c.email ? `, ${c.email}` : ''}</p>}
+                        </TableCell>
+                        <TableCell className="tabular-nums">{c.telefone ? formatarTelefone(c.telefone) : '-'}</TableCell>
+                        <TableCell>{c.placas}</TableCell>
+                        <TableCell>{formatarData(c.criadoEm)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </Rolagem>
+            )}
+          </ListaPaginada>
         </CardContent>
       </Card>
-      {aberto && (
-        <FichaDoCliente id={aberto} aoFechar={() => setAberto(null)}
-          outros={(clientes.data ?? []).filter((c) => c.id !== aberto && !c.anonimizado).map((c) => ({ id: c.id, nome: c.nome }))} />
-      )}
+      {aberto && <FichaDoCliente id={aberto} aoFechar={() => setAberto(null)} />}
       {cadastrando && <NovoCliente aoFechar={() => setCadastrando(false)} aoCadastrar={(id) => { setCadastrando(false); setAberto(id) }} />}
     </>
   )

@@ -60,14 +60,25 @@ public sealed class Socios(IBancoDeDados banco, Fechamentos fechamentos, Auditor
         await banco.SaveChangesAsync(ct);
     }
 
-    public async Task<IReadOnlyList<RetiradaDto>> Retiradas(string? competencia, CancellationToken ct)
+    /// <summary>As do mês, da data mais recente para trás; a busca vale para o sócio e a observação.</summary>
+    public async Task<Pagina<RetiradaDto>> Retiradas(string? competencia, string? busca, PedidoDePagina pedido, CancellationToken ct)
     {
         var (de, ate) = Despesas.Intervalo(string.IsNullOrWhiteSpace(competencia) ? fechamentos.MesCorrente() : Competencias.Conferir(competencia));
-        return await (from r in banco.Retiradas.AsNoTracking()
-                      join s in banco.Socios on r.SocioId equals s.Id
-                      where r.Data >= de && r.Data < ate
-                      orderby r.Data descending, r.CriadaEm descending
-                      select new RetiradaDto(r.Id, r.SocioId, s.Nome, r.Data, r.Natureza, r.ValorCents, r.Observacao)).ToListAsync(ct);
+        var consulta = from r in banco.Retiradas.AsNoTracking()
+                       join s in banco.Socios on r.SocioId equals s.Id
+                       where r.Data >= de && r.Data < ate
+                       select new { r, Socio = s.Nome };
+        var termo = Paginacao.Termo(busca);
+        if (termo.Length > 0)
+        {
+            // Vira lower(...) LIKE no Postgres: a cultura do .NET não entra na consulta.
+#pragma warning disable CA1304, CA1311, CA1862
+            consulta = consulta.Where(x => x.Socio.ToLower().Contains(termo) || (x.r.Observacao != null && x.r.Observacao.ToLower().Contains(termo)));
+#pragma warning restore CA1304, CA1311, CA1862
+        }
+
+        return await consulta.OrderByDescending(x => x.r.Data).ThenByDescending(x => x.r.CriadaEm).ThenByDescending(x => x.r.Id)
+            .Select(x => new RetiradaDto(x.r.Id, x.r.SocioId, x.Socio, x.r.Data, x.r.Natureza, x.r.ValorCents, x.r.Observacao)).PaginarAsync(pedido, ct);
     }
 
     public async Task<RetiradaDto> Retirar(NovaRetirada pedido, CancellationToken ct)

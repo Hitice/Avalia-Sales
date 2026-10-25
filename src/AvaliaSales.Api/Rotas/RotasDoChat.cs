@@ -1,4 +1,5 @@
 using AvaliaSales.Api.Autenticacao;
+using AvaliaSales.Application;
 using AvaliaSales.Application.Atendimento;
 
 namespace AvaliaSales.Api.Rotas;
@@ -13,7 +14,7 @@ public static class RotasDoChat
     public static void MapearChat(this IEndpointRouteBuilder rotas)
     {
         var dono = rotas.MapGroup("/chamados").RequireAuthorization(Politicas.Dono).WithTags("Chamados");
-        dono.MapGet("/", (Chamados chamados, CancellationToken ct) => chamados.Listar(ct));
+        dono.MapGet("/", (string? busca, [AsParameters] PedidoDePagina pagina, Chamados chamados, CancellationToken ct) => chamados.Listar(busca, pagina, ct));
         dono.MapPost("/", async (NovoChamado pedido, Chamados chamados, CancellationToken ct) =>
         {
             var chamado = await chamados.Abrir(pedido.Assunto, pedido.Texto, ct);
@@ -22,14 +23,15 @@ public static class RotasDoChat
         Comuns(dono);
 
         var operadora = rotas.MapGroup("/operadora/chamados").RequireAuthorization(Politicas.Operadora).WithTags("Chamados");
-        operadora.MapGet("/", (Chamados chamados, CancellationToken ct) => chamados.Listar(ct));
+        operadora.MapGet("/", (string? busca, [AsParameters] PedidoDePagina pagina, Chamados chamados, CancellationToken ct) => chamados.Listar(busca, pagina, ct));
+        operadora.MapGet("/resumo", (Chamados chamados, CancellationToken ct) => chamados.Resumo(ct));
         Comuns(operadora);
     }
 
     /// <summary>Ler, responder e resolver valem para os dois lados; o filtro do banco limita o revendedor aos dele.</summary>
     private static void Comuns(RouteGroupBuilder grupo)
     {
-        grupo.MapGet("/{id:guid}", (Guid id, Chamados chamados, CancellationToken ct) => chamados.Ler(id, ct));
+        grupo.MapGet("/{id:guid}", (Guid id, Guid? antes, int? tamanho, Chamados chamados, CancellationToken ct) => chamados.Ler(id, antes, tamanho, ct));
         grupo.MapPost("/{id:guid}/mensagens", async (Guid id, NovaMensagem pedido, Chamados chamados, CancellationToken ct) =>
             Results.Created($"/chamados/{id}", await chamados.Responder(id, pedido.Texto, ct)));
         grupo.MapPost("/{id:guid}/resolver", async (Guid id, Chamados chamados, CancellationToken ct) =>

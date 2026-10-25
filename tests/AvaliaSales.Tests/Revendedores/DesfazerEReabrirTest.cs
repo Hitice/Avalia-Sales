@@ -38,7 +38,7 @@ public sealed class DesfazerEReabrirTest(ApiDeTeste api)
         var rui = await api.ClienteLogado(email);
         await revenda.Dono.Postar("/estoque/consignacao", new { vendedorId, codigos = new[] { revenda.Codigos[2], revenda.Codigos[3] } });
         await rui.Postar("/vendas", Cenarios.Venda(revenda.Codigos[2], revenda.ProdutoId, "34999990043"), HttpStatusCode.Created);
-        var venda = (await revenda.Dono.Pegar("/vendas")).EnumerateArray().Single(v => v.GetProperty("codigo").GetString() == revenda.Codigos[2]).GetProperty("id").GetGuid();
+        var venda = (await revenda.Dono.PegarItens("/vendas")).EnumerateArray().Single(v => v.GetProperty("codigo").GetString() == revenda.Codigos[2]).GetProperty("id").GetGuid();
         await using (var banco = new BancoDeDadosDoDono(api.ConexaoDoDono))
         {
             await banco.Contar($"update cobrancas set situacao = 'Cancelada' where origem_id = '{venda}' returning 1");
@@ -67,13 +67,13 @@ public sealed class DesfazerEReabrirTest(ApiDeTeste api)
         var kit = await Cenarios.ProdutoDoCatalogo(revenda.Dono, "kit-mesa", 3_990L);
         var venda = (await revenda.Dono.Postar("/vendas", Cenarios.Servico(kit, "34999990044", quantidade: 10), HttpStatusCode.Created)).GetProperty("vendaId").GetGuid();
         await revenda.Dono.Postar($"/vendas/{venda}/recebimento", new { meio = "Dinheiro" }, HttpStatusCode.NoContent);
-        var ordem = (await operadora.Pegar("/operadora/servicos")).EnumerateArray().Single(o => o.GetProperty("revendedor").GetString() == "Revenda da Ordem Reaberta").GetProperty("id").GetGuid();
+        var ordem = (await operadora.PegarItens("/operadora/servicos?busca=Revenda%20da%20Ordem%20Reaberta")).EnumerateArray().Single(o => o.GetProperty("revendedor").GetString() == "Revenda da Ordem Reaberta").GetProperty("id").GetGuid();
 
         await operadora.Postar($"/operadora/servicos/{ordem}/entregar", new { }, HttpStatusCode.NoContent);
         await operadora.Postar($"/operadora/servicos/{ordem}/reabrir", new { }, HttpStatusCode.NoContent);
         await operadora.Postar($"/operadora/servicos/{ordem}/reabrir", new { }, HttpStatusCode.UnprocessableEntity);
 
-        var lida = (await operadora.Pegar("/operadora/servicos")).EnumerateArray().Single(o => o.GetProperty("id").GetGuid() == ordem);
+        var lida = (await operadora.PegarItens("/operadora/servicos?busca=Revenda%20da%20Ordem%20Reaberta")).EnumerateArray().Single(o => o.GetProperty("id").GetGuid() == ordem);
         Assert.Equal("EmAndamento", lida.GetProperty("situacao").GetString());
     }
 }

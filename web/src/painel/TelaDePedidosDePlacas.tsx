@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { mensagemDoErro } from '@/api/cliente'
 import { formatarDataHora, rotuloDoPedido, TOM_DO_PEDIDO } from '@/api/rotulos'
 import { AcoesDaLinha } from '@/componentes/AcoesDaLinha'
-import { Cabecalho, Erro, EstadoDaConsulta, Rolagem } from '@/componentes/Tela'
+import { ListaPaginada } from '@/componentes/ListaPaginada'
+import { Cabecalho, Erro, Rolagem } from '@/componentes/Tela'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -36,54 +37,55 @@ export function TelaDePedidosDePlacas() {
           <CardHeader><CardTitle>Meus pedidos</CardTitle></CardHeader>
           <CardContent>
             <Erro erro={cancelar.error || pagar.error ? mensagemDoErro(cancelar.error ?? pagar.error) : null} />
-            <EstadoDaConsulta carregando={pedidos.isPending} erro={pedidos.error} vazio={pedidos.data?.length === 0} textoVazio="Nenhum pedido ainda." />
-            {pedidos.data && pedidos.data.length > 0 && (
-              <Rolagem>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead tipo="data">Pedido em</TableHead>
-                      <TableHead tipo="numero">Placas</TableHead>
-                      <TableHead tipo="numero">Valor</TableHead>
-                      <TableHead tipo="situacao">Situação</TableHead>
-                      <TableHead>Lote</TableHead>
-                      <TableHead tipo="acoes" />
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {pedidos.data.map((p) => (
-                      <TableRow key={p.id}>
-                        <TableCell>{formatarDataHora(p.criadoEm)}</TableCell>
-                        <TableCell>{p.quantidade}</TableCell>
-                        <TableCell>
-                          {formatarCentavos(p.valorCents)}
-                          {p.cupom && <span className="block text-xs text-muted-foreground">cupom {p.cupom}, menos {formatarCentavos(p.descontoCents)}</span>}
-                        </TableCell>
-                        <TableCell><Badge variant={TOM_DO_PEDIDO[p.situacao]}>{rotuloDoPedido(p)}</Badge></TableCell>
-                        <TableCell>{p.lote ?? '-'}</TableCell>
-                        <TableCell>
-                          {p.situacao === 'AguardandoPagamento' && (
-                            <AcoesDaLinha nome={`pedido de ${p.quantidade} placas`}
-                              principal={{
-                                rotulo: 'Pagar',
-                                desabilitada: pagar.isPending,
-                                aoClicar: async () => {
-                                  // A página do Pagar.me abre em outra aba; o pedido fica pago aqui quando o pagamento cai.
-                                  const aba = window.open('', '_blank')
-                                  const url = p.urlDePagamento ?? (await pagar.mutateAsync(p.id).catch(() => null))?.url
-                                  if (url && aba) aba.location.href = url
-                                  else aba?.close()
-                                },
-                              }}
-                              outras={[!p.urlDePagamento && { rotulo: 'Cancelar', destrutiva: true, aoClicar: () => cancelar.mutate(p.id) }]} />
-                          )}
-                        </TableCell>
+            <ListaPaginada lista={pedidos} textoVazio="Nenhum pedido ainda." nomeDaBusca="Buscar nos pedidos" placeholder="Cupom ou lote">
+              {(itens) => (
+                <Rolagem>
+                  <Table semBusca>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead tipo="data">Pedido em</TableHead>
+                        <TableHead tipo="numero">Placas</TableHead>
+                        <TableHead tipo="numero">Valor</TableHead>
+                        <TableHead tipo="situacao">Situação</TableHead>
+                        <TableHead>Lote</TableHead>
+                        <TableHead tipo="acoes" />
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </Rolagem>
-            )}
+                    </TableHeader>
+                    <TableBody>
+                      {itens.map((p) => (
+                        <TableRow key={p.id}>
+                          <TableCell>{formatarDataHora(p.criadoEm)}</TableCell>
+                          <TableCell>{p.quantidade}</TableCell>
+                          <TableCell>
+                            {formatarCentavos(p.valorCents)}
+                            {p.cupom && <span className="block text-xs text-muted-foreground">cupom {p.cupom}, menos {formatarCentavos(p.descontoCents)}</span>}
+                          </TableCell>
+                          <TableCell><Badge variant={TOM_DO_PEDIDO[p.situacao]}>{rotuloDoPedido(p)}</Badge></TableCell>
+                          <TableCell>{p.lote ?? '-'}</TableCell>
+                          <TableCell>
+                            {p.situacao === 'AguardandoPagamento' && (
+                              <AcoesDaLinha nome={`pedido de ${p.quantidade} placas`}
+                                principal={{
+                                  rotulo: 'Pagar',
+                                  desabilitada: pagar.isPending,
+                                  aoClicar: async () => {
+                                    // A página do Pagar.me abre em outra aba; o pedido fica pago aqui quando o pagamento cai.
+                                    const aba = window.open('', '_blank')
+                                    const url = p.urlDePagamento ?? (await pagar.mutateAsync(p.id).catch(() => null))?.url
+                                    if (url && aba) aba.location.href = url
+                                    else aba?.close()
+                                  },
+                                }}
+                                outras={[!p.urlDePagamento && { rotulo: 'Cancelar', destrutiva: true, aoClicar: () => cancelar.mutate(p.id) }]} />
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </Rolagem>
+              )}
+            </ListaPaginada>
           </CardContent>
         </Card>
       </div>

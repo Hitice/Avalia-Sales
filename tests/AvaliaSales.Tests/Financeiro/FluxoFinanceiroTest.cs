@@ -49,7 +49,7 @@ public sealed class FluxoFinanceiroTest(ApiDeTeste api)
         api.Gateway.PagarLink(link.Codigo);
         await Conferir();
 
-        var pedidos = await dono.Pegar("/pedidos");
+        var pedidos = await dono.PegarItens("/pedidos");
         Assert.Equal("Pago", pedidos.EnumerateArray().Single(p => p.GetProperty("id").GetGuid() == pedido).GetProperty("situacao").GetString());
         await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
         Assert.Equal(1, await banco.Contar($"select count(*) from emails where chave = 'pedido:{pedido:N}:pago'"));
@@ -78,7 +78,7 @@ public sealed class FluxoFinanceiroTest(ApiDeTeste api)
         Assert.Equal(10_000, parcial.GetProperty("valorCents").GetInt64());
 
         await dono.Postar($"/pedidos/{parcial.GetProperty("id").GetGuid()}/cancelamento", new { }, HttpStatusCode.NoContent);
-        var cupons = await operadora.Pegar("/operadora/cupons");
+        var cupons = await operadora.PegarItens($"/operadora/cupons?busca={codigoParcial}");
         Assert.Equal(0, cupons.EnumerateArray().Single(c => c.GetProperty("codigo").GetString() == codigoParcial).GetProperty("usos").GetInt32());
     }
 

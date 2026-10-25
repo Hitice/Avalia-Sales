@@ -12,7 +12,11 @@ public sealed record MensagemDto(Guid Id, bool DaOperadora, string Autor, string
 public sealed record ChamadoDto(Guid Id, long Numero, string Revendedor, string Assunto, SituacaoDoChamado Situacao, DateTimeOffset AbertoEm,
     DateTimeOffset? PrazoEm, bool Atrasado, DateTimeOffset UltimaMensagemEm, DateTimeOffset? ResolvidoEm, int NaoLidas);
 
-public sealed record ChamadoComMensagens(ChamadoDto Chamado, IReadOnlyList<MensagemDto> Mensagens);
+/// <summary>A fila inteira da operadora, e não só a página aberta: quantos esperam resposta e quantos já passaram do prazo.</summary>
+public sealed record ResumoDaFila(int Esperando, int Atrasados);
+
+/// <summary>As mensagens vêm da mais antiga à mais nova; <paramref name="HaAnteriores"/> diz se há mais antigas que as devolvidas.</summary>
+public sealed record ChamadoComMensagens(ChamadoDto Chamado, IReadOnlyList<MensagemDto> Mensagens, bool HaAnteriores = false);
 
 /// <summary>
 /// O suporte da Avalia aos revendedores em chamados, com prazo de resposta de
@@ -24,27 +28,46 @@ public sealed record ChamadoComMensagens(ChamadoDto Chamado, IReadOnlyList<Mensa
 public sealed class Chamados(IBancoDeDados banco, IUsuarioAtual usuario, IRevendedorAtual atual, IContas contas, FilaDeEmails emails,
     Notificacoes.Notificacoes notificacoes, IOptions<OpcoesDaPlataforma> plataforma, TimeProvider relogio)
 {
-    public const int MensagensPorChamado = 200;
-
-    public async Task<IReadOnlyList<ChamadoDto>> Listar(CancellationToken ct)
+    /// <summary>
+    /// A página dos chamados. Operadora: o que espera a Avalia primeiro, pelo prazo, e depois o resto, do mais
+    /// recente. Revendedor: os abertos antes dos fechados, do mais recente. Com <paramref name="busca"/>, o texto
+    /// no assunto, no número ou no nome do revendedor.
+    /// </summary>
+    public async Task<Pagina<ChamadoDto>> Listar(string? busca, PedidoDePagina pedido, CancellationToken ct)
     {
         var agora = relogio.GetUtcNow();
         var daOperadora = atual.Operadora;
-        var chamados = await banco.Chamados.AsNoTracking()
-            .Select(c => new
-            {
-                Chamado = c,
-                NaoLidas = banco.Mensagens.Count(m => m.ChamadoId == c.Id && m.DaOperadora != daOperadora && m.LidaEm == null),
-            })
-            .ToListAsync(ct);
-        var nomes = await NomesDosRevendedores(chamados.Select(c => c.Chamado.RevendedorId), ct);
-        var lista = chamados.Select(c => Dto(c.Chamado, nomes, agora, c.NaoLidas));
+        var consulta = banco.Chamados.AsNoTracking();
+        var termo = Paginacao.Termo(busca);
+        if (termo.Length > 0)
+        {
+            long? numero = long.TryParse(new string(termo.Where(char.IsAsciiDigit).ToArray()), out var lido) ? lido : null;
+            // Vira lower(...) LIKE no Postgres: a cultura do .NET não entra na consulta.
+#pragma warning disable CA1304, CA1311, CA1862
+            consulta = consulta.Where(c => c.Assunto.ToLower().Contains(termo)
+                || (numero != null && c.Numero == numero)
+                || banco.Revendedores.Any(r => r.Id == c.RevendedorId && r.Nome.ToLower().Contains(termo)));
+#pragma warning restore CA1304, CA1311, CA1862
+        }
 
-        // Operadora: o que espera a Avalia, pelo prazo; depois o resto, do mais recente. Revendedor: o mais recente primeiro.
-        return daOperadora
-            ? lista.OrderBy(c => c.Situacao == SituacaoDoChamado.AguardandoAvalia ? 0 : c.Situacao == SituacaoDoChamado.AguardandoRevenda ? 1 : 2)
-                .ThenBy(c => c.PrazoEm ?? DateTimeOffset.MaxValue).ThenByDescending(c => c.UltimaMensagemEm).ToList()
-            : lista.OrderBy(c => c.Situacao == SituacaoDoChamado.Resolvido).ThenByDescending(c => c.UltimaMensagemEm).ToList();
+        var ordenada = daOperadora
+            ? consulta.OrderBy(c => c.Situacao == SituacaoDoChamado.AguardandoAvalia ? 0 : c.Situacao == SituacaoDoChamado.AguardandoRevenda ? 1 : 2)
+                .ThenBy(c => c.PrazoEm == null).ThenBy(c => c.PrazoEm).ThenByDescending(c => c.UltimaMensagemEm).ThenBy(c => c.Id)
+            : consulta.OrderBy(c => c.Situacao == SituacaoDoChamado.Resolvido).ThenByDescending(c => c.UltimaMensagemEm).ThenBy(c => c.Id);
+        var pagina = await ordenada.PaginarAsync(pedido, ct);
+        var ids = pagina.Itens.Select(c => c.Id).ToList();
+        var naoLidas = await banco.Mensagens.AsNoTracking()
+            .Where(m => ids.Contains(m.ChamadoId) && m.DaOperadora != daOperadora && m.LidaEm == null)
+            .GroupBy(m => m.ChamadoId).Select(g => new { g.Key, Total = g.Count() }).ToDictionaryAsync(x => x.Key, x => x.Total, ct);
+        var nomes = await NomesDosRevendedores(pagina.Itens.Select(c => c.RevendedorId), ct);
+        return pagina.Mapear(c => Dto(c, nomes, agora, naoLidas.GetValueOrDefault(c.Id)));
+    }
+
+    public async Task<ResumoDaFila> Resumo(CancellationToken ct)
+    {
+        var agora = relogio.GetUtcNow();
+        var abertos = banco.Chamados.AsNoTracking().Where(c => c.Situacao == SituacaoDoChamado.AguardandoAvalia);
+        return new ResumoDaFila(await abertos.CountAsync(ct), await abertos.CountAsync(c => c.PrazoEm != null && c.PrazoEm < agora, ct));
     }
 
     /// <summary>O revendedor abre o chamado com o assunto e a primeira mensagem.</summary>
@@ -81,7 +104,11 @@ public sealed class Chamados(IBancoDeDados banco, IUsuarioAtual usuario, IRevend
         return Dto(chamado, new Dictionary<Guid, string> { [revendedor] = nome }, agora, 0);
     }
 
-    public async Task<ChamadoComMensagens> Ler(Guid id, CancellationToken ct)
+    /// <summary>
+    /// O chamado com as mensagens mais novas (até o tamanho pedido, no máximo <see cref="Paginacao.TamanhoMaximo"/>). Com
+    /// <paramref name="antes"/> (o Id da mensagem mais antiga que a tela já tem), as que vêm antes dela.
+    /// </summary>
+    public async Task<ChamadoComMensagens> Ler(Guid id, Guid? antes, int? tamanho, CancellationToken ct)
     {
         var chamado = await Achar(id, ct);
         var agora = relogio.GetUtcNow();
@@ -91,15 +118,26 @@ public sealed class Chamados(IBancoDeDados banco, IUsuarioAtual usuario, IRevend
         await banco.Mensagens.Where(m => m.ChamadoId == id && m.DaOperadora != daOperadora && m.LidaEm == null)
             .ExecuteUpdateAsync(s => s.SetProperty(m => m.LidaEm, agora), ct);
 
-        var mensagens = await banco.Mensagens.AsNoTracking().Where(m => m.ChamadoId == id)
-            .OrderByDescending(m => m.EnviadaEm).Take(MensagensPorChamado).ToListAsync(ct);
+        var (_, limite) = Paginacao.Normalizar(1, tamanho);
+        var doChamado = banco.Mensagens.AsNoTracking().Where(m => m.ChamadoId == id);
+        if (antes is { } referencia)
+        {
+            var quando = await doChamado.Where(m => m.Id == referencia).Select(m => (DateTimeOffset?)m.EnviadaEm).SingleOrDefaultAsync(ct)
+                ?? throw new RegraDeNegocioException("Mensagem não encontrada.");
+            doChamado = doChamado.Where(m => m.EnviadaEm < quando || (m.EnviadaEm == quando && m.Id.CompareTo(referencia) < 0));
+        }
+
+        var lidas = await doChamado.OrderByDescending(m => m.EnviadaEm).ThenByDescending(m => m.Id).Take(limite + 1).ToListAsync(ct);
+        var haAnteriores = lidas.Count > limite;
+        var mensagens = lidas.Take(limite).ToList();
         var autores = await contas.Nomes(mensagens.Select(m => m.AutorId), ct);
         var nomes = await NomesDosRevendedores([chamado.RevendedorId], ct);
         return new ChamadoComMensagens(
             Dto(chamado, nomes, agora, 0),
-            mensagens.OrderBy(m => m.EnviadaEm)
+            mensagens.OrderBy(m => m.EnviadaEm).ThenBy(m => m.Id)
                 .Select(m => new MensagemDto(m.Id, m.DaOperadora, m.DaOperadora ? "Avalia" : autores.GetValueOrDefault(m.AutorId, ""), m.Texto, m.EnviadaEm, m.LidaEm))
-                .ToList());
+                .ToList(),
+            haAnteriores);
     }
 
     public async Task<MensagemDto> Responder(Guid id, string texto, CancellationToken ct)

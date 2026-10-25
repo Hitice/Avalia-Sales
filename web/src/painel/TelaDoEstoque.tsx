@@ -6,7 +6,9 @@ import type { EstadoDaPlaca, MotivoDaBaixa } from '@/api/tipos'
 import { AcoesDaLinha } from '@/componentes/AcoesDaLinha'
 import { Badge } from '@/components/ui/badge'
 import { useSessao } from '@/acesso/sessao'
-import { Cabecalho, Erro, EstadoDaConsulta, EtiquetaDoEstado, Rolagem } from '@/componentes/Tela'
+import { ListaPaginada } from '@/componentes/ListaPaginada'
+import { Paginacao } from '@/componentes/Paginacao'
+import { Cabecalho, Carregando, Erro, EtiquetaDoEstado, Rolagem, Vazio } from '@/componentes/Tela'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -15,6 +17,7 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Textarea } from '@/components/ui/textarea'
+import { useAtrasado } from '@/lib/paginacao'
 import { useArquivarLoteDaRevenda, useBaixarPlaca, useConsignar, useDesfazerBaixa, useDevolver, useEquipe, useLotesDaRevenda, usePlacas } from './consultas'
 
 const ESTADOS: EstadoDaPlaca[] = ['EmEstoque', 'Ativa', 'Carencia', 'Vencida', 'Suspensa', 'Baixada']
@@ -28,13 +31,14 @@ export function TelaDoEstoque() {
   const [codigo, setCodigo] = useState('')
   const [com, setCom] = useState<string | undefined>()
   const [pagina, setPagina] = useState(1)
-  const placas = usePlacas({ estado, codigo: codigo || undefined, consignadaA: com, pagina })
+  const codigoBuscado = useAtrasado(codigo.trim())
+  const placas = usePlacas({ estado, codigo: codigoBuscado || undefined, consignadaA: com, pagina })
   const equipe = useEquipe()
   const navegar = useNavigate()
   const baixar = useBaixarPlaca()
   const desfazer = useDesfazerBaixa()
   const total = placas.data?.total ?? 0
-  const paginas = Math.max(1, Math.ceil(total / 50))
+  const itens = placas.data?.itens
 
   return (
     <div className="grid gap-4">
@@ -62,11 +66,13 @@ export function TelaDoEstoque() {
         <Erro erro={baixar.error || desfazer.error ? mensagemDoErro(baixar.error ?? desfazer.error) : null} />
         <Card>
           <CardContent>
-            <EstadoDaConsulta carregando={placas.isPending} erro={placas.error} vazio={total === 0} textoVazio="Nenhuma placa."
-              acao={dono && !estado && !codigo && <Button asChild variant="outline"><Link to="/painel/pedidos">Pedir placas</Link></Button>} />
+            {placas.isPending && <Carregando />}
+            {placas.error && !placas.data && <Erro erro={placas.error} />}
+            {itens && total === 0 && <Vazio texto="Nenhuma placa." acao={dono && !estado && !codigo && <Button asChild variant="outline"><Link to="/painel/pedidos">Pedir placas</Link></Button>} />}
             {total > 0 && (
+              <div aria-busy={placas.isPlaceholderData} className={placas.isPlaceholderData ? 'opacity-60 transition-opacity duration-150' : 'transition-opacity duration-150'}>
               <Rolagem>
-                <Table>
+                <Table semBusca>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Código</TableHead>
@@ -78,7 +84,7 @@ export function TelaDoEstoque() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {placas.data?.placas.map((p) => (
+                    {itens?.map((p) => (
                       <TableRow key={p.codigo}>
                         <TableCell><Link className="font-medium tabular-nums underline-offset-4 hover:underline" to={`/placa/${p.codigo}`}>{p.codigo}</Link></TableCell>
                         <TableCell>
@@ -102,14 +108,9 @@ export function TelaDoEstoque() {
                   </TableBody>
                 </Table>
               </Rolagem>
-            )}
-            {paginas > 1 && (
-              <div className="mt-3 flex items-center justify-end gap-2 text-sm">
-                <Button variant="outline" disabled={pagina <= 1} onClick={() => setPagina(pagina - 1)}>Anterior</Button>
-                <span className="tabular-nums">{pagina} de {paginas}</span>
-                <Button variant="outline" disabled={pagina >= paginas} onClick={() => setPagina(pagina + 1)}>Próxima</Button>
               </div>
             )}
+            <Paginacao pagina={pagina} tamanho={50} total={total} itensNaPagina={itens?.length ?? 0} aoMudar={setPagina} atualizando={placas.isPlaceholderData} />
           </CardContent>
         </Card>
       </div>
@@ -138,44 +139,48 @@ const MOTIVO_DO_SISTEMA: Record<MotivoDaBaixa, string> = {
 function LotesDaRevenda() {
   const lotes = useLotesDaRevenda()
   const arquivar = useArquivarLoteDaRevenda()
-  if (!lotes.data?.length) return null
+  if (lotes.consulta.isSuccess && lotes.total === 0 && !lotes.termo) return null
 
   return (
     <Card>
       <CardHeader><CardTitle>Lotes</CardTitle></CardHeader>
       <CardContent className="grid gap-3">
         <Erro erro={arquivar.error ? mensagemDoErro(arquivar.error) : null} />
-        <Rolagem>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Lote</TableHead>
-                <TableHead tipo="numero">Em estoque</TableHead>
-                <TableHead tipo="numero">Baixadas</TableHead>
-                <TableHead tipo="acoes" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {lotes.data.map((l) => (
-                <TableRow key={l.id}>
-                  <TableCell className="whitespace-normal">
-                    <span className="font-medium tabular-nums">{l.rotulo}</span>
-                    {l.categoria !== 'Placa' && <Badge variant="outline" className="ml-2">{ROTULO_DA_CATEGORIA[l.categoria]}</Badge>}
-                    {l.titulo && <span className="block text-xs text-muted-foreground">{l.titulo}</span>}
-                    {l.arquivadoEm && <span className="block text-xs text-muted-foreground">Arquivado</span>}
-                  </TableCell>
-                  <TableCell>{l.emEstoque}</TableCell>
-                  <TableCell>{l.baixadas}</TableCell>
-                  <TableCell>
-                    <AcoesDaLinha nome={l.rotulo} outras={[
-                      { rotulo: l.arquivadoEm ? 'Desarquivar' : 'Arquivar', desabilitada: arquivar.isPending, aoClicar: () => arquivar.mutate({ id: l.id, arquivado: !l.arquivadoEm }) },
-                    ]} />
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </Rolagem>
+        <ListaPaginada lista={lotes} textoVazio="Nenhum lote." nomeDaBusca="Buscar nos lotes" placeholder="Número ou título">
+          {(itens) => (
+            <Rolagem>
+              <Table semBusca>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Lote</TableHead>
+                    <TableHead tipo="numero">Em estoque</TableHead>
+                    <TableHead tipo="numero">Baixadas</TableHead>
+                    <TableHead tipo="acoes" />
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {itens.map((l) => (
+                    <TableRow key={l.id}>
+                      <TableCell className="whitespace-normal">
+                        <span className="font-medium tabular-nums">{l.rotulo}</span>
+                        {l.categoria !== 'Placa' && <Badge variant="outline" className="ml-2">{ROTULO_DA_CATEGORIA[l.categoria]}</Badge>}
+                        {l.titulo && <span className="block text-xs text-muted-foreground">{l.titulo}</span>}
+                        {l.arquivadoEm && <span className="block text-xs text-muted-foreground">Arquivado</span>}
+                      </TableCell>
+                      <TableCell>{l.emEstoque}</TableCell>
+                      <TableCell>{l.baixadas}</TableCell>
+                      <TableCell>
+                        <AcoesDaLinha nome={l.rotulo} outras={[
+                          { rotulo: l.arquivadoEm ? 'Desarquivar' : 'Arquivar', desabilitada: arquivar.isPending, aoClicar: () => arquivar.mutate({ id: l.id, arquivado: !l.arquivadoEm }) },
+                        ]} />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Rolagem>
+          )}
+        </ListaPaginada>
       </CardContent>
     </Card>
   )

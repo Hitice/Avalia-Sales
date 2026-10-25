@@ -3,7 +3,8 @@ import { mensagemDoErro } from '@/api/cliente'
 import { formatarBps, formatarData, paraBps, type Tom } from '@/api/rotulos'
 import type { Revendedor } from '@/api/tipos'
 import { AcoesDaLinha } from '@/componentes/AcoesDaLinha'
-import { Cabecalho, Erro, EstadoDaConsulta, Rolagem } from '@/componentes/Tela'
+import { ListaPaginada } from '@/componentes/ListaPaginada'
+import { Cabecalho, Erro, Rolagem } from '@/componentes/Tela'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -41,59 +42,60 @@ export function TelaDeRevendedores() {
       <Erro erro={erro && !suspendendo ? mensagemDoErro(erro) : null} />
       <Card className="mt-3">
         <CardContent>
-          <EstadoDaConsulta carregando={revendedores.isPending} erro={revendedores.error} vazio={revendedores.data?.length === 0} textoVazio="Nenhum revendedor ainda." />
-          {revendedores.data && revendedores.data.length > 0 && (
-            <Rolagem>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Revendedor</TableHead>
-                    <TableHead tipo="situacao">Situação</TableHead>
-                    <TableHead>CNPJ</TableHead>
-                    <TableHead>Celular</TableHead>
-                    <TableHead tipo="numero">Taxa</TableHead>
-                    <TableHead tipo="numero">Renovação</TableHead>
-                    <TableHead tipo="situacao">Contrato</TableHead>
-                    <TableHead>Recebedor no Pagar.me</TableHead>
-                    <TableHead tipo="acoes" />
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {revendedores.data.map((r) => {
-                    const conta = situacaoDaConta(r)
-                    const ativa = !r.encerradaEm
-                    return (
-                      <TableRow key={r.id}>
-                        <TableCell className="min-w-40 font-medium whitespace-normal">{r.nome}</TableCell>
-                        <TableCell>
-                          <Badge variant={conta.tom}>{conta.rotulo}</Badge>
-                          {conta.detalhe && <span className="text-xs text-muted-foreground max-md:ml-2">{conta.detalhe}</span>}
-                        </TableCell>
-                        <TableCell className="tabular-nums">{formatarCnpj(r.cnpj)}</TableCell>
-                        <TableCell className="tabular-nums">{r.celular ? mascaraTelefone(r.celular) : '-'}</TableCell>
-                        <TableCell>{formatarBps(r.taxaAvaliaBps)}</TableCell>
-                        <TableCell>{formatarBps(r.renovacaoBps)}</TableCell>
-                        <TableCell>
-                          <Badge variant={r.contratoAssinadoEm ? 'sucesso' : 'atencao'}>{r.contratoAssinadoEm ? 'Assinado' : 'Sem assinatura'}</Badge>
-                          {r.contratoAssinadoEm && <span className="text-xs text-muted-foreground tabular-nums max-md:ml-2">{formatarData(r.contratoAssinadoEm)}</span>}
-                        </TableCell>
-                        <TableCell className="font-mono text-xs">{r.recebedorPagarme ?? '-'}</TableCell>
-                        <TableCell>
-                          <AcoesDaLinha nome={r.nome} principal={{ rotulo: 'Editar', aoClicar: () => setEditando(r) }} outras={[
-                            ativa && !r.encerramentoPedidoEm && !r.contratoAssinadoEm && { rotulo: 'Registrar contrato assinado', desabilitada: contrato.isPending, aoClicar: () => contrato.mutate(r.id) },
-                            !!r.encerradaEm && !!r.reaberturaPedidaEm && { rotulo: 'Aprovar reabertura', desabilitada: reabertura.isPending, aoClicar: () => reabertura.mutate({ id: r.id, aprovar: true }) },
-                            !!r.encerradaEm && !!r.reaberturaPedidaEm && { rotulo: 'Recusar reabertura', destrutiva: true, desabilitada: reabertura.isPending, aoClicar: () => reabertura.mutate({ id: r.id, aprovar: false }) },
-                            ativa && !!r.suspensaEm && { rotulo: 'Reativar', desabilitada: suspensao.isPending, aoClicar: () => suspensao.mutate({ id: r.id, suspender: false }) },
-                            ativa && !r.suspensaEm && { rotulo: 'Suspender', destrutiva: true, aoClicar: () => { suspensao.reset(); setSuspendendo(r) } },
-                          ]} />
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })}
-                </TableBody>
-              </Table>
-            </Rolagem>
-          )}
+          <ListaPaginada lista={revendedores} textoVazio="Nenhum revendedor ainda." nomeDaBusca="Buscar nos revendedores" placeholder="Nome ou CNPJ">
+            {(itens) => (
+              <Rolagem>
+                <Table semBusca>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Revendedor</TableHead>
+                      <TableHead tipo="situacao">Situação</TableHead>
+                      <TableHead>CNPJ</TableHead>
+                      <TableHead>Celular</TableHead>
+                      <TableHead tipo="numero">Taxa</TableHead>
+                      <TableHead tipo="numero">Renovação</TableHead>
+                      <TableHead tipo="situacao">Contrato</TableHead>
+                      <TableHead>Recebedor no Pagar.me</TableHead>
+                      <TableHead tipo="acoes" />
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {itens.map((r) => {
+                      const conta = situacaoDaConta(r)
+                      const ativa = !r.encerradaEm
+                      return (
+                        <TableRow key={r.id}>
+                          <TableCell className="min-w-40 font-medium whitespace-normal">{r.nome}</TableCell>
+                          <TableCell>
+                            <Badge variant={conta.tom}>{conta.rotulo}</Badge>
+                            {conta.detalhe && <span className="text-xs text-muted-foreground max-md:ml-2">{conta.detalhe}</span>}
+                          </TableCell>
+                          <TableCell className="tabular-nums">{formatarCnpj(r.cnpj)}</TableCell>
+                          <TableCell className="tabular-nums">{r.celular ? mascaraTelefone(r.celular) : '-'}</TableCell>
+                          <TableCell>{formatarBps(r.taxaAvaliaBps)}</TableCell>
+                          <TableCell>{formatarBps(r.renovacaoBps)}</TableCell>
+                          <TableCell>
+                            <Badge variant={r.contratoAssinadoEm ? 'sucesso' : 'atencao'}>{r.contratoAssinadoEm ? 'Assinado' : 'Sem assinatura'}</Badge>
+                            {r.contratoAssinadoEm && <span className="text-xs text-muted-foreground tabular-nums max-md:ml-2">{formatarData(r.contratoAssinadoEm)}</span>}
+                          </TableCell>
+                          <TableCell className="font-mono text-xs">{r.recebedorPagarme ?? '-'}</TableCell>
+                          <TableCell>
+                            <AcoesDaLinha nome={r.nome} principal={{ rotulo: 'Editar', aoClicar: () => setEditando(r) }} outras={[
+                              ativa && !r.encerramentoPedidoEm && !r.contratoAssinadoEm && { rotulo: 'Registrar contrato assinado', desabilitada: contrato.isPending, aoClicar: () => contrato.mutate(r.id) },
+                              !!r.encerradaEm && !!r.reaberturaPedidaEm && { rotulo: 'Aprovar reabertura', desabilitada: reabertura.isPending, aoClicar: () => reabertura.mutate({ id: r.id, aprovar: true }) },
+                              !!r.encerradaEm && !!r.reaberturaPedidaEm && { rotulo: 'Recusar reabertura', destrutiva: true, desabilitada: reabertura.isPending, aoClicar: () => reabertura.mutate({ id: r.id, aprovar: false }) },
+                              ativa && !!r.suspensaEm && { rotulo: 'Reativar', desabilitada: suspensao.isPending, aoClicar: () => suspensao.mutate({ id: r.id, suspender: false }) },
+                              ativa && !r.suspensaEm && { rotulo: 'Suspender', destrutiva: true, aoClicar: () => { suspensao.reset(); setSuspendendo(r) } },
+                            ]} />
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
+              </Rolagem>
+            )}
+          </ListaPaginada>
         </CardContent>
       </Card>
       {editando && <EdicaoDoRevendedor key={editando.id} revendedor={editando} aoFechar={() => setEditando(null)} />}

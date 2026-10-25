@@ -40,7 +40,7 @@ public sealed class LinksDoVendedorTest(ApiDeTeste api)
         var (ana, _) = await Vendedor(revenda, "Ana Lima");
         var doDono = await revenda.Dono.Postar("/links", new { titulo = "Site", destino = new { tipo = "Link", link = "https://exemplo.com.br/dono" } }, HttpStatusCode.Created);
         var id = doDono.GetProperty("id").GetGuid();
-        Assert.Empty((await ana.Pegar("/links")).EnumerateArray());
+        Assert.Empty((await ana.PegarItens("/links")).EnumerateArray());
 
         var novo = new { titulo = "X", destino = new { tipo = "Link", link = "https://exemplo.com.br/x" } };
         Assert.Equal(HttpStatusCode.Forbidden, (await ana.PutAsJsonAsync($"/links/{id}", novo, Chamadas.Json, Ct)).StatusCode);
@@ -53,7 +53,7 @@ public sealed class LinksDoVendedorTest(ApiDeTeste api)
     }
 
     private static async Task<List<string>> Enderecos(HttpClient cliente) =>
-        (await cliente.Pegar("/links")).EnumerateArray().Select(l => l.GetProperty("endereco").GetString()!).ToList();
+        (await cliente.PegarItens("/links")).EnumerateArray().Select(l => l.GetProperty("endereco").GetString()!).ToList();
 
     private static object Venda(Revenda revenda, int placa, string telefone, string lugar) => new
     {

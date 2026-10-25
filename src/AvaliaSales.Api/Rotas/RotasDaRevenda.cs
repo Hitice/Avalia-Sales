@@ -1,4 +1,5 @@
 using AvaliaSales.Api.Autenticacao;
+using AvaliaSales.Application;
 using AvaliaSales.Application.Equipe;
 using AvaliaSales.Application.Financeiro;
 using AvaliaSales.Application.Pedidos;
@@ -55,7 +56,7 @@ public static class RotasDaRevenda
         });
 
         dono.MapGet("/pacotes", (Pacotes pacotes, CancellationToken ct) => pacotes.Listar(soAtivos: true, ct));
-        dono.MapGet("/pedidos", (PedidosDePlacas pedidos, CancellationToken ct) => pedidos.Listar(ct));
+        dono.MapGet("/pedidos", (string? busca, [AsParameters] PedidoDePagina pagina, PedidosDePlacas pedidos, CancellationToken ct) => pedidos.Listar(busca, pagina, ct));
         dono.MapPost("/pedidos", async (NovoPedido pedido, PedidosDePlacas pedidos, CancellationToken ct) =>
             Results.Created("/pedidos", await pedidos.Criar(pedido.PacoteId, pedido.Cupom, ct)));
         dono.MapPost("/pedidos/{id:guid}/pagamento", async (Guid id, PedidosDePlacas pedidos, CancellationToken ct) =>
@@ -65,7 +66,7 @@ public static class RotasDaRevenda
             await pedidos.Cancelar(id, ct);
             return Results.NoContent();
         });
-        dono.MapGet("/lotes", (Estoque estoque, CancellationToken ct) => estoque.Lotes(ct));
+        dono.MapGet("/lotes", (string? busca, [AsParameters] PedidoDePagina pagina, Estoque estoque, CancellationToken ct) => estoque.Lotes(busca, pagina, ct));
         dono.MapPut("/lotes/{id:guid}/arquivado", async (Guid id, ArquivarLote pedido, Estoque estoque, CancellationToken ct) =>
         {
             await estoque.ArquivarLote(id, pedido.Arquivado, ct);
@@ -136,7 +137,7 @@ public static class RotasDaRevenda
         // Recebido por fora e ainda não conferido: a comissão espera o dono ver, em lote ou um a um.
         dono.MapGet("/comissoes/conferencia", (RecebimentosPorFora porFora, CancellationToken ct) => porFora.Pendentes(ct));
         dono.MapPost("/comissoes/conferencia", (ConferirRecebimentos pedido, RecebimentosPorFora porFora, CancellationToken ct) => porFora.Conferir(pedido, ct));
-        dono.MapGet("/repasses", (Comissoes comissoes, CancellationToken ct) => comissoes.Repasses(ct));
+        dono.MapGet("/repasses", (string? busca, [AsParameters] PedidoDePagina pagina, Comissoes comissoes, CancellationToken ct) => comissoes.Repasses(busca, pagina, ct));
         dono.MapPost("/repasses", async (NovoRepasse pedido, Comissoes comissoes, CancellationToken ct) =>
             Results.Created("/repasses", await comissoes.Repassar(pedido, ct)));
         dono.MapDelete("/repasses/{id:guid}", async (Guid id, Comissoes comissoes, CancellationToken ct) =>
@@ -144,21 +145,21 @@ public static class RotasDaRevenda
             await comissoes.Desfazer(id, ct);
             return Results.NoContent();
         });
-        dono.MapGet("/razao", (string? competencia, Razao razao, CancellationToken ct) => razao.DoMes(competencia, ct));
+        dono.MapGet("/razao", (string? competencia, string? busca, [AsParameters] PedidoDePagina pagina, Razao razao, CancellationToken ct) => razao.DoMes(competencia, busca, pagina, ct));
         dono.MapGet("/razao/meses", (Razao razao, CancellationToken ct) => razao.Meses(ct));
         dono.MapGet("/mapa", (Mapa mapa, CancellationToken ct) => mapa.Lugares(ct));
 
         // LGPD: o dono atende o titular. A exportação baixa como arquivo; a anonimização não volta atrás.
         // Quem mudou o quê: destino, venda, comissão, equipe, marca. Só o dono vê.
-        dono.MapGet("/auditoria", (string? referencia, Domain.Auditoria.AcaoAuditada? acao, string? busca, int? pagina, Application.Auditoria.Auditoria auditoria, CancellationToken ct) =>
-            auditoria.Listar(referencia, acao, pagina ?? 1, ct, busca));
+        dono.MapGet("/auditoria", (string? referencia, Domain.Auditoria.AcaoAuditada? acao, string? busca, [AsParameters] PedidoDePagina pagina, Application.Auditoria.Auditoria auditoria, CancellationToken ct) =>
+            auditoria.Listar(referencia, acao, pagina, ct, busca));
         dono.MapGet("/auditoria/exportar", async (string? referencia, Domain.Auditoria.AcaoAuditada? acao, string? busca, Application.Auditoria.Auditoria auditoria, CancellationToken ct) =>
         {
             var registros = await auditoria.Exportar(referencia, acao, ct, busca);
             var json = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(registros, Exportacao);
             return Results.File(json, "application/json", $"auditoria-{DateTime.UtcNow:yyyy-MM-dd}.json");
         }).Produces<IReadOnlyList<Application.Auditoria.RegistroDto>>();
-        dono.MapGet("/clientes", (string? busca, Application.Clientes.Clientes clientes, CancellationToken ct) => clientes.Listar(busca, ct));
+        dono.MapGet("/clientes", (string? busca, [AsParameters] PedidoDePagina pagina, Application.Clientes.Clientes clientes, CancellationToken ct) => clientes.Listar(busca, pagina, ct));
         dono.MapGet("/clientes/{id:guid}", (Guid id, Application.Clientes.Clientes clientes, CancellationToken ct) => clientes.Ficha(id, ct));
         dono.MapPost("/clientes", async (Application.Clientes.AlterarCliente pedido, Application.Clientes.Clientes clientes, CancellationToken ct) =>
             TypedResults.Created("/clientes", new ClienteCadastrado(await clientes.Cadastrar(pedido, ct))));

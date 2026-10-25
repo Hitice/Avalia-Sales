@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { chamarApi, chamarResposta, enviarJson, mensagemDoErro } from '@/api/cliente'
 import { formatarData, ROTULO_DO_ESTADO } from '@/api/rotulos'
-import type { EstadoDaPlaca, FichaDoCliente as Ficha } from '@/api/tipos'
+import type { ClienteDaLista, EstadoDaPlaca, FichaDoCliente as Ficha, Pagina } from '@/api/tipos'
 import { BuscaNoGoogle } from '@/balcao/EscolhaDeDestino'
 import { Erro, EstadoDaConsulta } from '@/componentes/Tela'
 import { Button } from '@/components/ui/button'
@@ -11,8 +11,7 @@ import { Field, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { formatarCentavos } from '@/dinheiro/dinheiro'
-
-type Outro = { id: string; nome: string }
+import { paraQuery, useAtrasado } from '@/lib/paginacao'
 
 /** Tudo o que a plataforma guarda sobre o cliente, num JSON baixado no aparelho. */
 async function exportarDados(id: string, nome: string) {
@@ -31,7 +30,7 @@ async function exportarDados(id: string, nome: string) {
  * cadastro duplicado, exportar e anonimizar (LGPD) e excluir o que não tem
  * venda.
  */
-export function FichaDoCliente({ id, outros, aoFechar }: { id: string; outros: Outro[]; aoFechar: () => void }) {
+export function FichaDoCliente({ id, aoFechar }: { id: string; aoFechar: () => void }) {
   const consultas = useQueryClient()
   const ficha = useQuery({ queryKey: ['clientes', 'ficha', id], queryFn: () => chamarApi<Ficha>(`/clientes/${id}`) })
   const [editando, setEditando] = useState<Partial<Ficha> | null>(null)
@@ -102,18 +101,7 @@ export function FichaDoCliente({ id, outros, aoFechar }: { id: string; outros: O
             ))}
           </ul>
         )}
-        {c && !c.anonimizado && outros.length > 0 && (
-          <div className="grid gap-2">
-            <p className="text-sm font-medium">Juntar com outro cadastro do mesmo negócio</p>
-            <div className="flex gap-2">
-              <Select value={juntarCom} onValueChange={setJuntarCom}>
-                <SelectTrigger aria-label="Cadastro duplicado" className="w-full"><SelectValue placeholder="O cadastro que sai" /></SelectTrigger>
-                <SelectContent>{outros.map((o) => <SelectItem key={o.id} value={o.id}>{o.nome}</SelectItem>)}</SelectContent>
-              </Select>
-              <Button variant="outline" disabled={!juntarCom || juntar.isPending} onClick={() => juntar.mutate(juntarCom)}>Juntar</Button>
-            </div>
-          </div>
-        )}
+        {c && !c.anonimizado && <JuntarCadastros id={id} escolhido={juntarCom} aoEscolher={setJuntarCom} ocupado={juntar.isPending} aoJuntar={() => juntar.mutate(juntarCom)} />}
         {c && !c.anonimizado && (
           <div className="grid gap-2 border-t pt-4">
             <p className="text-sm font-medium">Direitos do titular (LGPD)</p>
@@ -134,5 +122,42 @@ export function FichaDoCliente({ id, outros, aoFechar }: { id: string; outros: O
         )}
       </DialogContent>
     </Dialog>
+  )
+}
+
+/** Acha o cadastro duplicado pela busca da API (nome, telefone ou CNPJ), e não numa lista que carregou inteira. */
+function JuntarCadastros({ id, escolhido, aoEscolher, ocupado, aoJuntar }: {
+  id: string
+  escolhido: string
+  aoEscolher: (outro: string) => void
+  ocupado: boolean
+  aoJuntar: () => void
+}) {
+  const [termo, setTermo] = useState('')
+  const busca = useAtrasado(termo.trim())
+  const achados = useQuery({
+    queryKey: ['clientes', 'juncao', busca],
+    queryFn: ({ signal }) => chamarApi<Pagina<ClienteDaLista>>(`/clientes?${paraQuery({ busca, tamanho: 20 })}`, { signal }),
+    enabled: busca.length >= 2,
+  })
+  const opcoes = (achados.data?.itens ?? []).filter((o) => o.id !== id && !o.anonimizado)
+
+  return (
+    <div className="grid gap-2">
+      <p className="text-sm font-medium">Juntar com outro cadastro do mesmo negócio</p>
+      <Input type="search" aria-label="Buscar o cadastro duplicado" placeholder="Nome, telefone ou CNPJ do que sai" value={termo}
+        onChange={(e) => { setTermo(e.target.value); aoEscolher('') }} />
+      {busca.length >= 2 && !achados.isPending && opcoes.length === 0 && <p className="text-xs text-muted-foreground" role="status">Nenhum outro cadastro com "{busca}".</p>}
+      {opcoes.length > 0 && (
+        <div className="flex gap-2">
+          <Select value={escolhido} onValueChange={aoEscolher}>
+            <SelectTrigger aria-label="Cadastro duplicado" className="w-full"><SelectValue placeholder="O cadastro que sai" /></SelectTrigger>
+            <SelectContent>{opcoes.map((o) => <SelectItem key={o.id} value={o.id}>{o.nome}</SelectItem>)}</SelectContent>
+          </Select>
+          <Button variant="outline" disabled={!escolhido || ocupado} onClick={aoJuntar}>Juntar</Button>
+        </div>
+      )}
+      {achados.data && achados.data.total > achados.data.itens.length && <p className="text-xs text-muted-foreground">Mostrando {achados.data.itens.length} de {achados.data.total}: afine a busca.</p>}
+    </div>
   )
 }

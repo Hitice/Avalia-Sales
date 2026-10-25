@@ -76,11 +76,21 @@ public sealed class DadoDeClienteAlheioTest(ApiDeTeste api)
         Assert.Equal(Telefone, (await c.Rui.Pegar($"/placas/{c.PlacaDoRui}")).GetProperty("venda").GetProperty("telefone").GetString());
         Assert.Equal(Telefone, (await c.Revenda.Dono.Pegar($"/placas/{c.PlacaDaAna}")).GetProperty("venda").GetProperty("telefone").GetString());
 
-        var carteiraDaAna = (await c.Ana.Pegar("/carteira")).EnumerateArray().Single();
+        var carteiraDaAna = (await c.Ana.PegarItens("/carteira")).EnumerateArray().Single();
         Assert.Equal("(11) *****-7777", carteiraDaAna.GetProperty("telefone").GetString());
         Assert.Equal("Padaria Pão Quente", carteiraDaAna.GetProperty("cliente").GetString());
-        Assert.Equal(Telefone, (await c.Rui.Pegar("/carteira")).EnumerateArray().Single().GetProperty("telefone").GetString());
-        Assert.All((await c.Revenda.Dono.Pegar("/carteira")).EnumerateArray(), p => Assert.Equal(Telefone, p.GetProperty("telefone").GetString()));
+        Assert.Equal(Telefone, (await c.Rui.PegarItens("/carteira")).EnumerateArray().Single().GetProperty("telefone").GetString());
+        Assert.All((await c.Revenda.Dono.PegarItens("/carteira")).EnumerateArray(), p => Assert.Equal(Telefone, p.GetProperty("telefone").GetString()));
+
+        // A busca não revela o que a máscara esconde: o vendedor não acha o cliente alheio pelo telefone nem por pedaço dele; o dono acha.
+        Assert.Equal(0, (await c.Ana.Pegar("/carteira?busca=988887777")).GetProperty("total").GetInt32());
+        Assert.Equal(0, (await c.Ana.Pegar("/carteira?busca=7777")).GetProperty("total").GetInt32());
+        Assert.Equal(1, (await c.Rui.Pegar("/carteira?busca=Padaria")).GetProperty("total").GetInt32());
+        Assert.True((await c.Revenda.Dono.Pegar("/carteira?busca=988887777")).GetProperty("total").GetInt32() >= 1);
+        // A busca de vendas não olha telefone, documento nem e-mail.
+        Assert.Equal(0, (await c.Ana.Pegar($"/vendas?busca={Telefone}")).GetProperty("total").GetInt32());
+        Assert.Equal(0, (await c.Ana.Pegar($"/vendas?busca={Documento}")).GetProperty("total").GetInt32());
+        Assert.Equal(0, (await c.Ana.Pegar($"/vendas?busca={Email}")).GetProperty("total").GetInt32());
     }
 
     [Fact]
@@ -95,7 +105,7 @@ public sealed class DadoDeClienteAlheioTest(ApiDeTeste api)
         {
             c.RespostaDaAna.GetRawText(),
             jaCobrada.GetRawText(),
-            (await c.Ana.Pegar("/vendas")).GetRawText(),
+            (await c.Ana.PegarItens("/vendas")).GetRawText(),
             (await c.Ana.Pegar($"/vendas/{c.VendaDaAna}")).GetProperty("cobranca").GetRawText(),
             (await c.Ana.Pegar($"/vendas/{c.VendaDaAna}/pagamento")).GetRawText(),
             (await c.Ana.Pegar("/notificacoes")).GetRawText(),
@@ -112,7 +122,7 @@ public sealed class DadoDeClienteAlheioTest(ApiDeTeste api)
     public async Task Clientes_mapa_e_renovacao_de_placa_alheia_ficam_fechados_para_o_vendedor()
     {
         var c = await Montar("Revenda Cliente Alheio Rotas");
-        var clienteId = (await c.Revenda.Dono.Pegar("/clientes")).EnumerateArray().Single().GetProperty("id").GetGuid();
+        var clienteId = (await c.Revenda.Dono.PegarItens("/clientes")).EnumerateArray().Single().GetProperty("id").GetGuid();
 
         Assert.Equal(HttpStatusCode.Forbidden, (await c.Ana.GetAsync("/clientes", Ct)).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await c.Ana.GetAsync($"/clientes/{clienteId}", Ct)).StatusCode);

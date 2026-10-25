@@ -257,7 +257,7 @@ public sealed class ImportacaoTest(ApiDeTeste api)
         Assert.Equal(3_748, saldo.GetProperty("abertaCents").GetInt64());
 
         // A venda trazida já foi paga lá: aqui não se cobra, cancela, dá cortesia nem recebe por fora.
-        var trazida = (await dono.Pegar("/vendas")).EnumerateArray().First(v => v.GetProperty("vendedorId").GetGuid() == vendedorId);
+        var trazida = (await dono.PegarItens("/vendas")).EnumerateArray().First(v => v.GetProperty("vendedorId").GetGuid() == vendedorId);
         Assert.True(trazida.GetProperty("doSistemaAnterior").GetBoolean());
         var id = trazida.GetProperty("id").GetGuid();
         await dono.Postar($"/vendas/{id}/cobranca", new { }, HttpStatusCode.UnprocessableEntity);

@@ -1,21 +1,30 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { chamarApi, enviarJson } from '@/api/cliente'
-import type { EstadoDaPlaca, LoteDaRevenda, MinhaRevenda, MotivoDaBaixa, MotivoDoCancelamento, PlacaDaVendaCancelada, Pacote, PaginaDePlacas, Pedido, Repasse, ResumoDoMes, DetalheDaVenda, ResumoDoVendedor, PlacaDaCarteira, SaldoDeComissao, PendenteDeConferencia, LimitesDePorFora, VendaDaLista, VendaRegistrada, Vendedor } from '@/api/tipos'
+import type { EstadoDaPlaca, LoteDaRevenda, MinhaRevenda, MotivoDaBaixa, MotivoDoCancelamento, PlacaDaVendaCancelada, Pacote, Pagina, PaginaDePlacas, Pedido, Repasse, ResumoDoMes, ResumoDasVendas, LancamentoDoRazao, DetalheDaVenda, ResumoDoVendedor, PlacaDaCarteira, SaldoDeComissao, PendenteDeConferencia, LimitesDePorFora, VendaDaLista, VendaRegistrada, Vendedor } from '@/api/tipos'
+import { paraQuery, useListaPaginada } from '@/lib/paginacao'
 
-export type FiltroDePlacas = { estado?: EstadoDaPlaca; consignadaA?: string; codigo?: string; pagina?: number }
+export type FiltroDePlacas = { estado?: EstadoDaPlaca; consignadaA?: string; codigo?: string; pagina?: number; tamanho?: number }
 
 export const useMinhaRevenda = () => useQuery({ queryKey: ['revenda'], queryFn: () => chamarApi<MinhaRevenda>('/revenda') })
 export const usePacotes = () => useQuery({ queryKey: ['pacotes'], queryFn: () => chamarApi<Pacote[]>('/pacotes') })
-export const usePedidos = () => useQuery({ queryKey: ['pedidos'], queryFn: () => chamarApi<Pedido[]>('/pedidos') })
+export const usePedidos = () => useListaPaginada<Pedido>(['pedidos'], '/pedidos')
 export const useEquipe = () => useQuery({ queryKey: ['equipe'], queryFn: () => chamarApi<Vendedor[]>('/equipe') })
-export const useVendas = () => useQuery({ queryKey: ['vendas'], queryFn: () => chamarApi<VendaDaLista[]>('/vendas') })
+export const useVendas = () => useListaPaginada<VendaDaLista>(['vendas', 'lista'], '/vendas')
+/** As vendas somadas inteiras (totais, mês, 30 dias): a tela não soma a página que abriu. */
+export const useResumoDasVendas = () => useQuery({ queryKey: ['vendas', 'resumo'], queryFn: () => chamarApi<ResumoDasVendas>('/vendas/resumo') })
+/** As mais recentes, para o Início: a primeira página da lista, sem busca. */
+export const useVendasRecentes = (quantas = 20) =>
+  useQuery({ queryKey: ['vendas', 'recentes', quantas], queryFn: () => chamarApi<Pagina<VendaDaLista>>(`/vendas?tamanho=${quantas}`) })
 export const usePainelDoVendedor = () => useQuery({ queryKey: ['vendas', 'painel'], queryFn: () => chamarApi<ResumoDoVendedor>('/painel-do-vendedor') })
-export const useCarteira = () => useQuery({ queryKey: ['vendas', 'carteira'], queryFn: () => chamarApi<PlacaDaCarteira[]>('/carteira') })
+export const useCarteira = (filtro?: 'Vencendo' | 'Vencidas') => useListaPaginada<PlacaDaCarteira>(['vendas', 'carteira'], '/carteira', { filtros: { filtro } })
 export const useVenda = (id: string) => useQuery({ queryKey: ['vendas', id], queryFn: () => chamarApi<DetalheDaVenda>(`/vendas/${id}`) })
 
 export function usePlacas(filtro: FiltroDePlacas) {
-  const busca = new URLSearchParams(Object.entries(filtro).filter(([, v]) => v !== undefined && v !== '').map(([k, v]) => [k, String(v)]))
-  return useQuery({ queryKey: ['placas', filtro], queryFn: () => chamarApi<PaginaDePlacas>(`/placas?${busca}`) })
+  return useQuery({
+    queryKey: ['placas', filtro],
+    queryFn: ({ signal }) => chamarApi<PaginaDePlacas>(`/placas?${paraQuery(filtro)}`, { signal }),
+    placeholderData: keepPreviousData,
+  })
 }
 
 /** Gravação que refaz as listas afetadas: placa, pedido, equipe e venda se tocam. */
@@ -43,7 +52,7 @@ export const useComissaoPadrao = () => useGravar((comissaoBps: number) => chamar
 
 export const useConsignar = () =>
   useGravar((c: { vendedorId: string; codigos?: string[]; quantidade?: number }) => chamarApi<{ placas: number }>('/estoque/consignacao', enviarJson('POST', c)), ['placas'], 'Placas consignadas.')
-export const useLotesDaRevenda = () => useQuery({ queryKey: ['lotes'], queryFn: () => chamarApi<LoteDaRevenda[]>('/lotes') })
+export const useLotesDaRevenda = () => useListaPaginada<LoteDaRevenda>(['lotes'], '/lotes')
 export const useArquivarLoteDaRevenda = () =>
   useGravar(({ id, arquivado }: { id: string; arquivado: boolean }) => chamarApi(`/lotes/${id}/arquivado`, enviarJson('PUT', { arquivado })), ['lotes', 'placas'])
 export const useBaixarPlaca = () =>
@@ -73,13 +82,14 @@ export const useConferirRecebimentos = () =>
   useGravar((cobrancaIds: string[] | null) => chamarApi<{ conferidos: number }>('/comissoes/conferencia', enviarJson('POST', { cobrancaIds })), ['comissoes', 'auditoria'], 'Recebimentos conferidos.')
 export const useDefinirLimitesPorFora = () =>
   useGravar(({ id, ...limites }: LimitesDePorFora & { id: string }) => chamarApi(`/equipe/${id}/limites-por-fora`, enviarJson('PUT', limites)), ['equipe', 'auditoria'], 'Limites salvos.')
-export const useRepasses = () => useQuery({ queryKey: ['repasses'], queryFn: () => chamarApi<Repasse[]>('/repasses') })
+export const useRepasses = () => useListaPaginada<Repasse>(['repasses'], '/repasses')
 export const useRepassar = () =>
   useGravar((r: { vendedorId: string; ate: string | null; comprovante: string | null }) => chamarApi<Repasse>('/repasses', enviarJson('POST', r)), ['comissoes', 'repasses', 'razao', 'financeiro'], 'Repasse registrado.')
 export const useCorrigirVenda = () =>
   useGravar(({ vendaId, ...c }: { vendaId: string; valorCents: number | null; vendedorId: string | null }) => chamarApi(`/vendas/${vendaId}`, enviarJson('PUT', c)), [...VENDA_MUDOU, 'comissoes', 'razao'], 'Venda corrigida.')
 export const useDesfazerRepasse = () => useGravar((id: string) => chamarApi(`/repasses/${id}`, { method: 'DELETE' }), ['comissoes', 'repasses', 'razao', 'financeiro', 'vendas'], 'Repasse desfeito.')
+/** O razão do mês: os totais vêm na resposta inteira (`bruto`) e os lançamentos, em páginas. */
 export const useRazao = (competencia: string | undefined) =>
-  useQuery({ queryKey: ['razao', competencia], queryFn: () => chamarApi<ResumoDoMes>(`/razao${competencia ? `?competencia=${competencia}` : ''}`) })
+  useListaPaginada<LancamentoDoRazao, ResumoDoMes>(['razao', 'lancamentos', competencia], '/razao', { filtros: { competencia }, extrair: (r) => r.lancamentos })
 export const useMesesDoRazao = () => useQuery({ queryKey: ['razao', 'meses'], queryFn: () => chamarApi<string[]>('/razao/meses') })
 export const usePagarPedido = () => useGravar((id: string) => chamarApi<{ url: string }>(`/pedidos/${id}/pagamento`, enviarJson('POST', {})), ['pedidos'])

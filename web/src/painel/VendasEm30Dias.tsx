@@ -1,23 +1,10 @@
 import type { ReactNode } from 'react'
 import { Bar, BarChart, CartesianGrid, Cell, XAxis, YAxis } from 'recharts'
-import type { VendaDaLista } from '@/api/tipos'
 import { Carregando } from '@/componentes/Tela'
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 
-const DIA = 86_400_000
 const diaCurto = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit' })
-
-/** Vendas por dia nos últimos 30 dias, até hoje. Venda cancelada não conta. */
-export function vendasPorDia(vendas: VendaDaLista[], agora: number) {
-  const valendo = vendas.filter((v) => v.situacao === 'Registrada')
-  const hoje = new Date(agora)
-  const inicioDoDia = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate()).getTime()
-  return Array.from({ length: 30 }, (_, i) => {
-    const inicio = inicioDoDia - (29 - i) * DIA
-    return { dia: diaCurto.format(inicio), total: valendo.filter((v) => { const t = Date.parse(v.vendidaEm); return t >= inicio && t < inicio + DIA }).length }
-  })
-}
 
 /** Uma contagem por dia (dia em AAAA-MM-DD) nos últimos 30 dias até hoje; dia sem registro entra com zero. */
 export function porDiaDe(contagens: { dia: string; total: number }[], agora: number) {
@@ -34,7 +21,7 @@ export function porDiaDe(contagens: { dia: string; total: number }[], agora: num
  * inteira; a do vendedor, só as dele, que a API já filtra) ou leituras da placa.
  */
 export function VendasEm30Dias({ porDia, carregando, className, titulo = 'Vendas nos últimos 30 dias', serie = 'Vendas', detalhe }: {
-  porDia: ReturnType<typeof vendasPorDia>; carregando: boolean; className?: string; titulo?: string; serie?: string; detalhe?: ReactNode
+  porDia: ReturnType<typeof porDiaDe>; carregando: boolean; className?: string; titulo?: string; serie?: string; detalhe?: ReactNode
 }) {
   const config = { total: { label: serie, color: 'var(--chart-1)' } } satisfies ChartConfig
   return (

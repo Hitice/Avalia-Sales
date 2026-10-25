@@ -43,6 +43,17 @@ vira 500.
 Migration só aditiva: coluna nova nasce nula ou com padrão, e remoção vem numa
 migration posterior, depois que nenhum código lê a coluna.
 
+## Listagem
+
+Rota GET que devolve lista que cresce com o uso nasce paginada: `PedidoDePagina`
+na rota (`[AsParameters]`), `Pagina<T>` na resposta (`{ itens, total, proxima }`),
+`PaginarAsync` na consulta, ordem total com o `Id` por último e `busca` aplicada
+antes da página. Tamanho acima de 100 é reduzido no servidor. Detalhes e a lista
+das rotas em `docs/OPERACAO.md` ("Listagens paginadas"). A tela usa
+`useListaPaginada` e `ListaPaginada`. Teste com mais registros que o máximo,
+horários iguais, e o isolamento por revenda e por vendedor (ver
+`Paginacao/PaginacaoTest.cs`).
+
 ## Nomes e texto
 
 - Código em português sem acento (`RevendedorAtual`, `PrecoCents`); texto de

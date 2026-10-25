@@ -70,6 +70,16 @@ public enum PlacaDaVendaCancelada
 public sealed record VendaRegistrada(Guid VendaId, string Codigo, string Endereco, long ValorCents, DateTimeOffset? VenceEm, CobrancaDto? Cobranca, string? SemCobranca,
     string? LinkCurto = null);
 
+/// <summary>Um dia (de Brasília) e quantas vendas valendo houve nele.</summary>
+public sealed record VendasDoDia(DateOnly Dia, int Total);
+
+/// <summary>
+/// As vendas somadas inteiras, para a tela não somar só a página que abriu. <paramref name="NoMes"/> e
+/// <paramref name="RecebidoNoMesCents"/> contam venda registrada do mês de Brasília; <paramref name="ComissaoEsperandoCents"/>
+/// é a comissão das registradas ainda sem pagamento do cliente.
+/// </summary>
+public sealed record ResumoDasVendas(int Total, int Pagas, long ComissaoPagaCents, int NoMes, long RecebidoNoMesCents, long ComissaoEsperandoCents, IReadOnlyList<VendasDoDia> PorDia);
+
 public sealed record VendaDaLista(
     Guid Id, string Codigo, string Cliente, string Produto, Guid VendedorId, string Vendedor, long ValorCents, long ComissaoCents,
     MeioDePagamento Meio, SituacaoDaCobranca? Pagamento, DateTimeOffset VendidaEm, DateTimeOffset? PagaEm, SituacaoDaVenda Situacao, bool Cortesia, MeioDePagamento? PagoPor,
@@ -79,7 +89,8 @@ public sealed record VendaDaLista(
     DateTimeOffset? TesteExpiradoEm = null,
     DateTimeOffset? TesteConvertidoEm = null,
     int Quantidade = 1,
-    Guid? GrupoId = null);
+    Guid? GrupoId = null,
+    int ItensNoGrupo = 1);
 
 /// <summary>
 /// A venda no balcão: placa, produto, cliente, destino e cobrança. A venda é
@@ -127,6 +138,8 @@ public sealed class Vendas(
     Financeiro.RecebimentosPorFora porFora)
 {
     public const int ItensMaximos = 20;
+
+    private static readonly TimeZoneInfo Brasilia = TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo");
 
     /// <summary>A venda de um item só, como a Nova venda fazia antes do carrinho.</summary>
     public async Task<VendaRegistrada> Registrar(NovaVenda pedido, CancellationToken ct)
@@ -695,9 +708,67 @@ public sealed class Vendas(
         return new DetalheDaVenda(linha, cliente, cobranca, itens, ordens, razao, venda.ObservacaoDoCancelamento, venda.CanceladaEm, venceEm, venda.RepasseId is not null);
     }
 
-    public Task<IReadOnlyList<VendaDaLista>> Listar(CancellationToken ct) => Listar(null, ct);
+    /// <summary>
+    /// A página das vendas, da mais nova para a mais antiga (o Id desempata). O vendedor só vê as dele.
+    /// Com <paramref name="busca"/>, o texto no cliente, no produto, na placa ou no nome do vendedor.
+    /// </summary>
+    public async Task<Pagina<VendaDaLista>> Listar(string? busca, PedidoDePagina pedido, CancellationToken ct)
+    {
+        var (pagina, tamanho) = Paginacao.Normalizar(pedido);
+        var (itens, total) = await Ler(null, busca, Paginacao.Pular(pagina, tamanho), tamanho, ct);
+        return Paginacao.Montar(itens, total, pagina, tamanho);
+    }
 
-    private async Task<IReadOnlyList<VendaDaLista>> Listar(Guid? so, CancellationToken ct)
+    /// <summary>
+    /// Os números que as telas mostram sobre as vendas inteiras, e não sobre a página aberta: totais, o mês de
+    /// Brasília e os últimos 30 dias. O vendedor soma só as dele.
+    /// </summary>
+    public async Task<ResumoDasVendas> Resumo(CancellationToken ct)
+    {
+        var agora = relogio.GetUtcNow();
+        var local = TimeZoneInfo.ConvertTime(agora, Brasilia);
+        var inicioDoMes = new DateTimeOffset(local.Year, local.Month, 1, 0, 0, 0, local.Offset).ToUniversalTime();
+        var hoje = DateOnly.FromDateTime(local.DateTime);
+        var primeiroDia = hoje.AddDays(-29);
+        var inicioDaJanela = new DateTimeOffset(TimeZoneInfo.ConvertTimeToUtc(primeiroDia.ToDateTime(TimeOnly.MinValue), Brasilia), TimeSpan.Zero);
+
+        var consulta = banco.Vendas.AsNoTracking();
+        if (usuario.Papel == Papel.Vendedor)
+        {
+            consulta = consulta.Where(v => v.VendedorId == usuario.UsuarioId);
+        }
+
+        var comPagamento = consulta.Select(v => new
+        {
+            v.VendidaEm,
+            v.ValorCents,
+            // A mesma conta de Venda.ComissaoCents, que o SQL não enxerga por ser propriedade calculada.
+            ComissaoCents = ((v.ValorCents - v.ParteDaAvaliaCents) * v.ComissaoBps + Domain.Equipe.Comissao.Base / 2) / Domain.Equipe.Comissao.Base,
+            v.Situacao,
+            v.Cortesia,
+            Pagamento = banco.Cobrancas.Where(k => k.Origem == OrigemDaCobranca.Venda && k.OrigemId == (v.GrupoId ?? v.Id))
+                .OrderByDescending(k => k.CriadaEm).ThenByDescending(k => k.Id).Select(k => (SituacaoDaCobranca?)k.Situacao).FirstOrDefault(),
+        });
+        var soma = await comPagamento.GroupBy(_ => 1).Select(g => new
+        {
+            Total = g.Count(),
+            Pagas = g.Count(x => x.Pagamento == SituacaoDaCobranca.Paga),
+            ComissaoPaga = g.Where(x => x.Pagamento == SituacaoDaCobranca.Paga).Sum(x => x.ComissaoCents),
+            NoMes = g.Count(x => x.Situacao == SituacaoDaVenda.Registrada && x.VendidaEm >= inicioDoMes),
+            Recebido = g.Where(x => x.Situacao == SituacaoDaVenda.Registrada && x.VendidaEm >= inicioDoMes && x.Pagamento == SituacaoDaCobranca.Paga).Sum(x => x.ValorCents),
+            Esperando = g.Where(x => x.Situacao == SituacaoDaVenda.Registrada && x.Pagamento != SituacaoDaCobranca.Paga && !x.Cortesia && x.ComissaoCents > 0).Sum(x => x.ComissaoCents),
+        }).SingleOrDefaultAsync(ct);
+
+        var instantes = await consulta.Where(v => v.Situacao == SituacaoDaVenda.Registrada && v.VendidaEm >= inicioDaJanela).Select(v => v.VendidaEm).ToListAsync(ct);
+        var porDia = instantes.GroupBy(i => DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(i, Brasilia).DateTime))
+            .Where(g => g.Key >= primeiroDia && g.Key <= hoje)
+            .OrderBy(g => g.Key).Select(g => new VendasDoDia(g.Key, g.Count())).ToList();
+        return new ResumoDasVendas(soma?.Total ?? 0, soma?.Pagas ?? 0, soma?.ComissaoPaga ?? 0, soma?.NoMes ?? 0, soma?.Recebido ?? 0, soma?.Esperando ?? 0, porDia);
+    }
+
+    private async Task<IReadOnlyList<VendaDaLista>> Listar(Guid so, CancellationToken ct) => (await Ler(so, null, 0, 1, ct)).Itens;
+
+    private async Task<(IReadOnlyList<VendaDaLista> Itens, int Total)> Ler(Guid? so, string? busca, int pular, int tamanho, CancellationToken ct)
     {
         var consulta = banco.Vendas.AsNoTracking();
         if (so is { } apenas)
@@ -710,22 +781,48 @@ public sealed class Vendas(
             consulta = consulta.Where(v => v.VendedorId == usuario.UsuarioId);
         }
 
-        var linhas = await (
+        var termo = Paginacao.Termo(busca);
+        var juntas =
             from v in consulta
             join p in banco.Placas on v.PlacaId equals p.Id into placas
             from p in placas.DefaultIfEmpty()
             join c in banco.Clientes on v.ClienteId equals c.Id
             join pr in banco.Produtos on v.ProdutoId equals pr.Id
-            let cb = banco.Cobrancas.Where(x => x.Origem == OrigemDaCobranca.Venda && x.OrigemId == (v.GrupoId ?? v.Id)).OrderByDescending(x => x.CriadaEm).FirstOrDefault()
-            orderby v.VendidaEm descending
-            select new { v, Codigo = p == null ? "" : p.Codigo, Cliente = c.Nome, Produto = pr.Nome, Pagamento = cb == null ? (SituacaoDaCobranca?)null : cb.Situacao, PagaEm = cb == null ? null : cb.PagaEm, PagoPor = cb == null ? (MeioDePagamento?)null : cb.Meio })
-            .Take(500)
+            select new { v, p, Cliente = c.Nome, Produto = pr.Nome };
+        if (termo.Length > 0)
+        {
+            // Vira lower(...) LIKE no Postgres: a cultura do .NET não entra na consulta.
+#pragma warning disable CA1304, CA1311, CA1862
+            juntas = juntas.Where(x => x.Cliente.ToLower().Contains(termo) || x.Produto.ToLower().Contains(termo)
+                || (x.p != null && x.p.Codigo.ToLower().Contains(termo))
+                || banco.Vendedores.Any(e => e.Id == x.v.VendedorId && e.Nome.ToLower().Contains(termo)));
+#pragma warning restore CA1304, CA1311, CA1862
+        }
+
+        var total = await juntas.CountAsync(ct);
+        var linhas = total <= pular ? [] : await juntas
+            .OrderByDescending(x => x.v.VendidaEm).ThenByDescending(x => x.v.Id)
+            .Skip(pular).Take(tamanho)
+            .Select(x => new
+            {
+                x.v,
+                Codigo = x.p == null ? "" : x.p.Codigo,
+                x.Cliente,
+                x.Produto,
+                Cobranca = banco.Cobrancas.Where(k => k.Origem == OrigemDaCobranca.Venda && k.OrigemId == (x.v.GrupoId ?? x.v.Id)).OrderByDescending(k => k.CriadaEm).ThenByDescending(k => k.Id)
+                    .Select(k => new { k.Situacao, k.PagaEm, k.Meio }).FirstOrDefault(),
+            })
             .ToListAsync(ct);
         var nomes = await contas.Nomes(linhas.Select(l => l.v.VendedorId).Distinct(), ct);
-        return linhas.Select(l => new VendaDaLista(l.v.Id, l.Codigo, l.Cliente, l.Produto, l.v.VendedorId,
+        // Os itens do grupo vêm inteiros, e não só os que caíram nesta página.
+        var grupos = linhas.Where(l => l.v.GrupoId != null).Select(l => l.v.GrupoId).Distinct().ToList();
+        var itensDoGrupo = grupos.Count == 0 ? [] : await banco.Vendas.AsNoTracking().Where(v => grupos.Contains(v.GrupoId))
+            .GroupBy(v => v.GrupoId).Select(g => new { Grupo = g.Key, Itens = g.Count() }).ToDictionaryAsync(x => x.Grupo!.Value, x => x.Itens, ct);
+        return (linhas.Select(l => new VendaDaLista(l.v.Id, l.Codigo, l.Cliente, l.Produto, l.v.VendedorId,
             nomes.GetValueOrDefault(l.v.VendedorId, "Não identificado"), l.v.ValorCents, l.v.ComissaoCents, l.v.Meio,
-            l.Pagamento, l.v.VendidaEm, l.PagaEm, l.v.Situacao, l.v.Cortesia, l.PagoPor, l.v.DoSistemaAnterior,
-            l.v.MotivoDoCancelamento, l.v.TesteAte, l.v.TesteExpiradoEm, l.v.TesteConvertidoEm, l.v.Quantidade, l.v.GrupoId)).ToList();
+            l.Cobranca?.Situacao, l.v.VendidaEm, l.Cobranca?.PagaEm, l.v.Situacao, l.v.Cortesia, l.Cobranca?.Meio, l.v.DoSistemaAnterior,
+            l.v.MotivoDoCancelamento, l.v.TesteAte, l.v.TesteExpiradoEm, l.v.TesteConvertidoEm, l.v.Quantidade, l.v.GrupoId,
+            l.v.GrupoId is { } g ? itensDoGrupo.GetValueOrDefault(g, 1) : 1)).ToList(), total);
     }
 
     /// <summary>

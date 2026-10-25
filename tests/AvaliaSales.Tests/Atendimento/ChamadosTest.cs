@@ -21,14 +21,14 @@ public sealed class ChamadosTest(ApiDeTeste api)
         Assert.True(aberto.GetProperty("numero").GetInt64() > 0);
         await dono.Postar($"/chamados/{id}/mensagens", new { texto = "Placa LT-0007." }, HttpStatusCode.Created);
 
-        var naFila = (await operadora.Pegar("/operadora/chamados")).EnumerateArray().Single(c => c.GetProperty("id").GetGuid() == id);
+        var naFila = (await operadora.PegarItens("/operadora/chamados?busca=Revenda%20do%20Chamado")).EnumerateArray().Single(c => c.GetProperty("id").GetGuid() == id);
         Assert.Equal(2, naFila.GetProperty("naoLidas").GetInt32());
         Assert.Equal("Revenda do Chamado", naFila.GetProperty("revendedor").GetString());
         var lido = await operadora.Pegar($"/operadora/chamados/{id}");
         Assert.Equal(2, lido.GetProperty("mensagens").GetArrayLength());
         await operadora.Postar($"/operadora/chamados/{id}/mensagens", new { texto = "Mandamos outra caixa amanhã." }, HttpStatusCode.Created);
 
-        var respondido = (await operadora.Pegar("/operadora/chamados")).EnumerateArray().Single(c => c.GetProperty("id").GetGuid() == id);
+        var respondido = (await operadora.PegarItens("/operadora/chamados?busca=Revenda%20do%20Chamado")).EnumerateArray().Single(c => c.GetProperty("id").GetGuid() == id);
         Assert.Equal(0, respondido.GetProperty("naoLidas").GetInt32());
         Assert.Equal("AguardandoRevenda", respondido.GetProperty("situacao").GetString());
         Assert.Equal(JsonValueKind.Null, respondido.GetProperty("prazoEm").ValueKind);
@@ -54,7 +54,7 @@ public sealed class ChamadosTest(ApiDeTeste api)
 
         var deA = (await a.Postar("/chamados", new { assunto = "Só para a Avalia", texto = "Só para a Avalia." }, HttpStatusCode.Created)).GetProperty("id").GetGuid();
 
-        Assert.Equal(0, (await b.Pegar("/chamados")).GetArrayLength());
+        Assert.Equal(0, (await b.PegarItens("/chamados")).GetArrayLength());
         await b.Pegar($"/chamados/{deA}", HttpStatusCode.UnprocessableEntity);
         await b.Postar($"/chamados/{deA}/mensagens", new { texto = "Intrometido." }, HttpStatusCode.UnprocessableEntity);
         await b.Postar("/chamados", new { assunto = "", texto = "Sem assunto." }, HttpStatusCode.UnprocessableEntity);

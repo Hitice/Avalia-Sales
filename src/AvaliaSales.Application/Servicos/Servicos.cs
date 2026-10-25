@@ -15,18 +15,40 @@ public sealed record AnotarOrdem(string? Observacao);
 /// </summary>
 public sealed class Servicos(IBancoDeDados banco, IRevendedorAtual atual, Notificacoes.Notificacoes notificacoes, TimeProvider relogio)
 {
-    public async Task<IReadOnlyList<OrdemDto>> Listar(CancellationToken ct)
+    /// <summary>
+    /// A fila primeiro (a fazer e em andamento, da mais antiga); o encerrado depois, da mais recente. A busca vale
+    /// para o produto, o cliente, o número e o nome do revendedor.
+    /// </summary>
+    public async Task<Pagina<OrdemDto>> Listar(string? busca, SituacaoDaOrdem? situacao, PedidoDePagina pedido, CancellationToken ct)
     {
-        var ordens = await banco.OrdensDeServico.AsNoTracking().ToListAsync(ct);
-        var ids = ordens.Select(o => o.RevendedorId).Distinct().ToList();
+        var consulta = banco.OrdensDeServico.AsNoTracking();
+        if (situacao is { } desta)
+        {
+            consulta = consulta.Where(o => o.Situacao == desta);
+        }
+
+        var termo = Paginacao.Termo(busca);
+        if (termo.Length > 0)
+        {
+            long? numero = long.TryParse(new string(termo.Where(char.IsAsciiDigit).ToArray()), out var lido) ? lido : null;
+            // Vira lower(...) LIKE no Postgres: a cultura do .NET não entra na consulta.
+#pragma warning disable CA1304, CA1311, CA1862
+            consulta = consulta.Where(o => o.Produto.ToLower().Contains(termo) || o.Cliente.ToLower().Contains(termo)
+                || (numero != null && o.Numero == numero)
+                || banco.Revendedores.Any(r => r.Id == o.RevendedorId && r.Nome.ToLower().Contains(termo)));
+#pragma warning restore CA1304, CA1311, CA1862
+        }
+
+        var pagina = await consulta
+            .OrderBy(o => o.Situacao == SituacaoDaOrdem.AFazer || o.Situacao == SituacaoDaOrdem.EmAndamento ? 0 : 1)
+            .ThenBy(o => o.Situacao == SituacaoDaOrdem.AFazer || o.Situacao == SituacaoDaOrdem.EmAndamento ? o.CriadaEm : DateTimeOffset.MaxValue)
+            .ThenByDescending(o => o.EntregueEm ?? o.CriadaEm)
+            .ThenBy(o => o.Id)
+            .PaginarAsync(pedido, ct);
+        var ids = pagina.Itens.Select(o => o.RevendedorId).Distinct().ToList();
         var nomes = await banco.Revendedores.AsNoTracking().Where(r => ids.Contains(r.Id)).ToDictionaryAsync(r => r.Id, r => r.Nome, ct);
-        // A fazer e em andamento primeiro, do mais antigo: é a fila. O encerrado vem depois, do mais recente.
-        return ordens
-            .OrderBy(o => o.Situacao is SituacaoDaOrdem.AFazer or SituacaoDaOrdem.EmAndamento ? 0 : 1)
-            .ThenBy(o => o.Situacao is SituacaoDaOrdem.AFazer or SituacaoDaOrdem.EmAndamento ? o.CriadaEm.UtcTicks : -(o.EntregueEm ?? o.CriadaEm).UtcTicks)
-            .Select(o => new OrdemDto(o.Id, o.Numero, nomes.GetValueOrDefault(o.RevendedorId, ""), o.Produto, o.Cliente, o.Situacao, o.Observacao,
-                o.CriadaEm, o.IniciadaEm, o.EntregueEm, o.Quantidade))
-            .ToList();
+        return pagina.Mapear(o => new OrdemDto(o.Id, o.Numero, nomes.GetValueOrDefault(o.RevendedorId, ""), o.Produto, o.Cliente, o.Situacao, o.Observacao,
+            o.CriadaEm, o.IniciadaEm, o.EntregueEm, o.Quantidade));
     }
 
     public Task Iniciar(Guid id, CancellationToken ct) => Mudar(id, (o, agora) => o.Iniciar(agora), "Serviço em andamento", "A Avalia começou", ct);

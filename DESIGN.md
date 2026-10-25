@@ -150,6 +150,14 @@ Tailwind estão desligados em `index.css` (`--color-*: initial` e os outros):
   a primeira ação em botão e o resto no "⋯"; a lista corre com a página,
   sem rolagem própria. A área que rola só vira parada de tabulação quando
   rola e não tem link nem botão (`useRegiaoRolavel`).
+- Lista paginada pela API (`componentes/ListaPaginada.tsx`, `lib/paginacao.ts`) -
+  toda lista que cresce com o uso: o campo de busca no alto (o termo vai à API
+  depois de 300 ms parado, e a tabela leva `semBusca`), a tabela e o pé
+  `Paginacao` ("51 a 100 de 230", Anterior e Próxima a 44 px no celular, e a
+  página aberta fica esmaecida enquanto a seguinte chega). Estados: carregando
+  (`Carregando`), vazio ("Nenhuma venda ainda." ou `Nada na lista com "x".`) e
+  erro (`Erro`). Número que resume a lista inteira vem de rota própria, e não
+  da soma da página.
 - Selo (`components/ui/badge.tsx`) - 22 px, raio cheio, 12 px em 500, ponto
   de 6 px na cor do texto. Variantes `sucesso`, `atencao`, `erro`, `info` e
   `neutro` para situação; `default` (cor da marca) só para contagem, como itens

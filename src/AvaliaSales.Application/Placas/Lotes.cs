@@ -7,6 +7,12 @@ namespace AvaliaSales.Application.Placas;
 public sealed record LoteDto(Guid Id, string Rotulo, int Numero, int Quantidade, DateTimeOffset CriadoEm, string? Revendedor, DateTimeOffset? DespachadoEm, DateTimeOffset? AtivadoEm,
     string? Titulo = null, CategoriaDoLote Categoria = CategoriaDoLote.Placa, DateTimeOffset? ArquivadoEm = null, DateTimeOffset? BaixadoEm = null, bool PodeExcluir = false);
 
+/// <summary>A página dos lotes no formato comum, com quantos arquivados o filtro deixou de fora (para "Ver arquivados").</summary>
+public sealed record PaginaDeLotes(IReadOnlyList<LoteDto> Itens, int Total, int? Proxima, int Arquivados);
+
+/// <summary>Livres são os ainda não despachados e não arquivados; <paramref name="Quantidade"/> exige essa quantidade de placas.</summary>
+public sealed record FiltroDeLotes(bool Arquivados = false, bool Livres = false, int? Quantidade = null, string? Busca = null);
+
 public sealed record GerarLote(int Quantidade, string? Titulo = null, CategoriaDoLote Categoria = CategoriaDoLote.Placa);
 
 public sealed record DescreverLote(string? Titulo, CategoriaDoLote Categoria);
@@ -24,13 +30,44 @@ public sealed class Lotes(IBancoDeDados banco, TimeProvider relogio)
 {
     private const int RodadasDeSorteio = 20;
 
-    public async Task<IReadOnlyList<LoteDto>> Listar(CancellationToken ct)
+    /// <summary>Do número mais alto ao mais baixo. A busca vale para o número, o título e o nome do revendedor.</summary>
+    public async Task<PaginaDeLotes> Listar(FiltroDeLotes filtro, PedidoDePagina pedido, CancellationToken ct)
     {
-        var lotes = await banco.Lotes.AsNoTracking().OrderByDescending(l => l.Numero).ToListAsync(ct);
+        var consulta = banco.Lotes.AsNoTracking();
+        var termo = Paginacao.Termo(filtro.Busca);
+        if (termo.Length > 0)
+        {
+            int? numero = int.TryParse(new string(termo.Where(char.IsAsciiDigit).ToArray()), out var lido) ? lido : null;
+            // Vira lower(...) LIKE no Postgres: a cultura do .NET não entra na consulta.
+#pragma warning disable CA1304, CA1311, CA1862
+            consulta = consulta.Where(l => (l.Titulo != null && l.Titulo.ToLower().Contains(termo))
+                || (numero != null && l.Numero == numero)
+                || banco.Revendedores.Any(r => r.Id == l.RevendedorId && r.Nome.ToLower().Contains(termo)));
+#pragma warning restore CA1304, CA1311, CA1862
+        }
+
+        if (filtro.Livres)
+        {
+            consulta = consulta.Where(l => l.DespachadoEm == null);
+        }
+
+        if (filtro.Quantidade is { } quantidade)
+        {
+            consulta = consulta.Where(l => l.Quantidade == quantidade);
+        }
+
+        var arquivados = await consulta.CountAsync(l => l.ArquivadoEm != null, ct);
+        if (!filtro.Arquivados || filtro.Livres)
+        {
+            consulta = consulta.Where(l => l.ArquivadoEm == null);
+        }
+
+        var pagina = await consulta.OrderByDescending(l => l.Numero).ThenByDescending(l => l.Id).PaginarAsync(pedido, ct);
+        var lotes = pagina.Itens;
         var nomes = await banco.Revendedores.AsNoTracking()
             .Where(r => lotes.Select(l => l.RevendedorId).Contains(r.Id))
             .ToDictionaryAsync(r => r.Id, r => r.Nome, ct);
-        return lotes.Select(l => Dto(l, l.RevendedorId is { } r ? nomes.GetValueOrDefault(r) : null)).ToList();
+        return new PaginaDeLotes(lotes.Select(l => Dto(l, l.RevendedorId is { } r ? nomes.GetValueOrDefault(r) : null)).ToList(), pagina.Total, pagina.Proxima, arquivados);
     }
 
     private static LoteDto Dto(Lote l, string? revendedor) => new(l.Id, l.Rotulo, l.Numero, l.Quantidade, l.CriadoEm, revendedor,

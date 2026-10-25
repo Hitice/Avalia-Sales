@@ -21,7 +21,7 @@ public sealed class LinksTest(ApiDeTeste api)
         Assert.Equal(link, segunda.GetProperty("linkCurto").GetString());
         // Cabe na menor tag NFC (NTAG213, 144 bytes) com folga.
         Assert.True(System.Text.Encoding.UTF8.GetByteCount(link) <= 40);
-        var lista = (await revenda.Dono.Pegar("/links")).EnumerateArray().ToList();
+        var lista = (await revenda.Dono.PegarItens("/links")).EnumerateArray().ToList();
         Assert.Single(lista);
         Assert.Equal("Avaliação no Google - Padaria Pão Quente", lista[0].GetProperty("titulo").GetString());
     }
@@ -41,7 +41,7 @@ public sealed class LinksTest(ApiDeTeste api)
 
         Assert.Equal(HttpStatusCode.Redirect, clique.StatusCode);
         Assert.Equal("https://cardapio.exemplo.com.br/menu", clique.Headers.Location!.ToString());
-        Assert.Equal(1, (await revenda.Dono.Pegar("/links")).EnumerateArray().Single().GetProperty("cliques").GetInt64());
+        Assert.Equal(1, (await revenda.Dono.PegarItens("/links")).EnumerateArray().Single().GetProperty("cliques").GetInt64());
 
         await revenda.Dono.Colocar($"/links/{id}/ativo", new { ativo = false }, HttpStatusCode.NoContent);
         Assert.Equal(HttpStatusCode.OK, (await anonimo.GetAsync($"/l/{codigo}", Ct)).StatusCode);
@@ -61,7 +61,7 @@ public sealed class LinksTest(ApiDeTeste api)
         var criado = await norte.Dono.Postar("/links", new { titulo = "Site", destino = new { tipo = "Link", link = "https://norte.exemplo.com.br" } }, HttpStatusCode.Created);
         var id = criado.GetProperty("id").GetGuid();
 
-        Assert.Empty((await sul.Dono.Pegar("/links")).EnumerateArray());
+        Assert.Empty((await sul.Dono.PegarItens("/links")).EnumerateArray());
         await sul.Dono.Colocar($"/links/{id}", new { titulo = "Meu", destino = new { tipo = "Link", link = "https://sul.exemplo.com.br" } }, HttpStatusCode.UnprocessableEntity);
         await norte.Dono.Postar("/links", new { titulo = "De novo", destino = new { tipo = "Link", link = "norte.exemplo.com.br" } }, HttpStatusCode.UnprocessableEntity);
         await norte.Dono.Postar("/links", new { titulo = "Laço", destino = new { tipo = "Link", link = criado.GetProperty("endereco").GetString() } }, HttpStatusCode.UnprocessableEntity);

@@ -53,7 +53,7 @@ public sealed class FluxoDoLoteTest(ApiDeTeste api)
 
         await operadora.Postar($"/operadora/pedidos/{pedidoId}/despacho", new { lote = lote.GetProperty("numero").GetInt32(), retirada = true }, HttpStatusCode.NoContent);
 
-        var pedido = (await dono.Pegar("/pedidos")).EnumerateArray().Single(p => p.GetProperty("id").GetGuid() == pedidoId);
+        var pedido = (await dono.PegarItens("/pedidos")).EnumerateArray().Single(p => p.GetProperty("id").GetGuid() == pedidoId);
         Assert.True(pedido.GetProperty("retirada").GetBoolean());
         Assert.Equal("Despachado", pedido.GetProperty("situacao").GetString());
         await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
@@ -110,8 +110,8 @@ public sealed class FluxoDoLoteTest(ApiDeTeste api)
         var deA = (await donoA.Postar("/pedidos", new { pacoteId = pacote }, HttpStatusCode.Created)).GetProperty("id").GetGuid();
         var deB = (await donoB.Postar("/pedidos", new { pacoteId = pacote }, HttpStatusCode.Created)).GetProperty("id").GetGuid();
 
-        var todos = (await operadora.Pegar("/operadora/pedidos")).EnumerateArray().Select(p => p.GetProperty("id").GetGuid()).ToList();
-        var soDeA = (await donoA.Pegar("/pedidos")).EnumerateArray().Select(p => p.GetProperty("id").GetGuid()).ToList();
+        var todos = (await operadora.PegarItens("/operadora/pedidos")).EnumerateArray().Select(p => p.GetProperty("id").GetGuid()).ToList();
+        var soDeA = (await donoA.PegarItens("/pedidos")).EnumerateArray().Select(p => p.GetProperty("id").GetGuid()).ToList();
         Assert.Contains(deA, todos);
         Assert.Contains(deB, todos);
         Assert.Equal([deA], soDeA);

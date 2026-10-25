@@ -58,7 +58,7 @@ public sealed class Notificacoes(IBancoDeDados banco, IRevendedorAtual atual, IU
     {
         var minhas = Minhas();
         var naoLidas = await minhas.CountAsync(n => n.LidaEm == null, ct);
-        var lista = await minhas.OrderByDescending(n => n.CriadaEm).Take(NaCaixa).ToListAsync(ct);
+        var lista = await minhas.OrderByDescending(n => n.CriadaEm).ThenByDescending(n => n.Id).Take(NaCaixa).ToListAsync(ct);
         var nomes = atual.Operadora
             ? await banco.Revendedores.AsNoTracking().Where(r => lista.Select(n => n.RevendedorId).Contains(r.Id)).ToDictionaryAsync(r => r.Id, r => r.Nome, ct)
             : [];

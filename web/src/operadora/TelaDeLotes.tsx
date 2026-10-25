@@ -4,7 +4,8 @@ import { mensagemDoErro } from '@/api/cliente'
 import { formatarDataHora, ROTULO_DA_CATEGORIA } from '@/api/rotulos'
 import type { CategoriaDoLote, Lote } from '@/api/tipos'
 import { AcoesDaLinha } from '@/componentes/AcoesDaLinha'
-import { Cabecalho, Erro, EstadoDaConsulta, Rolagem } from '@/componentes/Tela'
+import { ListaPaginada } from '@/componentes/ListaPaginada'
+import { Cabecalho, Erro, Rolagem } from '@/componentes/Tela'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -23,7 +24,8 @@ const CATEGORIAS = Object.keys(ROTULO_DA_CATEGORIA) as CategoriaDoLote[]
  */
 export function TelaDeLotes() {
   const cliente = useQueryClient()
-  const lotes = useLotes()
+  const [verArquivados, setVerArquivados] = useState(false)
+  const lotes = useLotes(verArquivados)
   const gerar = useGerarLote()
   const descrever = useDescreverLote()
   const arquivar = useArquivarLote()
@@ -32,11 +34,9 @@ export function TelaDeLotes() {
   const [quantidade, setQuantidade] = useState('20')
   const [titulo, setTitulo] = useState('')
   const [categoria, setCategoria] = useState<CategoriaDoLote>('Placa')
-  const [verArquivados, setVerArquivados] = useState(false)
   const [erroDoArquivo, setErroDoArquivo] = useState<string | null>(null)
   const falha = [gerar, descrever, arquivar, excluir].map((m) => m.error).find(Boolean)
-  const visiveis = lotes.data?.filter((l) => verArquivados || !l.arquivadoEm)
-  const arquivados = lotes.data?.filter((l) => l.arquivadoEm).length ?? 0
+  const arquivados = lotes.bruto?.arquivados ?? 0
 
   async function baixar(lote: Lote, formato?: FormatoDaImpressao) {
     setErroDoArquivo(null)
@@ -67,54 +67,55 @@ export function TelaDeLotes() {
         <Erro erro={erroDoArquivo ?? (falha ? mensagemDoErro(falha) : null)} />
         <Card className="mt-3">
           <CardContent>
-            <EstadoDaConsulta carregando={lotes.isPending} erro={lotes.error} vazio={lotes.data?.length === 0} textoVazio="Nenhum lote gerado." />
-            {arquivados > 0 && (
+            {(arquivados > 0 || verArquivados) && (
               <Button variant="ghost" size="sm" className="mb-2" onClick={() => setVerArquivados(!verArquivados)}>
                 {verArquivados ? 'Esconder arquivados' : `Ver arquivados (${arquivados})`}
               </Button>
             )}
-            {visiveis && visiveis.length > 0 && (
-              <Rolagem>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Lote</TableHead>
-                      <TableHead>Título</TableHead>
-                      <TableHead tipo="numero">Placas</TableHead>
-                      <TableHead tipo="data">Gerado em</TableHead>
-                      <TableHead>Revendedor</TableHead>
-                      <TableHead tipo="acoes" />
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {visiveis.map((lote) => (
-                      <TableRow key={lote.id}>
-                        <TableCell className="font-medium tabular-nums">{lote.rotulo}</TableCell>
-                        <TableCell className="min-w-40 whitespace-normal">
-                          <span className="flex flex-wrap items-center gap-1.5">
-                            {lote.titulo ?? '-'}
-                            {lote.categoria && lote.categoria !== 'Placa' && <Badge variant="outline">{ROTULO_DA_CATEGORIA[lote.categoria]}</Badge>}
-                            {lote.arquivadoEm && <Badge variant="neutro">Arquivado</Badge>}
-                          </span>
-                        </TableCell>
-                        <TableCell>{lote.quantidade}</TableCell>
-                        <TableCell>{formatarDataHora(lote.criadoEm)}</TableCell>
-                        <TableCell className="min-w-32 whitespace-normal">{lote.revendedor ?? 'Livre'}</TableCell>
-                        <TableCell>
-                          <AcoesDaLinha nome={lote.rotulo} principal={{ rotulo: 'Baixar impressão', aoClicar: () => baixar(lote) }} outras={[
-                            { rotulo: 'Só SVG', aoClicar: () => baixar(lote, 'Svg') },
-                            { rotulo: 'Só PNG', aoClicar: () => baixar(lote, 'Png') },
-                            { rotulo: 'Editar', aoClicar: () => editar(lote) },
-                            !lote.revendedor && { rotulo: lote.arquivadoEm ? 'Desarquivar' : 'Arquivar', aoClicar: () => arquivar.mutate({ id: lote.id, arquivado: !lote.arquivadoEm }) },
-                            lote.podeExcluir && { rotulo: 'Excluir', destrutiva: true, aoClicar: () => excluir.mutate(lote.id) },
-                          ]} />
-                        </TableCell>
+            <ListaPaginada lista={lotes} textoVazio="Nenhum lote gerado." nomeDaBusca="Buscar nos lotes" placeholder="Número, título ou revendedor">
+              {(itens) => (
+                <Rolagem>
+                  <Table semBusca>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Lote</TableHead>
+                        <TableHead>Título</TableHead>
+                        <TableHead tipo="numero">Placas</TableHead>
+                        <TableHead tipo="data">Gerado em</TableHead>
+                        <TableHead>Revendedor</TableHead>
+                        <TableHead tipo="acoes" />
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </Rolagem>
-            )}
+                    </TableHeader>
+                    <TableBody>
+                      {itens.map((lote) => (
+                        <TableRow key={lote.id}>
+                          <TableCell className="font-medium tabular-nums">{lote.rotulo}</TableCell>
+                          <TableCell className="min-w-40 whitespace-normal">
+                            <span className="flex flex-wrap items-center gap-1.5">
+                              {lote.titulo ?? '-'}
+                              {lote.categoria && lote.categoria !== 'Placa' && <Badge variant="outline">{ROTULO_DA_CATEGORIA[lote.categoria]}</Badge>}
+                              {lote.arquivadoEm && <Badge variant="neutro">Arquivado</Badge>}
+                            </span>
+                          </TableCell>
+                          <TableCell>{lote.quantidade}</TableCell>
+                          <TableCell>{formatarDataHora(lote.criadoEm)}</TableCell>
+                          <TableCell className="min-w-32 whitespace-normal">{lote.revendedor ?? 'Livre'}</TableCell>
+                          <TableCell>
+                            <AcoesDaLinha nome={lote.rotulo} principal={{ rotulo: 'Baixar impressão', aoClicar: () => baixar(lote) }} outras={[
+                              { rotulo: 'Só SVG', aoClicar: () => baixar(lote, 'Svg') },
+                              { rotulo: 'Só PNG', aoClicar: () => baixar(lote, 'Png') },
+                              { rotulo: 'Editar', aoClicar: () => editar(lote) },
+                              !lote.revendedor && { rotulo: lote.arquivadoEm ? 'Desarquivar' : 'Arquivar', aoClicar: () => arquivar.mutate({ id: lote.id, arquivado: !lote.arquivadoEm }) },
+                              lote.podeExcluir && { rotulo: 'Excluir', destrutiva: true, aoClicar: () => excluir.mutate(lote.id) },
+                            ]} />
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </Rolagem>
+              )}
+            </ListaPaginada>
           </CardContent>
         </Card>
       </div>

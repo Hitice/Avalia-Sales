@@ -34,18 +34,18 @@ public sealed class AuditoriaTest(ApiDeTeste api)
         var email = $"vendedor-{Guid.NewGuid():N}@teste.com.br";
         await norte.Dono.Postar("/equipe", new { nome = "Lia", email, senha = ApiDeTeste.Senha }, HttpStatusCode.Created);
 
-        var registros = (await norte.Dono.Pegar("/auditoria")).GetProperty("registros").EnumerateArray().ToList();
+        var registros = (await norte.Dono.Pegar("/auditoria")).GetProperty("itens").EnumerateArray().ToList();
         Assert.Contains(registros, r => r.GetProperty("acao").GetString() == "ComissaoPadraoAlterada" && r.GetProperty("depois").GetString() == "25%");
         Assert.Contains(registros, r => r.GetProperty("acao").GetString() == "VendedorCadastrado");
         // A Sul só tem o registro dela (o preço da placa do cenário); nada da Norte.
-        Assert.DoesNotContain((await sul.Dono.Pegar("/auditoria")).GetProperty("registros").EnumerateArray(),
+        Assert.DoesNotContain((await sul.Dono.Pegar("/auditoria")).GetProperty("itens").EnumerateArray(),
             r => r.GetProperty("acao").GetString() is "ComissaoPadraoAlterada" or "VendedorCadastrado");
         var vendedor = await api.ClienteLogado(email);
         Assert.Equal(HttpStatusCode.Forbidden, (await vendedor.GetAsync("/auditoria", Ct)).StatusCode);
 
         // Filtro pela ação e exportação em JSON, com o mesmo filtro e o mesmo isolamento.
         var soComissao = await norte.Dono.Pegar("/auditoria?acao=ComissaoPadraoAlterada");
-        Assert.All(soComissao.GetProperty("registros").EnumerateArray(), r => Assert.Equal("ComissaoPadraoAlterada", r.GetProperty("acao").GetString()));
+        Assert.All(soComissao.GetProperty("itens").EnumerateArray(), r => Assert.Equal("ComissaoPadraoAlterada", r.GetProperty("acao").GetString()));
         var arquivo = await norte.Dono.GetAsync("/auditoria/exportar?acao=VendedorCadastrado", Ct);
         Assert.Equal(HttpStatusCode.OK, arquivo.StatusCode);
         Assert.Equal("application/json", arquivo.Content.Headers.ContentType?.MediaType);
@@ -76,11 +76,11 @@ public sealed class AuditoriaTest(ApiDeTeste api)
         var revenda = await api.RevendaComEstoque("Revenda Auditoria LGPD");
         // Sem documento não nasce cobrança, e a anonimização não espera pagamento.
         await revenda.Dono.Postar("/vendas", Cenarios.Venda(revenda.Codigos[0], revenda.ProdutoId, "11944440002", documento: null), HttpStatusCode.Created);
-        var cliente = (await revenda.Dono.Pegar("/clientes")).EnumerateArray().Single().GetProperty("id").GetGuid();
+        var cliente = (await revenda.Dono.PegarItens("/clientes")).EnumerateArray().Single().GetProperty("id").GetGuid();
 
         await revenda.Dono.Postar($"/clientes/{cliente}/anonimizacao", new { }, HttpStatusCode.NoContent);
 
-        var registro = (await revenda.Dono.Pegar("/auditoria")).GetProperty("registros").EnumerateArray()
+        var registro = (await revenda.Dono.Pegar("/auditoria")).GetProperty("itens").EnumerateArray()
             .Single(r => r.GetProperty("acao").GetString() == "ClienteAnonimizado");
         Assert.Equal("Cliente", registro.GetProperty("alvo").GetString());
         Assert.DoesNotContain("Padaria", registro.ToString(), StringComparison.Ordinal);
@@ -95,7 +95,7 @@ public sealed class AuditoriaTest(ApiDeTeste api)
         await revenda.Dono.Postar("/equipe", new { nome = "Otávio Lins", email, senha = ApiDeTeste.Senha }, HttpStatusCode.Created);
 
         static List<string?> Acoes(System.Text.Json.JsonElement pagina) =>
-            pagina.GetProperty("registros").EnumerateArray().Select(r => r.GetProperty("acao").GetString()).ToList();
+            pagina.GetProperty("itens").EnumerateArray().Select(r => r.GetProperty("acao").GetString()).ToList();
         Assert.Equal(["ComissaoPadraoAlterada"], Acoes(await revenda.Dono.Pegar("/auditoria?busca=27%25")));
         Assert.Contains("VendedorCadastrado", Acoes(await revenda.Dono.Pegar("/auditoria?busca=vendedor")));
         Assert.Contains("VendedorCadastrado", Acoes(await revenda.Dono.Pegar("/auditoria?busca=ot%C3%A1vio")));

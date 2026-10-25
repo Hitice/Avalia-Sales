@@ -11,7 +11,7 @@ public sealed class VendaDesfeitaTest(ApiDeTeste api)
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     private static async Task<Guid> VendaDe(HttpClient quem, string codigo) =>
-        (await quem.Pegar("/vendas")).EnumerateArray().Single(v => v.GetProperty("codigo").GetString() == codigo).GetProperty("id").GetGuid();
+        (await quem.PegarItens("/vendas")).EnumerateArray().Single(v => v.GetProperty("codigo").GetString() == codigo).GetProperty("id").GetGuid();
 
     /// <summary>O Pix de 30 minutos venceu sem pagamento.</summary>
     private async Task VencerPix(Guid revendedorId)
@@ -36,7 +36,7 @@ public sealed class VendaDesfeitaTest(ApiDeTeste api)
         await revenda.Dono.Postar($"/vendas/{venda}/cancelamento", new { }, HttpStatusCode.UnprocessableEntity);
         await revenda.Dono.Postar($"/vendas/{venda}/cobranca", new { }, HttpStatusCode.UnprocessableEntity);
 
-        var lista = (await revenda.Dono.Pegar("/vendas")).EnumerateArray().Single(v => v.GetProperty("id").GetGuid() == venda);
+        var lista = (await revenda.Dono.PegarItens("/vendas")).EnumerateArray().Single(v => v.GetProperty("id").GetGuid() == venda);
         Assert.Equal("Cancelada", lista.GetProperty("situacao").GetString());
         var leitura = await Anonimo().GetAsync($"/q/{codigo}", Ct);
         Assert.Contains("/vender?codigo=", leitura.Headers.Location!.ToString());
@@ -55,13 +55,13 @@ public sealed class VendaDesfeitaTest(ApiDeTeste api)
         var codigo = revenda.Codigos[1];
         await bia.Postar("/vendas", Cenarios.Venda(codigo, revenda.ProdutoId, "11977770003"), HttpStatusCode.Created);
         var venda = await VendaDe(revenda.Dono, codigo);
-        var tabela = (await bia.Pegar("/vendas")).EnumerateArray().Single().GetProperty("valorCents").GetInt64();
+        var tabela = (await bia.PegarItens("/vendas")).EnumerateArray().Single().GetProperty("valorCents").GetInt64();
         await VencerPix(revenda.Id);
 
         Assert.Equal(HttpStatusCode.Forbidden, (await bia.PostAsync($"/vendas/{venda}/cortesia", null, Ct)).StatusCode);
         await revenda.Dono.Postar($"/vendas/{venda}/cortesia", new { }, HttpStatusCode.NoContent);
 
-        var lista = (await bia.Pegar("/vendas")).EnumerateArray().Single();
+        var lista = (await bia.PegarItens("/vendas")).EnumerateArray().Single();
         Assert.True(lista.GetProperty("cortesia").GetBoolean());
         Assert.Equal(0, lista.GetProperty("valorCents").GetInt64());
         Assert.Equal(0, lista.GetProperty("comissaoCents").GetInt64());
@@ -152,7 +152,7 @@ public sealed class VendaDesfeitaTest(ApiDeTeste api)
         var depois = await revenda.Dono.Pegar("/razao");
         Assert.Equal(0, depois.GetProperty("receitaCents").GetInt64());
         Assert.Equal(0, (await caio.Pegar("/comissoes")).EnumerateArray().Single().GetProperty("abertaCents").GetInt64());
-        Assert.Equal("Estornada", (await caio.Pegar("/vendas")).EnumerateArray().Single().GetProperty("pagamento").GetString());
+        Assert.Equal("Estornada", (await caio.PegarItens("/vendas")).EnumerateArray().Single().GetProperty("pagamento").GetString());
     }
 
     [Fact]

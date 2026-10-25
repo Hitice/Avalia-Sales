@@ -37,7 +37,7 @@ public sealed class RecebimentoPorForaDoVendedorTest(ApiDeTeste api)
         await c.Rui.Postar($"/vendas/{venda}/recebimento", new { meio = "Dinheiro" }, HttpStatusCode.NoContent);
 
         // Rastro: quem registrou e o valor.
-        var registro = (await c.Revenda.Dono.Pegar("/auditoria?acao=RecebidoPorFora")).GetProperty("registros").EnumerateArray().Single();
+        var registro = (await c.Revenda.Dono.Pegar("/auditoria?acao=RecebidoPorFora")).GetProperty("itens").EnumerateArray().Single();
         Assert.Equal("Rui Prado", registro.GetProperty("quem").GetString());
         Assert.Equal("Dinheiro, R$ 149,90", registro.GetProperty("depois").GetString());
 

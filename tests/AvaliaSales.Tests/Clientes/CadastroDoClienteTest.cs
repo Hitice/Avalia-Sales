@@ -10,10 +10,10 @@ public sealed class CadastroDoClienteTest(ApiDeTeste api)
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     private static async Task<Guid> ClienteDe(HttpClient dono, string telefone) =>
-        (await dono.Pegar($"/clientes?busca={telefone}")).EnumerateArray().Single().GetProperty("id").GetGuid();
+        (await dono.PegarItens($"/clientes?busca={telefone}")).EnumerateArray().Single().GetProperty("id").GetGuid();
 
     private static async Task<Guid> VendaDe(HttpClient dono, string codigo) =>
-        (await dono.Pegar("/vendas")).EnumerateArray().Single(v => v.GetProperty("codigo").GetString() == codigo).GetProperty("id").GetGuid();
+        (await dono.PegarItens("/vendas")).EnumerateArray().Single(v => v.GetProperty("codigo").GetString() == codigo).GetProperty("id").GetGuid();
 
     [Fact]
     public async Task Dono_edita_o_cliente_ve_a_ficha_e_junta_o_cadastro_duplicado()
@@ -65,7 +65,7 @@ public sealed class CadastroDoClienteTest(ApiDeTeste api)
         await revenda.Dono.Postar($"/vendas/{venda}/recebimento", new { meio = "Dinheiro" }, HttpStatusCode.NoContent);
         await revenda.Dono.Colocar($"/vendas/{venda}", new { vendedorId = bia }, HttpStatusCode.NoContent);
 
-        var lista = (await revenda.Dono.Pegar("/vendas")).EnumerateArray().Single(v => v.GetProperty("id").GetGuid() == venda);
+        var lista = (await revenda.Dono.PegarItens("/vendas")).EnumerateArray().Single(v => v.GetProperty("id").GetGuid() == venda);
         Assert.Equal((19_990L, bia, 4_998L), (lista.GetProperty("valorCents").GetInt64(), lista.GetProperty("vendedorId").GetGuid(), lista.GetProperty("comissaoCents").GetInt64()));
         Assert.Equal(-4_998, await banco.Contar($"select coalesce(sum(valor_cents), 0) from lancamentos where venda_id = '{venda}' and tipo = 'ComissaoDevida' and vendedor_id = '{bia}'"));
     }

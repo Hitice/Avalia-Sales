@@ -1,4 +1,5 @@
 using AvaliaSales.Api.Autenticacao;
+using AvaliaSales.Application;
 using AvaliaSales.Application.Financeiro;
 using AvaliaSales.Application.Lugares;
 using AvaliaSales.Application.Placas;
@@ -17,8 +18,8 @@ public static class RotasDaEquipe
     {
         var equipe = rotas.MapGroup("/").RequireAuthorization(Politicas.Equipe).WithTags("Balcão");
 
-        equipe.MapGet("/placas", (EstadoDaPlaca? estado, Guid? consignadaA, string? codigo, int? pagina, Estoque estoque, CancellationToken ct) =>
-            estoque.Listar(new FiltroDePlacas(estado, consignadaA, codigo, pagina ?? 1), ct));
+        equipe.MapGet("/placas", (EstadoDaPlaca? estado, Guid? consignadaA, string? codigo, [AsParameters] PedidoDePagina pagina, Estoque estoque, CancellationToken ct) =>
+            estoque.Listar(new FiltroDePlacas(estado, consignadaA, codigo, pagina.Pagina, pagina.Tamanho), ct));
         equipe.MapGet("/placas/{codigo}", (string codigo, FichaDaPlaca ficha, CancellationToken ct) => ficha.Ler(codigo, ct));
         equipe.MapPut("/placas/{codigo}/destino", async (string codigo, DestinoInformado destino, FichaDaPlaca ficha, CancellationToken ct) =>
         {
@@ -35,10 +36,12 @@ public static class RotasDaEquipe
         // O dono vê o saldo de todos; o vendedor, só o dele.
         equipe.MapGet("/comissoes", (Comissoes comissoes, CancellationToken ct) => comissoes.Saldos(ct));
 
-        equipe.MapGet("/vendas", (Vendas vendas, CancellationToken ct) => vendas.Listar(ct));
+        equipe.MapGet("/vendas", (string? busca, [AsParameters] PedidoDePagina pagina, Vendas vendas, CancellationToken ct) => vendas.Listar(busca, pagina, ct));
+        equipe.MapGet("/vendas/resumo", (Vendas vendas, CancellationToken ct) => vendas.Resumo(ct));
         // A meta, o ranking da equipe no mês e a carteira das placas vendidas (o vendedor, só a dele).
         equipe.MapGet("/painel-do-vendedor", (PainelDoVendedor painel, CancellationToken ct) => painel.Resumo(ct));
-        equipe.MapGet("/carteira", (PainelDoVendedor painel, CancellationToken ct) => painel.Carteira(ct));
+        equipe.MapGet("/carteira", (string? busca, FiltroDaCarteira? filtro, [AsParameters] PedidoDePagina pagina, PainelDoVendedor painel, CancellationToken ct) =>
+            painel.Carteira(busca, filtro ?? FiltroDaCarteira.Todas, pagina, ct));
         equipe.MapGet("/vendas/{id:guid}", (Guid id, Vendas vendas, CancellationToken ct) => vendas.Detalhe(id, ct));
         equipe.MapPost("/vendas", async (NovaVenda pedido, Vendas vendas, CancellationToken ct) =>
             Results.Created("/vendas", await vendas.Registrar(pedido, ct)));

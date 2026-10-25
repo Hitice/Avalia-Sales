@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { chamarApi, enviarJson } from '@/api/cliente'
+import { useListaPaginada } from '@/lib/paginacao'
 import type { Caixa, CategoriaDeDespesa, Despesa, DreDoMes, MesDoFinanceiro, MesDoHistorico, NaturezaDaRetirada, Retirada, Socio } from '@/api/tipos'
 
 const doMes = (competencia: string | undefined) => (competencia ? `?competencia=${competencia}` : '')
@@ -10,10 +11,10 @@ export const useHistorico = (ate: string | undefined) =>
   useQuery({ queryKey: ['financeiro', 'historico', ate], queryFn: () => chamarApi<MesDoHistorico[]>(`/financeiro/historico${ate ? `?ate=${ate}` : ''}`) })
 export const useMeses = () => useQuery({ queryKey: ['financeiro', 'meses'], queryFn: () => chamarApi<MesDoFinanceiro[]>('/financeiro/meses') })
 export const useDespesas = (competencia: string | undefined) =>
-  useQuery({ queryKey: ['financeiro', 'despesas', competencia], queryFn: () => chamarApi<Despesa[]>(`/financeiro/despesas${doMes(competencia)}`) })
+  useListaPaginada<Despesa>(['financeiro', 'despesas', competencia], '/financeiro/despesas', { filtros: { competencia } })
 export const useSocios = () => useQuery({ queryKey: ['financeiro', 'socios'], queryFn: () => chamarApi<Socio[]>('/financeiro/socios') })
 export const useRetiradas = (competencia: string | undefined) =>
-  useQuery({ queryKey: ['financeiro', 'retiradas', competencia], queryFn: () => chamarApi<Retirada[]>(`/financeiro/retiradas${doMes(competencia)}`) })
+  useListaPaginada<Retirada>(['financeiro', 'retiradas', competencia], '/financeiro/retiradas', { filtros: { competencia } })
 
 /** Toda gravação daqui mexe no razão: refaz o financeiro inteiro e o razão. */
 function useGravar<T, R = unknown>(fazer: (dados: T) => Promise<R>) {

@@ -19,7 +19,7 @@ public sealed class FinanceiroDoDonoTest(ApiDeTeste api)
     private static string DiaDoMesPassado => MesPassado + "-10";
 
     private static async Task<Guid> VendaDe(HttpClient quem, string codigo) =>
-        (await quem.Pegar("/vendas")).EnumerateArray().Single(v => v.GetProperty("codigo").GetString() == codigo).GetProperty("id").GetGuid();
+        (await quem.PegarItens("/vendas")).EnumerateArray().Single(v => v.GetProperty("codigo").GetString() == codigo).GetProperty("id").GetGuid();
 
     /// <summary>Venda sem documento não gera cobrança; o recebido no balcão vai ao razão na hora.</summary>
     private static async Task<Guid> VenderERecebe(HttpClient vendedor, HttpClient dono, Revenda revenda, string codigo, string telefone, long? valor = null)
@@ -125,12 +125,12 @@ public sealed class FinanceiroDoDonoTest(ApiDeTeste api)
         var dre = await dono.Pegar("/financeiro/dre");
         Assert.Equal(6_000, Valor(dre, "despesasCents"));
         Assert.Equal("Marketing", dre.GetProperty("despesasPorCategoria").EnumerateArray().Single().GetProperty("categoria").GetString());
-        var lista = (await dono.Pegar("/financeiro/despesas")).EnumerateArray().Single();
+        var lista = (await dono.PegarItens("/financeiro/despesas")).EnumerateArray().Single();
         Assert.Equal("Panfleto", lista.GetProperty("descricao").GetString());
 
         Assert.Equal(HttpStatusCode.NoContent, (await dono.DeleteAsync($"/financeiro/despesas/{despesa}", Ct)).StatusCode);
         Assert.Equal(0, Valor(await dono.Pegar("/financeiro/dre"), "despesasCents"));
-        Assert.Empty((await dono.Pegar("/financeiro/despesas")).EnumerateArray());
+        Assert.Empty((await dono.PegarItens("/financeiro/despesas")).EnumerateArray());
 
         await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
         // Original, estorno, nova versão e o estorno dela: nada apagado.
@@ -247,9 +247,9 @@ public sealed class FinanceiroDoDonoTest(ApiDeTeste api)
         await donoA.Postar("/financeiro/retiradas", new { socioId = socio, data = Hoje, natureza = "ProLabore", valorCents = 900 }, HttpStatusCode.Created);
         await donoA.Postar("/financeiro/fechamentos", new { competencia = MesPassado }, HttpStatusCode.NoContent);
 
-        Assert.Empty((await donoB.Pegar("/financeiro/despesas")).EnumerateArray());
+        Assert.Empty((await donoB.PegarItens("/financeiro/despesas")).EnumerateArray());
         Assert.Empty((await donoB.Pegar("/financeiro/socios")).EnumerateArray());
-        Assert.Empty((await donoB.Pegar("/financeiro/retiradas")).EnumerateArray());
+        Assert.Empty((await donoB.PegarItens("/financeiro/retiradas")).EnumerateArray());
         Assert.Equal(0, Valor(await donoB.Pegar("/financeiro/dre"), "despesasCents"));
         Assert.False((await donoB.Pegar($"/financeiro/dre?competencia={MesPassado}")).GetProperty("fechado").GetBoolean());
         await donoB.Colocar($"/financeiro/despesas/{despesa}", new { data = Hoje, descricao = "Invadida", categoria = "Taxas", valorCents = 1 }, HttpStatusCode.UnprocessableEntity);

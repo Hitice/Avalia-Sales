@@ -21,13 +21,13 @@ public sealed class AuditoriaDaOperadoraTest(ApiDeTeste api)
         await operadora.Postar("/operadora/pacotes", new { quantidade = 0, precoCents = 1L }, HttpStatusCode.UnprocessableEntity);
 
         var pagina = await operadora.Pegar($"/operadora/auditoria?busca={id}");
-        var registros = pagina.GetProperty("registros").EnumerateArray().ToList();
+        var registros = pagina.GetProperty("itens").EnumerateArray().ToList();
         var ativo = Assert.Single(registros);
         Assert.Equal("PUT /operadora/pacotes/{id:guid}/ativo", ativo.GetProperty("acao").GetString());
         Assert.Equal("Operadora", ativo.GetProperty("quem").GetString());
         Assert.Contains("false", ativo.GetProperty("corpo").GetString(), StringComparison.Ordinal);
 
-        var criados = (await operadora.Pegar("/operadora/auditoria?busca=POST /operadora/pacotes")).GetProperty("registros").EnumerateArray();
+        var criados = (await operadora.Pegar("/operadora/auditoria?busca=POST /operadora/pacotes")).GetProperty("itens").EnumerateArray();
         Assert.Contains(criados, r => r.GetProperty("corpo").GetString()!.Contains($"\"quantidade\":{quantidade}", StringComparison.Ordinal));
         Assert.DoesNotContain(criados, r => r.GetProperty("corpo").GetString()!.Contains("\"quantidade\":0", StringComparison.Ordinal));
 

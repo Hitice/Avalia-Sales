@@ -11,8 +11,17 @@ public sealed record GravarCupom(string Codigo, int? DescontoBps, long? Desconto
 /// <summary>Os cupons da operadora para o pedido de placas. Cupom usado é desativado, e não excluído.</summary>
 public sealed class Cupons(IBancoDeDados banco)
 {
-    public async Task<IReadOnlyList<CupomDto>> Listar(CancellationToken ct) =>
-        await banco.Cupons.AsNoTracking().OrderBy(c => c.Codigo).Select(c => Dto(c)).ToListAsync(ct);
+    public async Task<Pagina<CupomDto>> Listar(string? busca, PedidoDePagina pedido, CancellationToken ct)
+    {
+        var consulta = banco.Cupons.AsNoTracking();
+        var termo = Paginacao.Termo(busca).ToUpperInvariant();
+        if (termo.Length > 0)
+        {
+            consulta = consulta.Where(c => c.Codigo.Contains(termo));
+        }
+
+        return (await consulta.OrderBy(c => c.Codigo).ThenBy(c => c.Id).PaginarAsync(pedido, ct)).Mapear(Dto);
+    }
 
     public async Task<CupomDto> Criar(GravarCupom comando, CancellationToken ct)
     {

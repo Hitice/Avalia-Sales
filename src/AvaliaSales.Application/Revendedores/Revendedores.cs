@@ -16,11 +16,25 @@ public sealed record MinhaRevenda(RevendedorDto Revendedor, SituacaoDoContrato? 
 public sealed class Revendedores(IBancoDeDados banco, IRevendedorAtual atual, Equipe.IContas contas, Avisos.FilaDeEmails emails,
     Notificacoes.Notificacoes notificacoes, IOptions<OpcoesDaPlataforma> plataforma, TimeProvider relogio)
 {
-    public async Task<IReadOnlyList<RevendedorDto>> Listar(CancellationToken ct) =>
-        await banco.Revendedores.AsNoTracking().OrderBy(r => r.Nome)
+    /// <summary>Por nome; a busca vale para o nome e o CNPJ.</summary>
+    public async Task<Pagina<RevendedorDto>> Listar(string? busca, PedidoDePagina pedido, CancellationToken ct)
+    {
+        var consulta = banco.Revendedores.AsNoTracking();
+        var termo = Paginacao.Termo(busca);
+        var digitos = new string(termo.Where(char.IsAsciiDigit).ToArray());
+        if (termo.Length > 0)
+        {
+            // Vira lower(...) LIKE no Postgres: a cultura do .NET não entra na consulta.
+#pragma warning disable CA1304, CA1311, CA1862
+            consulta = consulta.Where(r => r.Nome.ToLower().Contains(termo) || (digitos.Length >= 4 && r.Cnpj != null && r.Cnpj.Contains(digitos)));
+#pragma warning restore CA1304, CA1311, CA1862
+        }
+
+        return await consulta.OrderBy(r => r.Nome).ThenBy(r => r.Id)
             .Select(r => new RevendedorDto(r.Id, r.Nome, r.Cnpj, r.TaxaAvaliaBps, r.ComissaoPadraoBps, r.RecebedorPagarme, r.ContratoAssinadoEm, r.CriadoEm, r.RenovacaoBps, r.Celular,
                 r.Endereco != null, r.EncerramentoPedidoEm, r.EncerradaEm, r.ReaberturaPedidaEm, r.SuspensaEm, r.MotivoDaSuspensao))
-            .ToListAsync(ct);
+            .PaginarAsync(pedido, ct);
+    }
 
     public async Task<MinhaRevenda> DoUsuario(CancellationToken ct)
     {

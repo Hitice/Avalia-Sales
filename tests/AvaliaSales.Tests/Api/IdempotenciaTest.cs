@@ -31,7 +31,7 @@ public sealed class IdempotenciaTest(ApiDeTeste api)
         return cliente.SendAsync(pedido, Ct);
     }
 
-    private static async Task<int> Despesas(HttpClient dono) => (await dono.Pegar("/financeiro/despesas")).GetArrayLength();
+    private static async Task<int> Despesas(HttpClient dono) => (await dono.PegarItens("/financeiro/despesas")).GetArrayLength();
 
     private async Task<HttpClient> NovoDono(string nome) => await api.ClienteLogado((await api.CriarRevendedor(nome)).Email);
 

@@ -13,14 +13,14 @@ import { destinoPronto, linkDoGoogleValido } from '@/balcao/destino'
 import { BuscaNoGoogle } from '@/balcao/EscolhaDeDestino'
 import { Campo } from '@/componentes/Campo'
 import { texto } from '@/lib/esquemas'
-import { Cabecalho, Erro, EstadoDaConsulta } from '@/componentes/Tela'
+import { ListaPaginada } from '@/componentes/ListaPaginada'
+import { Cabecalho, Erro } from '@/componentes/Tela'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { ListaComBusca } from '@/componentes/ListaComBusca'
 import { useAlterarLink, useAtivarLink, useCriarLink, useExcluirLink, useLinks } from './consultas'
 
 const esquema = z.object({ titulo: texto('o título') })
@@ -107,49 +107,59 @@ function ListaDeLinks({ aoEditar }: { aoEditar: (l: LinkCurto) => void }) {
   return (
     <div className="grid content-start gap-3">
       <Erro erro={erro ? mensagemDoErro(erro) : null} />
-      <EstadoDaConsulta carregando={links.isPending} erro={links.error} vazio={links.data?.length === 0} textoVazio="Nenhum link." />
-      <ListaComBusca itens={links.data ?? []} chave={(l) => l.id} texto={(l) => `${l.titulo} ${l.destino} ${l.endereco}`}>{(l) => (
-        <Card>
-          <CardContent className="grid grid-cols-1 gap-3 pt-6">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <p className="font-medium">{l.titulo}</p>
-                <p className="truncate text-xs text-muted-foreground">{l.destino}</p>
-              </div>
-              <Badge variant={l.ativo ? 'sucesso' : 'neutro'}>{l.ativo ? `${l.cliques} ${l.cliques === 1 ? 'clique' : 'cliques'}` : 'Desligado'}</Badge>
-            </div>
-            <CopiarLink rotulo="Link curto" endereco={l.endereco} />
-            {dono && (
-              <div className="grid grid-cols-3 gap-2">
-                <Button variant="outline" onClick={() => aoEditar(l)}>Editar</Button>
-                <Button variant="outline" onClick={() => ativar.mutate({ id: l.id, ativo: !l.ativo })}>{l.ativo ? 'Desligar' : 'Religar'}</Button>
-                <Button variant="ghost" className="text-destructive" onClick={() => excluir.mutate(l.id)}>Excluir</Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}</ListaComBusca>
+      <ListaPaginada lista={links} textoVazio="Nenhum link." nomeDaBusca="Buscar nos links" placeholder="Título, código ou endereço">
+        {(itens) => (
+          <div className="grid content-start gap-3">
+            {itens.map((l) => (
+              <Card key={l.id}>
+                <CardContent className="grid grid-cols-1 gap-3 pt-6">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="font-medium">{l.titulo}</p>
+                      <p className="truncate text-xs text-muted-foreground">{l.destino}</p>
+                    </div>
+                    <Badge variant={l.ativo ? 'sucesso' : 'neutro'}>{l.ativo ? `${l.cliques} ${l.cliques === 1 ? 'clique' : 'cliques'}` : 'Desligado'}</Badge>
+                  </div>
+                  <CopiarLink rotulo="Link curto" endereco={l.endereco} />
+                  {dono && (
+                    <div className="grid grid-cols-3 gap-2">
+                      <Button variant="outline" onClick={() => aoEditar(l)}>Editar</Button>
+                      <Button variant="outline" onClick={() => ativar.mutate({ id: l.id, ativo: !l.ativo })}>{l.ativo ? 'Desligar' : 'Religar'}</Button>
+                      <Button variant="ghost" className="text-destructive" onClick={() => excluir.mutate(l.id)}>Excluir</Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </ListaPaginada>
     </div>
   )
 }
 
 /** Cada link ligado, pronto para gravar numa tag NFC. */
 function GravarNasTags() {
-  const links = useLinks()
+  const links = useLinks(true)
   return (
     <div className="grid content-start gap-3">
-      <EstadoDaConsulta carregando={links.isPending} erro={links.error} vazio={links.data?.length === 0} textoVazio="Nenhum link. Crie um na aba Link." />
-      <ListaComBusca itens={(links.data ?? []).filter((l) => l.ativo)} chave={(l) => l.id} texto={(l) => `${l.titulo} ${l.endereco}`}>{(l) => (
-        <Card>
-          <CardContent className="grid gap-3 pt-6">
-            <div className="min-w-0">
-              <p className="font-medium">{l.titulo}</p>
-              <p className="truncate text-xs text-muted-foreground">{l.endereco.toLowerCase()}</p>
-            </div>
-            <GravarNfc endereco={l.endereco} />
-          </CardContent>
-        </Card>
-      )}</ListaComBusca>
+      <ListaPaginada lista={links} textoVazio="Nenhum link. Crie um na aba Link." nomeDaBusca="Buscar nos links" placeholder="Título ou endereço">
+        {(itens) => (
+          <div className="grid content-start gap-3">
+            {itens.map((l) => (
+              <Card key={l.id}>
+                <CardContent className="grid gap-3 pt-6">
+                  <div className="min-w-0">
+                    <p className="font-medium">{l.titulo}</p>
+                    <p className="truncate text-xs text-muted-foreground">{l.endereco.toLowerCase()}</p>
+                  </div>
+                  <GravarNfc endereco={l.endereco} />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </ListaPaginada>
     </div>
   )
 }

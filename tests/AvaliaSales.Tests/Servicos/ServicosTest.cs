@@ -22,12 +22,12 @@ public sealed class ServicosTest(ApiDeTeste api)
         var venda = registrada.GetProperty("vendaId").GetGuid();
         await revenda.Dono.Postar($"/vendas/{venda}/recebimento", new { meio = "Dinheiro" }, HttpStatusCode.NoContent);
 
-        var ordem = (await operadora.Pegar("/operadora/servicos")).EnumerateArray().Single(o => o.GetProperty("revendedor").GetString() == "Revenda do Serviço");
+        var ordem = (await operadora.PegarItens("/operadora/servicos?busca=Revenda%20do%20Servi%C3%A7o")).EnumerateArray().Single(o => o.GetProperty("revendedor").GetString() == "Revenda do Serviço");
         Assert.Equal("Landing Page", ordem.GetProperty("produto").GetString());
         Assert.Equal("AFazer", ordem.GetProperty("situacao").GetString());
-        Assert.Single((await revenda.Dono.Pegar("/servicos")).EnumerateArray());
-        Assert.Empty((await outra.Dono.Pegar("/servicos")).EnumerateArray());
-        var lista = (await revenda.Dono.Pegar("/vendas")).EnumerateArray().Single(v => v.GetProperty("id").GetGuid() == venda);
+        Assert.Single((await revenda.Dono.PegarItens("/servicos")).EnumerateArray());
+        Assert.Empty((await outra.Dono.PegarItens("/servicos")).EnumerateArray());
+        var lista = (await revenda.Dono.PegarItens("/vendas")).EnumerateArray().Single(v => v.GetProperty("id").GetGuid() == venda);
         Assert.Equal("Landing Page", lista.GetProperty("produto").GetString());
 
         var id = ordem.GetProperty("id").GetGuid();
@@ -35,7 +35,7 @@ public sealed class ServicosTest(ApiDeTeste api)
         await operadora.Postar($"/operadora/servicos/{id}/entregar", new { }, HttpStatusCode.NoContent);
         await operadora.Postar($"/operadora/servicos/{id}/cancelar", new { }, HttpStatusCode.UnprocessableEntity);
         Assert.Equal(HttpStatusCode.Forbidden, (await revenda.Dono.PostAsync($"/operadora/servicos/{id}/entregar", null, Ct)).StatusCode);
-        Assert.Equal("Entregue", (await revenda.Dono.Pegar("/servicos"))[0].GetProperty("situacao").GetString());
+        Assert.Equal("Entregue", (await revenda.Dono.PegarItens("/servicos"))[0].GetProperty("situacao").GetString());
 
         var sino = await revenda.Dono.Pegar("/notificacoes");
         var titulos = sino.GetProperty("notificacoes").EnumerateArray().Select(n => n.GetProperty("titulo").GetString()).ToList();
@@ -86,12 +86,12 @@ public sealed class ServicosTest(ApiDeTeste api)
         var kit = await Cenarios.ProdutoDoCatalogo(revenda.Dono, "kit-mesa", 3_990L);
         var venda = (await revenda.Dono.Postar("/vendas", Cenarios.Servico(kit, "11955550803", quantidade: 10), HttpStatusCode.Created)).GetProperty("vendaId").GetGuid();
         await revenda.Dono.Postar($"/vendas/{venda}/recebimento", new { meio = "Dinheiro" }, HttpStatusCode.NoContent);
-        var ordem = (await operadora.Pegar("/operadora/servicos")).EnumerateArray().Single(o => o.GetProperty("revendedor").GetString() == "Revenda do Estorno do Serviço");
+        var ordem = (await operadora.PegarItens("/operadora/servicos?busca=Revenda%20do%20Estorno%20do%20Servi%C3%A7o")).EnumerateArray().Single(o => o.GetProperty("revendedor").GetString() == "Revenda do Estorno do Serviço");
         Assert.Equal("AFazer", ordem.GetProperty("situacao").GetString());
 
         Assert.Equal(HttpStatusCode.NoContent, (await revenda.Dono.DeleteAsync($"/vendas/{venda}/recebimento", Ct)).StatusCode);
 
-        var cancelada = (await operadora.Pegar("/operadora/servicos")).EnumerateArray().Single(o => o.GetProperty("id").GetGuid() == ordem.GetProperty("id").GetGuid());
+        var cancelada = (await operadora.PegarItens("/operadora/servicos?busca=Revenda%20do%20Estorno%20do%20Servi%C3%A7o")).EnumerateArray().Single(o => o.GetProperty("id").GetGuid() == ordem.GetProperty("id").GetGuid());
         Assert.Equal("Cancelada", cancelada.GetProperty("situacao").GetString());
         Assert.Contains((await operadora.Pegar("/notificacoes")).GetProperty("notificacoes").EnumerateArray(),
             n => n.GetProperty("titulo").GetString() == "Serviço cancelado" && n.GetProperty("revendedor").GetString() == "Revenda do Estorno do Serviço");
@@ -126,7 +126,7 @@ public sealed class ServicosTest(ApiDeTeste api)
         await operadora.Postar($"/operadora/pedidos/{pedido}/pagamento", new { }, HttpStatusCode.NoContent);
         await operadora.Postar($"/operadora/pedidos/{pedido}/producao", new { }, HttpStatusCode.NoContent);
 
-        var meu = (await dono.Pegar("/pedidos")).EnumerateArray().Single(p => p.GetProperty("id").GetGuid() == pedido);
+        var meu = (await dono.PegarItens("/pedidos")).EnumerateArray().Single(p => p.GetProperty("id").GetGuid() == pedido);
         Assert.Equal("EmProducao", meu.GetProperty("situacao").GetString());
         var lote = await operadora.Postar("/operadora/lotes", new { quantidade = 20 }, HttpStatusCode.Created);
         await operadora.Postar($"/operadora/pedidos/{pedido}/despacho", new { lote = lote.GetProperty("numero").GetInt32() }, HttpStatusCode.NoContent);

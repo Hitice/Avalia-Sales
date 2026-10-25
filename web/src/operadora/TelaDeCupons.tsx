@@ -7,7 +7,8 @@ import { formatarBps, formatarData, paraBps } from '@/api/rotulos'
 import type { Cupom } from '@/api/tipos'
 import { Campo } from '@/componentes/Campo'
 import { AcoesDaLinha } from '@/componentes/AcoesDaLinha'
-import { Cabecalho, Erro, EstadoDaConsulta, Rolagem } from '@/componentes/Tela'
+import { ListaPaginada } from '@/componentes/ListaPaginada'
+import { Cabecalho, Erro, Rolagem } from '@/componentes/Tela'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -82,40 +83,41 @@ export function TelaDeCupons() {
         <Erro erro={erro ? mensagemDoErro(erro) : null} />
         <Card className="mt-3">
           <CardContent>
-            <EstadoDaConsulta carregando={cupons.isPending} erro={cupons.error} vazio={cupons.data?.length === 0} textoVazio="Nenhum cupom ainda." />
-            {cupons.data && cupons.data.length > 0 && (
-              <Rolagem>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Código</TableHead>
-                      <TableHead tipo="numero">Desconto</TableHead>
-                      <TableHead tipo="data">Vale até</TableHead>
-                      <TableHead tipo="numero">Usos</TableHead>
-                      <TableHead tipo="situacao">Situação</TableHead>
-                      <TableHead tipo="acoes" />
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {cupons.data.map((c) => (
-                      <TableRow key={c.id}>
-                        <TableCell className="font-medium tabular-nums">{c.codigo}</TableCell>
-                        <TableCell>{c.descontoBps !== null ? formatarBps(c.descontoBps) : formatarCentavos(c.descontoCents ?? 0)}</TableCell>
-                        <TableCell>{c.validoAte ? formatarData(c.validoAte) : 'Sem prazo'}</TableCell>
-                        <TableCell>{c.usos}{c.usosMaximos ? ` de ${c.usosMaximos}` : ''}</TableCell>
-                        <TableCell><Badge variant={c.ativo ? 'sucesso' : 'neutro'}>{c.ativo ? 'Ativo' : 'Desligado'}</Badge></TableCell>
-                        <TableCell>
-                          <AcoesDaLinha nome={c.codigo} principal={{ rotulo: 'Editar', aoClicar: () => editar(c) }} outras={[
-                            { rotulo: c.ativo ? 'Desligar' : 'Ligar', aoClicar: () => ativar.mutate({ id: c.id, ativo: !c.ativo }) },
-                            c.usos === 0 && { rotulo: 'Excluir', destrutiva: true, aoClicar: () => excluir.mutate(c.id) },
-                          ]} />
-                        </TableCell>
+            <ListaPaginada lista={cupons} textoVazio="Nenhum cupom ainda." nomeDaBusca="Buscar nos cupons" placeholder="Código do cupom">
+              {(itens) => (
+                <Rolagem>
+                  <Table semBusca>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Código</TableHead>
+                        <TableHead tipo="numero">Desconto</TableHead>
+                        <TableHead tipo="data">Vale até</TableHead>
+                        <TableHead tipo="numero">Usos</TableHead>
+                        <TableHead tipo="situacao">Situação</TableHead>
+                        <TableHead tipo="acoes" />
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </Rolagem>
-            )}
+                    </TableHeader>
+                    <TableBody>
+                      {itens.map((c) => (
+                        <TableRow key={c.id}>
+                          <TableCell className="font-medium tabular-nums">{c.codigo}</TableCell>
+                          <TableCell>{c.descontoBps !== null ? formatarBps(c.descontoBps) : formatarCentavos(c.descontoCents ?? 0)}</TableCell>
+                          <TableCell>{c.validoAte ? formatarData(c.validoAte) : 'Sem prazo'}</TableCell>
+                          <TableCell>{c.usos}{c.usosMaximos ? ` de ${c.usosMaximos}` : ''}</TableCell>
+                          <TableCell><Badge variant={c.ativo ? 'sucesso' : 'neutro'}>{c.ativo ? 'Ativo' : 'Desligado'}</Badge></TableCell>
+                          <TableCell>
+                            <AcoesDaLinha nome={c.codigo} principal={{ rotulo: 'Editar', aoClicar: () => editar(c) }} outras={[
+                              { rotulo: c.ativo ? 'Desligar' : 'Ligar', aoClicar: () => ativar.mutate({ id: c.id, ativo: !c.ativo }) },
+                              c.usos === 0 && { rotulo: 'Excluir', destrutiva: true, aoClicar: () => excluir.mutate(c.id) },
+                            ]} />
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </Rolagem>
+              )}
+            </ListaPaginada>
           </CardContent>
         </Card>
       </div>

@@ -70,7 +70,7 @@ public sealed class RevisaoDeDinheiroTest(ApiDeTeste api)
         var codigo = revenda.Codigos[0];
         // Sem documento do cliente não há Pix: o dono recebe no balcão.
         await revenda.Dono.Postar("/vendas", Cenarios.Venda(codigo, revenda.ProdutoId, "11955560001", documento: null), HttpStatusCode.Created);
-        var venda = (await revenda.Dono.Pegar("/vendas")).EnumerateArray().Single(v => v.GetProperty("codigo").GetString() == codigo).GetProperty("id").GetGuid();
+        var venda = (await revenda.Dono.PegarItens("/vendas")).EnumerateArray().Single(v => v.GetProperty("codigo").GetString() == codigo).GetProperty("id").GetGuid();
 
         var respostas = await EmParalelo(8, () => revenda.Dono.PostAsJsonAsync($"/vendas/{venda}/recebimento", new { meio = "Dinheiro" }, Ct));
 
@@ -141,7 +141,7 @@ public sealed class RevisaoDeDinheiroTest(ApiDeTeste api)
         var duda = await api.ClienteLogado(email);
         var codigo = revenda.Codigos[2];
         await duda.Postar("/vendas", Cenarios.Venda(codigo, revenda.ProdutoId, "11955560004"), HttpStatusCode.Created);
-        var venda = (await duda.Pegar("/vendas")).EnumerateArray().Single().GetProperty("id").GetGuid();
+        var venda = (await duda.PegarItens("/vendas")).EnumerateArray().Single().GetProperty("id").GetGuid();
         await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
         api.Gateway.Mudar(Guid.Parse(await banco.Texto($"select id::text from cobrancas where origem_id = '{venda}'")).ToString("N"), SituacaoDaCobranca.Paga);
         await Rotinas(DateTimeOffset.UtcNow.AddMinutes(10));

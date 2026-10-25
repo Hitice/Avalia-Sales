@@ -12,7 +12,7 @@ public sealed record SaldoDeComissao(Guid VendedorId, string Vendedor, string? C
     long AguardandoConferenciaCents = 0);
 
 public sealed record RepasseDto(Guid Id, Guid VendedorId, string Vendedor, long ValorCents, int Vendas, DateTimeOffset AteVendaEm, DateTimeOffset PagoEm, string? Comprovante,
-    DateTimeOffset? DesfeitoEm = null);
+    DateTimeOffset? DesfeitoEm = null, bool PodeDesfazer = false);
 
 public sealed record NovoRepasse(Guid VendedorId, DateTimeOffset? Ate, string? Comprovante);
 
@@ -54,13 +54,29 @@ public sealed class Comissoes(IBancoDeDados banco, IUsuarioAtual usuario, IConta
         }).ToList();
     }
 
-    public async Task<IReadOnlyList<RepasseDto>> Repasses(CancellationToken ct)
+    /// <summary>Do mais novo ao mais antigo; a busca vale para o nome do vendedor e o comprovante. O vendedor vê só os dele.</summary>
+    public async Task<Pagina<RepasseDto>> Repasses(string? busca, PedidoDePagina pedido, CancellationToken ct)
     {
-        var repasses = await banco.Repasses.AsNoTracking()
-            .Where(r => usuario.Papel != Papel.Vendedor || r.VendedorId == usuario.UsuarioId)
-            .OrderByDescending(r => r.PagoEm).Take(200).ToListAsync(ct);
-        var nomes = await contas.Nomes(repasses.Select(r => r.VendedorId), ct);
-        return repasses.Select(r => new RepasseDto(r.Id, r.VendedorId, nomes.GetValueOrDefault(r.VendedorId, ""), r.ValorCents, r.Vendas, r.AteVendaEm, r.PagoEm, r.Comprovante, r.DesfeitoEm)).ToList();
+        var consulta = banco.Repasses.AsNoTracking()
+            .Where(r => usuario.Papel != Papel.Vendedor || r.VendedorId == usuario.UsuarioId);
+        var termo = Paginacao.Termo(busca);
+        if (termo.Length > 0)
+        {
+            // Vira lower(...) LIKE no Postgres: a cultura do .NET não entra na consulta.
+#pragma warning disable CA1304, CA1311, CA1862
+            consulta = consulta.Where(r => (r.Comprovante != null && r.Comprovante.ToLower().Contains(termo))
+                || banco.Vendedores.Any(v => v.Id == r.VendedorId && v.Nome.ToLower().Contains(termo)));
+#pragma warning restore CA1304, CA1311, CA1862
+        }
+
+        var pagina = await consulta.OrderByDescending(r => r.PagoEm).ThenByDescending(r => r.Id).PaginarAsync(pedido, ct);
+        var vendedores = pagina.Itens.Select(r => r.VendedorId).Distinct().ToList();
+        var nomes = await contas.Nomes(vendedores, ct);
+        // Só o último repasse vivo de cada vendedor se desfaz (Desfazer), e a página pode não trazer o último dele.
+        var ultimos = await banco.Repasses.AsNoTracking().Where(r => vendedores.Contains(r.VendedorId) && r.DesfeitoEm == null)
+            .GroupBy(r => r.VendedorId).Select(g => new { g.Key, Ultimo = g.Max(r => r.PagoEm) }).ToDictionaryAsync(x => x.Key, x => x.Ultimo, ct);
+        return pagina.Mapear(r => new RepasseDto(r.Id, r.VendedorId, nomes.GetValueOrDefault(r.VendedorId, ""), r.ValorCents, r.Vendas, r.AteVendaEm, r.PagoEm, r.Comprovante, r.DesfeitoEm,
+            r.DesfeitoEm == null && ultimos.TryGetValue(r.VendedorId, out var ultimo) && r.PagoEm >= ultimo));
     }
 
     /// <summary>
@@ -115,7 +131,7 @@ public sealed class Comissoes(IBancoDeDados banco, IUsuarioAtual usuario, IConta
             $"A revenda repassou R$ {valor / 100},{valor % 100:00} de {vendas.Count} {(vendas.Count == 1 ? "venda" : "vendas")}.", "/vendedor/inicio");
         await banco.SaveChangesAsync(ct);
         await transacao.CommitAsync(ct);
-        return new RepasseDto(repasse.Id, vendedor.Id, vendedor.Nome, valor, vendas.Count, ate, agora, repasse.Comprovante);
+        return new RepasseDto(repasse.Id, vendedor.Id, vendedor.Nome, valor, vendas.Count, ate, agora, repasse.Comprovante, null, true);
     }
 
     /// <summary>
