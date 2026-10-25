@@ -65,6 +65,14 @@ public interface IBancoDeDados
     /// <summary>Trava de aplicação, até o fim da transação, pela origem da cobrança: duas cobranças da mesma venda não nascem juntas.</summary>
     Task TravarOrigemDaCobranca(Guid origemId, CancellationToken ct);
 
+    /// <summary>
+    /// A mesma trava da origem, mas de sessão e sem transação: dura até o fim do
+    /// <c>await using</c>, e por isso aguenta a chamada ao Pagar.me no meio (criar link,
+    /// estornar) sem manter transação aberta. Quem pede depois espera e já enxerga o
+    /// resultado de quem veio antes.
+    /// </summary>
+    Task<IAsyncDisposable> SegurarOrigemDaCobranca(Guid origemId, CancellationToken ct);
+
     Task<Lote?> TravarLote(int numero, CancellationToken ct);
 
     Task<Placa?> TravarPlaca(string codigo, CancellationToken ct);

@@ -114,7 +114,7 @@ public sealed class ClientePagarme(HttpClient http, IOptions<OpcoesPagarme> opco
     }
 
     /// <summary>GET /orders/{id} e DELETE /charges/{charge_id} com o amount: o estorno parcial da cobrança paga.</summary>
-    public async Task EstornarParte(string pedido, long valorCents, CancellationToken ct)
+    public async Task EstornarParte(string pedido, long valorCents, long jaEstornadoCents, CancellationToken ct)
     {
         var lido = await ChamadaExterna.Json(Sistema, () => http.GetAsync($"orders/{Uri.EscapeDataString(pedido)}", ct), ct);
         var paga = lido.TryGetProperty("charges", out var cobrancas) && cobrancas.ValueKind == JsonValueKind.Array
@@ -124,6 +124,13 @@ public sealed class ClientePagarme(HttpClient http, IOptions<OpcoesPagarme> opco
         if (id is null)
         {
             throw new Application.IntegracaoException(Sistema, null, "pedido sem cobrança paga para devolver");
+        }
+
+        // Resposta perdida na tentativa anterior: se o Pagar.me já devolveu o que o sistema registra mais este valor, não devolve de novo.
+        if (paga.TryGetProperty("canceled_amount", out var devolvido) && devolvido.ValueKind == JsonValueKind.Number
+            && devolvido.TryGetInt64(out var jaDevolvido) && jaDevolvido >= jaEstornadoCents + valorCents)
+        {
+            return;
         }
 
         var corpo = new JsonObject { ["amount"] = checked((int)valorCents) };
@@ -241,7 +248,9 @@ public sealed class ClientePagarme(HttpClient http, IOptions<OpcoesPagarme> opco
             : default;
         var transacao = cobranca.ValueKind == JsonValueKind.Object && cobranca.TryGetProperty("last_transaction", out var t) ? t : default;
 
+        // Os status documentados da cobrança v5 não incluem "refunded": o estorno total a deixa "canceled". Cancelada com paid_at é paga e devolvida, não cancelada.
         var situacao = cobranca.Texto("status") is "refunded" or "chargedback"
+            || cobranca.Texto("status") == "canceled" && cobranca.Data("paid_at") is not null
             ? SituacaoDaCobranca.Estornada
             : pedido.Texto("status") switch
             {

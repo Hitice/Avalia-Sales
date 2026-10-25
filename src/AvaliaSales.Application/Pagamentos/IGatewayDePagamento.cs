@@ -62,6 +62,10 @@ public interface IGatewayDePagamento
     /// <summary>
     /// Devolve só uma parte do pedido pago: a venda do grupo desfeita sozinha.
     /// O resto segue pago; devolvido tudo, a cobrança aparece estornada.
+    /// O Pagar.me não tem chave de idempotência: <paramref name="jaEstornadoCents"/> é o
+    /// que o sistema registra como devolvido antes desta chamada, e se o pedido já
+    /// tem devolvido jaEstornado + valor (a chamada anterior valeu e a resposta caiu),
+    /// nada é devolvido de novo.
     /// </summary>
-    Task EstornarParte(string pedido, long valorCents, CancellationToken ct);
+    Task EstornarParte(string pedido, long valorCents, long jaEstornadoCents, CancellationToken ct);
 }

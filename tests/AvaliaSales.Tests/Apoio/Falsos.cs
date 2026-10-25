@@ -82,15 +82,42 @@ public sealed class GatewayFalso : IGatewayDePagamento
     /// <summary>Pedido e valor de cada estorno parcial, na ordem.</summary>
     public List<(string Pedido, long ValorCents)> EstornosParciais { get; } = [];
 
-    public Task EstornarParte(string pedido, long valorCents, CancellationToken ct)
+    /// <summary>Demora do gateway no estorno parcial, para as chamadas concorrentes se encontrarem.</summary>
+    public TimeSpan AtrasoDoEstorno { get; set; }
+
+    /// <summary>O gateway conclui o estorno e a resposta cai (tempo esgotado): quem chama não sabe se valeu.</summary>
+    public bool ConcluiEstornoEFalha { get; set; }
+
+    /// <summary>O que o Pagar.me tem devolvido por pedido (canceled_amount), somando os estornos parciais.</summary>
+    public Dictionary<string, long> Devolvido { get; } = [];
+
+    public async Task EstornarParte(string pedido, long valorCents, long jaEstornadoCents, CancellationToken ct)
     {
         if (FalhaAoCancelar is not null)
         {
             throw FalhaAoCancelar;
         }
 
-        EstornosParciais.Add((pedido, valorCents));
-        return Task.CompletedTask;
+        if (AtrasoDoEstorno > TimeSpan.Zero)
+        {
+            await Task.Delay(AtrasoDoEstorno, ct);
+        }
+
+        lock (EstornosParciais)
+        {
+            // Como o Pagar.me real: o pedido que já tem devolvido o pedido não devolve de novo.
+            if (Devolvido.GetValueOrDefault(pedido) < jaEstornadoCents + valorCents)
+            {
+                EstornosParciais.Add((pedido, valorCents));
+                Devolvido[pedido] = Devolvido.GetValueOrDefault(pedido) + valorCents;
+            }
+        }
+
+        if (ConcluiEstornoEFalha)
+        {
+            ConcluiEstornoEFalha = false;
+            throw new IntegracaoException("Pagar.me", null, "tempo esgotado");
+        }
     }
 
     public void Mudar(string codigo, SituacaoDaCobranca situacao) =>

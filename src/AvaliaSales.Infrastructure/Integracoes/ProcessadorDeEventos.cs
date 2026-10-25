@@ -1,4 +1,3 @@
-using System.Text.Json;
 using AvaliaSales.Application.Contratos;
 using AvaliaSales.Application.Revendedores;
 using AvaliaSales.Application.Pagamentos;
@@ -46,7 +45,7 @@ public sealed partial class ProcessadorDeEventos(
                     aplicados++;
                 }
             }
-            catch (Exception erro) when (erro is Application.IntegracaoException or DbUpdateException or InvalidOperationException or JsonException)
+            catch (Exception erro) when (erro is not OperationCanceledException)
             {
                 LogFalha(log, evento.Id, erro);
                 await banco.EventosExternos.Where(e => e.Id == evento.Id).ExecuteUpdateAsync(s => s

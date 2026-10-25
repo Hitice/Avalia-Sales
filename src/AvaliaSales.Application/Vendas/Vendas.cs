@@ -337,6 +337,7 @@ public sealed class Vendas(
     /// </summary>
     public async Task ReceberPorFora(Guid vendaId, MeioDePagamento meio, CancellationToken ct)
     {
+        await using var trava = await TravarCobrancaDa(vendaId, ct);
         var venda = await AcharVenda(vendaId, ct);
         ExigirDaPlataforma(venda);
         if (venda.Situacao == SituacaoDaVenda.Cancelada || venda.Cortesia || venda.ValorCents == 0)
@@ -468,6 +469,8 @@ public sealed class Vendas(
     /// </summary>
     public async Task Cancelar(Guid vendaId, MotivoDoCancelamento motivo, string? observacao, PlacaDaVendaCancelada placaVolta, CancellationToken ct)
     {
+        // Dois cancelamentos da mesma venda ao mesmo tempo (duplo clique, duas abas) não devolvem duas vezes ao cliente: o segundo espera e já a vê cancelada.
+        await using var trava = await TravarCobrancaDa(vendaId, ct);
         var venda = await AcharVenda(vendaId, ct);
         ExigirDaPlataforma(venda);
         if (venda.Situacao == SituacaoDaVenda.Cancelada)
@@ -773,6 +776,13 @@ public sealed class Vendas(
         {
             return (null, "O Pagar.me não respondeu. Gere a cobrança de novo em Vendas.");
         }
+    }
+
+    /// <summary>A trava da cobrança que cobre a venda (a dela, ou a do grupo), antes de ler o estado que ela protege.</summary>
+    private async Task<IAsyncDisposable> TravarCobrancaDa(Guid vendaId, CancellationToken ct)
+    {
+        var origem = await banco.Vendas.AsNoTracking().Where(v => v.Id == vendaId).Select(v => v.GrupoId ?? v.Id).SingleOrDefaultAsync(ct);
+        return await banco.SegurarOrigemDaCobranca(origem == Guid.Empty ? vendaId : origem, ct);
     }
 
     private async Task<Venda> AcharVenda(Guid id, CancellationToken ct)

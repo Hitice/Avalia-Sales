@@ -58,6 +58,9 @@ public sealed class Renovacoes(IBancoDeDados banco, IUsuarioAtual usuario, Cobra
     public async Task<RenovacaoAberta> ReceberPorFora(string codigo, MeioDePagamento meio, CancellationToken ct)
     {
         var (placa, _, renovacao) = await AbrirRenovacao(codigo, ct);
+
+        // Duplo clique no balcão: o segundo espera o primeiro e encontra a renovação paga.
+        await using var trava = await banco.SegurarOrigemDaCobranca(renovacao.Id, ct);
         if (await banco.Cobrancas.AnyAsync(c => c.Origem == OrigemDaCobranca.Renovacao && c.OrigemId == renovacao.Id
                 && (c.Situacao == SituacaoDaCobranca.Pendente || c.Situacao == SituacaoDaCobranca.Paga), ct))
         {

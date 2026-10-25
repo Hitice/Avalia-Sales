@@ -66,16 +66,24 @@ public sealed class Comissoes(IBancoDeDados banco, IUsuarioAtual usuario, IConta
         var vendedor = await banco.Vendedores.AsNoTracking().SingleOrDefaultAsync(v => v.Id == pedido.VendedorId, ct)
             ?? throw new RegraDeNegocioException("Vendedor não encontrado.");
 
-        var devidas = await banco.Lancamentos
-            .Where(l => l.VendedorId == vendedor.Id && l.Tipo == TipoDeLancamento.ComissaoDevida && l.OcorridoEm <= ate)
+        // O corte vale para a comissão, e o estorno dela vai junto mesmo depois do corte: a venda cancelada não é repassada.
+        var originais = await banco.Lancamentos
+            .Where(l => l.VendedorId == vendedor.Id && l.Tipo == TipoDeLancamento.ComissaoDevida && l.EstornaId == null && l.OcorridoEm <= ate)
             .ToListAsync(ct);
+        var idsDasOriginais = originais.Select(l => (Guid?)l.Id).ToList();
+        var estornos = await banco.Lancamentos
+            .Where(l => l.VendedorId == vendedor.Id && l.Tipo == TipoDeLancamento.ComissaoDevida && idsDasOriginais.Contains(l.EstornaId))
+            .ToListAsync(ct);
+        var devidas = originais.Concat(estornos).ToList();
         var jaRepassado = -await banco.Lancamentos
             .Where(l => l.VendedorId == vendedor.Id && l.Tipo == TipoDeLancamento.ComissaoPaga)
             .SumAsync(l => l.ValorCents, ct);
         var valor = -devidas.Sum(l => l.ValorCents) - jaRepassado;
+        var comissaoEmAberto = devidas.Where(d => d.VendaId != null).GroupBy(d => d.VendaId!.Value)
+            .Where(g => g.Sum(d => d.ValorCents) < 0).Select(g => (Guid?)g.Key).ToList();
         // A venda cuja comissão o sistema anterior já pagou (linha paga com a venda) não entra na conta deste repasse.
         var vendas = await banco.Vendas
-            .Where(v => v.VendedorId == vendedor.Id && v.RepasseId == null && devidas.Select(d => d.VendaId).Contains(v.Id)
+            .Where(v => v.VendedorId == vendedor.Id && v.RepasseId == null && comissaoEmAberto.Contains(v.Id)
                 && !banco.Lancamentos.Any(l => l.VendaId == v.Id && l.Tipo == TipoDeLancamento.ComissaoPaga))
             .ToListAsync(ct);
 

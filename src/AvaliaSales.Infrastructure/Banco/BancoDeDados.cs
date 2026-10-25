@@ -663,6 +663,42 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
     public Task TravarOrigemDaCobranca(Guid origemId, CancellationToken ct) =>
         Database.ExecuteSqlAsync($"select pg_advisory_xact_lock(hashtextextended({origemId.ToString()}, 0))", ct);
 
+    public async Task<IAsyncDisposable> SegurarOrigemDaCobranca(Guid origemId, CancellationToken ct)
+    {
+        // A conexão fica aberta de propósito: a trava de sessão é dela. Sem transação, não prende linha nem snapshot.
+        await Database.OpenConnectionAsync(ct);
+        try
+        {
+            await Database.ExecuteSqlAsync($"select pg_advisory_lock(hashtextextended({origemId.ToString()}, 0))", ct);
+        }
+        catch
+        {
+            await Database.CloseConnectionAsync();
+            throw;
+        }
+
+        return new TravaDeSessao(this, origemId);
+    }
+
+    private sealed class TravaDeSessao(BancoDeDados banco, Guid origemId) : IAsyncDisposable
+    {
+        public async ValueTask DisposeAsync()
+        {
+            try
+            {
+                await banco.Database.ExecuteSqlAsync($"select pg_advisory_unlock(hashtextextended({origemId.ToString()}, 0))");
+            }
+            catch (Exception erro) when (erro is Npgsql.NpgsqlException or InvalidOperationException)
+            {
+                // Conexão quebrada: o Postgres solta a trava da sessão ao fechá-la.
+            }
+            finally
+            {
+                await banco.Database.CloseConnectionAsync();
+            }
+        }
+    }
+
     public Task<Lote?> TravarLote(int numero, CancellationToken ct) =>
         Lotes.FromSql($"select * from lotes where numero = {numero} for update").SingleOrDefaultAsync(ct);
 

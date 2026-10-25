@@ -122,14 +122,19 @@ public sealed class Cobranca : IDoRevendedor
         Situacao = SituacaoDaCobranca.Estornada;
     }
 
-    /// <summary>Parte devolvida ao cliente. Devolve se com ela a cobrança inteira foi devolvida.</summary>
-    public bool EstornarParte(long valorCents)
+    /// <summary>Recusa, antes de o dinheiro sair, a devolução que o pago não comporta.</summary>
+    public void ConferirEstorno(long valorCents)
     {
         if (Situacao != SituacaoDaCobranca.Paga || valorCents <= 0 || EstornadoCents + valorCents > ValorCents)
         {
             throw new RegraDeNegocioException("Esta cobrança não tem esse valor a devolver.");
         }
+    }
 
+    /// <summary>Parte devolvida ao cliente. Devolve se com ela a cobrança inteira foi devolvida.</summary>
+    public bool EstornarParte(long valorCents)
+    {
+        ConferirEstorno(valorCents);
         EstornadoCents += valorCents;
         return EstornadoCents == ValorCents;
     }

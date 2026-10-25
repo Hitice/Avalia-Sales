@@ -121,6 +121,19 @@ public sealed class Cobrancas(IBancoDeDados banco, IGatewayDePagamento gateway, 
     public async Task<CobrancaDto> CriarLink(OrigemDaCobranca origem, Guid origemId, long valorCents, string descricao, CancellationToken ct)
     {
         var revendedorId = atual.RevendedorId ?? throw new InvalidOperationException("Cobrança sem revendedor na requisição.");
+
+        // Dois toques em Pagar: o segundo espera o primeiro terminar o link e recebe o mesmo, em vez de gerar outro link vivo.
+        await using var trava = await banco.SegurarOrigemDaCobranca(origemId, ct);
+        var aberta = await banco.Cobrancas.AsNoTracking()
+            .Where(c => c.Origem == origem && c.OrigemId == origemId && (c.Situacao == SituacaoDaCobranca.Pendente || c.Situacao == SituacaoDaCobranca.Paga))
+            .OrderByDescending(c => c.CriadaEm).FirstOrDefaultAsync(ct);
+        if (aberta is not null)
+        {
+            return aberta.UrlDoLink is not null && aberta.Situacao == SituacaoDaCobranca.Pendente
+                ? ParaDto(aberta)
+                : throw new RegraDeNegocioException("Já existe cobrança em aberto ou paga para este pedido.");
+        }
+
         var cobranca = new Cobranca(origem, origemId, MeioDePagamento.Link, valorCents, TudoParaAvalia);
         banco.Cobrancas.Add(cobranca);
         banco.Vinculos.Add(new VinculoExterno(VinculoExterno.Pagarme, cobranca.Codigo, revendedorId));
@@ -277,9 +290,13 @@ public sealed class Cobrancas(IBancoDeDados banco, IGatewayDePagamento gateway, 
             if (!cobranca.PorFora)
             {
                 var pedido = cobranca.PedidoNoGateway ?? throw new RegraDeNegocioException("Esta cobrança não tem pedido no Pagar.me. Confira no painel do Pagar.me.");
+
+                // A regra confere antes de o dinheiro sair: o que passa do pago não chega ao Pagar.me.
+                cobranca.ConferirEstorno(devolver);
                 try
                 {
-                    await gateway.EstornarParte(pedido, devolver, ct);
+                    // Repetir depois de resposta perdida não devolve duas vezes: o Pagar.me já tem este tanto devolvido.
+                    await gateway.EstornarParte(pedido, devolver, cobranca.EstornadoCents, ct);
                 }
                 catch (IntegracaoException recusa) when (recusa.Status is >= 400 and < 500)
                 {

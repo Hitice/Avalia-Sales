@@ -79,7 +79,7 @@ public sealed partial class Retomadas(IServiceScopeFactory escopos, BancoDeDados
             var servicoDeCobranca = escopo.ServiceProvider.GetRequiredService<Cobrancas>();
             foreach (var id in cobrancas)
             {
-                retomados += await servicoDeCobranca.Retomar(id, agora - PrazoDoPedido, ct) ? 1 : 0;
+                retomados += await Isolar(doRevendedor, id, () => servicoDeCobranca.Retomar(id, agora - PrazoDoPedido, ct), ct) ? 1 : 0;
             }
 
             var intervalo = TimeSpan.FromSeconds(pagarme.Value.ConferenciaEmSegundos);
@@ -96,7 +96,7 @@ public sealed partial class Retomadas(IServiceScopeFactory escopos, BancoDeDados
                 .ToListAsync(ct);
             foreach (var id in pendentes)
             {
-                retomados += await servicoDeCobranca.Conferir(id, agora, ct) ? 1 : 0;
+                retomados += await Isolar(doRevendedor, id, () => servicoDeCobranca.Conferir(id, agora, ct), ct) ? 1 : 0;
             }
 
             // Chargeback e estorno pelo painel: a paga volta ao Pagar.me uma vez por dia na janela de contestação.
@@ -110,7 +110,7 @@ public sealed partial class Retomadas(IServiceScopeFactory escopos, BancoDeDados
                 .ToListAsync(ct);
             foreach (var id in pagas)
             {
-                retomados += await servicoDeCobranca.Conferir(id, agora, ct) ? 1 : 0;
+                retomados += await Isolar(doRevendedor, id, () => servicoDeCobranca.Conferir(id, agora, ct), ct) ? 1 : 0;
             }
 
             if (contratosRestantes <= 0)
@@ -193,6 +193,34 @@ public sealed partial class Retomadas(IServiceScopeFactory escopos, BancoDeDados
 
         return retomados;
     }
+
+    /// <summary>
+    /// Uma cobrança que não aplica (pedido de outro id, regra recusada) não para a rodada
+    /// das outras nem dos outros revendedores: o que ela deixou pela metade no contexto é
+    /// descartado, e ela vai para o fim da fila de conferência. Pagar.me fora do ar
+    /// (sem resposta ou 5xx) continua parando a rodada: as demais falhariam igual.
+    /// </summary>
+    private async Task<bool> Isolar(BancoDeDados doRevendedor, Guid cobrancaId, Func<Task<bool>> aplicar, CancellationToken ct)
+    {
+        try
+        {
+            return await aplicar();
+        }
+        catch (IntegracaoException erro) when (erro.Status is null or >= 500)
+        {
+            throw;
+        }
+        catch (Exception erro) when (erro is not OperationCanceledException)
+        {
+            doRevendedor.ChangeTracker.Clear();
+            LogCobranca(log, cobrancaId, erro);
+            await doRevendedor.Cobrancas.Where(c => c.Id == cobrancaId).ExecuteUpdateAsync(s => s.SetProperty(c => c.ConferidaEm, relogio.GetUtcNow()), ct);
+            return false;
+        }
+    }
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Cobrança {Cobranca} não foi reconsultada e vai para o fim da fila")]
+    private static partial void LogCobranca(ILogger log, Guid cobranca, Exception erro);
 
     /// <summary>O conversor de PDF fora do ar não para a rotina: a próxima volta gera de novo.</summary>
     private async Task Gerar(Func<Task<bool>> geracao)
