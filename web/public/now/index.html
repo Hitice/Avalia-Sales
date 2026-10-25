@@ -84,7 +84,7 @@
   <section id="arquitetura" class="secao largura" aria-labelledby="arquitetura-titulo">
     <header class="secao-topo">
       <h2 id="arquitetura-titulo">Arquitetura: API e Worker em .NET, telas em React, dados no PostgreSQL</h2>
-      <p>A API responde sem esperar as integrações; o Worker processa filas, eventos de pagamento e e-mails com retentativa.</p>
+      <p>A API responde sem esperar as integrações - o Worker processa filas, eventos de pagamento e e-mails com retentativa.</p>
     </header>
 
     <figure class="mapa">
@@ -183,7 +183,7 @@
           <div class="aprofundar-corpo">
             <dl class="decisao">
           <div><dt>Contexto</dt><dd>O webhook do Pagar.me pode chegar repetido, fora de ordem ou forjado, e a rede pode cair no meio da cobrança.</dd></div>
-          <div><dt>Decisão</dt><dd>A cobrança é gravada antes de chamar o Pagar.me. O webhook só registra o evento; o Worker reconsulta a cobrança no gateway e trava a linha do evento (FOR UPDATE SKIP LOCKED) antes da baixa.</dd></div>
+          <div><dt>Decisão</dt><dd>A cobrança é gravada antes de chamar o Pagar.me. O webhook só registra o evento. O Worker reconsulta a cobrança no gateway e trava a linha do evento (FOR UPDATE SKIP LOCKED) antes da baixa.</dd></div>
           <div><dt>Motivo</dt><dd>A venda só muda de situação pelo estado confirmado no Pagar.me, e o mesmo aviso não é aplicado duas vezes.</dd></div>
           <div><dt>Evidência</dt><dd><p class="evidencia"><a href="https://github.com/Hitice/Avalia-Sales/blob/main/docs/adr/0004-cobranca-gravada-antes-de-chamar-o-pagar-me.md" rel="noopener">ADR 0004</a><a href="https://github.com/Hitice/Avalia-Sales/blob/main/docs/adr/0005-webhook-so-grava-o-worker-reconsulta-a-fonte.md" rel="noopener">ADR 0005</a><a href="https://github.com/Hitice/Avalia-Sales/blob/main/tests/AvaliaSales.Tests/Integracoes/FluxoDePagamentoTest.cs" rel="noopener">Testes do pagamento</a></p></dd></div>
         </dl>
@@ -312,7 +312,7 @@
             <span class="passo-numero" aria-hidden="true">1</span>
             <span class="passo-texto"><strong>Itens</strong>O vendedor monta a venda com placas e serviços para o mesmo cliente.</span>
           </button>
-          <p class="passo-tec">Uma cobrança para a venda inteira; cancelar um item devolve só a parte dele.</p>
+          <p class="passo-tec">Uma cobrança para a venda inteira. Cancelar um item devolve só a parte dele.</p>
         </li>
         <li>
           <button type="button" class="passo" data-ir="2" aria-pressed="false">
@@ -326,28 +326,28 @@
             <span class="passo-numero" aria-hidden="true">3</span>
             <span class="passo-texto"><strong>Cobrança</strong>O cliente paga por Pix ou cartão na tela do vendedor.</span>
           </button>
-          <p class="passo-tec">A cobrança é gravada antes de chamar o Pagar.me; o cartão é tokenizado no navegador.</p>
+          <p class="passo-tec">A cobrança é gravada antes de chamar o Pagar.me, e o cartão é tokenizado no navegador.</p>
         </li>
         <li>
           <button type="button" class="passo" data-ir="4" aria-pressed="false">
             <span class="passo-numero" aria-hidden="true">4</span>
             <span class="passo-texto"><strong>Confirmação</strong>O pagamento aparece na tela do vendedor sem recarregar.</span>
           </button>
-          <p class="passo-tec">O webhook do Pagar.me é gravado e conferido na origem; a tela recebe por SignalR.</p>
+          <p class="passo-tec">O webhook do Pagar.me é gravado e conferido na origem. A tela recebe por SignalR.</p>
         </li>
         <li>
           <button type="button" class="passo" data-ir="5" aria-pressed="false">
             <span class="passo-numero" aria-hidden="true">5</span>
             <span class="passo-texto"><strong>Divisão</strong>A plataforma calcula a parte da revenda, da operadora e a comissão do vendedor.</span>
           </button>
-          <p class="passo-tec">Valores em centavos no razão; split do Pagar.me por recebedor; comissão paga em repasse.</p>
+          <p class="passo-tec">Valores em centavos no razão, split do Pagar.me por recebedor e comissão paga em repasse.</p>
         </li>
         <li>
           <button type="button" class="passo" data-ir="6" aria-pressed="false">
             <span class="passo-numero" aria-hidden="true">6</span>
             <span class="passo-texto"><strong>Ativação</strong>A placa passa a levar à avaliação do cliente no Google.</span>
           </button>
-          <p class="passo-tec">Redirecionamento configurável sem reimprimir a placa; gravação NFC pelo Web NFC.</p>
+          <p class="passo-tec">Redirecionamento configurável sem reimprimir a placa - gravação NFC pelo Web NFC.</p>
         </li>
       </ol>
     </div>
@@ -373,7 +373,7 @@
       </li>
       <li>
         <h3>Contrato entre front e API</h3>
-        <p>Tipos do front gerados do OpenAPI da API; o CI falha se estiverem desatualizados.</p>
+        <p>Tipos do front gerados do OpenAPI da API. O CI falha se estiverem desatualizados.</p>
         <a href="https://github.com/Hitice/Avalia-Sales/blob/main/.github/workflows/ci.yml" rel="noopener">Verificações do CI</a>
       </li>
       <li>
