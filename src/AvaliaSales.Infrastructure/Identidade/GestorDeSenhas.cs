@@ -53,6 +53,14 @@ public sealed class GestorDeSenhas(BancoDeDados banco, UserManager<Usuario> usua
             return;
         }
 
+        // Um pedido por minuto por conta, calado: o e-mail anterior ainda vale, e quem digita o endereço
+        // de outra pessoa em loop não enche a caixa dela (o limite por IP deixa passar 20 por minuto).
+        var limite = relogio.GetUtcNow() - EsperaParaReenviar;
+        if (await banco.LinksDeSenha.AnyAsync(l => l.UsuarioId == usuario.Id && l.Finalidade == FinalidadeDoLink.Redefinicao && l.CriadoEm > limite, ct))
+        {
+            return;
+        }
+
         var (link, endereco) = await Emitir(usuario.Id, FinalidadeDoLink.Redefinicao, ct);
         emails.Enfileirar($"senha:{link.Id:N}", usuario.Email!, "Trocar a senha",
             $"""

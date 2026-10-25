@@ -29,7 +29,7 @@ public sealed class AcessoDaRequisicao(IHttpContextAccessor http) : IRevendedorA
     /// </summary>
     public void Assumir(Guid revendedorId)
     {
-        if (Autenticado || _assumido is not null)
+        if (_assumido is not null)
         {
             throw new InvalidOperationException("O revendedor da requisição já está definido.");
         }
@@ -37,7 +37,11 @@ public sealed class AcessoDaRequisicao(IHttpContextAccessor http) : IRevendedorA
         _assumido = revendedorId;
     }
 
-    private bool Autenticado => http.HttpContext?.User.Identity?.IsAuthenticated == true;
+    /// <summary>
+    /// Quem assumiu um revendedor é a rota pública, num escopo só dela: o token que a requisição
+    /// eventualmente leva (o app logado lendo uma placa) não vale ali, senão a leitura dava 500.
+    /// </summary>
+    private bool Autenticado => _assumido is null && http.HttpContext?.User.Identity?.IsAuthenticated == true;
 
     private Guid? LerGuid(string reivindicacao) =>
         Guid.TryParse(http.HttpContext!.User.FindFirst(reivindicacao)?.Value, out var id) ? id : null;

@@ -30,7 +30,9 @@ public sealed class Links(IBancoDeDados banco, IRevendedorAtual atual, Auditoria
 
     public async Task<LinkDto> Criar(GravarLink comando, CancellationToken ct)
     {
-        var destino = comando.Destino.Resolver(plataforma.Value.HostPublico);
+        var destino = (comando.Destino ?? throw new RegraDeNegocioException("Escolha para onde o link leva.")).Resolver(plataforma.Value.HostPublico);
+        await using var transacao = await banco.Database.BeginTransactionAsync(ct);
+        await banco.TravarLinksDaRevenda(RevendedorDoToken(), ct);
         if (await banco.Links.AsNoTracking().FirstOrDefaultAsync(l => l.Destino == destino, ct) is { } existente)
         {
             throw new RegraDeNegocioException($"Este destino já tem o link {plataforma.Value.EnderecoDoLink(existente.Codigo)}.");
@@ -38,13 +40,16 @@ public sealed class Links(IBancoDeDados banco, IRevendedorAtual atual, Auditoria
 
         var link = await Novo(comando.Titulo, destino, null, ct);
         await banco.SaveChangesAsync(ct);
+        await transacao.CommitAsync(ct);
         return ParaDto(link);
     }
 
     public async Task<LinkDto> Alterar(Guid id, GravarLink comando, CancellationToken ct)
     {
         var link = await Achar(id, ct);
-        var destino = comando.Destino.Resolver(plataforma.Value.HostPublico);
+        var destino = (comando.Destino ?? throw new RegraDeNegocioException("Escolha para onde o link leva.")).Resolver(plataforma.Value.HostPublico);
+        await using var transacao = await banco.Database.BeginTransactionAsync(ct);
+        await banco.TravarLinksDaRevenda(RevendedorDoToken(), ct);
         if (await banco.Links.AnyAsync(l => l.Id != id && l.Destino == destino, ct))
         {
             throw new RegraDeNegocioException("Outro link já leva a este destino.");
@@ -58,6 +63,7 @@ public sealed class Links(IBancoDeDados banco, IRevendedorAtual atual, Auditoria
         }
 
         await banco.SaveChangesAsync(ct);
+        await transacao.CommitAsync(ct);
         return ParaDto(link);
     }
 
@@ -82,6 +88,7 @@ public sealed class Links(IBancoDeDados banco, IRevendedorAtual atual, Auditoria
     /// </summary>
     public async Task<string> DoNegocio(Guid clienteId, string empresa, string destino, CancellationToken ct)
     {
+        await banco.TravarLinksDaRevenda(RevendedorDoToken(), ct);
         var link = await banco.Links.FirstOrDefaultAsync(l => l.Destino == destino, ct)
             ?? await Novo(Titulo($"Avaliação no Google - {empresa}"), destino, clienteId, ct);
         return plataforma.Value.EnderecoDoLink(link.Codigo);
@@ -126,6 +133,8 @@ public sealed class Links(IBancoDeDados banco, IRevendedorAtual atual, Auditoria
 
         throw new InvalidOperationException($"Nenhum código livre em {Sorteios} sorteios.");
     }
+
+    private Guid RevendedorDoToken() => atual.RevendedorId ?? throw new InvalidOperationException("Link sem revendedor.");
 
     private static string Titulo(string texto) => texto.Length > LinkCurto.TituloMaximo ? texto[..LinkCurto.TituloMaximo] : texto;
 

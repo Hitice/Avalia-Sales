@@ -57,6 +57,8 @@ if (builder.Configuration["Sentry:Dsn"] is { Length: > 0 } dsn)
         // Recusa de regra de negócio é resposta 422 ao usuário, e pedido abortado por quem chamou não é falha: os dois só fariam ruído.
         o.AddExceptionFilterForType<AvaliaSales.Domain.RegraDeNegocioException>();
         o.AddExceptionFilterForType<OperationCanceledException>();
+        // Corpo quebrado de quem chamou é 400 ao cliente, e qualquer um pode provocá-lo à vontade.
+        o.AddExceptionFilterForType<BadHttpRequestException>();
     });
 }
 
@@ -155,7 +157,9 @@ builder.Services.ConfigureHttpJsonOptions(o =>
 builder.Services.AddSignalR();
 builder.Services.AddHostedService<OuvinteDeAvisos>();
 builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<PedidoMalFormadoEm400>();
 builder.Services.AddExceptionHandler<RegraDeNegocioEm422>();
+builder.Services.AddExceptionHandler<DuplicidadeEm422>();
 builder.Services.AddHealthChecks().AddDbContextCheck<BancoDeDados>();
 builder.Services.AddOpenApi(o => o.AddDocumentTransformer<EsquemaDoToken>());
 

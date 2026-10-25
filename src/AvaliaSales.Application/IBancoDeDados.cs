@@ -73,6 +73,9 @@ public interface IBancoDeDados
     /// </summary>
     Task<IAsyncDisposable> SegurarOrigemDaCobranca(Guid origemId, CancellationToken ct);
 
+    /// <summary>Trava de aplicação, até o fim da transação, pelos links da revenda: "este destino já tem link" não vale para duas criações juntas.</summary>
+    Task TravarLinksDaRevenda(Guid revendedorId, CancellationToken ct);
+
     Task<Lote?> TravarLote(int numero, CancellationToken ct);
 
     Task<Placa?> TravarPlaca(string codigo, CancellationToken ct);

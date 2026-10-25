@@ -41,6 +41,12 @@ public static partial class Destino
             throw new RegraDeNegocioException("O endereço é longo demais para uma placa.");
         }
 
+        // Quebra de linha e afins não entram no cabeçalho Location: o Kestrel recusa, e a placa impressa passaria a responder 500.
+        if (destino.Any(char.IsControl))
+        {
+            throw new RegraDeNegocioException("O endereço tem quebra de linha ou tabulação. Cole o link de novo.");
+        }
+
         // javascript:, data: e afins: o navegador de quem lê executaria o que estivesse ali.
         if (!Uri.TryCreate(destino, UriKind.Absolute, out var uri) || (uri.Scheme != Uri.UriSchemeHttps && uri.Scheme != Uri.UriSchemeHttp))
         {
@@ -58,7 +64,30 @@ public static partial class Destino
             throw new RegraDeNegocioException("O destino não pode ser o endereço de outra placa ou de outro link.");
         }
 
-        return destino;
+        var gravavel = ParaCabecalho(destino) ?? throw new RegraDeNegocioException("O endereço tem caractere que a placa não aceita. Confira o link.");
+        // A coluna tem o mesmo limite, e o %XX do acento engorda o endereço.
+        return gravavel.Length <= TamanhoMaximo ? gravavel : throw new RegraDeNegocioException("O endereço é longo demais para uma placa.");
+    }
+
+    /// <summary>
+    /// O endereço como o cabeçalho Location aceita: só ASCII e sem caractere de controle. Acento no
+    /// caminho ("/são-joão") ou no domínio vira %XX e punycode, porque o Kestrel recusa o byte fora do
+    /// ASCII e a placa impressa daria 500. Destino já em ASCII fica como foi digitado. Nulo quando o
+    /// texto não é um endereço absoluto utilizável.
+    /// </summary>
+    public static string? ParaCabecalho(string destino)
+    {
+        if (destino.Any(char.IsControl))
+        {
+            return null;
+        }
+
+        if (destino.All(char.IsAscii))
+        {
+            return destino;
+        }
+
+        return Uri.TryCreate(destino, UriKind.Absolute, out var uri) && uri.AbsoluteUri.All(char.IsAscii) ? uri.AbsoluteUri : null;
     }
 
     [GeneratedRegex("^[a-z][a-z0-9+.-]*:", RegexOptions.IgnoreCase)]

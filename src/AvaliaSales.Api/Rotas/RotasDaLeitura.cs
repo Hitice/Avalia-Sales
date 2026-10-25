@@ -99,8 +99,14 @@ public static class RotasDaLeitura
 
     private static IResult Redirecionar(HttpContext http, string destino)
     {
+        // Destino gravado antes da conferência de ASCII (acento no caminho) derrubaria a resposta no Kestrel.
+        if (Destino.ParaCabecalho(destino) is not { } seguro)
+        {
+            return Pagina(http, Aviso.NaoEncontrada, string.Empty, HttpStatusCode.NotFound);
+        }
+
         SemCache(http);
-        return Results.Redirect(destino, permanent: false);
+        return Results.Redirect(seguro, permanent: false);
     }
 
     private static bool EhRobo(string agente) =>

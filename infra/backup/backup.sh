@@ -10,6 +10,11 @@
 # base64), o e-mail sai sem anexo, avisando que a cópia ficou só no disco.
 set -eu
 
+# A cópia tem dado de cliente e hash de senha, e o contêiner roda como root: sem isto o arquivo
+# nasce 0644 no disco do VPS, legível por qualquer usuário da máquina. O mesmo vale para o
+# /tmp/email.json, que carrega a cópia inteira em base64.
+umask 077
+
 LIMITE_DO_ANEXO=28000000
 
 enviar() {

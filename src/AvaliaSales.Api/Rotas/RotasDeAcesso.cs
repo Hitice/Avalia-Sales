@@ -134,12 +134,18 @@ public static class RotasDeAcesso
         var usuario = string.IsNullOrWhiteSpace(pedido.Email) ? null : await usuarios.FindByEmailAsync(pedido.Email.Trim());
         if (usuario is not { Ativo: true })
         {
+            GastarTempoDeSenha(usuarios, pedido.Senha);
             return Results.Unauthorized();
         }
 
         var resultado = await acesso.CheckPasswordSignInAsync(usuario, pedido.Senha ?? string.Empty, lockoutOnFailure: true);
         if (!resultado.Succeeded)
         {
+            if (resultado.IsLockedOut)
+            {
+                GastarTempoDeSenha(usuarios, pedido.Senha);
+            }
+
             return Results.Unauthorized();
         }
 
@@ -150,6 +156,15 @@ public static class RotasDeAcesso
 
         return await Entrou(http, usuario, sessoes, emissor, banco, ct);
     }
+
+    /// <summary>
+    /// Hash de uma senha que ninguém tem, calculado uma vez: e-mail sem conta, login desativado e conta
+    /// bloqueada gastam o mesmo tempo de uma senha errada, e a demora não revela quais e-mails têm conta.
+    /// </summary>
+    private static readonly string HashFicticio = new PasswordHasher<Usuario>().HashPassword(new Usuario(), Guid.NewGuid().ToString("N"));
+
+    private static void GastarTempoDeSenha(UserManager<Usuario> usuarios, string? senha) =>
+        usuarios.PasswordHasher.VerifyHashedPassword(new Usuario(), HashFicticio, senha ?? string.Empty);
 
     /// <summary>
     /// Senha criada pelo convite ou trocada pelo link: já entra. Com segundo

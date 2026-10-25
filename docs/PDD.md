@@ -753,6 +753,7 @@ porque está impresso nas placas vendidas.
 
 | Data | Mudança |
 | --- | --- |
+| 25/10/2026 | Entrada e links - "Esqueci a senha" envia no máximo um e-mail por minuto por conta; destino com acento é gravado codificado e quebra de linha é recusada, para a placa impressa nunca responder erro; dois links não nascem mais para o mesmo destino em pedidos simultâneos. |
 | 25/10/2026 | Dinheiro sob repetição - pagar o pedido de placas, receber por fora e cancelar a venda de um grupo mais de uma vez ao mesmo tempo geram um efeito só (um link, um recebimento, uma devolução ao cliente). O repasse com data de corte leva junto o estorno da comissão, e a venda cancelada depois do corte não é repassada. Estorno pelo painel do Pagar.me, sem webhook, passa a ser reconhecido na reconsulta diária. |
 | 25/10/2026 | Ficha da placa - o vendedor lê a ficha completa da placa em estoque (para conferir na Nova venda) e da placa que ele vendeu. Placa vendida por outro vendedor mostra só o código e o estado; cliente, valor, comissão, destino e histórico são de quem vendeu e do revendedor. |
 | 25/10/2026 | Renovação recebida por fora pede confirmação na ficha da placa e vai à auditoria; o revendedor desfaz a renovação registrada por engano (estorno no razão e o vencimento de antes). |

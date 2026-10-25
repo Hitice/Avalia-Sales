@@ -699,6 +699,12 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
         }
     }
 
+    public Task TravarLinksDaRevenda(Guid revendedorId, CancellationToken ct)
+    {
+        var chave = $"links:{revendedorId}";
+        return Database.ExecuteSqlAsync($"select pg_advisory_xact_lock(hashtextextended({chave}, 0))", ct);
+    }
+
     public Task<Lote?> TravarLote(int numero, CancellationToken ct) =>
         Lotes.FromSql($"select * from lotes where numero = {numero} for update").SingleOrDefaultAsync(ct);
 
