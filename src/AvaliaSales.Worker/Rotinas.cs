@@ -16,6 +16,15 @@ public sealed partial class Rotinas(IServiceScopeFactory escopos, ILogger<Rotina
     private const int ContratosPorVolta = 2;
     private const int EmailsPorVolta = 20;
 
+    /// <summary>
+    /// O sinal de vida ao Sentry (Cron Monitoring): sem ele por mais de dez
+    /// minutos, o Sentry abre um alerta de Worker parado, que também é o aviso
+    /// de servidor fora do ar. Sem DSN, não sai nada.
+    /// </summary>
+    private const string Monitor = "avalia-sales-worker";
+    private static readonly TimeSpan IntervaloDoSinal = TimeSpan.FromMinutes(5);
+    private DateTimeOffset _ultimoSinal = DateTimeOffset.MinValue;
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         using var relogio = new PeriodicTimer(Intervalo);
@@ -29,8 +38,28 @@ public sealed partial class Rotinas(IServiceScopeFactory escopos, ILogger<Rotina
             {
                 LogVolta(log, eventos, retomados, emails, erp);
             }
+
+            SinalDeVida();
         }
         while (await relogio.WaitForNextTickAsync(stoppingToken));
+    }
+
+    private void SinalDeVida()
+    {
+        var agora = DateTimeOffset.UtcNow;
+        if (!SentrySdk.IsEnabled || agora - _ultimoSinal < IntervaloDoSinal)
+        {
+            return;
+        }
+
+        _ultimoSinal = agora;
+        SentrySdk.CaptureCheckIn(Monitor, CheckInStatus.Ok, configureMonitorOptions: o =>
+        {
+            o.Interval(5, SentryMonitorInterval.Minute);
+            o.CheckInMargin = TimeSpan.FromMinutes(5);
+            o.FailureIssueThreshold = 2;
+            o.RecoveryThreshold = 1;
+        });
     }
 
     private async Task<int> Rodar(string rotina, Func<IServiceProvider, CancellationToken, Task<int>> fazer, CancellationToken ct)

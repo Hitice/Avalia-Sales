@@ -470,6 +470,10 @@ Conferido na referência oficial em 21/10/2026.
   cobrança pendente com pedido, criada há menos de 2 dias, a cada
   `Pagarme:ConferenciaEmSegundos` (300 em produção, 15 no simulador), no máximo
   20 por revendedor a cada volta. Grava `conferida_em`.
+- Chargeback e estorno feito no painel do Pagar.me, sem webhook - a cobrança
+  paga com pedido, de até 120 dias, volta à conferência uma vez por dia, 5 por
+  revendedor a cada volta das Retomadas. Situação estornada no gateway estorna
+  aqui, com os lançamentos de volta no razão.
 
 ### Avisos ao vivo (no código)
 
@@ -708,12 +712,13 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
   baixa no aparelho sem `BarcodeDetector`.
 - Ensaio de restauração do backup no VPS, e uma cópia fora dele (bucket de armazenamento de objetos, criptografada).
 - SonarCloud - criar o projeto, desligar a análise automática e gravar `SONAR_TOKEN`, `SONAR_ORGANIZACAO` e `SONAR_PROJETO`.
-- Revisão de arquitetura, o que ficou - conciliação periódica de chargeback com o Pagar.me (hoje só o webhook), `/q/` sem 502 enquanto a API reinicia (resolver no Nginx ou imagem pronta antes de trocar), aviso de fora quando a plataforma cai, renovação da sessão disputada entre abas, limite de memória e CPU por contêiner, segredos fora do log do Nginx.
+- Limite de memória e CPU por contêiner no Compose de produção, a definir com o tamanho do VPS.
 
 ## 13. Registro de mudanças
 
 | Data | Mudança |
 | --- | --- |
+| 25/10/2026 | Revisão de arquitetura, segundo lote - Retomadas reconsultam a cobrança paga uma vez por dia (chargeback e estorno pelo painel do Pagar.me sem webhook, `ChargebackTest`); a renovação da sessão passa por `navigator.locks` e duas abas não gastam o mesmo refresh token; Nginx com `/q/` e `/l/` respondendo 503 com página de espera e recarga em 3 s enquanto a API reinicia, e log de acesso sem query string (`sem_query`); `backup.sh` só aceita a cópia que o `pg_restore --list` lê com os dados de `lancamentos`; Worker manda check-in ao Sentry a cada 5 minutos (monitor `avalia-sales-worker`, alerta com 2 faltas); pedido abortado por quem chamou responde 499 sem virar erro; monitor de disponibilidade do Sentry em `/api/health` a cada 60 s. |
 | 24/10/2026 | 2.7.0 - `POST /clientes` (`Clientes.Cadastrar`, recusa CPF, CNPJ ou telefone já cadastrado; ação de auditoria `ClienteCadastrado`); `PUT /operadora/revendedores/{id}/renovacao` no lugar do `PUT /revenda/renovacao`; `GET /auditoria?busca=` (texto no alvo, código, antes e depois, nome da ação e nome do vendedor); `GravarMarca.CabecalhoNaCor`; migrations `CpfDoVendedor` (vendedores.cpf) e `CabecalhoNaCorDaMarca` (revendedores.cabecalho_na_cor), as duas aditivas. Front - `Table` com rolagem própria, cabeçalho fixo e busca pelo DOM a partir de 7 linhas (`ListaComBusca` para cartões); `Input` de senha com o olho; Sonner (`components/ui/sonner.tsx`) e `meta.sucesso` nas gravações (MutationCache no `main.tsx`); `VendasEm30Dias` compartilhado entre o início do revendedor, o do vendedor e as leituras da placa. `PainelDoVendedor` com `GET /painel-do-vendedor` (meta, vendido pago no mês de Brasília e ranking por vendas pagas) e `GET /carteira`; `CobrancaDaVenda.PixCopiaECola` só com o Pix pendente; migration `MetaDoVendedor` (vendedores.meta_mensal_cents, aditiva). |
 | 24/10/2026 | Revisão de arquitetura, primeiro lote - o Deploy só roda para o CI de push no `main` deste repositório (`workflow_run.event`, `head_branch` e `head_repository`), porque o runner fica no VPS e o repositório é público; cópia do banco antes de subir (`backup.sh agora` devolve erro quando falha); cada rotina do Worker no próprio escopo e `try` (`Rotinas.Rodar`); a cobrança nasce dentro de uma transação com trava de aplicação pela origem (`IBancoDeDados.TravarOrigemDaCobranca`) e recusa a segunda cobrança viva da mesma venda; migration `RazaoSoDeInsercaoNoBanco` (REVOKE UPDATE, DELETE em `lancamentos` do papel da aplicação); gzip no Nginx; job `qualidade` do SonarCloud com C#, TypeScript e a cobertura dos testes da API (`dotnet-coverage`). |
 | 24/10/2026 | `GET /vendas/{id}` (`Vendas.Detalhe`, `DetalheDaVenda`) - a venda com cliente, cobrança, itens do grupo, ordens de serviço e razão; o vendedor só abre a dele e não recebe o razão. Categoria de despesa `ServicoDePjComNota`. |

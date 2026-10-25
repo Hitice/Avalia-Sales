@@ -151,6 +151,9 @@ o workflow compila de novo.
   (migration, exclusão), não da perda do servidor. Com `BACKUP_PARA` e o Resend,
   a cópia vai anexada por e-mail até 28 MB. O destino fora do VPS que fica é
   um bucket de armazenamento de objetos (pendência em docs/SDD.md).
+- O `backup.sh` grava em `.parcial` e só renomeia depois que o
+  `pg_restore --list` lê o arquivo e acha os dados de `lancamentos`. Cópia
+  cortada ou vazia sai com erro e não apaga as anteriores.
 - Cópia na hora: `docker compose -f docker-compose.producao.yml --env-file /srv/avalia-sales/.env exec backup sh /backup.sh agora`.
 - Teste a restauração todo mês, num banco à parte:
 
@@ -271,6 +274,14 @@ leem pelo `avaliaone.com.br/q/`, que nada daqui alcança.
 - `docker compose -f docker-compose.producao.yml logs -f api worker`.
 - Sentry com `SENTRY_DSN` (API e Worker) e `SENTRY_DSN_DO_FRONT` (front, na
   compilação). Sem dado pessoal: nem corpo, nem cookie, nem IP.
+- Alertas do Sentry - monitor de disponibilidade em `/api/health` a cada
+  60 s (alerta depois de 3 falhas) e check-in do Worker a cada 5 minutos
+  (monitor `avalia-sales-worker`, alerta depois de 2 faltas). Worker parado ou
+  API fora chegam por e-mail sem ninguém olhar o painel.
+- Log de acesso do Nginx sem query string (`$uri`, formato `sem_query`): o
+  busca e filtros, que levam nome e telefone, não ficam gravados.
+- Enquanto a API reinicia, `/q/` e `/l/` mostram "Abrindo o link, só um
+  instante." e recarregam em 3 s, no lugar do 502.
 - Fila parada - e-mails sem Resend esperam na tabela `emails`; pedido de venda
   sem Protheus espera em `envios_ao_erp` (tela ERP da operadora); webhook que
   falhou 10 vezes fica em `eventos_externos` com o último erro.

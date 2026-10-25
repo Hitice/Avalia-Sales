@@ -42,6 +42,19 @@ public sealed partial class Retomadas(IServiceScopeFactory escopos, BancoDeDados
     /// <summary>Sem pedido no Pagar.me depois disso, a cobrança falhou.</summary>
     public static readonly TimeSpan PrazoDoPedido = TimeSpan.FromMinutes(15);
 
+    /// <summary>
+    /// Cobrança paga é reconsultada por este tempo depois do pagamento: é a
+    /// janela em que chega chargeback ou estorno feito no painel do Pagar.me,
+    /// que o webhook pode não ter trazido.
+    /// </summary>
+    public static readonly TimeSpan JanelaDeContestacao = TimeSpan.FromDays(120);
+
+    /// <summary>Cada cobrança paga é reconsultada no máximo uma vez neste intervalo.</summary>
+    public static readonly TimeSpan IntervaloDasPagas = TimeSpan.FromHours(24);
+
+    /// <summary>Cobranças pagas reconsultadas por revendedor a cada volta.</summary>
+    public const int PagasPorRodada = 5;
+
     public async Task<int> Executar(int contratosPorRodada, CancellationToken ct)
     {
         var agora = relogio.GetUtcNow();
@@ -82,6 +95,20 @@ public sealed partial class Retomadas(IServiceScopeFactory escopos, BancoDeDados
                 .Take(ConferenciasPorRodada)
                 .ToListAsync(ct);
             foreach (var id in pendentes)
+            {
+                retomados += await servicoDeCobranca.Conferir(id, agora, ct) ? 1 : 0;
+            }
+
+            // Chargeback e estorno pelo painel: a paga volta ao Pagar.me uma vez por dia na janela de contestação.
+            var limiteDaContestacao = agora - JanelaDeContestacao;
+            var pagas = await doRevendedor.Cobrancas.AsNoTracking()
+                .Where(c => c.Situacao == SituacaoDaCobranca.Paga && c.PedidoNoGateway != null && c.PagaEm > limiteDaContestacao
+                    && (c.ConferidaEm == null ? c.PagaEm < agora - IntervaloDasPagas : c.ConferidaEm < agora - IntervaloDasPagas))
+                .OrderBy(c => c.ConferidaEm ?? c.PagaEm)
+                .Select(c => c.Id)
+                .Take(PagasPorRodada)
+                .ToListAsync(ct);
+            foreach (var id in pagas)
             {
                 retomados += await servicoDeCobranca.Conferir(id, agora, ct) ? 1 : 0;
             }

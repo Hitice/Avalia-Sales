@@ -28,17 +28,26 @@ async function tentar(): Promise<boolean | 'de-novo'> {
 }
 
 /**
+ * Entre abas do mesmo navegador, uma renova de cada vez (Web Locks): o cookie
+ * é o mesmo, e a segunda aba renova depois, já com o cookie que a primeira
+ * recebeu. Sem a API, vale só a fila desta aba.
+ */
+function umaAbaPorVez<T>(fazer: () => Promise<T>): Promise<T> {
+  return typeof navigator !== 'undefined' && navigator.locks ? navigator.locks.request('avalia-sales-renovacao', fazer) : fazer()
+}
+
+/**
  * Troca o refresh do cookie por um token de acesso novo. Várias chamadas ao
  * mesmo tempo esperam a mesma renovação: o refresh é rotativo, e duas
  * renovações paralelas com o mesmo cookie encerrariam o login (RFC 9700).
  */
 export function renovarSessao(): Promise<boolean> {
-  emCurso ??= (async () => {
+  emCurso ??= umaAbaPorVez(async () => {
     const primeira = await tentar()
     if (primeira !== 'de-novo') return primeira
     await new Promise((pronto) => setTimeout(pronto, ESPERA_ANTES_DE_TENTAR_DE_NOVO))
     return (await tentar()) === true
-  })().finally(() => {
+  }).finally(() => {
     emCurso = null
   })
   return emCurso

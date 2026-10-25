@@ -51,7 +51,9 @@ esperar() {
 
 copiar() {
   arquivo="/backups/avalia_sales-$(date -u +%Y%m%dT%H%M%SZ).dump"
-  if pg_dump -Fc -f "$arquivo.parcial"; then
+  # A cópia só vale se o pg_restore consegue ler o índice dela e o razão está lá:
+  # arquivo truncado ou corrompido falha aqui, e não no dia de restaurar.
+  if pg_dump -Fc -f "$arquivo.parcial" && pg_restore --list "$arquivo.parcial" | grep -q "TABLE DATA public lancamentos"; then
     mv "$arquivo.parcial" "$arquivo"
     echo "backup gravado: $arquivo"
     if [ -n "${BACKUP_PARA:-}" ] && [ -n "${RESEND_CHAVE_API:-}" ] && [ -n "${RESEND_REMETENTE:-}" ]; then

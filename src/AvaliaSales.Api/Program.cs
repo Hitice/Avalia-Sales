@@ -222,6 +222,22 @@ if (app.Configuration.GetValue<bool>("Proxy:AtrasDoNginx"))
 
 app.UseExceptionHandler();
 app.UseStatusCodePages();
+// Cliente que desistiu da requisição (aba fechada, sinal caído) não é erro da
+// aplicação: sai com 499, sem passar pelo tratador de erro nem chegar ao Sentry.
+app.Use(async (http, proximo) =>
+{
+    try
+    {
+        await proximo(http);
+    }
+    catch (OperationCanceledException) when (http.RequestAborted.IsCancellationRequested)
+    {
+        if (!http.Response.HasStarted)
+        {
+            http.Response.StatusCode = 499;
+        }
+    }
+});
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseMiddleware<ContaEncerrada>();

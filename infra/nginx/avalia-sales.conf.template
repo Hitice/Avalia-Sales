@@ -10,6 +10,10 @@ gzip_comp_level 5;
 gzip_min_length 1024;
 gzip_types text/plain text/css application/javascript application/json application/manifest+json image/svg+xml application/xml;
 
+# Log sem a query: o hub de avisos leva o token na query (WebSocket não tem
+# cabeçalho), e link de convite e de senha também. Sem o Referer, pelo mesmo motivo.
+log_format sem_query '$remote_addr [$time_local] "$request_method $uri $server_protocol" $status $body_bytes_sent $request_time "$http_user_agent"';
+
 map $http_upgrade $conexao_upgrade {
   default upgrade;
   ''      close;
@@ -21,6 +25,7 @@ upstream api {
 }
 
 server {
+  access_log /var/log/nginx/access.log sem_query;
   listen 80;
   server_name ${DOMINIO};
 
@@ -35,6 +40,7 @@ server {
 }
 
 server {
+  access_log /var/log/nginx/access.log sem_query;
   listen 443 ssl;
   http2 on;
   server_name ${DOMINIO};
@@ -64,6 +70,16 @@ server {
     proxy_set_header Host $host;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto $scheme;
+    # Nos segundos em que a API reinicia no deploy, quem lê a placa vê uma
+    # espera que tenta de novo sozinha, e não um 502. A API não devolve 50x aqui.
+    proxy_connect_timeout 3s;
+    proxy_intercept_errors on;
+    error_page 502 503 504 = @leitura_em_espera;
+  }
+
+  location @leitura_em_espera {
+    default_type text/html;
+    return 503 '<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="refresh" content="3"><title>Abrindo</title><body style="margin:0;min-height:100vh;display:grid;place-items:center;font-family:system-ui,sans-serif;color:#18181b"><p>Abrindo o link, só um instante.</p></body></html>';
   }
 
   location /webhooks/ {
