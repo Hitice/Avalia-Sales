@@ -37,6 +37,9 @@
   --primaria: #bb00bf;
   --primaria-hover: color-mix(in oklch, var(--primaria), black 12%);
   --primaria-fundo: color-mix(in oklch, var(--primaria), white 93%);
+  /* Link que sai da página: azul, com a seta; o magenta fica para o que é desta página. */
+  --externo: #1d4ed8;
+  --externo-hover: #1e3a8a;
   --marca: #bb00bf;
 
   --ok: oklch(0.527 0.154 150.069);
@@ -588,6 +591,33 @@ h3 { font-size: 1.125rem; font-weight: 600; line-height: 1.35; letter-spacing: -
   .mapa-ligacao::after { left: auto; right: 8px; bottom: 5px; transform: rotate(-45deg); }
 }
 
+/* O fluxograma com cartões da mesma altura: na coluna de dois, cada um ocupa metade; o de um só ocupa a coluna. */
+.mapa-coluna { grid-template-rows: auto; }
+.no { align-content: start; }
+.no .tecs { padding-top: 6px; }
+.mapa-volta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  margin-top: 20px;
+  padding: 12px 16px;
+  border: 1px dashed var(--borda-forte);
+  border-radius: var(--raio);
+  background: var(--fundo);
+  font-size: 0.875rem;
+  color: var(--texto-2);
+}
+.mapa-volta strong { margin-right: 4px; color: var(--texto); }
+@media (min-width: 960px) {
+  .mapa-grade { align-items: stretch; }
+  .mapa-coluna { grid-template-rows: auto repeat(2, 1fr); }
+  .mapa-coluna:has(> .no:only-of-type) { grid-template-rows: auto 1fr; }
+  .mapa-coluna > .no:only-of-type { align-self: center; }
+  .mapa-ligacao { align-self: center; }
+  .no { min-height: 0; }
+}
+
 /* ----- Aprofundar (details) ----- */
 
 .aprofundar { margin-top: 12px; }
@@ -737,7 +767,7 @@ tbody td { color: var(--texto-2); }
   .tabela-comparacao tbody tr { grid-template-columns: 1fr; }
   .tabela-comparacao tbody td:nth-child(2), .tabela-comparacao tbody td:nth-child(3) { grid-column: 1; grid-row: auto; font-size: 0.875rem; }
   .tabela-comparacao tbody td:nth-child(2)::before { content: "Antes: "; color: var(--texto-3); }
-  .tabela-comparacao tbody td:nth-child(3)::before { content: "Agora: "; font-weight: 500; color: var(--texto); }
+  .tabela-comparacao tbody td:nth-child(3)::before { content: "Depois: "; font-weight: 500; color: var(--texto); }
 }
 
 /* ----- Fecho e rodapé ----- */
@@ -754,8 +784,9 @@ tbody td { color: var(--texto-2); }
 
 /* ----- Blocos editoriais: subtítulo da abertura, decisões, leituras ----- */
 
-.abertura-sub { max-width: 34rem; margin-top: 14px; font-size: 1.25rem; font-weight: 500; line-height: 1.4; letter-spacing: -0.01em; text-wrap: balance; }
+.abertura-sub { max-width: 36rem; margin-top: 14px; font-size: 1.25rem; font-weight: 500; line-height: 1.4; letter-spacing: -0.01em; text-wrap: balance; }
 .sub-titulo { margin: 48px 0 16px; }
+.sub-texto { max-width: 64ch; margin-top: -8px; color: var(--texto-2); }
 
 .decisao { display: grid; gap: 10px; margin-top: 12px; }
 .decisao div { display: grid; gap: 2px; }
@@ -806,6 +837,25 @@ tbody td { color: var(--texto-2); }
 .i-githubactions { --ico: url('/now/icons/githubactions.svg'); }
 .i-sentry { --ico: url('/now/icons/sentry.svg'); }
 .i-vite { --ico: url('/now/icons/vite.svg'); }
+.i-github { --ico: url('/now/icons/github.svg'); }
+
+/* ----- Links externos ----- */
+
+a[href^="http"]:not(.botao):not(.topo-marca) { color: var(--externo); }
+a[href^="http"]:not(.botao):not(.topo-marca):hover { color: var(--externo-hover); }
+a[href^="http"]:not(.botao):not(.topo-marca)::after,
+.leituras strong::after {
+  content: "";
+  display: inline-block;
+  width: 0.7em;
+  height: 0.7em;
+  margin-left: 0.25em;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 17L17 7M9 7h8v8'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 17L17 7M9 7h8v8'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+.leituras a[href^="http"]:not(.botao):not(.topo-marca)::after { display: none; }
+.leituras strong { color: var(--externo); }
 
 /* ----- Movimento reduzido ----- */
 

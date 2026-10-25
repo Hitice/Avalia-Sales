@@ -67,9 +67,9 @@
   <section class="abertura largura" aria-labelledby="titulo">
     <div class="abertura-texto">
       <h1 id="titulo">Avalia Sales</h1>
-      <p class="abertura-sub">Um sistema de vendas reconstruído com uma nova stack, cobrança por gateway de pagamento e identificação das placas por QR Code e NFC.</p>
-      <p class="abertura-lead">O Avalia Sales parte de um sistema de vendas que desenvolvi antes em Laravel/PHP. Esta implementação reescreve a base em .NET, React e PostgreSQL, em servidor próprio, com cobrança pelo Pagar.me. Uma rede de revendas vende placas e serviços pelo celular, e estoque, comissões e financeiro ficam no mesmo sistema.</p>
-      <p class="abertura-autor"><strong>Pedro Fernandes</strong> projetou, desenvolveu e opera a plataforma, do produto à infraestrutura.</p>
+      <p class="abertura-sub">Um sistema de vendas reconstruído,<br> com cobrança por gateway de pagamento e identificação das placas por QR Code e NFC.</p>
+      <p class="abertura-lead">O Avalia Sales parte de um sistema de vendas em Laravel/PHP. Esta implementação reescreve a base em .NET, React e PostgreSQL, em servidor próprio, com o gateway Pagar.me. É a infraestrutura de uma rede de revendas que vende produtos e serviços pelo celular, com estoque, comissões e financeiro numa única plataforma.</p>
+      <p class="abertura-autor"><strong>Pedro Fernandes</strong>, responsável pelo projeto, desenvolvimento e operação da plataforma, de ponta a ponta.</p>
       <p class="abertura-estado" data-producao><span class="ponto" data-estado="lendo" aria-hidden="true"></span><span data-producao-texto>Em produção em sales.avaliaone.com.br, com o código aberto.</span></p>
     </div>
 
@@ -84,7 +84,7 @@
   <section id="arquitetura" class="secao largura" aria-labelledby="arquitetura-titulo">
     <header class="secao-topo">
       <h2 id="arquitetura-titulo">Arquitetura: API e Worker em .NET, telas em React, dados no PostgreSQL</h2>
-      <p>A API grava e responde sem esperar integração; o Worker processa filas, eventos de pagamento e e-mails com retentativa.</p>
+      <p>A API responde sem esperar as integrações; o Worker processa filas, eventos de pagamento e e-mails com retentativa.</p>
     </header>
 
     <figure class="mapa">
@@ -94,7 +94,7 @@
           <p class="mapa-lugar">Navegador</p>
           <div class="no">
             <strong>Telas</strong>
-            <span>App do vendedor e painéis do revendedor e da operadora.</span>
+            <span>App do vendedor e painéis de gestão.</span>
             <ul class="tecs"><li><span class="ico i-react" aria-hidden="true"></span>React</li><li><span class="ico i-typescript" aria-hidden="true"></span>TypeScript</li><li><span class="ico i-reactquery" aria-hidden="true"></span>TanStack Query</li><li><span class="ico i-tailwindcss" aria-hidden="true"></span>Tailwind CSS</li></ul>
           </div>
         </div>
@@ -105,12 +105,12 @@
           <p class="mapa-lugar">Aplicação</p>
           <div class="no">
             <strong>API</strong>
-            <span>Regras de negócio, autenticação e avisos ao vivo.</span>
+            <span>Regras de negócio, autenticação e avisos.</span>
             <ul class="tecs"><li><span class="ico i-dotnet" aria-hidden="true"></span>ASP.NET Core</li><li><span class="ico i-dotnet" aria-hidden="true"></span>EF Core</li><li><span class="ico i-dotnet" aria-hidden="true"></span>SignalR</li></ul>
           </div>
           <div class="no">
             <strong>Worker</strong>
-            <span>Filas, eventos de pagamento, e-mails e retentativas.</span>
+            <span>Filas, pagamentos e e-mails com retentativa.</span>
             <ul class="tecs"><li><span class="ico i-dotnet" aria-hidden="true"></span>.NET Worker Service</li></ul>
           </div>
         </div>
@@ -121,32 +121,32 @@
           <p class="mapa-lugar">Dados e serviços</p>
           <div class="no">
             <strong>PostgreSQL</strong>
-            <span>Dados isolados por revenda, razão financeiro e filas.</span>
+            <span>Dados isolados por revenda, razão e filas.</span>
             <ul class="tecs"><li><span class="ico i-postgresql" aria-hidden="true"></span>PostgreSQL</li></ul>
-            <small>Row-level security e LISTEN/NOTIFY</small>
           </div>
           <div class="no">
             <strong>Integrações</strong>
-            <span>Pagamento, e-mail, mapas, CNPJ, PDF, assinatura e ERP.</span>
+            <span>Pagamento, e-mail, mapas, assinatura e ERP.</span>
             <ul class="tecs"><li><span class="ico ico-letra" aria-hidden="true">P</span>Pagar.me</li><li><span class="ico i-resend" aria-hidden="true"></span>Resend</li><li><span class="ico i-googlemaps" aria-hidden="true"></span>Google</li><li><span class="ico ico-letra" aria-hidden="true">D4</span>D4Sign</li><li><span class="ico i-totvs" aria-hidden="true"></span>Protheus</li></ul>
           </div>
         </div>
       </div>
+      <p class="mapa-volta"><strong>Atualização em tempo real</strong><span>PostgreSQL (LISTEN/NOTIFY)</span><span aria-hidden="true">→</span><span>API</span><span aria-hidden="true">→</span><span>SignalR</span><span aria-hidden="true">→</span><span>tela do vendedor</span></p>
       <div class="mapa-base"><strong>Servidor próprio</strong><ul class="tecs"><li><span class="ico i-linux" aria-hidden="true"></span>Linux</li><li><span class="ico i-docker" aria-hidden="true"></span>Docker Compose</li><li><span class="ico i-nginx" aria-hidden="true"></span>Nginx</li><li><span class="ico i-letsencrypt" aria-hidden="true"></span>Let's Encrypt</li><li><span class="ico i-githubactions" aria-hidden="true"></span>GitHub Actions</li><li><span class="ico i-sentry" aria-hidden="true"></span>Sentry</li></ul></div>
     </figure>
 
 
-    <h3 class="sub-titulo">Do sistema anterior à implementação atual</h3>
+    <h3 class="sub-titulo">Antes e depois da atualização</h3>
     <div class="tabela tabela-comparacao">
       <table>
         <caption class="vh">Comparação entre o sistema anterior e a implementação atual</caption>
-        <thead><tr><th scope="col">Camada</th><th scope="col">Sistema anterior</th><th scope="col">Implementação atual</th></tr></thead>
+        <thead><tr><th scope="col">Camada</th><th scope="col">Antes</th><th scope="col">Depois</th></tr></thead>
         <tbody>
           <tr><th scope="row">Aplicação</th><td>Laravel 12, PHP 8.3</td><td>ASP.NET Core e Worker Service em C#, em camadas</td></tr>
           <tr><th scope="row">Telas</th><td>Blade, Alpine.js e Tailwind</td><td>React e TypeScript, com tipos gerados do contrato OpenAPI</td></tr>
           <tr><th scope="row">Banco de dados</th><td>MySQL</td><td>PostgreSQL com row-level security por revenda</td></tr>
           <tr><th scope="row">Hospedagem</th><td>Hospedagem compartilhada</td><td>Servidor próprio com Docker Compose, Nginx e TLS</td></tr>
-          <tr><th scope="row">Publicação</th><td>Script no servidor, disparado por cron depois do push</td><td>GitHub Actions com testes, aprovação manual e health check</td></tr>
+          <tr><th scope="row">Publicação</th><td>Script no servidor, disparado por cron após o push</td><td>GitHub Actions com testes, aprovação manual e health check</td></tr>
         </tbody>
       </table>
     </div>
@@ -155,7 +155,7 @@
   <!-- Decisões -->
   <section id="decisoes" class="secao largura" aria-labelledby="decisoes-titulo">
     <header class="secao-topo">
-      <h2 id="decisoes-titulo">Quatro decisões de engenharia, com a evidência de cada uma</h2>
+      <h2 id="decisoes-titulo">Decisões de engenharia e evidências</h2>
       <p>Cada uma tem registro (ADR) ou documento no repositório.</p>
     </header>
     <ol class="decisoes">
@@ -192,8 +192,8 @@
         </details>
       </li>
       <li id="d-razao">
-        <h3>Dinheiro em centavos e razão append-only</h3>
-        <p>Valores inteiros em centavos e razão só de inserção: correção entra como estorno.</p>
+        <h3>Aritmética monetária em inteiros e razão append-only</h3>
+        <p>Valores em centavos como inteiros, sem ponto flutuante, e razão só de inserção: correção entra como estorno.</p>
         <details class="aprofundar">
           <summary>Ver contexto e evidência</summary>
           <div class="aprofundar-corpo">
@@ -230,7 +230,7 @@
   <section id="venda" class="secao largura" aria-labelledby="venda-titulo">
     <header class="secao-topo">
       <h2 id="venda-titulo">A aplicação em funcionamento: uma venda em seis etapas</h2>
-      <p>No celular do vendedor, com leitura do QR Code da placa e cobrança pelo Pagar.me. As etapas 3 a 6 aplicam as decisões acima.</p>
+      <p>No celular do vendedor, com leitura do QR Code da placa e cobrança pelo Pagar.me. As etapas 3 a 6 aplicam as decisões de engenharia acima.</p>
     </header>
 
     <div class="venda" data-venda>
@@ -326,28 +326,28 @@
             <span class="passo-numero" aria-hidden="true">3</span>
             <span class="passo-texto"><strong>Cobrança</strong>O cliente paga por Pix ou cartão na tela do vendedor.</span>
           </button>
-          <p class="passo-tec">A cobrança é gravada antes de chamar o Pagar.me; o cartão é tokenizado no navegador. <a href="#d-pagamento">Decisão</a></p>
+          <p class="passo-tec">A cobrança é gravada antes de chamar o Pagar.me; o cartão é tokenizado no navegador.</p>
         </li>
         <li>
           <button type="button" class="passo" data-ir="4" aria-pressed="false">
             <span class="passo-numero" aria-hidden="true">4</span>
             <span class="passo-texto"><strong>Confirmação</strong>O pagamento aparece na tela do vendedor sem recarregar.</span>
           </button>
-          <p class="passo-tec">O webhook do Pagar.me é gravado e conferido na origem; a tela recebe por SignalR. <a href="#d-pagamento">Decisão</a></p>
+          <p class="passo-tec">O webhook do Pagar.me é gravado e conferido na origem; a tela recebe por SignalR.</p>
         </li>
         <li>
           <button type="button" class="passo" data-ir="5" aria-pressed="false">
             <span class="passo-numero" aria-hidden="true">5</span>
             <span class="passo-texto"><strong>Divisão</strong>A plataforma calcula a parte da revenda, da operadora e a comissão do vendedor.</span>
           </button>
-          <p class="passo-tec">Valores em centavos no razão; split do Pagar.me por recebedor; comissão paga em repasse. <a href="#d-razao">Decisão</a></p>
+          <p class="passo-tec">Valores em centavos no razão; split do Pagar.me por recebedor; comissão paga em repasse.</p>
         </li>
         <li>
           <button type="button" class="passo" data-ir="6" aria-pressed="false">
             <span class="passo-numero" aria-hidden="true">6</span>
             <span class="passo-texto"><strong>Ativação</strong>A placa passa a levar à avaliação do cliente no Google.</span>
           </button>
-          <p class="passo-tec">Redirecionamento configurável sem reimprimir a placa; gravação NFC pelo Web NFC. <a href="#d-migracao">Decisão</a></p>
+          <p class="passo-tec">Redirecionamento configurável sem reimprimir a placa; gravação NFC pelo Web NFC.</p>
         </li>
       </ol>
     </div>
@@ -356,8 +356,8 @@
   <!-- Qualidade e operação -->
   <section id="qualidade" class="secao largura" aria-labelledby="qualidade-titulo">
     <header class="secao-topo">
-      <h2 id="qualidade-titulo">Qualidade e operação: o que roda a cada publicação</h2>
-      <p>Verificações do repositório e da produção. As contagens dizem quantos casos rodam; não medem cobertura.</p>
+      <h2 id="qualidade-titulo">Quality Assurance</h2>
+      <p>Verificações do repositório e da produção a cada publicação. A contagem de testes indica os casos executados, não a cobertura.</p>
     </header>
 
     <ul class="provas">
@@ -386,27 +386,23 @@
       </li>
     </ul>
 
-    <details id="integracoes" class="aprofundar">
-      <summary>Integrações e o estado de cada uma</summary>
-      <div class="aprofundar-corpo">
-      <div class="tabela">
-        <table>
-          <caption class="vh">Integrações, uso e estado</caption>
-          <thead><tr><th scope="col">Serviço</th><th scope="col">Uso</th><th scope="col">Estado</th></tr></thead>
-          <tbody>
-            <tr><th scope="row"><span class="servico"><span class="ico ico-letra" aria-hidden="true">P</span>Pagar.me</span></th><td>Pix, cartão, split por recebedor e estorno total ou parcial</td><td><span class="estado estado-ok">Em produção</span></td></tr>
-            <tr><th scope="row"><span class="servico"><span class="ico i-resend" aria-hidden="true"></span>Resend</span></th><td>E-mails transacionais com fila e retentativa</td><td><span class="estado estado-ok">Em produção</span></td></tr>
-            <tr><th scope="row"><span class="servico"><span class="ico i-googlemaps" aria-hidden="true"></span>Google Places API e Maps API</span></th><td>Localização do estabelecimento e mapa de vendas</td><td><span class="estado estado-ok">Em produção</span></td></tr>
-            <tr><th scope="row"><span class="servico"><span class="ico ico-letra" aria-hidden="true">BR</span>BrasilAPI</span></th><td>Razão social e endereço por CNPJ e CEP</td><td><span class="estado estado-ok">Em produção</span></td></tr>
-            <tr><th scope="row"><span class="servico"><span class="ico ico-letra" aria-hidden="true">PDF</span>Gotenberg</span></th><td>Contrato e distrato em PDF, num contêiner sem rede</td><td><span class="estado estado-ok">Em produção</span></td></tr>
-            <tr><th scope="row"><span class="servico"><span class="ico i-sentry" aria-hidden="true"></span>Sentry</span></th><td>Erros com a versão publicada</td><td><span class="estado estado-ok">Em produção</span></td></tr>
-            <tr><th scope="row"><span class="servico"><span class="ico ico-letra" aria-hidden="true">D4</span>D4Sign</span></th><td>Assinatura eletrônica do contrato de revenda</td><td><span class="estado estado-espera">Sandbox</span></td></tr>
-            <tr><th scope="row"><span class="servico"><span class="ico i-totvs" aria-hidden="true"></span>Protheus</span></th><td>Pedido de placas pago gerado como pedido de venda no ERP</td><td><span class="estado estado-neutro">Pronto para homologação</span></td></tr>
-          </tbody>
-        </table>
-      </div>
-      </div>
-    </details>
+    <h3 id="integracoes" class="sub-titulo">Integrações e o estado de cada uma</h3>
+    <div class="tabela">
+      <table>
+        <caption class="vh">Integrações, uso e estado</caption>
+        <thead><tr><th scope="col">Serviço</th><th scope="col">Uso</th><th scope="col">Estado</th></tr></thead>
+        <tbody>
+          <tr><th scope="row"><span class="servico"><span class="ico ico-letra" aria-hidden="true">P</span>Pagar.me</span></th><td>Pix, cartão, split por recebedor e estorno total ou parcial</td><td><span class="estado estado-ok">Em produção</span></td></tr>
+          <tr><th scope="row"><span class="servico"><span class="ico i-resend" aria-hidden="true"></span>Resend</span></th><td>E-mails transacionais com fila e retentativa</td><td><span class="estado estado-ok">Em produção</span></td></tr>
+          <tr><th scope="row"><span class="servico"><span class="ico i-googlemaps" aria-hidden="true"></span>Google Places API e Maps API</span></th><td>Localização do estabelecimento e mapa de vendas</td><td><span class="estado estado-ok">Em produção</span></td></tr>
+          <tr><th scope="row"><span class="servico"><span class="ico ico-letra" aria-hidden="true">BR</span>BrasilAPI</span></th><td>Razão social e endereço por CNPJ e CEP</td><td><span class="estado estado-ok">Em produção</span></td></tr>
+          <tr><th scope="row"><span class="servico"><span class="ico ico-letra" aria-hidden="true">PDF</span>Gotenberg</span></th><td>Contrato e distrato em PDF, num contêiner sem rede</td><td><span class="estado estado-ok">Em produção</span></td></tr>
+          <tr><th scope="row"><span class="servico"><span class="ico i-sentry" aria-hidden="true"></span>Sentry</span></th><td>Erros com a versão publicada</td><td><span class="estado estado-ok">Em produção</span></td></tr>
+          <tr><th scope="row"><span class="servico"><span class="ico ico-letra" aria-hidden="true">D4</span>D4Sign</span></th><td>Assinatura eletrônica do contrato de revenda</td><td><span class="estado estado-espera">Sandbox</span></td></tr>
+          <tr><th scope="row"><span class="servico"><span class="ico i-totvs" aria-hidden="true"></span>Protheus</span></th><td>Pedido de placas pago gerado como pedido de venda no ERP</td><td><span class="estado estado-neutro">Standby/Endpoint</span></td></tr>
+        </tbody>
+      </table>
+    </div>
   </section>
 
   </section>
@@ -415,7 +411,7 @@
   <section id="aprofundamento" class="secao largura" aria-labelledby="aprofundamento-titulo">
     <header class="secao-topo">
       <h2 id="aprofundamento-titulo">Aprofundamento</h2>
-      <p>Documentação versionada com o código, para quem quer ir além desta página.</p>
+      <p>Documentação versionada com o código, para análise aprofundada.</p>
     </header>
     <ul class="leituras">
       <li><a href="https://github.com/Hitice/Avalia-Sales/blob/main/docs/PDD.md" rel="noopener"><strong>Regras do produto</strong><span>PDD: cada regra de venda, cobrança, comissão e placa</span></a></li>
@@ -446,36 +442,32 @@
       </div>
     </details>
 
-    <details class="aprofundar">
-      <summary>White label com contraste calculado</summary>
-      <div class="aprofundar-corpo">
-        <p>Cada revenda aplica logo e cor nas telas. A plataforma escolhe a cor do texto do botão e escurece o destaque até a leitura passar no critério do WCAG.</p>
-        <figure class="marca" data-marca>
-          <figcaption class="vh">Experimente a cor de uma revenda</figcaption>
-          <div class="marca-controles">
-            <fieldset>
-              <legend>Cor da revenda</legend>
-              <div class="amostras">
-                <label class="amostra" style="--amostra: #bb00bf"><input type="radio" name="cor" value="#bb00bf" checked><span class="vh">Magenta</span></label>
-                <label class="amostra" style="--amostra: #1d4ed8"><input type="radio" name="cor" value="#1d4ed8"><span class="vh">Azul</span></label>
-                <label class="amostra" style="--amostra: #f5b301"><input type="radio" name="cor" value="#f5b301"><span class="vh">Amarelo</span></label>
-                <label class="amostra" style="--amostra: #2dd4bf"><input type="radio" name="cor" value="#2dd4bf"><span class="vh">Turquesa</span></label>
-                <label class="amostra" style="--amostra: #e11d48"><input type="radio" name="cor" value="#e11d48"><span class="vh">Vermelho</span></label>
-                <label class="amostra amostra-livre"><input type="color" value="#0f766e" data-cor-livre><span class="vh">Escolher outra cor</span></label>
-              </div>
-            </fieldset>
-            <p class="marca-leitura" aria-live="polite" data-contraste>Botão com texto branco.</p>
-          </div>
-          <div class="mini" data-mini>
-            <p class="mini-topo"><span class="mini-logo" aria-hidden="true">A</span>Revenda Aurora</p>
-            <p class="mini-abas"><span class="ativa">Vendas</span><span>Clientes</span><span>Placas</span></p>
-            <p class="mini-linha"><span>Padaria Sol</span><span class="mini-selo">Paga</span></p>
-            <p class="mini-linha"><span>Ótica Lume</span><span class="mini-link">Ver ficha</span></p>
-            <span class="mini-botao">Nova venda</span>
-          </div>
-        </figure>
-      </div>
-    </details>
+    <h3 class="sub-titulo">White label com contraste calculado</h3>
+    <p class="sub-texto">Cada revenda aplica logo e cor nas telas. A plataforma escolhe a cor do texto do botão e escurece o destaque até a leitura passar no critério do WCAG.</p>
+    <figure class="marca" data-marca>
+        <figcaption class="vh">Experimente a cor de uma revenda</figcaption>
+        <div class="marca-controles">
+          <fieldset>
+            <legend>Cor da revenda</legend>
+            <div class="amostras">
+              <label class="amostra" style="--amostra: #bb00bf"><input type="radio" name="cor" value="#bb00bf" checked><span class="vh">Magenta</span></label>
+              <label class="amostra" style="--amostra: #1d4ed8"><input type="radio" name="cor" value="#1d4ed8"><span class="vh">Azul</span></label>
+              <label class="amostra" style="--amostra: #f5b301"><input type="radio" name="cor" value="#f5b301"><span class="vh">Amarelo</span></label>
+              <label class="amostra" style="--amostra: #2dd4bf"><input type="radio" name="cor" value="#2dd4bf"><span class="vh">Turquesa</span></label>
+              <label class="amostra" style="--amostra: #e11d48"><input type="radio" name="cor" value="#e11d48"><span class="vh">Vermelho</span></label>
+              <label class="amostra amostra-livre"><input type="color" value="#0f766e" data-cor-livre><span class="vh">Escolher outra cor</span></label>
+            </div>
+          </fieldset>
+          <p class="marca-leitura" aria-live="polite" data-contraste>Botão com texto branco.</p>
+        </div>
+        <div class="mini" data-mini>
+          <p class="mini-topo"><span class="mini-logo" aria-hidden="true">A</span>Revenda Aurora</p>
+          <p class="mini-abas"><span class="ativa">Vendas</span><span>Clientes</span><span>Placas</span></p>
+          <p class="mini-linha"><span>Padaria Sol</span><span class="mini-selo">Paga</span></p>
+          <p class="mini-linha"><span>Ótica Lume</span><span class="mini-link">Ver ficha</span></p>
+          <span class="mini-botao">Nova venda</span>
+        </div>
+      </figure>
   </section>
 
   <!-- Acesso -->
@@ -484,7 +476,7 @@
     <p>Plataforma em operação. Solicite uma demonstração ou implante a partir do código no GitHub.</p>
     <p class="acoes">
       <a class="botao botao-cheio" href="https://www.linkedin.com/in/hitice" rel="me noopener">Solicitar demonstração</a>
-      <a class="botao botao-linha" href="https://github.com/Hitice/Avalia-Sales" rel="noopener">Ler o código no GitHub</a>
+      <a class="botao botao-linha" href="https://github.com/Hitice/Avalia-Sales" rel="noopener"><span class="ico i-github" aria-hidden="true"></span>Acessar repositório</a>
     </p>
   </section>
 
@@ -492,7 +484,7 @@
 
 <footer class="rodape">
   <div class="largura rodape-linha">
-    <p><strong>Pedro Fernandes</strong><span class="rodape-papel">Desenvolvedor full stack: produto, front-end, back-end, dados e infraestrutura</span></p>
+    <p><strong>Pedro Fernandes</strong><span class="rodape-papel">Desenvolvedor full stack .NET e React, do produto à infraestrutura</span></p>
     <p class="rodape-links"><a href="https://github.com/Hitice" rel="me noopener">GitHub</a><a href="https://www.linkedin.com/in/hitice" rel="me noopener">LinkedIn</a></p>
   </div>
 </footer>
