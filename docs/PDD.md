@@ -273,7 +273,10 @@ uma busca pelo texto da linha, sem acento. Gravar confirma na tela.
   seria da Avalia pelo split (taxa e parte do serviço) fica "a acertar"; com
   a taxa zero, a placa recebida por fora não deixa nada a acertar. Só o
   revendedor desfaz, e só antes do repasse da comissão. A renovação também se
-  confirma por fora, na ficha da placa.
+  confirma por fora, na ficha da placa, depois de uma confirmação na tela, e
+  vai à auditoria com quem registrou. Só o revendedor desfaz a renovação
+  recebida por fora - estorno no razão, a placa volta ao vencimento de antes e
+  a renovação reabre. A paga pelo Pagar.me volta pelo estorno de lá.
 - Renovação em aberto com Pix vivo segura o cancelamento e a troca, porque,
   paga depois, estenderia uma placa fora da venda. Renovação sem Pix vivo é
   cancelada junto.
@@ -750,6 +753,7 @@ porque está impresso nas placas vendidas.
 
 | Data | Mudança |
 | --- | --- |
+| 25/10/2026 | Renovação recebida por fora pede confirmação na ficha da placa e vai à auditoria; o revendedor desfaz a renovação registrada por engano (estorno no razão e o vencimento de antes). |
 | 25/10/2026 | Histórico das vendas do Sales - a receita e a comissão das vendas pagas no sistema anterior entram no razão nos meses de origem (receita e comissão devida no mês do pagamento, comissão paga no mês em que foi paga, sem taxa da Avalia); mês fechado recusa a importação; o saldo do vendedor fica só com o que falta pagar, e o repasse não conta a venda paga lá. |
 | 25/10/2026 | Financeiro - cartão Caixa com o saldo, o saldo inicial, as entradas e as saídas; o revendedor define, troca ou exclui o saldo inicial pelo cartão. Aporte de sócio na lista de naturezas da retirada. |
 | 25/10/2026 | Tabelas no celular - os cartões correm com a página, sem barra de rolagem por cima do texto; a busca fica em cima e a primeira ação do cartão vira botão. |

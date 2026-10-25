@@ -65,6 +65,16 @@ export function useAlternar(codigo: string) {
   })
 }
 
+/** Renovação recebida por fora registrada por engano: o revendedor desfaz, com estorno no razão. */
+export function useDesfazerRenovacao(codigo: string) {
+  const cliente = useQueryClient()
+  return useMutation({
+    mutationFn: () => chamarApi(`/placas/${codigo}/renovacao/recebimento`, { method: 'DELETE' }),
+    meta: { sucesso: 'Renovação desfeita.' },
+    onSuccess: () => Promise.all([['placa', codigo], ['razao'], ['financeiro']].map((queryKey) => cliente.invalidateQueries({ queryKey }))),
+  })
+}
+
 export function useRenovar(codigo: string) {
   const cliente = useQueryClient()
   return useMutation({

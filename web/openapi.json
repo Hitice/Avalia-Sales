@@ -3385,6 +3385,65 @@
         }
       }
     },
+    "/placas/{codigo}/renovacao/recebimento": {
+      "delete": {
+        "tags": [
+          "Revenda"
+        ],
+        "parameters": [
+          {
+            "name": "codigo",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Balc\u00E3o"
+        ],
+        "parameters": [
+          {
+            "name": "codigo",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReceberPorFora"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RenovacaoAberta"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/vendas/{id}/cortesia": {
       "post": {
         "tags": [
@@ -4185,45 +4244,6 @@
         }
       }
     },
-    "/placas/{codigo}/renovacao/recebimento": {
-      "post": {
-        "tags": [
-          "Balc\u00E3o"
-        ],
-        "parameters": [
-          {
-            "name": "codigo",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ReceberPorFora"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RenovacaoAberta"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/comissoes": {
       "get": {
         "tags": [
@@ -4981,7 +5001,9 @@
           "SocioExcluido",
           "ClienteCadastrado",
           "SaldoInicialDoCaixaDefinido",
-          "SaldoInicialDoCaixaExcluido"
+          "SaldoInicialDoCaixaExcluido",
+          "RenovacaoRecebidaPorFora",
+          "RenovacaoDesfeita"
         ]
       },
       "AjustarProduto": {
@@ -6784,6 +6806,16 @@
             "items": {
               "$ref": "#/components/schemas/RegistroDto"
             }
+          },
+          "ultimaRenovacao": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/RenovacaoDaFicha"
+              }
+            ]
           }
         }
       },
@@ -9093,6 +9125,32 @@
             ]
           }
         }
+      },
+      "RenovacaoDaFicha": {
+        "required": [
+          "valorCents",
+          "pagaEm",
+          "meio",
+          "porFora"
+        ],
+        "type": "object",
+        "properties": {
+          "valorCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "pagaEm": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "meio": {
+            "$ref": "#/components/schemas/MeioDePagamento"
+          },
+          "porFora": {
+            "type": "boolean"
+          }
+        },
+        "description": "A \u00FAltima renova\u00E7\u00E3o paga da placa; a recebida por fora o revendedor pode desfazer."
       },
       "RepasseDto": {
         "required": [

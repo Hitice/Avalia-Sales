@@ -192,6 +192,11 @@ public static class RotasDaRevenda
             await vendas.DesfazerRecebimento(id, ct);
             return Results.NoContent();
         });
+        dono.MapDelete("/placas/{codigo}/renovacao/recebimento", async (string codigo, Application.Placas.Renovacoes renovacoes, CancellationToken ct) =>
+        {
+            await renovacoes.DesfazerRecebimento(codigo, ct);
+            return Results.NoContent();
+        });
         dono.MapPost("/vendas/{id:guid}/cortesia", async (Guid id, Application.Vendas.Vendas vendas, CancellationToken ct) =>
         {
             await vendas.Cortesia(id, ct);

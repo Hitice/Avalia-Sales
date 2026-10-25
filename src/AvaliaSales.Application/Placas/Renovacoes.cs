@@ -1,6 +1,7 @@
 using AvaliaSales.Application.Pagamentos;
 using AvaliaSales.Domain;
 using AvaliaSales.Domain.Acesso;
+using AvaliaSales.Domain.Auditoria;
 using AvaliaSales.Domain.Pagamentos;
 using AvaliaSales.Domain.Placas;
 using AvaliaSales.Domain.Vendas;
@@ -15,7 +16,7 @@ public sealed record RenovacaoAberta(Guid Id, string Codigo, long ValorCents, Da
 /// o mesmo split da venda e sem comissão. Pedir de novo devolve a renovação em
 /// aberto, e só gera outro Pix se o anterior falhou ou foi cancelado.
 /// </summary>
-public sealed class Renovacoes(IBancoDeDados banco, IUsuarioAtual usuario, Cobrancas cobrancas, TimeProvider relogio)
+public sealed class Renovacoes(IBancoDeDados banco, IUsuarioAtual usuario, Cobrancas cobrancas, Auditoria.Auditoria auditoria, TimeProvider relogio)
 {
     public async Task<RenovacaoAberta> Renovar(string codigo, CancellationToken ct)
     {
@@ -63,10 +64,47 @@ public sealed class Renovacoes(IBancoDeDados banco, IUsuarioAtual usuario, Cobra
             throw new RegraDeNegocioException("Renovação com Pix em aberto.");
         }
 
+        var antes = Vencimento(placa);
         var cobranca = await cobrancas.RegistrarPorFora(OrigemDaCobranca.Renovacao, renovacao.Id, meio, renovacao.ValorCents, ct);
+        auditoria.Registrar(AcaoAuditada.RenovacaoRecebidaPorFora, $"Placa {placa.Codigo}", placa.Codigo, antes,
+            $"{Vencimento(placa)}, {Reais(renovacao.ValorCents)} {(meio == MeioDePagamento.Dinheiro ? "em dinheiro" : "por outro Pix")}");
         await banco.SaveChangesAsync(ct);
         return new RenovacaoAberta(renovacao.Id, placa.Codigo, renovacao.ValorCents, placa.VenceEm, Cobrancas.ParaDto(cobranca), null);
     }
+
+    /// <summary>
+    /// A renovação recebida por fora e registrada por engano, desfeita pelo
+    /// revendedor: estorno no razão, a placa volta ao vencimento de antes e a
+    /// renovação reabre. A paga pelo Pagar.me volta pelo estorno de lá.
+    /// </summary>
+    public async Task DesfazerRecebimento(string codigo, CancellationToken ct)
+    {
+        var normalizado = CodigoDaPlaca.Normalizar(codigo);
+        var placa = await banco.Placas.SingleOrDefaultAsync(p => p.Codigo == normalizado, ct)
+            ?? throw new RegraDeNegocioException("Código não encontrado, verifique novamente.");
+        var renovacao = await banco.Renovacoes.Where(r => r.PlacaId == placa.Id && r.Situacao == SituacaoDaRenovacao.Paga)
+            .OrderByDescending(r => r.PagaEm).FirstOrDefaultAsync(ct) ?? throw new RegraDeNegocioException("Esta placa não tem renovação paga.");
+        var cobranca = await banco.Cobrancas
+            .SingleOrDefaultAsync(c => c.Origem == OrigemDaCobranca.Renovacao && c.OrigemId == renovacao.Id && c.Situacao == SituacaoDaCobranca.Paga, ct)
+            ?? throw new RegraDeNegocioException("Esta placa não tem renovação paga.");
+        if (!cobranca.PorFora)
+        {
+            throw new RegraDeNegocioException("Renovação paga pelo Pagar.me: a devolução é pelo estorno no Pagar.me.");
+        }
+
+        var antes = Vencimento(placa);
+        renovacao.Desfazer(placa);
+        await cobrancas.DesfazerPorFora(cobranca, ct);
+        auditoria.Registrar(AcaoAuditada.RenovacaoDesfeita, $"Placa {placa.Codigo}", placa.Codigo, antes, Vencimento(placa));
+        await banco.SaveChangesAsync(ct);
+    }
+
+    private static string Vencimento(Placa placa) =>
+        placa.VenceEm is { } vence ? $"vence em {TimeZoneInfo.ConvertTime(vence, Brasilia):dd/MM/yyyy}" : "sem vencimento";
+
+    private static string Reais(long centavos) => $"R$ {centavos / 100},{centavos % 100:00}";
+
+    private static readonly TimeZoneInfo Brasilia = TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo");
 
     /// <summary>
     /// A renovação em aberto da placa, ou uma nova pelo percentual de hoje do revendedor.

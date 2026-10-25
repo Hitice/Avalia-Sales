@@ -244,6 +244,17 @@ public sealed class Placa : IDoRevendedor
         return (de, VenceEm.Value);
     }
 
+    /// <summary>A renovação desfeita devolve o vencimento de antes, se nada o mudou depois dela.</summary>
+    public void DesfazerRenovacao(DateTimeOffset de, DateTimeOffset ate)
+    {
+        if (VenceEm != ate)
+        {
+            throw new RegraDeNegocioException($"O vencimento da placa {Codigo} mudou depois da renovação.");
+        }
+
+        VenceEm = de;
+    }
+
     /// <summary>Venda desfeita: a placa volta ao estoque e sai do ar. Placa sem venda não vai ao ar.</summary>
     public void DesfazerVenda()
     {

@@ -1,14 +1,16 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { mensagemDoErro } from '@/api/cliente'
-import { formatarData, formatarDataHora, formatarTelefone, ROTULO_DO_PAGAMENTO } from '@/api/rotulos'
+import { useSessao } from '@/acesso/sessao'
+import { formatarData, formatarDataHora, formatarTelefone, ROTULO_DO_MEIO, ROTULO_DO_PAGAMENTO } from '@/api/rotulos'
 import type { DestinoInformado } from '@/api/tipos'
 import { Aviso, Cabecalho, CarregandoTela, Erro, EtiquetaDoEstado } from '@/componentes/Tela'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { formatarCentavos } from '@/dinheiro/dinheiro'
 import { PixNaTela } from '@/componentes/PixNaTela'
-import { useAlternar, useApontar, useFicha, useRenovar } from './consultas'
+import { useAlternar, useApontar, useDesfazerRenovacao, useFicha, useRenovar } from './consultas'
 import { destinoPronto } from './destino'
 import { Historico } from '@/auditoria/Historico'
 import { EscolhaDeDestino } from './EscolhaDeDestino'
@@ -23,6 +25,11 @@ export function TelaDaPlaca() {
   const apontar = useApontar(codigo)
   const alternar = useAlternar(codigo)
   const renovar = useRenovar(codigo)
+  const desfazer = useDesfazerRenovacao(codigo)
+  const dono = useSessao((s) => s.perfil?.papel === 'Dono')
+  // Recebimento por fora estende a placa e lança a receita: só depois de confirmar.
+  const [porFora, setPorFora] = useState<'Dinheiro' | 'OutroPix' | null>(null)
+  const [desfazendo, setDesfazendo] = useState(false)
   const [trocando, setTrocando] = useState(false)
   const [destino, setDestino] = useState<DestinoInformado>({ tipo: 'Google', lugarNoGoogle: null, link: null })
   const f = ficha.data
@@ -109,13 +116,44 @@ export function TelaDaPlaca() {
             {!renovar.data && (
               <div className="flex flex-wrap gap-2">
                 <Button disabled={renovar.isPending} onClick={() => renovar.mutate(undefined)}>Renovar com Pix</Button>
-                <Button variant="outline" disabled={renovar.isPending} onClick={() => renovar.mutate('Dinheiro')}>Recebido em dinheiro</Button>
-                <Button variant="outline" disabled={renovar.isPending} onClick={() => renovar.mutate('OutroPix')}>Recebido por outro Pix</Button>
+                <Button variant="outline" disabled={renovar.isPending} onClick={() => setPorFora('Dinheiro')}>Recebido em dinheiro</Button>
+                <Button variant="outline" disabled={renovar.isPending} onClick={() => setPorFora('OutroPix')}>Recebido por outro Pix</Button>
+              </div>
+            )}
+            {f.ultimaRenovacao && (
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-3 text-sm">
+                <p>Última renovação: {formatarCentavos(f.ultimaRenovacao.valorCents)}, {ROTULO_DO_MEIO[f.ultimaRenovacao.meio].toLowerCase()}, em {formatarData(f.ultimaRenovacao.pagaEm)}.</p>
+                {dono && f.ultimaRenovacao.porFora && <Button variant="ghost" className="text-destructive" onClick={() => { desfazer.reset(); setDesfazendo(true) }}>Desfazer</Button>}
               </div>
             )}
           </CardContent>
         </Card>
       )}
+      <Dialog open={porFora !== null} onOpenChange={(aberto) => !aberto && setPorFora(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Renovação recebida {porFora === 'Dinheiro' ? 'em dinheiro' : 'por outro Pix'}</DialogTitle>
+            <DialogDescription>A placa ganha mais 12 meses e o valor entra no razão.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setPorFora(null)}>Cancelar</Button>
+            <Button disabled={renovar.isPending} onClick={() => { if (porFora) renovar.mutate(porFora); setPorFora(null) }}>Confirmar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={desfazendo} onOpenChange={setDesfazendo}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Desfazer a renovação</DialogTitle>
+            <DialogDescription>A placa volta ao vencimento de antes e o valor sai do razão por estorno.</DialogDescription>
+          </DialogHeader>
+          <Erro erro={desfazer.error ? mensagemDoErro(desfazer.error) : null} />
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setDesfazendo(false)}>Cancelar</Button>
+            <Button variant="destructive" disabled={desfazer.isPending} onClick={() => desfazer.mutate(undefined, { onSuccess: () => setDesfazendo(false) })}>Desfazer</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <VendasEm30Dias titulo="Leituras nos últimos 30 dias" serie="Leituras" carregando={false} porDia={porDiaDe(f.leituras, agora)}
         detalhe={<p className="mb-3 text-sm">{f.totalLeituras} leituras no total. Última: {formatarDataHora(f.ultimaLeituraEm)}.</p>} />
       <Card>

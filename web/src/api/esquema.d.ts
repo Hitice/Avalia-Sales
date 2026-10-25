@@ -4500,6 +4500,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/placas/{codigo}/renovacao/recebimento": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    codigo: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ReceberPorFora"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RenovacaoAberta"];
+                    };
+                };
+            };
+        };
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    codigo: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/vendas/{id}/cortesia": {
         parameters: {
             query?: never;
@@ -5449,47 +5509,6 @@ export interface paths {
                 cookie?: never;
             };
             requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["RenovacaoAberta"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/placas/{codigo}/renovacao/recebimento": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    codigo: string;
-                };
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["ReceberPorFora"];
-                };
-            };
             responses: {
                 /** @description OK */
                 200: {
@@ -6521,7 +6540,7 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /** @enum {unknown} */
-        AcaoAuditada: "DestinoDefinido" | "DestinoTrocado" | "PlacaSuspensa" | "PlacaNoAr" | "PlacaTrocada" | "VendaCancelada" | "VendaEmCortesia" | "RecebidoPorFora" | "RecebimentoDesfeito" | "VendedorCadastrado" | "VendedorAlterado" | "VendedorDesativado" | "VendedorReativado" | "VendedorExcluido" | "ComissaoPadraoAlterada" | "ProdutoAlterado" | "RepasseRegistrado" | "ClienteAnonimizado" | "MarcaAlterada" | "LinkAlterado" | "LinkExcluido" | "SegundoFatorLigado" | "SegundoFatorDesligado" | "EmpresaAlterada" | "EncerramentoPedido" | "EncerramentoDesistido" | "ContaEncerrada" | "ReaberturaPedida" | "ClienteAlterado" | "ClienteExcluido" | "ClientesJuntados" | "VendaCorrigida" | "RepasseDesfeito" | "MesFechado" | "MesReaberto" | "SocioCadastrado" | "SocioAlterado" | "SocioExcluido" | "ClienteCadastrado" | "SaldoInicialDoCaixaDefinido" | "SaldoInicialDoCaixaExcluido";
+        AcaoAuditada: "DestinoDefinido" | "DestinoTrocado" | "PlacaSuspensa" | "PlacaNoAr" | "PlacaTrocada" | "VendaCancelada" | "VendaEmCortesia" | "RecebidoPorFora" | "RecebimentoDesfeito" | "VendedorCadastrado" | "VendedorAlterado" | "VendedorDesativado" | "VendedorReativado" | "VendedorExcluido" | "ComissaoPadraoAlterada" | "ProdutoAlterado" | "RepasseRegistrado" | "ClienteAnonimizado" | "MarcaAlterada" | "LinkAlterado" | "LinkExcluido" | "SegundoFatorLigado" | "SegundoFatorDesligado" | "EmpresaAlterada" | "EncerramentoPedido" | "EncerramentoDesistido" | "ContaEncerrada" | "ReaberturaPedida" | "ClienteAlterado" | "ClienteExcluido" | "ClientesJuntados" | "VendaCorrigida" | "RepasseDesfeito" | "MesFechado" | "MesReaberto" | "SocioCadastrado" | "SocioAlterado" | "SocioExcluido" | "ClienteCadastrado" | "SaldoInicialDoCaixaDefinido" | "SaldoInicialDoCaixaExcluido" | "RenovacaoRecebidaPorFora" | "RenovacaoDesfeita";
         AjustarProduto: {
             /** Format: int64 */
             precoCents: number;
@@ -6994,6 +7013,7 @@ export interface components {
             venda: null | components["schemas"]["VendaDaFicha"];
             leituras: components["schemas"]["LeituraDto"][];
             historico: components["schemas"]["RegistroDto"][];
+            ultimaRenovacao?: null | components["schemas"]["RenovacaoDaFicha"];
         };
         /** @enum {unknown} */
         FormatoDaImpressao: "SvgEPng" | "Svg" | "Png" | null;
@@ -7665,6 +7685,15 @@ export interface components {
             venceEm: null | string;
             cobranca: null | components["schemas"]["CobrancaDto"];
             semCobranca: null | string;
+        };
+        /** @description A última renovação paga da placa; a recebida por fora o revendedor pode desfazer. */
+        RenovacaoDaFicha: {
+            /** Format: int64 */
+            valorCents: number;
+            /** Format: date-time */
+            pagaEm: string;
+            meio: components["schemas"]["MeioDePagamento"];
+            porFora: boolean;
         };
         RepasseDto: {
             /** Format: uuid */

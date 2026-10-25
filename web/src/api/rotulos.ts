@@ -224,6 +224,8 @@ export const ROTULO_DA_ACAO: Record<AcaoAuditada, string> = {
   ClienteCadastrado: 'Cliente cadastrado',
   SaldoInicialDoCaixaDefinido: 'Saldo inicial do caixa definido',
   SaldoInicialDoCaixaExcluido: 'Saldo inicial do caixa excluído',
+  RenovacaoRecebidaPorFora: 'Renovação recebida por fora',
+  RenovacaoDesfeita: 'Renovação desfeita',
 }
 
 export const ROTULO_DA_DESPESA: Record<CategoriaDeDespesa, string> = {

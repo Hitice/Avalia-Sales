@@ -56,6 +56,22 @@ public sealed class Renovacao : IDoRevendedor
         return true;
     }
 
+    /// <summary>
+    /// Recebimento registrado por engano: a placa volta ao vencimento de antes
+    /// e a renovação reabre, para ser cobrada de novo se for o caso.
+    /// </summary>
+    public void Desfazer(Placa placa)
+    {
+        if (Situacao != SituacaoDaRenovacao.Paga || De is not { } de || Ate is not { } ate)
+        {
+            throw new RegraDeNegocioException("Esta renovação não está paga.");
+        }
+
+        placa.DesfazerRenovacao(de, ate);
+        (De, Ate, PagaEm) = (null, null, null);
+        Situacao = SituacaoDaRenovacao.Aberta;
+    }
+
     public void Cancelar()
     {
         if (Situacao == SituacaoDaRenovacao.Aberta)

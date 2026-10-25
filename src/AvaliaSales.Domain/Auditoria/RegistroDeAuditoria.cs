@@ -43,6 +43,8 @@ public enum AcaoAuditada
     ClienteCadastrado,
     SaldoInicialDoCaixaDefinido,
     SaldoInicialDoCaixaExcluido,
+    RenovacaoRecebidaPorFora,
+    RenovacaoDesfeita,
 }
 
 /// <summary>

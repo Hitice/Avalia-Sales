@@ -14,9 +14,12 @@ public sealed record LeituraDto(DateOnly Dia, int Total);
 public sealed record VendaDaFicha(Guid Id, string Cliente, string Responsavel, string Telefone, string Produto, string Vendedor,
     long ValorCents, long ComissaoCents, SituacaoDaCobranca? Pagamento, DateTimeOffset VendidaEm);
 
+/// <summary>A última renovação paga da placa; a recebida por fora o revendedor pode desfazer.</summary>
+public sealed record RenovacaoDaFicha(long ValorCents, DateTimeOffset PagaEm, MeioDePagamento Meio, bool PorFora);
+
 public sealed record FichaDto(string Codigo, string Endereco, long Sequencia, EstadoDaPlaca Estado, string? Destino, DateTimeOffset? VenceEm,
     DateTimeOffset? FimDaCarencia, long TotalLeituras, DateTimeOffset? UltimaLeituraEm, string? ConsignadaA, VendaDaFicha? Venda,
-    IReadOnlyList<LeituraDto> Leituras, IReadOnlyList<Auditoria.RegistroDto> Historico);
+    IReadOnlyList<LeituraDto> Leituras, IReadOnlyList<Auditoria.RegistroDto> Historico, RenovacaoDaFicha? UltimaRenovacao = null);
 
 /// <summary>
 /// A placa vendida: destino, vencimento, leituras e o liga e desliga. O dono
@@ -57,6 +60,13 @@ public sealed class FichaDaPlaca(IBancoDeDados banco, IUsuarioAtual usuario, ICo
                 nomes.GetValueOrDefault(linha.v.VendedorId, "Não identificado"), linha.v.ValorCents, linha.v.ComissaoCents, linha.Pagamento, linha.v.VendidaEm);
         }
 
+        var renovacao = await (
+            from r in banco.Renovacoes.AsNoTracking().Where(r => r.PlacaId == placa.Id && r.Situacao == SituacaoDaRenovacao.Paga)
+            join c in banco.Cobrancas on r.Id equals c.OrigemId
+            where c.Origem == OrigemDaCobranca.Renovacao && c.Situacao == SituacaoDaCobranca.Paga
+            orderby r.PagaEm descending
+            select new RenovacaoDaFicha(r.ValorCents, r.PagaEm!.Value, c.Meio, c.Meio == MeioDePagamento.Dinheiro || c.Meio == MeioDePagamento.OutroPix)).FirstOrDefaultAsync(ct);
+
         string? consignada = null;
         if (placa.ConsignadaA is { } vendedorId)
         {
@@ -65,7 +75,7 @@ public sealed class FichaDaPlaca(IBancoDeDados banco, IUsuarioAtual usuario, ICo
 
         return new FichaDto(placa.Codigo, plataforma.Value.EnderecoDaPlaca(placa.Codigo), placa.Sequencia, placa.Estado(agora), placa.Destino, placa.VenceEm, placa.FimDaCarencia,
             placa.TotalLeituras, placa.UltimaLeituraEm, consignada, venda, leituras,
-            (await auditoria.Listar(placa.Codigo, null, 1, ct)).Registros);
+            (await auditoria.Listar(placa.Codigo, null, 1, ct)).Registros, renovacao);
     }
 
     public async Task Apontar(string codigo, DestinoInformado destino, CancellationToken ct)
