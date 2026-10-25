@@ -36,6 +36,7 @@ public static class InjecaoDeDependencias
         servicos.AddScoped<Fechamentos>();
         servicos.AddScoped<Despesas>();
         servicos.AddScoped<Socios>();
+        servicos.AddScoped<Caixa>();
         servicos.AddScoped<Dre>();
         servicos.AddScoped<CustoDasPlacas>();
         servicos.AddScoped<Renovacoes>();

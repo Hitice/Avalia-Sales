@@ -56,6 +56,8 @@ export const ROTULO_DO_LANCAMENTO: Record<TipoDeLancamento, string> = {
   Perda: 'Perda de placa',
   Despesa: 'Despesa',
   RetiradaDeSocio: 'Retirada de sócio',
+  AporteDeSocio: 'Aporte de sócio',
+  SaldoInicialDoCaixa: 'Saldo inicial do caixa',
 }
 
 export const ROTULO_DO_MEIO: Record<MeioDePagamento, string> = {
@@ -220,6 +222,8 @@ export const ROTULO_DA_ACAO: Record<AcaoAuditada, string> = {
   SocioAlterado: 'Sócio alterado',
   SocioExcluido: 'Sócio excluído',
   ClienteCadastrado: 'Cliente cadastrado',
+  SaldoInicialDoCaixaDefinido: 'Saldo inicial do caixa definido',
+  SaldoInicialDoCaixaExcluido: 'Saldo inicial do caixa excluído',
 }
 
 export const ROTULO_DA_DESPESA: Record<CategoriaDeDespesa, string> = {
@@ -237,4 +241,5 @@ export const ROTULO_DA_RETIRADA: Record<NaturezaDaRetirada, string> = {
   ProLabore: 'Pró-labore',
   DistribuicaoDeLucros: 'Distribuição de lucros',
   Adiantamento: 'Adiantamento',
+  Aporte: 'Aporte',
 }

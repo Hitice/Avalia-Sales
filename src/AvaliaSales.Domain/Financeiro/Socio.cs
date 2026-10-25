@@ -47,6 +47,9 @@ public enum NaturezaDaRetirada
 
     /// <summary>Retirada antes de haver lucro: o sócio deve à empresa até ser acertada.</summary>
     Adiantamento = 3,
+
+    /// <summary>O sentido contrário: o sócio põe dinheiro na revenda, como capital de giro.</summary>
+    Aporte = 4,
 }
 
 /// <summary>A retirada do sócio no mês da data dela, com a natureza. Como a despesa, cada versão é uma linha do razão.</summary>

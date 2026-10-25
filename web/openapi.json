@@ -3854,6 +3854,62 @@
         }
       }
     },
+    "/financeiro/caixa": {
+      "get": {
+        "tags": [
+          "Financeiro"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaixaDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Financeiro"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NovoSaldoInicial"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaixaDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Financeiro"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/financeiro/retiradas": {
       "get": {
         "tags": [
@@ -4923,7 +4979,9 @@
           "SocioCadastrado",
           "SocioAlterado",
           "SocioExcluido",
-          "ClienteCadastrado"
+          "ClienteCadastrado",
+          "SaldoInicialDoCaixaDefinido",
+          "SaldoInicialDoCaixaExcluido"
         ]
       },
       "AjustarProduto": {
@@ -5218,6 +5276,41 @@
             "format": "int32"
           }
         }
+      },
+      "CaixaDto": {
+        "required": [
+          "inicio",
+          "saldoInicialCents",
+          "entradasCents",
+          "saidasCents",
+          "saldoCents"
+        ],
+        "type": "object",
+        "properties": {
+          "inicio": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "saldoInicialCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "entradasCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "saidasCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "saldoCents": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "description": "Sem saldo inicial, string? CaixaDto.Inicio \u00E9 nulo e o resto \u00E9 zero: o caixa ainda n\u00E3o \u00E9 contado."
       },
       "CancelarVenda": {
         "type": "object",
@@ -7636,7 +7729,8 @@
         "enum": [
           "ProLabore",
           "DistribuicaoDeLucros",
-          "Adiantamento"
+          "Adiantamento",
+          "Aporte"
         ]
       },
       "NotificacaoDto": {
@@ -8015,6 +8109,22 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "NovoSaldoInicial": {
+        "required": [
+          "competencia",
+          "valorCents"
+        ],
+        "type": "object",
+        "properties": {
+          "competencia": {
+            "type": "string"
+          },
+          "valorCents": {
+            "type": "integer",
+            "format": "int64"
           }
         }
       },
@@ -9475,7 +9585,9 @@
           "CustoDaPlaca",
           "Perda",
           "Despesa",
-          "RetiradaDeSocio"
+          "RetiradaDeSocio",
+          "AporteDeSocio",
+          "SaldoInicialDoCaixa"
         ],
         "description": "O que o lan\u00E7amento registra, do ponto de vista do revendedor."
       },

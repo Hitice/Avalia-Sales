@@ -113,9 +113,12 @@ public sealed class Socios(IBancoDeDados banco, Fechamentos fechamentos, Auditor
         await banco.SaveChangesAsync(ct);
     }
 
+    /// <summary>O aporte é a mesma ficha no sentido contrário: entra no caixa, e o DRE só soma as retiradas.</summary>
     private void Lancar(Retirada retirada, Socio socio, string competencia, DateTimeOffset agora)
     {
-        var linha = new Lancamento(TipoDeLancamento.RetiradaDeSocio, Guid.CreateVersion7(), -retirada.ValorCents, $"{Rotulo(retirada.Natureza)} - {socio.Nome}", agora,
+        var aporte = retirada.Natureza == NaturezaDaRetirada.Aporte;
+        var linha = new Lancamento(aporte ? TipoDeLancamento.AporteDeSocio : TipoDeLancamento.RetiradaDeSocio, Guid.CreateVersion7(),
+            aporte ? retirada.ValorCents : -retirada.ValorCents, $"{Rotulo(retirada.Natureza)} - {socio.Nome}", agora,
             competencia: competencia, categoria: retirada.Natureza.ToString());
         banco.Lancamentos.Add(linha);
         retirada.Lancada(linha.Id);
@@ -142,6 +145,7 @@ public sealed class Socios(IBancoDeDados banco, Fechamentos fechamentos, Auditor
     {
         NaturezaDaRetirada.ProLabore => "Pró-labore",
         NaturezaDaRetirada.DistribuicaoDeLucros => "Distribuição de lucros",
+        NaturezaDaRetirada.Aporte => "Aporte",
         _ => "Adiantamento",
     };
 

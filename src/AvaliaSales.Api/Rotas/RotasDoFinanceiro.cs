@@ -44,6 +44,14 @@ public static class RotasDoFinanceiro
             return Results.NoContent();
         });
 
+        dono.MapGet("/caixa", (Caixa caixa, CancellationToken ct) => caixa.Ler(ct));
+        dono.MapPut("/caixa", (NovoSaldoInicial pedido, Caixa caixa, CancellationToken ct) => caixa.DefinirSaldoInicial(pedido, ct));
+        dono.MapDelete("/caixa", async (Caixa caixa, CancellationToken ct) =>
+        {
+            await caixa.ExcluirSaldoInicial(ct);
+            return Results.NoContent();
+        });
+
         dono.MapGet("/retiradas", (string? competencia, Socios socios, CancellationToken ct) => socios.Retiradas(competencia, ct));
         dono.MapPost("/retiradas", async (NovaRetirada pedido, Socios socios, CancellationToken ct) =>
             Results.Created("/financeiro/retiradas", await socios.Retirar(pedido, ct)));

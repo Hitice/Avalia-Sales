@@ -121,11 +121,15 @@ public sealed class Dre(IBancoDeDados banco, Fechamentos fechamentos)
                 DaPlaca = v != null && v.PlacaId != null,
                 Custo = v == null ? 0 : v.CustoCents,
                 DaVenda = c != null && c.Origem == OrigemDaCobranca.Venda,
+                // Histórico trazido do sistema anterior: a linha não tem cobrança. A renovação paga aqui, sim.
+                DoHistorico = v != null && v.DoSistemaAnterior && c == null,
             }).ToListAsync(ct);
         receitas = receitas.Where(r => string.CompareOrdinal(r.Competencia, ate) <= 0).ToList();
+        // O histórico fica inteiro no mês da venda, como era reconhecido lá: nenhuma parte chega aos meses da plataforma.
+        int Meses(bool daPlaca, bool doHistorico) => daPlaca && !doHistorico ? Reconhecimento.MesesDaPlaca : 1;
         return (linhas,
-            receitas.Select(r => new LinhaApropriada(r.Id, r.ValorCents, r.Competencia, r.DaPlaca ? Reconhecimento.MesesDaPlaca : 1, r.EstornaId)).ToList(),
-            receitas.Where(r => r.DaPlaca && r.DaVenda && r.Custo > 0)
-                .Select(r => new LinhaApropriada(r.Id, -Math.Sign(r.ValorCents) * r.Custo, r.Competencia, Reconhecimento.MesesDaPlaca, r.EstornaId)).ToList());
+            receitas.Select(r => new LinhaApropriada(r.Id, r.ValorCents, r.Competencia, Meses(r.DaPlaca, r.DoHistorico), r.EstornaId)).ToList(),
+            receitas.Where(r => r.DaPlaca && (r.DaVenda || r.DoHistorico) && r.Custo > 0)
+                .Select(r => new LinhaApropriada(r.Id, -Math.Sign(r.ValorCents) * r.Custo, r.Competencia, Meses(r.DaPlaca, r.DoHistorico), r.EstornaId)).ToList());
     }
 }

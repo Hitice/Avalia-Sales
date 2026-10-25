@@ -29,6 +29,12 @@ public enum TipoDeLancamento
 
     /// <summary>A retirada do sócio do contrato. Não é despesa: fica abaixo do resultado.</summary>
     RetiradaDeSocio = 8,
+
+    /// <summary>Dinheiro que o sócio põe na revenda. Não é receita: fica abaixo do resultado, como a retirada.</summary>
+    AporteDeSocio = 9,
+
+    /// <summary>O dinheiro em caixa no primeiro dia do mês em que o caixa passa a ser contado. Fora do resultado.</summary>
+    SaldoInicialDoCaixa = 10,
 }
 
 /// <summary>

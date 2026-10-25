@@ -41,6 +41,8 @@ public enum AcaoAuditada
     SocioAlterado,
     SocioExcluido,
     ClienteCadastrado,
+    SaldoInicialDoCaixaDefinido,
+    SaldoInicialDoCaixaExcluido,
 }
 
 /// <summary>

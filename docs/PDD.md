@@ -572,6 +572,16 @@ vendedor.
 - Retirada de sócio - sócio, data, natureza (pró-labore, distribuição de
   lucros, adiantamento), valor e observação. Vai ao razão como a despesa, mas
   fica abaixo do resultado: não é despesa.
+- Aporte de sócio - a mesma ficha, com a natureza aporte: o sócio põe dinheiro
+  na revenda. Entra no caixa e fica fora do resultado e das retiradas do DRE.
+- Caixa - começa no primeiro dia de um mês, com o saldo inicial informado pelo
+  revendedor (o capital de giro). Daí em diante soma o recebido das vendas e
+  renovações e os aportes, e tira a taxa da plataforma, a comissão repassada,
+  as despesas, as retiradas e os pedidos de placas pagos. A tarifa do Pagar.me
+  fica de fora. O que é de antes do saldo inicial continua no razão e no DRE
+  dos meses dele, fora do caixa. Um saldo inicial vale por vez: trocar ou
+  excluir estorna o anterior e vai à auditoria. O mês do saldo inicial é o
+  corrente, o seguinte ou um já passado, e precisa estar aberto.
 - Custo da placa - o que a revenda pagou por ela no pedido de placas, com o
   cupom, dividido pela quantidade, congelado na ativação do lote e copiado na
   venda. O custo da placa vendida acompanha a receita da venda (mesmo mês,
@@ -591,7 +601,9 @@ vendedor.
   mês do pagamento, e o custo da placa vendida acompanha. Serviço entra
   inteiro no mês. Comissão e taxa entram no mês do pagamento. O que já entrou
   no caixa e ainda não no resultado aparece como "a reconhecer". Estorno para
-  a apropriação e devolve no mês dele o que já tinha entrado.
+  a apropriação e devolve no mês dele o que já tinha entrado. A venda trazida
+  do sistema anterior é reconhecida inteira no mês dela, com o custo, como era
+  lá: nada do histórico chega aos meses da plataforma.
 - Fechamento do mês - o revendedor fecha mês que já acabou. Fechado, a
   despesa ou retirada com data nele é recusada, e a correção de linha dele vai
   ao mês corrente. O pagamento do mês fechado que chega depois também entra no
@@ -736,6 +748,7 @@ porque está impresso nas placas vendidas.
 
 | Data | Mudança |
 | --- | --- |
+| 25/10/2026 | Caixa da revenda a partir do saldo inicial do mês (o capital de giro), com aporte de sócio; a venda trazida do sistema anterior é reconhecida inteira no mês dela. |
 | 25/10/2026 | Tela de entrada com os logos oficiais do Pagar.me e da Stone, nas cores das marcas; o Resend sai. |
 | 25/10/2026 | Mapa abre mais perto - com oito lugares ou mais, o enquadramento fica com os 80% do meio, e o lugar isolado na ponta da cidade aparece ao arrastar; zoom até o nível da rua. |
 | 25/10/2026 | Documento revisto - texto reorganizado, estado das integrações e das fases atualizado. |
