@@ -16,6 +16,14 @@ public sealed class EmailNaFila
 
     public static readonly TimeSpan EsperaMaxima = TimeSpan.FromHours(6);
 
+    /// <summary>
+    /// O maior prazo de link ou código que viaja em e-mail (confirmação do e-mail,
+    /// 2 dias): passado isso sem envio, o segredo do texto já não abre nada.
+    /// </summary>
+    public static readonly TimeSpan ValidadeDoSegredo = TimeSpan.FromDays(2);
+
+    public const string ConteudoRemovido = "(conteúdo removido)";
+
     public Guid Id { get; private set; } = Guid.CreateVersion7();
     public string Chave { get; private set; }
     public string Para { get; private set; }
@@ -38,13 +46,20 @@ public sealed class EmailNaFila
     public string? CorDaMarca { get; private set; }
     public string? UltimoErro { get; private set; }
 
+    /// <summary>
+    /// Leva link de senha ou código de acesso, que não ficam no banco depois do
+    /// envio: <see cref="LimparConteudo"/> apaga o assunto e o texto.
+    /// </summary>
+    public bool Sensivel { get; private set; }
+
     private EmailNaFila()
     {
         Chave = Para = Assunto = Texto = string.Empty;
     }
 
-    public EmailNaFila(string chave, string para, string assunto, string texto, DateTimeOffset agora)
+    public EmailNaFila(string chave, string para, string assunto, string texto, DateTimeOffset agora, bool sensivel = false)
     {
+        Sensivel = sensivel;
         Chave = chave;
         Para = para;
         Assunto = assunto;
@@ -56,6 +71,34 @@ public sealed class EmailNaFila
     {
         IdNoResend = idNoResend;
         EnviadoEm = agora;
+        LimparConteudo();
+    }
+
+    /// <summary>Apaga o segredo (assunto com código, texto com link) do e-mail sensível; o resto do registro fica para consulta.</summary>
+    public void LimparConteudo()
+    {
+        if (!Sensivel)
+        {
+            return;
+        }
+
+        Assunto = ConteudoRemovido;
+        Texto = string.Empty;
+    }
+
+    /// <summary>E-mail sensível que não saiu a tempo: o link ou código venceu, então não adianta mais tentar. O conteúdo sai do banco.</summary>
+    public bool DescartarSeVenceu(DateTimeOffset agora)
+    {
+        if (!Sensivel || EnviadoEm is not null || Tentativas >= TentativasMaximas || agora - CriadoEm < ValidadeDoSegredo)
+        {
+            return false;
+        }
+
+        Tentativas = TentativasMaximas;
+        UltimoErro = "Descartado: o link ou código venceu antes do envio.";
+        ProximaTentativaEm = null;
+        LimparConteudo();
+        return true;
     }
 
     public const int NomeMaximo = 80;
@@ -74,6 +117,10 @@ public sealed class EmailNaFila
         Tentativas++;
         UltimoErro = erro.Length > 500 ? erro[..500] : erro;
         ProximaTentativaEm = agora + Espera(Tentativas);
+        if (Tentativas >= TentativasMaximas)
+        {
+            LimparConteudo();
+        }
     }
 
     public static TimeSpan Espera(int tentativas)

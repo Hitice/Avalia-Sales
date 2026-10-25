@@ -72,7 +72,7 @@ public static class RotasDeAcesso
         });
 
         // Segundo fator do dono e da operadora. Ligar exige o primeiro código do app; desligar, o código novo do e-mail (ou o do app).
-        var fator = rotas.MapGroup("/conta/segundo-fator").RequireAuthorization().RequireRateLimiting(LimiteDeEntrada);
+        var fator = rotas.MapGroup("/conta/segundo-fator").RequireAuthorization().RequireRateLimiting(LimiteDeEntrada).SemIdempotencia();
         fator.MapGet("/", async (IUsuarioAtual atual, UserManager<Usuario> usuarios) =>
             await usuarios.FindByIdAsync(Atual(atual)) is { } u
                 ? new SituacaoDoSegundoFator(u.TwoFactorEnabled, u.TwoFactorEnabled ? GestorDeSegundoFator.Meio(u) : null, u.EmailConfirmed)
@@ -102,17 +102,17 @@ public static class RotasDeAcesso
         {
             await senhas.PedirConfirmacao(atual.UsuarioId ?? throw new InvalidOperationException("Sem usuário."), ct);
             return Results.NoContent();
-        }).RequireAuthorization().RequireRateLimiting(LimiteDeEntrada);
+        }).RequireAuthorization().RequireRateLimiting(LimiteDeEntrada).SemIdempotencia();
         rotas.MapPost("/conta/email/confirmacao/codigo", async (CodigoDeConfirmacao pedido, IUsuarioAtual atual, GestorDeSenhas senhas, CancellationToken ct) =>
         {
             await senhas.ConfirmarComCodigo(atual.UsuarioId ?? throw new InvalidOperationException("Sem usuário."), pedido.Codigo, ct);
             return Results.NoContent();
-        }).RequireAuthorization().RequireRateLimiting(LimiteDeEntrada);
+        }).RequireAuthorization().RequireRateLimiting(LimiteDeEntrada).SemIdempotencia();
         // Troca logada: as outras sessões caem e este aparelho recebe uma sessão nova.
         rotas.MapPost("/conta/senha", async (TrocaDeSenha pedido, HttpContext http, IUsuarioAtual atual, GestorDeSenhas senhas, GestorDeSessoes sessoes,
             EmissorDeToken emissor, BancoDeDados banco, CancellationToken ct) =>
             await Entrou(http, await senhas.Trocar(Guid.Parse(Atual(atual)), pedido.Atual, pedido.Nova, ct), sessoes, emissor, banco, ct))
-            .RequireAuthorization().RequireRateLimiting(LimiteDeEntrada).Produces<TokenEmitido>();
+            .RequireAuthorization().RequireRateLimiting(LimiteDeEntrada).SemIdempotencia().Produces<TokenEmitido>();
         rotas.MapPost("/cadastro", Cadastrar).AllowAnonymous().RequireRateLimiting(LimiteDeEntrada).Produces<TokenEmitido>();
 
         // O cadastro preenche razão social e endereço pelo CNPJ, e o endereço pelo CEP. Sem resultado, 404 e a tela pede para digitar.

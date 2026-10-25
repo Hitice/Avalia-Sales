@@ -152,6 +152,7 @@ builder.Services.AddRateLimiter(limites =>
 builder.Services.ConfigureHttpJsonOptions(o =>
 {
     o.SerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+    o.SerializerOptions.Converters.Add(new DataEmUtc());
     o.SerializerOptions.NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.Strict;
 });
 builder.Services.AddSignalR();
@@ -161,7 +162,11 @@ builder.Services.AddExceptionHandler<PedidoMalFormadoEm400>();
 builder.Services.AddExceptionHandler<RegraDeNegocioEm422>();
 builder.Services.AddExceptionHandler<DuplicidadeEm422>();
 builder.Services.AddHealthChecks().AddDbContextCheck<BancoDeDados>();
-builder.Services.AddOpenApi(o => o.AddDocumentTransformer<EsquemaDoToken>());
+builder.Services.AddOpenApi(o =>
+{
+    o.AddDocumentTransformer<EsquemaDoToken>();
+    o.AddSchemaTransformer<DataEmUtcNoEsquema>();
+});
 
 var app = builder.Build();
 
@@ -250,6 +255,7 @@ app.Use(async (http, proximo) =>
 });
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseMiddleware<IdempotenciaDaRequisicao>();
 app.UseMiddleware<ContaEncerrada>();
 app.UseMiddleware<AuditoriaDaOperadoraNaRota>();
 app.UseRateLimiter();

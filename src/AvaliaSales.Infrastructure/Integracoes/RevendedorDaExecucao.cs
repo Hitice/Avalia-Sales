@@ -11,5 +11,6 @@ public sealed class RevendedorDaExecucao : IRevendedorAtual
 {
     public Guid? RevendedorId { get; set; }
 
-    public bool Operadora => false;
+    /// <summary>Só para a limpeza das linhas da operadora (sem revendedor); as outras rotinas ficam em false.</summary>
+    public bool Operadora { get; set; }
 }

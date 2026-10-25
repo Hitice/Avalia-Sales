@@ -149,12 +149,28 @@ o workflow compila de novo.
   Brasília em `PASTA_DE_BACKUP` e apaga os mais velhos que `BACKUP_DIAS`.
 - Sem `BACKUP_PARA`, as cópias ficam só no disco do VPS: protegem de engano
   (migration, exclusão), não da perda do servidor. Com `BACKUP_PARA` e o Resend,
-  a cópia vai anexada por e-mail até 28 MB. O destino fora do VPS que fica é
+  a cópia vai anexada por e-mail até 28 MB, sempre criptografada
+  (`avalia_sales-<data>.dump.enc`, AES-256-CBC com PBKDF2) com a senha de
+  `BACKUP_SENHA`. `BACKUP_SENHA` é obrigatória com `BACKUP_PARA`: sem ela o
+  contêiner `backup` sai com erro e nada vai por e-mail. Guarde a senha fora do
+  VPS (gerenciador de senhas): perdida, as cópias por e-mail não abrem. O
+  arquivo no disco do VPS não é criptografado. O destino fora do VPS que fica é
   um bucket de armazenamento de objetos, com o Backblaze B2 recomendado (10 GB
   sem custo); pendente até o bucket existir (docs/SDD.md, seção 13).
 - O `backup.sh` grava em `.parcial` e só renomeia depois que o
   `pg_restore --list` lê o arquivo e acha os dados de `lancamentos`. Cópia
   cortada ou vazia sai com erro e não apaga as anteriores.
+- Abrir a cópia recebida por e-mail (salve o anexo e use a mesma senha):
+
+  ```bash
+  read -rs BACKUP_SENHA && export BACKUP_SENHA
+  openssl enc -d -aes-256-cbc -pbkdf2 -iter 600000 -pass env:BACKUP_SENHA \
+    -in avalia_sales-<data>.dump.enc -out avalia_sales.dump
+  pg_restore --list avalia_sales.dump | grep "TABLE DATA public lancamentos"
+  ```
+
+  Senha errada ou arquivo corrompido falha com `bad decrypt`. O `.dump`
+  resultante restaura como qualquer outro, com `pg_restore` (abaixo).
 - Cópia na hora: `docker compose -f docker-compose.producao.yml --env-file /srv/avalia-sales/.env exec backup sh /backup.sh agora`.
 - Teste a restauração todo mês, num banco à parte:
 

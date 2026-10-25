@@ -1,8 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { useSessao } from '@/acesso/sessao'
-import { ErroDaApi, chamarApi, mensagemDoErro } from './cliente'
+import { ErroDaApi, chamarApi, enviarJson, mensagemDoErro, novaChaveDeIdempotencia } from './cliente'
 
 const perfil = { id: '1', nome: 'Dona', email: 'dona@teste.com.br', papel: 'Dono' as const, revendedorId: 'r', revendedor: 'Revenda', emailConfirmado: true }
+const umaHoraAdiante = () => new Date(Date.now() + 3_600_000).toISOString()
 const emitido = (token: string) => ({ token, expiraEm: new Date(Date.now() + 900_000).toISOString(), perfil })
 const resposta = (corpo: unknown, status = 200) => new Response(typeof corpo === 'string' ? corpo : JSON.stringify(corpo), { status })
 
@@ -122,5 +123,60 @@ describe('chamarApi: gravação repetida', () => {
     const resultados = await Promise.allSettled([gravar({ a: 1 }), gravar({ a: 1 })])
 
     expect(resultados.map((r) => r.status)).toEqual(['rejected', 'rejected'])
+  })
+})
+
+const chaveDe = (chamada: unknown[]) => new Headers((chamada[1] as RequestInit).headers).get('Idempotency-Key')
+
+describe('Idempotency-Key', () => {
+  it('toda gravação POST leva uma chave, e cada ação do usuário leva uma chave nova', async () => {
+    useSessao.getState().entrar({ token: 't', expiraEm: umaHoraAdiante(), perfil })
+    const fetch = vi.fn().mockImplementation(() => Promise.resolve(new Response('{}', { status: 201 })))
+    vi.stubGlobal('fetch', fetch)
+
+    await chamarApi('/financeiro/despesas', enviarJson('POST', { descricao: 'a' }))
+    await chamarApi('/financeiro/despesas', enviarJson('POST', { descricao: 'a' }))
+
+    const [primeira, segunda] = fetch.mock.calls.map(chaveDe)
+    expect(primeira).toMatch(/^[0-9a-f-]{36}$/)
+    expect(segunda).toMatch(/^[0-9a-f-]{36}$/)
+    expect(primeira).not.toBe(segunda)
+  })
+
+  it('o reenvio depois do 401 e da renovação da sessão usa a mesma chave', async () => {
+    useSessao.getState().entrar({ token: 'velho', expiraEm: umaHoraAdiante(), perfil })
+    const fetch = vi.fn()
+      .mockResolvedValueOnce(new Response(null, { status: 401 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ token: 'novo', expiraEm: umaHoraAdiante(), perfil }), { status: 200 }))
+      .mockResolvedValueOnce(new Response('{}', { status: 201 }))
+    vi.stubGlobal('fetch', fetch)
+
+    await chamarApi('/vendas', enviarJson('POST', { codigo: 'x' }))
+
+    expect(fetch).toHaveBeenCalledTimes(3)
+    const [primeiroEnvio, renovacao, reenvio] = fetch.mock.calls
+    expect(chaveDe(primeiroEnvio)).toBeTruthy()
+    expect(chaveDe(reenvio)).toBe(chaveDe(primeiroEnvio))
+    expect(String(renovacao[0])).toBe('/api/auth/renovar')
+    expect(new Headers((reenvio[1] as RequestInit).headers).get('Authorization')).toBe('Bearer novo')
+  })
+
+  it('leitura, alteração e exclusão não levam chave', async () => {
+    useSessao.getState().entrar({ token: 't', expiraEm: umaHoraAdiante(), perfil })
+    const fetch = vi.fn().mockImplementation(() => Promise.resolve(new Response('{}', { status: 200 })))
+    vi.stubGlobal('fetch', fetch)
+
+    await chamarApi('/financeiro/despesas')
+    await chamarApi('/financeiro/despesas/1', enviarJson('PUT', { descricao: 'b' }))
+    await chamarApi('/financeiro/despesas/1', enviarJson('DELETE'))
+
+    expect(fetch.mock.calls.map(chaveDe)).toEqual([null, null, null])
+  })
+
+  it('sem crypto.randomUUID (HTTP na rede local) a chave sai do mesmo jeito', () => {
+    const original = globalThis.crypto
+    vi.stubGlobal('crypto', { getRandomValues: (bytes: Uint8Array<ArrayBuffer>) => original.getRandomValues(bytes) })
+
+    expect(novaChaveDeIdempotencia()).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
   })
 })

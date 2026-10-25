@@ -5,9 +5,11 @@
 #
 # Com BACKUP_PARA e a chave do Resend, a cópia também sai por e-mail: o disco do
 # VPS protege de engano humano, a caixa de e-mail protege da perda do VPS. O
-# anexo tem dado de cliente e hash de senha; a caixa de destino é da Avalia e não
-# tem encaminhamento automático. Acima do limite do Resend (40 MB depois do
-# base64), o e-mail sai sem anexo, avisando que a cópia ficou só no disco.
+# anexo tem dado de cliente e hash de senha, por isso sai SEMPRE criptografado
+# (AES-256-CBC, PBKDF2, senha em BACKUP_SENHA, obrigatória com BACKUP_PARA): sem
+# a senha o script para, e nunca anexa a cópia em claro. Acima do limite do
+# Resend (40 MB depois do base64), o e-mail sai sem anexo, avisando que a cópia
+# ficou só no disco. O arquivo em disco continua em claro, sob o controle do VPS.
 set -eu
 
 # A cópia tem dado de cliente e hash de senha, e o contêiner roda como root: sem isto o arquivo
@@ -17,8 +19,22 @@ umask 077
 
 LIMITE_DO_ANEXO=28000000
 
+# Falha fechado: e-mail ligado sem senha não vira cópia em claro na caixa de entrada.
+if [ -n "${BACKUP_PARA:-}" ] && [ -z "${BACKUP_SENHA:-}" ]; then
+  echo "BACKUP_PARA está ligado e BACKUP_SENHA está vazia: a cópia não pode sair por e-mail sem criptografia." >&2
+  exit 1
+fi
+
 enviar() {
-  arquivo="$1"
+  original="$1"
+  cifrado="$original.enc"
+  # A senha vai pelo ambiente do openssl, e não pela linha de comando (visível em ps).
+  if ! openssl enc -aes-256-cbc -pbkdf2 -iter 600000 -salt -pass env:BACKUP_SENHA -in "$original" -out "$cifrado"; then
+    rm -f "$cifrado"
+    echo "criptografia da cópia falhou; nada foi enviado" >&2
+    return 0
+  fi
+  arquivo="$cifrado"
   nome=$(basename "$arquivo")
   tamanho=$(wc -c < "$arquivo")
   dia=$(TZ=America/Sao_Paulo date +%d/%m/%Y)
@@ -26,14 +42,14 @@ enviar() {
   if [ "$tamanho" -le "$LIMITE_DO_ANEXO" ]; then
     {
       printf '{"from":"%s","to":["%s"],"subject":"Cópia do banco do Avalia Sales - %s",' "$RESEND_REMETENTE" "$BACKUP_PARA" "$dia"
-      printf '"text":"Cópia diária do banco, %s bytes. Restauração em docs/OPERACAO.md.",' "$tamanho"
+      printf '"text":"Cópia diária do banco, criptografada (AES-256-CBC), %s bytes. Restauração em docs/OPERACAO.md.",' "$tamanho"
       printf '"attachments":[{"filename":"%s","content":"' "$nome"
       base64 -w0 "$arquivo"
       printf '"}]}'
     } > "$corpo"
   else
     printf '{"from":"%s","to":["%s"],"subject":"Cópia do banco do Avalia Sales - %s - SEM ANEXO","text":"A cópia tem %s bytes e passou do limite do e-mail. Ela ficou só no disco do VPS (%s). Configure outro destino externo."}' \
-      "$RESEND_REMETENTE" "$BACKUP_PARA" "$dia" "$tamanho" "$nome" > "$corpo"
+      "$RESEND_REMETENTE" "$BACKUP_PARA" "$dia" "$tamanho" "$(basename "$original")" > "$corpo"
   fi
   if curl -fsS --retry 3 --retry-all-errors -o /dev/null https://api.resend.com/emails \
       -H "Authorization: Bearer $RESEND_CHAVE_API" -H "Content-Type: application/json" \
@@ -42,7 +58,7 @@ enviar() {
   else
     echo "envio da cópia falhou" >&2
   fi
-  rm -f "$corpo"
+  rm -f "$corpo" "$cifrado"
 }
 
 # Às 02:00 de Brasília (05:00 UTC), fora do horário de uso. Esperar a hora, e não

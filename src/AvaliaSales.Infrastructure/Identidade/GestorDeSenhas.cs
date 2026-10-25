@@ -38,7 +38,7 @@ public sealed class GestorDeSenhas(BancoDeDados banco, UserManager<Usuario> usua
             Criar minha senha: {endereco}
 
             O link vale 24 horas.
-            """, revenda);
+            """, revenda, sensivel: true);
         await banco.SaveChangesAsync(ct);
         return endereco;
     }
@@ -71,7 +71,7 @@ public sealed class GestorDeSenhas(BancoDeDados banco, UserManager<Usuario> usua
             Criar senha nova: {endereco}
 
             O link vale 1 hora. Se não foi você que pediu, ignore este e-mail.
-            """);
+            """, sensivel: true);
         await banco.SaveChangesAsync(ct);
     }
 
@@ -107,7 +107,7 @@ public sealed class GestorDeSenhas(BancoDeDados banco, UserManager<Usuario> usua
             Confirmar e-mail: {endereco}
 
             Vale 2 dias. Se não foi você, ignore este e-mail.
-            """);
+            """, sensivel: true);
         await banco.SaveChangesAsync(ct);
     }
 

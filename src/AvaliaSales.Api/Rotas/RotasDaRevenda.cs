@@ -74,9 +74,11 @@ public static class RotasDaRevenda
         dono.MapPost("/lotes/ativacao", (AtivarLote pedido, PedidosDePlacas pedidos, CancellationToken ct) => pedidos.Ativar(pedido.Numero, ct));
 
         dono.MapGet("/equipe", (Equipe equipe, CancellationToken ct) => equipe.Listar(ct));
+        // Sem Idempotency-Key: o corpo leva a senha e a resposta leva o link do convite, segredos que não ficam gravados.
+        // O e-mail único já impede o vendedor em dobro.
         dono.MapPost("/equipe", async (NovoVendedor pedido, Equipe equipe, CancellationToken ct) =>
-            Results.Created("/equipe", await equipe.Criar(pedido, ct)));
-        dono.MapPost("/equipe/{id:guid}/convite", (Guid id, Equipe equipe, CancellationToken ct) => equipe.Convidar(id, ct));
+            Results.Created("/equipe", await equipe.Criar(pedido, ct))).SemIdempotencia();
+        dono.MapPost("/equipe/{id:guid}/convite", (Guid id, Equipe equipe, CancellationToken ct) => equipe.Convidar(id, ct)).SemIdempotencia();
         dono.MapPut("/equipe/{id:guid}", (Guid id, AlterarVendedor pedido, Equipe equipe, CancellationToken ct) => equipe.Alterar(id, pedido, ct));
         dono.MapPut("/equipe/{id:guid}/ativo", async (Guid id, AlterarAtivo pedido, Equipe equipe, CancellationToken ct) =>
         {

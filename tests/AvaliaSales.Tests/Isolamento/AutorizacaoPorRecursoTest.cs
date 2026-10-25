@@ -19,6 +19,12 @@ public sealed class AutorizacaoPorRecursoTest(ApiDeTeste api)
 
     private static readonly string[] TabelasDaOperadora = ["chamados", "mensagens", "notificacoes", "ordens_de_servico", "pedidos_placas"];
 
+    /// <summary>
+    /// A operadora grava aqui as próprias chaves de idempotência (revendedor_id nulo) e só enxerga
+    /// essas: a resposta guardada de um revendedor não é lida por ela.
+    /// </summary>
+    private const string TabelaDeLinhasDaOperadora = "chaves_de_idempotencia";
+
     private async Task<(HttpClient Cliente, Guid Id)> Vendedor(Revenda revenda, string nome)
     {
         var email = $"vendedor-{Guid.NewGuid():N}@teste.com.br";
@@ -187,6 +193,7 @@ public sealed class AutorizacaoPorRecursoTest(ApiDeTeste api)
             }
         }
 
+        Assert.True(atendidas.Remove(TabelaDeLinhasDaOperadora), "A tabela das chaves de idempotência precisa ter a política que abre as linhas da operadora.");
         Assert.Equal(TabelasDaOperadora, atendidas.Order().ToArray());
 
         var totalDeA = new Dictionary<string, long>();
@@ -211,7 +218,11 @@ public sealed class AutorizacaoPorRecursoTest(ApiDeTeste api)
             // Operadora, sem revendedor.
             await Definir(aplicacao, null, operadora: true);
             var vistaPelaOperadora = await ApiDeTeste.Contar(aplicacao, $"select count(*) from {tabela}");
-            if (atendidas.Contains(tabela))
+            if (tabela == TabelaDeLinhasDaOperadora)
+            {
+                Assert.Equal(await ApiDeTeste.Contar(dono, $"select count(*) from {tabela} where revendedor_id is null"), vistaPelaOperadora);
+            }
+            else if (atendidas.Contains(tabela))
             {
                 Assert.Equal(await ApiDeTeste.Contar(dono, $"select count(*) from {tabela}"), vistaPelaOperadora);
             }

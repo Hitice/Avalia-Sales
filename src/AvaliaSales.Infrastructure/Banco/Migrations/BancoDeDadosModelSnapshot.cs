@@ -303,6 +303,10 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .HasColumnType("character varying(254)")
                         .HasColumnName("responder_para");
 
+                    b.Property<bool>("Sensivel")
+                        .HasColumnType("boolean")
+                        .HasColumnName("sensivel");
+
                     b.Property<int>("Tentativas")
                         .HasColumnType("integer")
                         .HasColumnName("tentativas");
@@ -2229,6 +2233,88 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                     b.ToTable("vendas", (string)null);
                 });
 
+            modelBuilder.Entity("AvaliaSales.Infrastructure.Idempotencia.ChaveDeIdempotencia", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("BloqueadaAte")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("bloqueada_ate");
+
+                    b.Property<string>("Chave")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("chave");
+
+                    b.Property<byte[]>("Corpo")
+                        .HasColumnType("bytea")
+                        .HasColumnName("corpo");
+
+                    b.Property<DateTimeOffset>("CriadaEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("criada_em");
+
+                    b.Property<DateTimeOffset>("ExpiraEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expira_em");
+
+                    b.Property<string>("HashDoCorpo")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character(64)")
+                        .HasColumnName("hash_do_corpo")
+                        .IsFixedLength();
+
+                    b.Property<string>("Local")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("local");
+
+                    b.Property<Guid?>("RevendedorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("revendedor_id");
+
+                    b.Property<string>("Rota")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("rota");
+
+                    b.Property<string>("Situacao")
+                        .IsRequired()
+                        .HasMaxLength(12)
+                        .HasColumnType("character varying(12)")
+                        .HasColumnName("situacao");
+
+                    b.Property<int?>("StatusHttp")
+                        .HasColumnType("integer")
+                        .HasColumnName("status_http");
+
+                    b.Property<string>("TipoDeConteudo")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("tipo_de_conteudo");
+
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("usuario_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_chaves_de_idempotencia");
+
+                    b.HasIndex("ExpiraEm")
+                        .HasDatabaseName("ix_chaves_de_idempotencia_expira_em");
+
+                    b.HasIndex("UsuarioId", "Rota", "Chave")
+                        .IsUnique()
+                        .HasDatabaseName("ix_chaves_de_idempotencia_usuario_id_rota_chave");
+
+                    b.ToTable("chaves_de_idempotencia", (string)null);
+                });
+
             modelBuilder.Entity("AvaliaSales.Infrastructure.Identidade.AparelhoConhecido", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3223,6 +3309,16 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_vendas_usuarios_vendedor_id");
+                });
+
+            modelBuilder.Entity("AvaliaSales.Infrastructure.Idempotencia.ChaveDeIdempotencia", b =>
+                {
+                    b.HasOne("AvaliaSales.Infrastructure.Identidade.Usuario", null)
+                        .WithMany()
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_chaves_de_idempotencia_usuarios_usuario_id");
                 });
 
             modelBuilder.Entity("AvaliaSales.Infrastructure.Identidade.AparelhoConhecido", b =>

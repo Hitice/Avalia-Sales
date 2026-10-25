@@ -90,9 +90,13 @@ public sealed class RevisaoDeAcessoTest(ApiDeTeste api)
         Assert.DoesNotContain(HttpStatusCode.InternalServerError, respostas);
     }
 
-    /// <summary>Duas renovações do mesmo cookie ao mesmo tempo: no máximo uma vence.</summary>
+    /// <summary>
+    /// Renovações do mesmo cookie ao mesmo tempo (várias abas, retentativa): dentro da janela de
+    /// tolerância todas recebem sessão, nenhuma vira 500 e a família não é revogada
+    /// (ToleranciaDoRefreshTest cobre o reuso fora da janela).
+    /// </summary>
     [Fact]
-    public async Task Renovacoes_simultaneas_do_mesmo_token_nao_vencem_as_duas()
+    public async Task Renovacoes_simultaneas_do_mesmo_token_dentro_da_janela_nao_derrubam_a_sessao()
     {
         var (_, email) = await api.CriarRevendedor("Revenda Renovação Dupla");
         var cliente = api.Fabrica.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions { HandleCookies = false });
@@ -106,8 +110,7 @@ public sealed class RevisaoDeAcessoTest(ApiDeTeste api)
             return (await cliente.SendAsync(pedido, Ct)).StatusCode;
         }));
 
-        Assert.True(respostas.Count(s => s == HttpStatusCode.OK) <= 1, string.Join(",", respostas));
-        Assert.DoesNotContain(HttpStatusCode.InternalServerError, respostas);
+        Assert.All(respostas, s => Assert.Equal(HttpStatusCode.OK, s));
     }
 
     /// <summary>

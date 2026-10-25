@@ -69,6 +69,7 @@ public static class InjecaoDeDependencias
         servicos.AddScoped<GestorDeAparelhos>();
         servicos.AddScoped<GestorDeSessoes>();
         servicos.AddScoped<GestorDeSenhas>();
+        servicos.AddScoped<Idempotencia.ChavesDeIdempotencia>();
         return servicos;
     }
 
@@ -218,6 +219,7 @@ public static class InjecaoDeDependencias
         servicos.AddScoped<Retomadas>();
         servicos.AddScoped<EnvioDeEmails>();
         servicos.AddScoped<EnvioAoErpRotina>();
+        servicos.AddScoped<Manutencao.LimpezaDeExpirados>();
         return servicos;
     }
 }

@@ -211,7 +211,7 @@ public sealed class GestorDeSegundoFator(BancoDeDados banco, UserManager<Usuario
             Seu código de acesso à Avalia Sales: {codigo}
 
             Vale alguns minutos. Se não foi você, troque a senha.
-            """);
+            """, sensivel: true);
         await banco.SaveChangesAsync(ct);
     }
 

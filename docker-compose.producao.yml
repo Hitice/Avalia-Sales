@@ -154,6 +154,8 @@ services:
       PGDATABASE: avalia_sales
       BACKUP_DIAS: ${BACKUP_DIAS:-14}
       BACKUP_PARA: ${BACKUP_PARA:-}
+      # Obrigatória com BACKUP_PARA: o anexo sai criptografado, e sem ela o contêiner não sobe.
+      BACKUP_SENHA: ${BACKUP_SENHA:-}
       RESEND_CHAVE_API: ${RESEND_CHAVE_API:-}
       RESEND_REMETENTE: ${RESEND_REMETENTE:-}
     volumes:

@@ -7,9 +7,19 @@ namespace AvaliaSales.Infrastructure.Identidade;
 /// Refresh token rotativo (OAuth 2.0 Security BCP, RFC 9700, seção 4.14):
 /// cada renovação entrega um token novo e encerra o anterior; o anterior
 /// apresentado de novo encerra o login inteiro, porque alguém o copiou.
+/// Exceção: o anterior reapresentado até <see cref="JanelaDeTolerancia"/> depois
+/// da troca é duas abas, ou uma retentativa depois de resposta perdida, e não
+/// roubo. Ele recebe uma sessão nova da mesma família e a que já existia
+/// continua valendo: o navegador fica com o último cookie que processar, e
+/// qualquer um dos dois renova.
 /// </summary>
 public sealed class GestorDeSessoes(BancoDeDados banco, TimeProvider relogio)
 {
+    public static readonly TimeSpan JanelaDeTolerancia = TimeSpan.FromSeconds(10);
+
+    /// <summary>Quantas sessões extras um mesmo token trocado pode gerar dentro da janela.</summary>
+    public const int ReenviosToleradosPorToken = 10;
+
     public async Task<string> Abrir(Guid usuarioId, CancellationToken ct)
     {
         var (sessao, token) = Sessao.Abrir(usuarioId, null, relogio.GetUtcNow());
@@ -35,25 +45,53 @@ public sealed class GestorDeSessoes(BancoDeDados banco, TimeProvider relogio)
             return null;
         }
 
-        if (sessao.EncerradaEm is not null)
-        {
-            await EncerrarFamilia(sessao.Familia, agora, ct);
-            await transacao.CommitAsync(ct);
-            return null;
-        }
-
         var usuario = await banco.Users.SingleOrDefaultAsync(u => u.Id == sessao.UsuarioId, ct);
-        if (!sessao.Valida(agora) || usuario is not { Ativo: true })
+        var reenvio = false;
+        if (sessao.EncerradaEm is { } encerrada)
+        {
+            if (usuario is not { Ativo: true } || !await ReenvioTolerado(sessao, encerrada, agora, ct))
+            {
+                await EncerrarFamilia(sessao.Familia, agora, ct);
+                await transacao.CommitAsync(ct);
+                return null;
+            }
+
+            reenvio = true;
+        }
+
+        if (usuario is not { Ativo: true } || (!reenvio && !sessao.Valida(agora)))
         {
             return null;
         }
 
-        sessao.Encerrar(agora);
+        if (!reenvio)
+        {
+            sessao.Encerrar(agora);
+        }
+
         var (nova, novoToken) = Sessao.Abrir(usuario.Id, sessao.Familia, agora);
         banco.Sessoes.Add(nova);
         await banco.SaveChangesAsync(ct);
         await transacao.CommitAsync(ct);
         return (usuario, novoToken);
+    }
+
+    /// <summary>
+    /// Troca recente e a família ainda viva: foi rotação, e não saída nem
+    /// revogação (essas encerram a família toda). O limite de reenvios impede
+    /// que um token copiado gere sessões sem fim dentro da janela.
+    /// </summary>
+    private async Task<bool> ReenvioTolerado(Sessao sessao, DateTimeOffset encerrada, DateTimeOffset agora, CancellationToken ct)
+    {
+        if (agora - encerrada > JanelaDeTolerancia || agora >= sessao.ExpiraEm)
+        {
+            return false;
+        }
+
+        var familia = sessao.Familia;
+        var viva = await banco.Sessoes.AsNoTracking().AnyAsync(s => s.Familia == familia && s.EncerradaEm == null && s.ExpiraEm > agora, ct);
+        var sucessoras = await banco.Sessoes.AsNoTracking().CountAsync(s => s.Familia == familia && s.Id != sessao.Id && s.CriadaEm >= encerrada, ct);
+        return viva && sucessoras <= ReenviosToleradosPorToken;
     }
 
     public async Task Encerrar(string? token, CancellationToken ct)

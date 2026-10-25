@@ -20,9 +20,24 @@ const MENSAGEM_PADRAO: Record<number, string> = {
 /** Renova um minuto antes de vencer, para a chamada não sair com token morto. */
 const FOLGA_DA_RENOVACAO = 60_000
 
-async function enviar(caminho: string, opcoes: RequestInit): Promise<Response> {
+/**
+ * Chave de uma intenção de gravação (UUID v4). `crypto.randomUUID` só existe em
+ * contexto seguro; o celular na rede local em desenvolvimento abre por HTTP, e
+ * lá `getRandomValues` continua valendo.
+ */
+export function novaChaveDeIdempotencia(): string {
+  if (typeof crypto.randomUUID === 'function') return crypto.randomUUID()
+  const bytes = crypto.getRandomValues(new Uint8Array(16))
+  bytes[6] = (bytes[6] & 0x0f) | 0x40
+  bytes[8] = (bytes[8] & 0x3f) | 0x80
+  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
+}
+
+async function enviar(caminho: string, opcoes: RequestInit, chave: string | null): Promise<Response> {
   const { token } = useSessao.getState()
   const cabecalhos = new Headers(opcoes.headers)
+  if (chave && !cabecalhos.has('Idempotency-Key')) cabecalhos.set('Idempotency-Key', chave)
   if (typeof opcoes.body === 'string' && !cabecalhos.has('Content-Type')) cabecalhos.set('Content-Type', 'application/json')
   if (token) cabecalhos.set('Authorization', `Bearer ${token}`)
   return fetch(`/api${caminho}`, { ...opcoes, headers: cabecalhos, credentials: 'same-origin' })
@@ -31,7 +46,9 @@ async function enviar(caminho: string, opcoes: RequestInit): Promise<Response> {
 /**
  * Toda chamada passa por aqui: prefixo /api (o Nginx e o Vite levam à API),
  * token da sessão renovado perto de vencer, e um 401 tenta renovar uma vez
- * antes de encerrar a sessão.
+ * antes de encerrar a sessão. Todo POST leva um `Idempotency-Key` próprio da
+ * chamada: o reenvio depois do 401 usa a mesma chave, então a API não grava
+ * duas vezes; cada ação do usuário é uma chamada nova, com chave nova.
  */
 export async function chamarResposta(caminho: string, opcoes: RequestInit = {}): Promise<Response> {
   const { token, expiraEm } = useSessao.getState()
@@ -39,11 +56,12 @@ export async function chamarResposta(caminho: string, opcoes: RequestInit = {}):
     await renovarSessao()
   }
 
-  let resposta = await enviar(caminho, opcoes)
+  const chave = opcoes.method?.toUpperCase() === 'POST' ? novaChaveDeIdempotencia() : null
+  let resposta = await enviar(caminho, opcoes, chave)
   let renovacaoIndisponivel = false
   if (resposta.status === 401 && useSessao.getState().token) {
     if (await renovarSessao()) {
-      resposta = await enviar(caminho, opcoes)
+      resposta = await enviar(caminho, opcoes, chave)
       // Token novo e ainda 401: a sessão não vale mais.
       if (resposta.status === 401) useSessao.getState().limpar()
     } else {
@@ -74,9 +92,10 @@ const emAndamento = new Map<string, Promise<unknown>>()
 
 /**
  * Gravação idêntica enquanto a primeira não voltou (toque duplo, Enter repetido)
- * vai uma vez só: as duas chamadas recebem a mesma resposta. O servidor não
- * tem chave de idempotência nas gravações, então sem isto o segundo toque
- * criava outra venda, despesa ou pedido. Consulta (GET) nunca é unida.
+ * vai uma vez só: as duas chamadas recebem a mesma resposta. A API repete a
+ * resposta de um POST com a mesma `Idempotency-Key`, mas cada chamada gera a
+ * sua chave, e a união poupa o segundo envio (e vale nas rotas que não guardam
+ * resposta, como a do convite). Consulta (GET) nunca é unida.
  */
 export function chamarApi<T>(caminho: string, opcoes: RequestInit = {}): Promise<T> {
   const metodo = (opcoes.method ?? 'GET').toUpperCase()

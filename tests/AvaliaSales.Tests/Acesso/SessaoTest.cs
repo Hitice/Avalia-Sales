@@ -46,6 +46,13 @@ public sealed class SessaoTest(ApiDeTeste api)
         var primeiro = Cookie(await cliente.PostAsJsonAsync("/auth/entrar", new { email, senha = ApiDeTeste.Senha }, ct));
         var segundo = Cookie(await cliente.SendAsync(Renovar(primeiro), ct));
 
+        // Fora da janela de tolerância (ToleranciaDoRefreshTest): a troca é recuada no tempo.
+        await using (var conexao = new Npgsql.NpgsqlConnection(api.ConexaoDoDono))
+        {
+            await conexao.OpenAsync(ct);
+            await ApiDeTeste.Executar(conexao, $"update sessoes set encerrada_em = now() - interval '1 minute' where usuario_id = (select id from usuarios where email = '{email}') and encerrada_em is not null");
+        }
+
         var reuso = await cliente.SendAsync(Renovar(primeiro), ct);
         var legitimo = await cliente.SendAsync(Renovar(segundo), ct);
 

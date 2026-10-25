@@ -17,6 +17,7 @@ using AvaliaSales.Domain.Placas;
 using AvaliaSales.Domain.Revendedores;
 using AvaliaSales.Domain.Vendas;
 using AvaliaSales.Infrastructure.Identidade;
+using AvaliaSales.Infrastructure.Idempotencia;
 using AvaliaSales.Infrastructure.Integracoes;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -49,6 +50,7 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
     public DbSet<EmailNaFila> Emails => Set<EmailNaFila>();
     public DbSet<Sessao> Sessoes => Set<Sessao>();
     public DbSet<LinkDeSenha> LinksDeSenha => Set<LinkDeSenha>();
+    public DbSet<ChaveDeIdempotencia> ChavesDeIdempotencia => Set<ChaveDeIdempotencia>();
     public DbSet<AparelhoConhecido> Aparelhos => Set<AparelhoConhecido>();
     public DbSet<Cupom> Cupons => Set<Cupom>();
     public DbSet<Lancamento> Lancamentos => Set<Lancamento>();
@@ -505,6 +507,22 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
             l.HasIndex(x => x.HashDoToken).IsUnique();
             l.HasIndex(x => x.UsuarioId);
             l.HasOne<Usuario>().WithMany().HasForeignKey(x => x.UsuarioId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // RLS próprio na migration: a operadora (sem revendedor) também grava aqui, e o Worker apaga o que venceu.
+        modelo.Entity<ChaveDeIdempotencia>(c =>
+        {
+            c.ToTable("chaves_de_idempotencia");
+            c.Property(x => x.Id).ValueGeneratedNever();
+            c.Property(x => x.Rota).HasMaxLength(ChaveDeIdempotencia.RotaMaxima);
+            c.Property(x => x.Chave).HasMaxLength(ChaveDeIdempotencia.ChaveMaxima);
+            c.Property(x => x.HashDoCorpo).HasMaxLength(64).IsFixedLength();
+            c.Property(x => x.Situacao).HasConversion<string>().HasMaxLength(12);
+            c.Property(x => x.TipoDeConteudo).HasMaxLength(200);
+            c.Property(x => x.Local).HasMaxLength(500);
+            c.HasIndex(x => new { x.UsuarioId, x.Rota, x.Chave }).IsUnique();
+            c.HasIndex(x => x.ExpiraEm);
+            c.HasOne<Usuario>().WithMany().HasForeignKey(x => x.UsuarioId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelo.Entity<EmailNaFila>(e =>
