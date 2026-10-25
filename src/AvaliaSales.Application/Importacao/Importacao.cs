@@ -45,6 +45,21 @@ public sealed record ResultadoDosLotes(bool Gravado, int Lotes, int Placas, int 
 /// <summary>O que o complemento dos clientes já importados preencheu; só campo vazio é preenchido.</summary>
 public sealed record ResultadoDoComplemento(bool Gravado, int Linhas, int Clientes, int Emails, int Lugares, IReadOnlyList<string> Recusas);
 
+/// <summary>Uma linha do arquivo do histórico (formato em docs/OPERACAO.md): a venda paga no sistema anterior e a comissão dela.</summary>
+public sealed record LinhaDoHistorico(int Linha, string Codigo, DateTimeOffset PagoEm, long ValorCents, long ComissaoCents, DateTimeOffset? ComissaoPagaEm, string? VendedorEmail);
+
+/// <summary>O que entrou em cada mês: receita e comissão devida no mês do pagamento, comissão paga no mês do repasse.</summary>
+public sealed record MesDoHistoricoImportado(string Competencia, int Vendas, long ReceitaCents, long ComissaoDevidaCents, long ComissaoPagaCents);
+
+/// <summary>
+/// Os totais do histórico, para bater com o conversor. Já lançada é a venda
+/// que já tem receita (o arquivo rodou antes); comissão já devida é a que a
+/// importação das placas lançou como não repassada.
+/// </summary>
+public sealed record ResultadoDoHistorico(
+    bool Gravado, int Linhas, int Lancadas, int JaLancadas, int SemValor, long ReceitaCents, long ComissaoDevidaCents, int ComissoesJaDevidas,
+    long ComissaoPagaCents, IReadOnlyList<MesDoHistoricoImportado> PorMes, IReadOnlyList<string> Recusas);
+
 /// <summary>
 /// A importação das placas de outro sistema para um revendedor, como as do
 /// Sales da Avalia. Tudo ou nada: uma linha recusada desfaz o arquivo inteiro,
@@ -418,6 +433,222 @@ public sealed class Importacao(IBancoDeDados banco, IRevendedorAtual atual, ICon
         }
 
         return new ResultadoDoComplemento(gravar, linhas.Count, vistos.Count, emails, lugares, recusas);
+    }
+
+    /// <summary>
+    /// O histórico financeiro das vendas pagas no sistema anterior, já
+    /// importadas com as placas, vai ao razão nos meses de origem: receita no
+    /// mês do pagamento, comissão devida junto, comissão paga no mês em que foi
+    /// paga. Sem taxa da Avalia, que lá não existia. Tudo ou nada, com ensaio;
+    /// a venda que já tem a receita é pulada, então pode rodar de novo. Mês
+    /// fechado recusa o arquivo: o gatilho do razão passaria a linha ao mês
+    /// corrente, e o histórico não entra no mês de hoje por engano.
+    /// </summary>
+    public async Task<ResultadoDoHistorico> ImportarHistorico(IReadOnlyList<LinhaDoHistorico> linhas, bool ensaio, CancellationToken ct)
+    {
+        var revendedorId = atual.RevendedorId ?? throw new InvalidOperationException("Histórico sem revendedor.");
+        if (linhas.Count == 0)
+        {
+            throw new RegraDeNegocioException("O arquivo não tem vendas.");
+        }
+
+        if (await banco.Revendedores.AnyAsync(r => r.Id == revendedorId && r.EncerradaEm != null, ct))
+        {
+            throw new RegraDeNegocioException("A conta deste revendedor está encerrada. Reabra pela tela Revendedores antes de importar.");
+        }
+
+        var agora = relogio.GetUtcNow();
+        var recusas = new List<string>();
+        var codigos = linhas.Select(l => CodigoDaPlaca.Normalizar(l.Codigo)).ToList();
+        var repetidos = codigos.Where(c => c.Length > 0).GroupBy(c => c).Where(g => g.Count() > 1).Select(g => g.Key).ToHashSet(StringComparer.Ordinal);
+        foreach (var repetido in repetidos)
+        {
+            recusas.Add($"O código {repetido} aparece {codigos.Count(c => c == repetido)} vezes no arquivo.");
+        }
+
+        await using var transacao = await banco.Database.BeginTransactionAsync(ct);
+        var vendaDaPlaca = await banco.Placas.Where(p => codigos.Contains(p.Codigo) && p.VendaId != null)
+            .ToDictionaryAsync(p => p.Codigo, p => p.VendaId!.Value, StringComparer.Ordinal, ct);
+        var ids = vendaDaPlaca.Values.ToList();
+        var vendas = await banco.Vendas.AsNoTracking().Where(v => ids.Contains(v.Id)).ToDictionaryAsync(v => v.Id, ct);
+
+        // As linhas que esta importação e a das placas gravam têm a venda como origem; a renovação paga aqui tem a cobrança.
+        var doHistorico = await banco.Lancamentos.AsNoTracking()
+            .Where(l => ids.Contains(l.OrigemId) && l.VendaId == l.OrigemId
+                && (l.Tipo == TipoDeLancamento.Receita || l.Tipo == TipoDeLancamento.ComissaoDevida))
+            .Select(l => new { l.VendaId, l.Tipo, l.ValorCents, l.VendedorId }).ToListAsync(ct);
+        var comReceita = doHistorico.Where(l => l.Tipo == TipoDeLancamento.Receita).Select(l => l.VendaId!.Value).ToHashSet();
+        var devidas = doHistorico.Where(l => l.Tipo == TipoDeLancamento.ComissaoDevida)
+            .GroupBy(l => l.VendaId!.Value).ToDictionary(g => g.Key, g => (Cents: g.Sum(l => l.ValorCents), g.First().VendedorId));
+        var daEquipe = (await banco.Vendedores.Select(v => v.Id).ToListAsync(ct)).ToHashSet();
+        var fechados = (await banco.Fechamentos.Where(f => f.ReabertoEm == null).Select(f => f.Competencia).ToListAsync(ct)).ToHashSet(StringComparer.Ordinal);
+        var emMesFechado = new SortedDictionary<string, int>(StringComparer.Ordinal);
+        var vendedores = new Dictionary<string, Guid?>(StringComparer.OrdinalIgnoreCase);
+        var novas = new List<Lancamento>();
+        var porMes = new SortedDictionary<string, MesDoHistoricoImportado>(StringComparer.Ordinal);
+        int lancadas = 0, jaLancadas = 0, semValor = 0, jaDevidas = 0;
+        long receita = 0, comissaoDevida = 0, comissaoPaga = 0;
+
+        void Somar(string mes, int vendasDoMes = 0, long receitaDoMes = 0, long devidaDoMes = 0, long pagaDoMes = 0)
+        {
+            var antes = porMes.GetValueOrDefault(mes) ?? new MesDoHistoricoImportado(mes, 0, 0, 0, 0);
+            porMes[mes] = antes with
+            {
+                Vendas = antes.Vendas + vendasDoMes,
+                ReceitaCents = antes.ReceitaCents + receitaDoMes,
+                ComissaoDevidaCents = antes.ComissaoDevidaCents + devidaDoMes,
+                ComissaoPagaCents = antes.ComissaoPagaCents + pagaDoMes,
+            };
+        }
+
+        string Mes(DateTimeOffset quando)
+        {
+            var mes = Lancamento.CompetenciaDe(quando);
+            if (fechados.Contains(mes))
+            {
+                emMesFechado[mes] = emMesFechado.GetValueOrDefault(mes) + 1;
+            }
+
+            return mes;
+        }
+
+        foreach (var (linha, codigo) in linhas.Zip(codigos))
+        {
+            if (repetidos.Contains(codigo))
+            {
+                continue;
+            }
+
+            try
+            {
+                if (codigo.Length == 0)
+                {
+                    throw new RegraDeNegocioException($"código inválido: {linha.Codigo}");
+                }
+
+                if (!vendaDaPlaca.TryGetValue(codigo, out var vendaId) || !vendas.TryGetValue(vendaId, out var venda))
+                {
+                    throw new RegraDeNegocioException($"a placa {codigo} não tem venda nesta revenda");
+                }
+
+                if (!venda.DoSistemaAnterior)
+                {
+                    throw new RegraDeNegocioException($"a venda da placa {codigo} foi feita na plataforma, não no sistema anterior");
+                }
+
+                if (linha.ValorCents != venda.ValorCents)
+                {
+                    throw new RegraDeNegocioException($"o valor {linha.ValorCents} diverge do gravado na venda da placa {codigo} ({venda.ValorCents})");
+                }
+
+                if (linha.ComissaoCents < 0 || linha.ComissaoCents > linha.ValorCents)
+                {
+                    throw new RegraDeNegocioException($"comissão {linha.ComissaoCents} fora do valor da venda ({linha.ValorCents})");
+                }
+
+                if (linha.PagoEm > agora || linha.ComissaoPagaEm > agora)
+                {
+                    throw new RegraDeNegocioException("data de pagamento no futuro");
+                }
+
+                if (comReceita.Contains(venda.Id))
+                {
+                    jaLancadas++;
+                    continue;
+                }
+
+                var vendedor = await Vendedor(linha.VendedorEmail, vendedores, ct) is { } id && daEquipe.Contains(id) ? id : (Guid?)null;
+                if (vendedor is { } doArquivo && doArquivo != venda.VendedorId)
+                {
+                    throw new RegraDeNegocioException($"a venda da placa {codigo} está com outro vendedor na plataforma, não com {linha.VendedorEmail}");
+                }
+
+                // A placa no ar trazida a R$ 0 não tem receita nem comissão, e não tem o que repetir.
+                if (linha.ValorCents == 0)
+                {
+                    semValor++;
+                    continue;
+                }
+
+                var mes = Mes(linha.PagoEm);
+                var item = $"placa {codigo}, paga no sistema anterior";
+                novas.Add(new Lancamento(TipoDeLancamento.Receita, venda.Id, linha.ValorCents, $"Venda da {item}", linha.PagoEm, venda.Id, venda.VendedorId));
+                receita += linha.ValorCents;
+                Somar(mes, 1, receitaDoMes: linha.ValorCents);
+
+                if (linha.ComissaoCents > 0)
+                {
+                    if (devidas.TryGetValue(venda.Id, out var jaDevida))
+                    {
+                        // A importação das placas lançou a não repassada: a mesma, senão o arquivo é de outra regra.
+                        if (jaDevida.Cents != -linha.ComissaoCents)
+                        {
+                            throw new RegraDeNegocioException($"a comissão já devida da placa {codigo} ({-jaDevida.Cents}) diverge do arquivo ({linha.ComissaoCents})");
+                        }
+
+                        jaDevidas++;
+                    }
+                    else
+                    {
+                        // A paga a quem não está na equipe entra no resultado sem vendedor; a não paga precisaria de alguém para receber.
+                        if (vendedor is null && linha.ComissaoPagaEm is null)
+                        {
+                            throw new RegraDeNegocioException($"comissão não paga sem vendedor da equipe ({linha.VendedorEmail})");
+                        }
+
+                        novas.Add(new Lancamento(TipoDeLancamento.ComissaoDevida, venda.Id, -linha.ComissaoCents, $"Comissão da {item}", linha.PagoEm, venda.Id, vendedor));
+                        comissaoDevida += linha.ComissaoCents;
+                        Somar(mes, devidaDoMes: linha.ComissaoCents);
+                    }
+
+                    if (linha.ComissaoPagaEm is { } pagaEm)
+                    {
+                        // Paga a quem ficou devendo: o vendedor da linha devida, a já gravada ou a de agora.
+                        var quem = devidas.TryGetValue(venda.Id, out var devida) ? devida.VendedorId : vendedor;
+                        novas.Add(new Lancamento(TipoDeLancamento.ComissaoPaga, venda.Id, -linha.ComissaoCents, $"Comissão repassada no sistema anterior, {item}", pagaEm, venda.Id, quem));
+                        comissaoPaga += linha.ComissaoCents;
+                        Somar(Mes(pagaEm), pagaDoMes: linha.ComissaoCents);
+                    }
+                }
+
+                lancadas++;
+            }
+            catch (RegraDeNegocioException recusa)
+            {
+                recusas.Add($"Linha {linha.Linha}: {recusa.Message}");
+            }
+        }
+
+        foreach (var (mes, quantas) in emMesFechado)
+        {
+            recusas.Add($"O mês {Financeiro.Fechamentos.Nome(mes)} está fechado e receberia {quantas} {(quantas == 1 ? "linha" : "linhas")}. Reabra o mês em Financeiro antes de importar o histórico.");
+        }
+
+        if (recusas.Count == 0)
+        {
+            banco.Lancamentos.AddRange(novas);
+            await banco.SaveChangesAsync(ct);
+
+            // Mês fechado entre a conferência e a gravação: o gatilho passou a linha ao mês corrente.
+            var gravadas = novas.Select(l => l.Id).ToList();
+            var noMes = await banco.Lancamentos.AsNoTracking().Where(l => gravadas.Contains(l.Id)).ToDictionaryAsync(l => l.Id, l => l.Competencia, ct);
+            foreach (var mes in novas.Where(l => noMes[l.Id] != l.Competencia).Select(l => l.Competencia).Distinct())
+            {
+                recusas.Add($"O mês {Financeiro.Fechamentos.Nome(mes)} foi fechado durante a importação. Reabra o mês e rode de novo.");
+            }
+        }
+
+        var gravar = recusas.Count == 0 && !ensaio;
+        if (gravar)
+        {
+            await transacao.CommitAsync(ct);
+        }
+        else
+        {
+            await transacao.RollbackAsync(ct);
+        }
+
+        return new ResultadoDoHistorico(gravar, linhas.Count, lancadas, jaLancadas, semValor, receita, comissaoDevida, jaDevidas, comissaoPaga, porMes.Values.ToList(), recusas);
     }
 
     private async Task<Guid?> Vendedor(string? email, Dictionary<string, Guid?> achados, CancellationToken ct)

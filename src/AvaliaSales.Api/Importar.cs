@@ -12,6 +12,7 @@ namespace AvaliaSales.Api;
 /// Os comandos da Fase 4, para quem opera o servidor:
 /// --reservar-codigos --arquivo=codigos.csv --origem="Sales Avalia"
 /// --importar-placas --revendedor=CNPJ --arquivo=placas.csv [--ensaio]
+/// --importar-historico --revendedor=CNPJ --arquivo=historico.csv [--ensaio]
 /// Formato dos arquivos em docs/OPERACAO.md.
 /// </summary>
 internal static class Importar
@@ -236,6 +237,102 @@ internal static class Importar
         }
 
         return r.Recusas.Count == 0 ? 0 : 2;
+    }
+
+    /// <summary>--importar-historico: o CSV do conversor (--historico) leva ao razão a receita e a comissão das vendas pagas no sistema anterior.</summary>
+    public static async Task<int> ImportarHistorico(IServiceProvider servicos, string[] argumentos)
+    {
+        var arquivo = Valor(argumentos, "arquivo");
+        var quem = Valor(argumentos, "revendedor");
+        if (arquivo is null || !File.Exists(arquivo) || string.IsNullOrWhiteSpace(quem))
+        {
+            await Console.Error.WriteLineAsync("Use --revendedor= (CNPJ ou id) e --arquivo= com o CSV do histórico.");
+            return 1;
+        }
+
+        if (await RevendedorPor(servicos, quem) is not { } revendedorId)
+        {
+            await Console.Error.WriteLineAsync($"Revendedor {quem} não encontrado.");
+            return 1;
+        }
+
+        List<LinhaDoHistorico> linhas;
+        try
+        {
+            linhas = LerHistorico(arquivo);
+        }
+        catch (FormatException erro)
+        {
+            await Console.Error.WriteLineAsync(erro.Message);
+            return 1;
+        }
+
+        using var doRevendedor = servicos.CreateScope();
+        doRevendedor.ServiceProvider.GetRequiredService<AcessoDaRequisicao>().Assumir(revendedorId);
+        var ensaio = argumentos.Contains("--ensaio");
+        ResultadoDoHistorico r;
+        try
+        {
+            r = await doRevendedor.ServiceProvider.GetRequiredService<Importacao>().ImportarHistorico(linhas, ensaio, CancellationToken.None);
+        }
+        catch (RegraDeNegocioException erro)
+        {
+            await Console.Error.WriteLineAsync(erro.Message);
+            return 1;
+        }
+
+        Console.WriteLine($"""
+            {(r.Gravado ? "HISTÓRICO LANÇADO" : ensaio && r.Recusas.Count == 0 ? "ENSAIO (nada gravado)" : "RECUSADO (nada gravado)")}
+              linhas                {r.Linhas}
+              vendas lançadas       {r.Lancadas}
+              já lançadas           {r.JaLancadas} (puladas)
+              vendas a R$ 0         {r.SemValor} (sem linha)
+              receita               {r.ReceitaCents / 100m:N2}
+              comissão devida       {r.ComissaoDevidaCents / 100m:N2}
+              comissões já devidas  {r.ComissoesJaDevidas} (da importação das placas)
+              comissão paga         {r.ComissaoPagaCents / 100m:N2}
+            """);
+        foreach (var mes in r.PorMes)
+        {
+            Console.WriteLine($"  {mes.Competencia}  vendas {mes.Vendas,4}  receita {mes.ReceitaCents / 100m,12:N2}  comissão devida {mes.ComissaoDevidaCents / 100m,10:N2}  comissão paga {mes.ComissaoPagaCents / 100m,10:N2}");
+        }
+
+        foreach (var recusa in r.Recusas)
+        {
+            Console.WriteLine($"  {recusa}");
+        }
+
+        return r.Recusas.Count == 0 ? 0 : 2;
+    }
+
+    internal static List<LinhaDoHistorico> LerHistorico(string arquivo)
+    {
+        var todas = Linhas(arquivo).ToList();
+        if (todas.Count < 2)
+        {
+            throw new FormatException("O arquivo precisa do cabeçalho e de ao menos uma venda.");
+        }
+
+        var cabecalho = todas[0].Valores.Select((c, i) => (Nome: c.Trim().ToLowerInvariant(), i)).ToDictionary(x => x.Nome, x => x.i);
+        foreach (var obrigatoria in new[] { "codigo", "pago_em", "valor_cents" })
+        {
+            if (!cabecalho.ContainsKey(obrigatoria))
+            {
+                throw new FormatException($"Falta a coluna {obrigatoria} no cabeçalho.");
+            }
+        }
+
+        string? Campo(string[] valores, string coluna) =>
+            cabecalho.TryGetValue(coluna, out var i) && i < valores.Length && !string.IsNullOrWhiteSpace(valores[i]) ? valores[i].Trim() : null;
+
+        return todas.Skip(1).Select(l => new LinhaDoHistorico(
+            l.Numero,
+            Campo(l.Valores, "codigo") ?? string.Empty,
+            Data(Campo(l.Valores, "pago_em"), l.Numero) ?? throw new FormatException($"Linha {l.Numero}: falta pago_em."),
+            Centavos(Campo(l.Valores, "valor_cents"), l.Numero) ?? throw new FormatException($"Linha {l.Numero}: falta valor_cents."),
+            Centavos(Campo(l.Valores, "comissao_cents"), l.Numero) ?? 0,
+            Data(Campo(l.Valores, "comissao_paga_em"), l.Numero),
+            Campo(l.Valores, "vendedor_email"))).ToList();
     }
 
     /// <summary>Cabeçalho na primeira linha; as colunas são achadas pelo nome, em qualquer ordem.</summary>

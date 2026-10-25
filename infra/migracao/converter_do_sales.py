@@ -19,6 +19,12 @@ As regras do Sales que pesam aqui:
 Placa no ar sem venda (cadastrada antes de o Sales registrar venda, em 01/10/2026)
 o importador recusa. Com `--no-ar-sem-venda-a-zero` ela entra como venda de R$ 0
 na data do cadastro, sem vendedor (fica com o dono) e sem comissão.
+
+Com `--historico historico.csv`, grava também o arquivo do `--importar-historico`:
+uma linha por venda paga, com a data do pagamento, o valor e a comissão total
+(paga ou não), para o razão receber a receita e a comissão nos meses de origem.
+Rodar com as mesmas opções da conversão das placas, para o vendedor e a comissão
+baterem com o que já foi importado.
 """
 
 import argparse
@@ -28,7 +34,9 @@ import gzip
 import sqlite3
 import sys
 from collections import Counter, defaultdict
+from datetime import datetime
 from decimal import ROUND_HALF_UP, Decimal
+from zoneinfo import ZoneInfo
 
 COMISSAO_PCT = 25
 CUSTO_PADRAO_CENTS = 600
@@ -42,6 +50,8 @@ COLUNAS = [
     "vendedor_email", "produto", "produto_preco_cents", "comissao_devida_cents", "total_leituras",
     "cliente_email", "cliente_lugar_no_google",
 ]
+COLUNAS_DO_HISTORICO = ["codigo", "pago_em", "valor_cents", "comissao_cents", "comissao_paga_em", "vendedor_email"]
+BRASILIA = ZoneInfo("America/Sao_Paulo")
 # O domínio para no primeiro ponto depois do primeiro caractere: sem retrocesso, casa o mesmo que [^@\s]+\.[^@\s]+.
 EMAIL = re.compile(r"^[^@\s]+@[^@\s][^@\s.]*\.[^@\s]+$")
 LUGAR_NO_DESTINO = re.compile(r"[?&]placeid=([A-Za-z0-9_-]+)")
@@ -110,6 +120,22 @@ def data_e_hora(valor):
     return None if not valor else str(valor).replace(" ", "T")[:19] + "+00:00"
 
 
+def instante(valor):
+    """Data sem hora passa como está (o importador lê meia-noite em Brasília); com hora, em UTC, como a da venda."""
+    if not valor:
+        return None
+    texto = str(valor).strip()
+    return texto[:10] if len(texto) <= 10 else data_e_hora(texto)
+
+
+def mes_em_brasilia(texto):
+    """O mês do razão (competência) para o instante do arquivo, como o importador calcula."""
+    if len(texto) == 10:
+        return texto[:7]
+    quando = datetime.fromisoformat(texto)
+    return quando.astimezone(BRASILIA).strftime("%Y-%m")
+
+
 def lugar_no_google(negocio, destino):
     """O place_id do negócio no Sales; sem ele, o do link de avaliação (placeid=...). O g.page não traz."""
     if negocio is not None and coluna(negocio, "place_id"):
@@ -123,7 +149,7 @@ def converter(banco, mapa, socios, no_ar_a_zero=False, so_mapeados=False, comiss
     negocios = {n["id"]: n for n in banco.execute("SELECT * FROM negocios")} if banco.execute("SELECT count(*) FROM negocios").fetchone()[0] else {}
     produtos = {p["chave"]: p for p in banco.execute("SELECT * FROM produtos")} if "chave" in [c[1] for c in banco.execute("PRAGMA table_info(produtos)")] else {}
 
-    linhas, avisos = [], []
+    linhas, historico, avisos = [], [], []
     totais = Counter()
     devida_por_vendedor = defaultdict(int)
     for e in banco.execute("SELECT * FROM etiquetas ORDER BY codigo"):
@@ -183,7 +209,42 @@ def converter(banco, mapa, socios, no_ar_a_zero=False, so_mapeados=False, comiss
         if devida:
             devida_por_vendedor[email] += devida
 
-    return linhas, totais, devida_por_vendedor, avisos
+        # O histórico financeiro: toda venda paga, com a comissão inteira (paga ou não) e quando foi paga.
+        if vendida and paga:
+            total = comissao(valor) if vendedor and not socio else 0
+            paga_em = instante(coluna(e, "comissao_paga_em"))
+            if total and not paga_em and comissao_paga:
+                # Acertada fora do Sales, sem data: conta como paga junto com a venda.
+                paga_em = instante(coluna(e, "pix_pago_em")) or instante(vendida)
+                totais["comissão paga sem data (na data da venda)"] += 1
+            if total and not email:
+                avisos.append(f"{e['codigo']}: comissão de {email_antigo} sem vendedor mapeado"
+                              + ("" if paga_em else " e não paga (o --importar-historico recusa)"))
+            historico.append({
+                "codigo": e["codigo"],
+                "pago_em": instante(coluna(e, "pix_pago_em")) or instante(vendida),
+                "valor_cents": valor,
+                "comissao_cents": total,
+                "comissao_paga_em": (paga_em or "") if total else "",
+                "vendedor_email": email,
+            })
+
+    return linhas, totais, devida_por_vendedor, avisos, historico
+
+
+def totais_do_historico(historico):
+    """Por mês de Brasília: vendas, valor e comissão no mês do pagamento; comissão paga no mês em que foi paga."""
+    meses = defaultdict(Counter)
+    for linha in historico:
+        if not linha["valor_cents"]:
+            continue
+        mes = meses[mes_em_brasilia(linha["pago_em"])]
+        mes["vendas"] += 1
+        mes["valor"] += linha["valor_cents"]
+        mes["comissao"] += linha["comissao_cents"]
+        if linha["comissao_paga_em"]:
+            meses[mes_em_brasilia(linha["comissao_paga_em"])]["paga"] += linha["comissao_cents"]
+    return sorted(meses.items())
 
 
 def categoria_do_lote(titulo):
@@ -221,7 +282,9 @@ def lotes_de_origem(banco):
 def main():
     argumentos = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     argumentos.add_argument("backup", help="arquivo .sql ou .sql.gz do avalia:exportar")
-    argumentos.add_argument("--saida", required=True, help="CSV para o --importar-placas")
+    argumentos.add_argument("--saida", help="CSV para o --importar-placas")
+    argumentos.add_argument("--historico", metavar="ARQUIVO",
+                            help="CSV para o --importar-historico: receita e comissão de cada venda paga, no mês de origem")
     argumentos.add_argument("--vendedor", action="append", default=[], metavar="ANTIGO=NOVO",
                             help="e-mail do Sales = login no app, uma vez por pessoa")
     argumentos.add_argument("--socio", action="append", required=True,
@@ -235,6 +298,8 @@ def main():
     argumentos.add_argument("--so-os-mapeados", action="store_true",
                             help="venda de quem não está no --vendedor fica com o dono, em vez de ir pelo e-mail do Sales")
     opcoes = argumentos.parse_args()
+    if not opcoes.saida and not opcoes.historico:
+        argumentos.error("use --saida, --historico ou os dois")
 
     mapa = {}
     for par in opcoes.vendedor:
@@ -245,7 +310,7 @@ def main():
     socios = {s.strip().lower() for s in opcoes.socio}
 
     banco = carregar(opcoes.backup)
-    linhas, totais, devidas, avisos = converter(banco, mapa, socios, opcoes.no_ar_sem_venda_a_zero, opcoes.so_os_mapeados, opcoes.comissao_paga)
+    linhas, totais, devidas, avisos, historico = converter(banco, mapa, socios, opcoes.no_ar_sem_venda_a_zero, opcoes.so_os_mapeados, opcoes.comissao_paga)
     if opcoes.lotes:
         de_origem = lotes_de_origem(banco)
         with open(opcoes.lotes, "w", newline="", encoding="utf-8") as arquivo:
@@ -256,12 +321,21 @@ def main():
         print(f"{len(de_origem)} códigos em {len(por_lote)} lotes em {opcoes.lotes}")
         for (lote, categoria, arquivar), total in sorted(por_lote.items()):
             print(f"  {lote}  {categoria:9} {total:4}{'  arquivar' if arquivar else ''}")
-    with open(opcoes.saida, "w", newline="", encoding="utf-8") as arquivo:
-        escritor = csv.DictWriter(arquivo, fieldnames=COLUNAS)
-        escritor.writeheader()
-        escritor.writerows(linhas)
-
-    print(f"{len(linhas)} placas em {opcoes.saida}")
+    if opcoes.historico:
+        with open(opcoes.historico, "w", newline="", encoding="utf-8") as arquivo:
+            escritor = csv.DictWriter(arquivo, fieldnames=COLUNAS_DO_HISTORICO)
+            escritor.writeheader()
+            escritor.writerows(historico)
+        print(f"{len(historico)} vendas pagas em {opcoes.historico} (centavos)")
+        print(f"  {'mês':8} {'vendas':>6} {'valor':>12} {'comissão':>10} {'comissão paga':>14}")
+        for mes, t in totais_do_historico(historico):
+            print(f"  {mes:8} {t['vendas']:6} {t['valor']:12} {t['comissao']:10} {t['paga']:14}")
+    if opcoes.saida:
+        with open(opcoes.saida, "w", newline="", encoding="utf-8") as arquivo:
+            escritor = csv.DictWriter(arquivo, fieldnames=COLUNAS)
+            escritor.writeheader()
+            escritor.writerows(linhas)
+        print(f"{len(linhas)} placas em {opcoes.saida}")
     for nome, total in sorted(totais.items()):
         print(f"  {nome:32} {total}")
     print("Comissão devida por vendedor (centavos):")

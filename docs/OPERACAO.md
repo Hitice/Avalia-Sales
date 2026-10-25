@@ -264,6 +264,66 @@ vendida, só preenche campo vazio e pode rodar de novo. O conversor tira o lugar
 do `place_id` do negócio no Sales ou do `placeid=` do link de avaliação; link
 `g.page` não traz o lugar.
 
+#### Histórico financeiro das vendas trazidas
+
+A importação das placas traz as vendas sem lançar receita no razão (só a
+comissão ainda não repassada, no mês da importação). O `--importar-historico`
+leva ao razão a receita e a comissão de cada venda paga no Sales, nos meses de
+origem, para a DRE de setembro e outubro mostrar o que aconteceu:
+
+- Receita - o valor da venda, no mês do pagamento (`pix_pago_em`, ou a data da
+  venda quando é anterior a 11/10/2026). Venda de R$ 0 não lança nada.
+- Comissão devida - a comissão inteira (25%, nunca de sócio), no mês do
+  pagamento. A não repassada já lançada pela importação das placas não entra de
+  novo; o valor dela precisa ser o mesmo do arquivo.
+- Comissão paga - quando o Sales tem `comissao_paga_em`, no mês dele. A devida
+  menos a paga deixa o saldo do vendedor em Comissões só com o que falta pagar,
+  e o próximo repasse não conta a venda paga lá.
+- Sem taxa da Avalia: o Sales não tinha.
+
+O arquivo sai do mesmo backup, com as mesmas opções usadas na conversão das
+placas (`--socio`, `--vendedor`, `--so-os-mapeados`, `--comissao-paga`,
+`--no-ar-sem-venda-a-zero`), mais `--historico` (o `--saida` passa a ser
+opcional):
+
+```sh
+python3 -I infra/migracao/converter_do_sales.py avalia-AAAA-MM-DD-HHMM.sql.gz --historico historico.csv \
+  --socio <e-mail do sócio 1 no Sales> --socio <e-mail do sócio 2 no Sales> \
+  --vendedor <e-mail no Sales>=<login na plataforma> ... \
+  --no-ar-sem-venda-a-zero --so-os-mapeados
+```
+
+Colunas `codigo,pago_em,valor_cents,comissao_cents,comissao_paga_em,vendedor_email`,
+datas em UTC, uma linha por venda paga. O conversor imprime por mês de Brasília
+as vendas, o valor e a comissão (no mês do pagamento) e a comissão paga (no mês
+em que foi paga), e avisa a comissão de vendedor sem `--vendedor`. Com
+`--comissao-paga`, a comissão sem `comissao_paga_em` sai como paga na data do
+pagamento da venda.
+
+Passo a passo:
+
+1. Converter e conferir os totais por mês com as telas do Sales.
+2. Copiar o `historico.csv` para `/srv/avalia-sales/importacao` e ensaiar:
+   ```bash
+   docker compose -f docker-compose.producao.yml --env-file /srv/avalia-sales/.env run --rm \
+     -v /srv/avalia-sales/importacao:/importacao api --importar-historico --revendedor=<CNPJ da Avalia> \
+     --arquivo=/importacao/historico.csv --ensaio
+   ```
+   Os totais por mês precisam bater com os do conversor.
+3. Valer: o mesmo comando sem `--ensaio`.
+4. Conferir a DRE de setembro e a de outubro em Financeiro, e o saldo de cada
+   vendedor em Comissões, antes de fechar outubro.
+
+Tudo ou nada, como as outras importações. O arquivo inteiro é recusado quando
+uma linha aponta placa sem venda na revenda, venda feita na plataforma, valor
+diferente do gravado, comissão diferente da já devida, comissão não paga sem
+vendedor da equipe ou vendedor diferente do da venda. Comissão paga de quem não
+está na equipe entra na DRE sem vendedor. Mês fechado também recusa o arquivo,
+com o mês na mensagem: reabrir o mês em Financeiro e rodar de novo, porque o
+razão passaria a linha de mês fechado ao mês corrente. A venda que já tem a
+receita do histórico é pulada e contada como já lançada, então o comando pode
+rodar de novo sem duplicar.
+
 Conta encerrada não recebe importação, nem em ensaio: a operadora aprova a
 reabertura em Revendedores antes.
 

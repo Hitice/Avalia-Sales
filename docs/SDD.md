@@ -773,6 +773,7 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
 
 | Data | Mudança |
 | --- | --- |
+| 25/10/2026 | Comando `--importar-historico` (`Importacao.ImportarHistorico`) e saída `--historico` do `converter_do_sales.py` - lançamentos `Receita`, `ComissaoDevida` e `ComissaoPaga` com origem e venda iguais à venda importada, na competência de `pago_em` e de `comissao_paga_em` em Brasília; tudo ou nada com `--ensaio`; roda de novo sem duplicar (receita já lançada é pulada, índice único de `lancamentos`); recusa mês fechado e confere a competência gravada contra o gatilho `lancamento_em_mes_aberto`; `Comissoes.Repassar` ignora a venda com `ComissaoPaga` própria. `HistoricoTest`. |
 | 25/10/2026 | Front do caixa - `financeiro/CartaoDoCaixa.tsx` (`useCaixa`, `useSalvarSaldoInicial`, `useExcluirSaldoInicial`), `mesSomado` em `fatias.ts`; tabela do Mapa com `tipo` e `AcoesDaLinha`. |
 | 25/10/2026 | Tabela - `TableHead` com tipo da coluna (`texto`, `numero`, `data`, `situacao`, `acoes`), copiado para as células e aplicado pelo `index.css`; rolagem própria e cabeçalho fixo só a partir de `md`; `AcoesDaLinha` aceita `para` e `href`. |
 | 25/10/2026 | Acessibilidade - área de rolagem sem `tabIndex` fixo (Sonar S6845); `useRegiaoRolavel` dá `tabindex`, `role="region"` e nome só quando a área rola e não tem nada focável (axe `scrollable-region-focusable`). |

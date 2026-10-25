@@ -73,8 +73,10 @@ public sealed class Comissoes(IBancoDeDados banco, IUsuarioAtual usuario, IConta
             .Where(l => l.VendedorId == vendedor.Id && l.Tipo == TipoDeLancamento.ComissaoPaga)
             .SumAsync(l => l.ValorCents, ct);
         var valor = -devidas.Sum(l => l.ValorCents) - jaRepassado;
+        // A venda cuja comissão o sistema anterior já pagou (linha paga com a venda) não entra na conta deste repasse.
         var vendas = await banco.Vendas
-            .Where(v => v.VendedorId == vendedor.Id && v.RepasseId == null && devidas.Select(d => d.VendaId).Contains(v.Id))
+            .Where(v => v.VendedorId == vendedor.Id && v.RepasseId == null && devidas.Select(d => d.VendaId).Contains(v.Id)
+                && !banco.Lancamentos.Any(l => l.VendaId == v.Id && l.Tipo == TipoDeLancamento.ComissaoPaga))
             .ToListAsync(ct);
 
         var repasse = new Repasse(vendedor.Id, valor, vendas.Count, ate, agora, pedido.Comprovante);

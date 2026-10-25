@@ -203,6 +203,12 @@ if (args.Contains("--completar-clientes"))
     return;
 }
 
+if (args.Contains("--importar-historico"))
+{
+    Environment.ExitCode = await Importar.ImportarHistorico(app.Services, args);
+    return;
+}
+
 if (args.Contains("--importar-placas"))
 {
     Environment.ExitCode = await Importar.ImportarPlacas(app.Services, args);
