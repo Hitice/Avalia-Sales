@@ -1,4 +1,5 @@
 import type { AcaoAuditada, CategoriaDeDespesa, MeioDePagamento, TipoDeLancamento, CategoriaDoLote, EstadoDaPlaca, MotivoDaBaixa, MotivoDoCancelamento, Pedido, SituacaoDaCobranca, SituacaoDaOrdem, SituacaoDoContrato, SituacaoDoPedido, SituacaoDoProduto, NaturezaDaRetirada, TipoDeProduto } from './tipos'
+import { FUSO_DE_BRASILIA } from '@/lib/data'
 
 /** Os nomes que a tela mostra para cada situação da API. */
 export const ROTULO_DO_ESTADO: Record<EstadoDaPlaca, string> = {
@@ -155,8 +156,9 @@ export const TOM_DO_CONTRATO: Record<SituacaoDoContrato, Tom> = {
   Cancelado: 'erro',
 }
 
-const data = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
-const dataHora = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+// Em Brasília, como a competência e o fim do dia da API: o fuso do navegador não muda o dia mostrado.
+const data = new Intl.DateTimeFormat('pt-BR', { timeZone: FUSO_DE_BRASILIA, day: '2-digit', month: '2-digit', year: 'numeric' })
+const dataHora = new Intl.DateTimeFormat('pt-BR', { timeZone: FUSO_DE_BRASILIA, day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
 
 export const formatarData = (iso: string | null) => (iso ? data.format(new Date(iso)) : '-')
 export const formatarDataHora = (iso: string | null) => (iso ? dataHora.format(new Date(iso)) : '-')

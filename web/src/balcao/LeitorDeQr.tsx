@@ -42,7 +42,11 @@ export function LeitorDeQr({ aoLer, aoFechar }: { aoLer: (codigo: string) => voi
     async function ler() {
       try {
         fluxo = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false })
-        if (parado || !video.current) return
+        if (parado || !video.current) {
+          // A tela fechou (ou o StrictMode remontou) enquanto o navegador pedia a câmera: a limpeza já passou, e esta faixa ficaria ligada.
+          fluxo.getTracks().forEach((t) => t.stop())
+          return
+        }
         video.current.srcObject = fluxo
         await video.current.play()
         const detector = await criarDetector()

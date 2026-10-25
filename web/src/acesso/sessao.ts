@@ -3,6 +3,7 @@ import type { components } from '@/api/esquema'
 type Esquema = components['schemas']
 
 import { create } from 'zustand'
+import { consultas } from '@/api/consultas'
 
 /** Perfil e token vêm do contrato da API (`npm run tipos`). */
 export type Papel = Esquema['Papel']
@@ -33,8 +34,17 @@ export const useSessao = create<Sessao>((definir) => ({
   expiraEm: null,
   perfil: null,
   iniciada: false,
-  entrar: (emitido) => definir({ token: emitido.token, expiraEm: Date.parse(emitido.expiraEm), perfil: emitido.perfil ?? null, iniciada: true }),
-  limpar: () => definir({ token: null, expiraEm: null, perfil: null }),
+  entrar: (emitido) => {
+    // Outra pessoa no mesmo navegador: o cache da anterior não pode aparecer para ela. Renovar o token da mesma pessoa mantém.
+    const anterior = useSessao.getState().perfil
+    if (anterior && anterior.id !== emitido.perfil?.id) consultas.clear()
+    definir({ token: emitido.token, expiraEm: Date.parse(emitido.expiraEm), perfil: emitido.perfil ?? null, iniciada: true })
+  },
+  limpar: () => {
+    // Sair, ou a sessão recusada pela API: nada do que foi carregado fica para a próxima entrada.
+    consultas.clear()
+    definir({ token: null, expiraEm: null, perfil: null })
+  },
   marcarIniciada: () => definir({ iniciada: true }),
   renomear: (nome, revendedor) => definir((s) => ({ perfil: s.perfil ? { ...s.perfil, nome, revendedor: revendedor ?? s.perfil.revendedor } : null })),
 }))

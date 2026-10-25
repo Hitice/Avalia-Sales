@@ -1,19 +1,26 @@
+import { useRef } from 'react'
 import type { FieldPath, UseFormReturn } from 'react-hook-form'
 import { chamarApi } from '@/api/cliente'
 import type { EnderecoConsultado } from '@/api/tipos'
 import { Campo } from '@/componentes/Campo'
-import { CAMPOS, type ComEndereco, completar } from '@/lib/endereco'
+import { type Automaticos, CAMPOS, type ComEndereco, completar } from '@/lib/endereco'
 import { digitos, mascaraCep } from '@/lib/mascaras'
 
 /** Os campos do endereço. O CEP completo busca rua, bairro, cidade e UF. */
 export function CamposDeEndereco<T extends ComEndereco>({ formulario }: { formulario: UseFormReturn<T> }) {
   const nome = (campo: (typeof CAMPOS)[number]) => `endereco.${campo}` as FieldPath<T>
 
+  // O que a consulta anterior preencheu: um CEP corrigido troca esses campos, mas não o que a pessoa digitou.
+  const automaticos = useRef<Automaticos>({})
+
   async function buscarCep(texto: string) {
     const cep = digitos(texto, 8)
     if (cep.length !== 8) return
     try {
-      completar(formulario, await chamarApi<EnderecoConsultado>(`/cadastro/cep/${cep}`))
+      const achado = await chamarApi<EnderecoConsultado>(`/cadastro/cep/${cep}`)
+      // Resposta de um CEP que a pessoa já trocou chegou atrasada: não vale.
+      if (digitos(String(formulario.getValues(nome('cep')) ?? ''), 8) !== cep) return
+      automaticos.current = completar(formulario, achado, automaticos.current)
     } catch {
       // Sem resultado, a pessoa digita.
     }

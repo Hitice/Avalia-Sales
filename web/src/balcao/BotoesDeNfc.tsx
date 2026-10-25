@@ -1,5 +1,5 @@
 import { Nfc } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { gravarNfc, mensagemDoNfc, nfcDisponivel } from './nfc'
@@ -47,16 +47,21 @@ function GravarNoNfcTools({ endereco }: { endereco: string }) {
 export function GravarNfc({ endereco }: { endereco: string }) {
   const [situacao, setSituacao] = useState<'parado' | 'gravando' | 'gravado'>('parado')
   const [erro, setErro] = useState<string | null>(null)
+  const controle = useRef<AbortController | null>(null)
+  // Sair da tela no meio da gravação solta o NFC do aparelho: a gravação pendente é cancelada.
+  useEffect(() => () => controle.current?.abort(), [])
   if (!nfcDisponivel()) return <GravarNoNfcTools endereco={endereco} />
 
   async function gravar() {
     setErro(null)
     setSituacao('gravando')
-    const controle = new AbortController()
+    const atual = new AbortController()
+    controle.current = atual
     try {
-      await gravarNfc(endereco, controle.signal)
+      await gravarNfc(endereco, atual.signal)
       setSituacao('gravado')
     } catch (e) {
+      if (atual.signal.aborted) return
       setErro(mensagemDoNfc(e))
       setSituacao('parado')
     }
@@ -76,13 +81,16 @@ export function GravarNfc({ endereco }: { endereco: string }) {
 /** Endereço curto com o botão de copiar, para mandar ao cliente pelo WhatsApp. */
 export function CopiarLink({ rotulo, endereco }: { rotulo: string; endereco: string }) {
   const [copiado, setCopiado] = useState(false)
+  const [recusado, setRecusado] = useState(false)
+  const copiar = () => navigator.clipboard.writeText(endereco.toLowerCase()).then(() => { setCopiado(true); setRecusado(false) }, () => setRecusado(true))
   return (
     <div className="grid gap-1">
       <p className="text-xs text-muted-foreground">{rotulo}</p>
       <div className="flex gap-2">
         <Input readOnly aria-label={rotulo} value={endereco.toLowerCase()} onFocus={(e) => e.target.select()} />
-        <Button variant="outline" onClick={() => navigator.clipboard.writeText(endereco.toLowerCase()).then(() => setCopiado(true))}>{copiado ? 'Copiado' : 'Copiar'}</Button>
+        <Button variant="outline" onClick={copiar}>{copiado ? 'Copiado' : 'Copiar'}</Button>
       </div>
+      {recusado && <p role="alert" className="text-xs text-destructive">Não deu para copiar. Toque no endereço, selecione e copie.</p>}
     </div>
   )
 }

@@ -17,6 +17,21 @@ describe('endereço', () => {
     })
   })
 
+  it('CEP corrigido: a segunda consulta troca o que a primeira preencheu, e continua sem apagar o que a pessoa digitou', () => {
+    const { result } = renderHook(() => useForm<{ endereco: EnderecoDoFormulario }>({ defaultValues: { endereco: { ...ENDERECO_VAZIO, cep: '38400-192' } } }))
+    const outro = { logradouro: 'Rua Bahia', numero: null, complemento: null, bairro: 'Centro', cidade: 'Araguari', uf: 'MG', cep: '38440000' }
+
+    const automaticos = completar(result.current, achado)
+    result.current.setValue('endereco.cep', '38440-000')
+    result.current.setValue('endereco.numero', '77')
+    result.current.setValue('endereco.complemento', 'Sala 3')
+    completar(result.current, outro, automaticos)
+
+    expect(result.current.getValues('endereco')).toEqual({
+      cep: '38440-000', logradouro: 'Rua Bahia', numero: '77', complemento: 'Sala 3', bairro: 'Centro', cidade: 'Araguari', uf: 'MG',
+    })
+  })
+
   it('consulta sem um campo deixa o campo para digitar', () => {
     const { result } = renderHook(() => useForm<{ endereco: EnderecoDoFormulario }>({ defaultValues: { endereco: ENDERECO_VAZIO } }))
 

@@ -14,6 +14,7 @@ import { Field, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { formatarCentavos } from '@/dinheiro/dinheiro'
+import { fimDoDiaEmBrasilia } from '@/lib/data'
 import { useDesfazerRepasse, useRepassar, useRepasses, useSaldosDeComissao } from './consultas'
 
 /**
@@ -136,7 +137,7 @@ export function TelaDeComissoes() {
               onSubmit={(e) => {
                 e.preventDefault()
                 repassar.mutate(
-                  { vendedorId: escolhido.vendedorId, ate: ate ? new Date(`${ate}T23:59:59`).toISOString() : null, comprovante: comprovante || null },
+                  { vendedorId: escolhido.vendedorId, ate: ate ? fimDoDiaEmBrasilia(ate) : null, comprovante: comprovante || null },
                   { onSuccess: () => { setAte(''); setComprovante(''); setEscolhido(null) } },
                 )
               }}
@@ -160,7 +161,7 @@ export function TelaDeComissoes() {
               </Field>
               <DialogFooter>
                 <Button type="button" variant="ghost" onClick={() => setEscolhido(null)}>Cancelar</Button>
-                <Button type="submit" disabled={repassar.isPending}>Registrar {formatarCentavos(escolhido.abertaCents)}</Button>
+                <Button type="submit" disabled={repassar.isPending}>{/* Com data limite, o valor é o das vendas até ela: só o servidor sabe somar. */}{ate ? 'Registrar repasse' : `Registrar ${formatarCentavos(escolhido.abertaCents)}`}</Button>
               </DialogFooter>
             </form>
           )}

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 export function PixNaTela({ copiaECola, imagemDoGateway }: { copiaECola: string; imagemDoGateway: string | null }) {
   const [imagem, setImagem] = useState<string | null>(null)
   const [copiado, setCopiado] = useState(false)
+  const [recusado, setRecusado] = useState(false)
 
   useEffect(() => {
     if (!imagemDoGateway) {
@@ -18,13 +19,11 @@ export function PixNaTela({ copiaECola, imagemDoGateway }: { copiaECola: string;
       <img className="mx-auto w-64 rounded-lg border bg-card p-2" alt="QR do Pix para o cliente pagar" src={imagemDoGateway ?? imagem ?? undefined} />
       <Button
         variant="outline"
-        onClick={async () => {
-          await navigator.clipboard.writeText(copiaECola)
-          setCopiado(true)
-        }}
+        onClick={() => navigator.clipboard.writeText(copiaECola).then(() => { setCopiado(true); setRecusado(false) }, () => setRecusado(true))}
       >
         {copiado ? 'Copiado' : 'Copiar Pix copia e cola'}
       </Button>
+      {recusado && <p role="alert" className="text-center text-sm text-destructive">Não deu para copiar. Peça ao cliente para ler o QR.</p>}
     </div>
   )
 }

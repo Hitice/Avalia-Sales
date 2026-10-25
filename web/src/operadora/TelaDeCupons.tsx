@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { formatarCentavos, paraCentavos } from '@/dinheiro/dinheiro'
+import { diaEmBrasilia, fimDoDiaEmBrasilia } from '@/lib/data'
 import { useAlterarCupom, useAtivarCupom, useCriarCupom, useCupons, useExcluirCupom } from './consultas'
 
 const esquema = z.object({
@@ -50,7 +51,7 @@ export function TelaDeCupons() {
           codigo: c.codigo,
           tipo: c.descontoBps !== null ? 'percentual' : 'reais',
           desconto: c.descontoBps !== null ? String(c.descontoBps / 100).replace('.', ',') : ((c.descontoCents ?? 0) / 100).toFixed(2).replace('.', ','),
-          validoAte: c.validoAte?.slice(0, 10) ?? '',
+          validoAte: c.validoAte ? diaEmBrasilia(c.validoAte) : '',
           usos: c.usosMaximos ? String(c.usosMaximos) : '',
         }
       : VAZIO)
@@ -62,8 +63,8 @@ export function TelaDeCupons() {
       codigo: dados.codigo,
       descontoBps: dados.tipo === 'percentual' ? desconto : null,
       descontoCents: dados.tipo === 'reais' ? desconto : null,
-      // Vale até o fim do dia escolhido, no fuso de quem cadastra.
-      validoAte: dados.validoAte ? new Date(`${dados.validoAte}T23:59:59`).toISOString() : null,
+      // Vale até o fim do dia escolhido, em Brasília.
+      validoAte: dados.validoAte ? fimDoDiaEmBrasilia(dados.validoAte) : null,
       usosMaximos: dados.usos ? Number(dados.usos) : null,
     }
     try {

@@ -40,15 +40,23 @@ export async function chamarResposta(caminho: string, opcoes: RequestInit = {}):
   }
 
   let resposta = await enviar(caminho, opcoes)
-  if (resposta.status === 401 && useSessao.getState().token && await renovarSessao()) {
-    resposta = await enviar(caminho, opcoes)
+  let renovacaoIndisponivel = false
+  if (resposta.status === 401 && useSessao.getState().token) {
+    if (await renovarSessao()) {
+      resposta = await enviar(caminho, opcoes)
+      // Token novo e ainda 401: a sessão não vale mais.
+      if (resposta.status === 401) useSessao.getState().limpar()
+    } else {
+      // Renovação recusada (cookie vencido) já limpou a sessão. Se só não deu para tentar (429, servidor fora, rede),
+      // o cookie continua valendo: não derruba o login, só avisa.
+      renovacaoIndisponivel = useSessao.getState().token !== null
+    }
   }
-
-  if (resposta.status === 401 && useSessao.getState().token) useSessao.getState().limpar()
 
   if (!resposta.ok) {
     const corpo = await resposta.json().catch(() => null) as { detail?: string; title?: string } | null
-    throw new ErroDaApi(resposta.status, corpo?.detail ?? MENSAGEM_PADRAO[resposta.status] ?? 'Não deu certo. Tente de novo.')
+    const padrao = renovacaoIndisponivel ? 'Não deu para renovar o acesso agora. Tente de novo.' : MENSAGEM_PADRAO[resposta.status]
+    throw new ErroDaApi(resposta.status, corpo?.detail ?? padrao ?? 'Não deu certo. Tente de novo.')
   }
 
   return resposta

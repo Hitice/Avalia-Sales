@@ -1,0 +1,73 @@
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { useSessao } from '@/acesso/sessao'
+import { ErroDaApi, chamarApi, mensagemDoErro } from './cliente'
+
+const perfil = { id: '1', nome: 'Dona', email: 'dona@teste.com.br', papel: 'Dono' as const, revendedorId: 'r', revendedor: 'Revenda', emailConfirmado: true }
+const emitido = (token: string) => ({ token, expiraEm: new Date(Date.now() + 900_000).toISOString(), perfil })
+const resposta = (corpo: unknown, status = 200) => new Response(typeof corpo === 'string' ? corpo : JSON.stringify(corpo), { status })
+
+afterEach(() => {
+  vi.useRealTimers()
+  vi.unstubAllGlobals()
+  useSessao.getState().limpar()
+})
+
+describe('chamarApi: sessão', () => {
+  it('401 e a renovação indisponível (503) não encerram a sessão: o cookie ainda vale', async () => {
+    vi.useFakeTimers()
+    useSessao.getState().entrar(emitido('velho'))
+    const fetch = vi.fn(async (url: string) => (url === '/api/auth/renovar' ? resposta(null, 503) : resposta({ title: 'Unauthorized' }, 401)))
+    vi.stubGlobal('fetch', fetch)
+
+    const chamada = chamarApi('/vendas').catch((e: unknown) => e)
+    await vi.advanceTimersByTimeAsync(3_000)
+    const erro = await chamada
+
+    expect(erro).toBeInstanceOf(ErroDaApi)
+    expect(useSessao.getState().token).toBe('velho')
+  })
+
+  it('401 e o cookie recusado encerram a sessão', async () => {
+    useSessao.getState().entrar(emitido('velho'))
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => (url === '/api/auth/renovar' ? resposta(null, 401) : resposta({}, 401))))
+
+    await expect(chamarApi('/vendas')).rejects.toBeInstanceOf(ErroDaApi)
+
+    expect(useSessao.getState().token).toBeNull()
+  })
+
+  it('401, renovação boa e o mesmo pedido de novo com o token novo', async () => {
+    useSessao.getState().entrar(emitido('velho'))
+    const fetch = vi.fn(async (url: string, opcoes?: RequestInit) => {
+      if (url === '/api/auth/renovar') return resposta(emitido('novo'))
+      return new Headers(opcoes?.headers).get('Authorization') === 'Bearer novo' ? resposta({ ok: true }) : resposta({}, 401)
+    })
+    vi.stubGlobal('fetch', fetch)
+
+    expect(await chamarApi('/vendas')).toEqual({ ok: true })
+    expect(useSessao.getState().token).toBe('novo')
+  })
+})
+
+describe('chamarApi: erros na tela', () => {
+  it.each([
+    [403, {}, 'Seu acesso não abre esta área.'],
+    [422, { detail: 'A placa já foi vendida.' }, 'A placa já foi vendida.'],
+    [429, {}, 'Muitas tentativas. Espere um minuto e tente de novo.'],
+    [500, { title: 'An error occurred' }, 'Não deu certo. Tente de novo.'],
+  ])('%i vira texto para a pessoa, sem objeto cru', async (status, corpo, esperado) => {
+    vi.stubGlobal('fetch', vi.fn(async () => resposta(corpo, status)))
+    const erro = await chamarApi('/x').catch((e: unknown) => e)
+    expect(mensagemDoErro(erro)).toBe(esperado)
+  })
+
+  it('502 do proxy, com página HTML, também vira a mensagem padrão', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => resposta('<html>Bad Gateway</html>', 502)))
+    expect(mensagemDoErro(await chamarApi('/x').catch((e: unknown) => e))).toBe('Não deu certo. Tente de novo.')
+  })
+
+  it('rede caída vira "sem conexão"', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => { throw new TypeError('Failed to fetch') }))
+    expect(mensagemDoErro(await chamarApi('/x').catch((e: unknown) => e))).toBe('Sem conexão com o servidor.')
+  })
+})

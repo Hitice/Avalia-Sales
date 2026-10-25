@@ -31,7 +31,7 @@ function useGravar<T, R = unknown>(fazer: (dados: T) => Promise<R>, refazer: str
 export const usePedir = () => useGravar(({ pacoteId, cupom }: { pacoteId: string; cupom: string | null }) => chamarApi<Pedido>('/pedidos', enviarJson('POST', { pacoteId, cupom })), ['pedidos'], 'Pedido feito.')
 export const useCancelarPedido = () => useGravar((id: string) => chamarApi(`/pedidos/${id}/cancelamento`, enviarJson('POST', {})), ['pedidos'], 'Pedido cancelado.')
 export const useAtivarLote = () =>
-  useGravar((numero: string) => chamarApi<{ lote: string; placas: number; primeiroCodigo: string; ultimoCodigo: string }>('/lotes/ativacao', enviarJson('POST', { numero })), ['pedidos', 'placas'], 'Lote ativado.')
+  useGravar((numero: string) => chamarApi<{ lote: string; placas: number; primeiroCodigo: string; ultimoCodigo: string }>('/lotes/ativacao', enviarJson('POST', { numero })), ['pedidos', 'placas', 'lotes'], 'Lote ativado.')
 
 export type GravarVendedor = { nome: string; telefone: string | null; cpf: string | null; chavePix: string | null; comissaoBps: number | null; metaMensalCents: number | null }
 export const useCriarVendedor = () => useGravar((v: GravarVendedor & { email: string; senha: string | null }) => chamarApi<Vendedor>('/equipe', enviarJson('POST', v)), ['equipe'], 'Vendedor cadastrado.')
@@ -53,7 +53,8 @@ export const useDevolver = () => useGravar((vendedorId: string) => chamarApi<{ p
 
 export const useCobrarDeNovo = () => useGravar((vendaId: string) => chamarApi<VendaRegistrada>(`/vendas/${vendaId}/cobranca`, enviarJson('POST', {})), ['vendas'], 'Cobrança gerada.')
 
-const VENDA_MUDOU = ['vendas', 'placas', 'comissoes', 'razao']
+/** Uma venda que muda de estado mexe na lista, na placa e na ficha dela, na comissão, no razão e no resultado do mês (DRE e caixa leem o razão e as vendas). */
+const VENDA_MUDOU = ['vendas', 'placas', 'placa', 'comissoes', 'razao', 'financeiro']
 export const useReceberPorFora = () =>
   useGravar(({ vendaId, meio }: { vendaId: string; meio: 'Dinheiro' | 'OutroPix' }) => chamarApi(`/vendas/${vendaId}/recebimento`, enviarJson('POST', { meio })), VENDA_MUDOU, 'Recebimento registrado.')
 export const useDesfazerRecebimento = () => useGravar((vendaId: string) => chamarApi(`/vendas/${vendaId}/recebimento`, { method: 'DELETE' }), VENDA_MUDOU, 'Recebimento desfeito.')
@@ -68,10 +69,10 @@ export const useTrocarPlaca = () =>
 export const useSaldosDeComissao = () => useQuery({ queryKey: ['comissoes'], queryFn: () => chamarApi<SaldoDeComissao[]>('/comissoes') })
 export const useRepasses = () => useQuery({ queryKey: ['repasses'], queryFn: () => chamarApi<Repasse[]>('/repasses') })
 export const useRepassar = () =>
-  useGravar((r: { vendedorId: string; ate: string | null; comprovante: string | null }) => chamarApi<Repasse>('/repasses', enviarJson('POST', r)), ['comissoes', 'repasses', 'razao'], 'Repasse registrado.')
+  useGravar((r: { vendedorId: string; ate: string | null; comprovante: string | null }) => chamarApi<Repasse>('/repasses', enviarJson('POST', r)), ['comissoes', 'repasses', 'razao', 'financeiro'], 'Repasse registrado.')
 export const useCorrigirVenda = () =>
   useGravar(({ vendaId, ...c }: { vendaId: string; valorCents: number | null; vendedorId: string | null }) => chamarApi(`/vendas/${vendaId}`, enviarJson('PUT', c)), [...VENDA_MUDOU, 'comissoes', 'razao'], 'Venda corrigida.')
-export const useDesfazerRepasse = () => useGravar((id: string) => chamarApi(`/repasses/${id}`, { method: 'DELETE' }), ['comissoes', 'repasses', 'razao', 'vendas'], 'Repasse desfeito.')
+export const useDesfazerRepasse = () => useGravar((id: string) => chamarApi(`/repasses/${id}`, { method: 'DELETE' }), ['comissoes', 'repasses', 'razao', 'financeiro', 'vendas'], 'Repasse desfeito.')
 export const useRazao = (competencia: string | undefined) =>
   useQuery({ queryKey: ['razao', competencia], queryFn: () => chamarApi<ResumoDoMes>(`/razao${competencia ? `?competencia=${competencia}` : ''}`) })
 export const useMesesDoRazao = () => useQuery({ queryKey: ['razao', 'meses'], queryFn: () => chamarApi<string[]>('/razao/meses') })

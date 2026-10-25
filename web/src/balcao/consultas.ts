@@ -41,7 +41,7 @@ export function useVenderItens() {
   const cliente = useQueryClient()
   return useMutation({
     mutationFn: (venda: NovaVendaComItens) => chamarApi<VendasRegistradas>('/vendas/itens', enviarJson('POST', venda)),
-    onSuccess: () => Promise.all(['vendas', 'placas', 'placa', 'servicos'].map((c) => cliente.invalidateQueries({ queryKey: [c] }))),
+    onSuccess: () => Promise.all(['vendas', 'placas', 'placa', 'servicos', 'clientes', 'financeiro'].map((c) => cliente.invalidateQueries({ queryKey: [c] }))),
   })
 }
 
@@ -71,9 +71,12 @@ export function useDesfazerRenovacao(codigo: string) {
   return useMutation({
     mutationFn: () => chamarApi(`/placas/${codigo}/renovacao/recebimento`, { method: 'DELETE' }),
     meta: { sucesso: 'Renovação desfeita.' },
-    onSuccess: () => Promise.all([['placa', codigo], ['razao'], ['financeiro']].map((queryKey) => cliente.invalidateQueries({ queryKey }))),
+    onSuccess: () => Promise.all(REFAZ_A_RENOVACAO.map((chave) => cliente.invalidateQueries({ queryKey: chave === 'placa' ? ['placa', codigo] : [chave] }))),
   })
 }
+
+/** A renovação recebida por fora (ou desfeita) entra no razão e na comissão da venda: a ficha, a lista de vendas e o resultado do mês acompanham. */
+const REFAZ_A_RENOVACAO = ['placa', 'razao', 'financeiro', 'comissoes', 'vendas']
 
 export function useRenovar(codigo: string) {
   const cliente = useQueryClient()
@@ -82,7 +85,8 @@ export function useRenovar(codigo: string) {
       porFora
         ? chamarApi<RenovacaoAberta>(`/placas/${codigo}/renovacao/recebimento`, enviarJson('POST', { meio: porFora }))
         : chamarApi<RenovacaoAberta>(`/placas/${codigo}/renovacao`, enviarJson('POST', {})),
-    onSuccess: () => cliente.invalidateQueries({ queryKey: ['placa', codigo] }),
+    onSuccess: (_aberta, porFora) =>
+      Promise.all((porFora ? REFAZ_A_RENOVACAO : ['placa']).map((chave) => cliente.invalidateQueries({ queryKey: chave === 'placa' ? ['placa', codigo] : [chave] }))),
   })
 }
 

@@ -8,18 +8,27 @@ export type ComEndereco = FieldValues & { endereco: EnderecoDoFormulario }
 
 export const CAMPOS = ['cep', 'logradouro', 'numero', 'complemento', 'bairro', 'cidade', 'uf'] as const
 
+/** O que a consulta já pôs em cada campo: se o campo ainda tem esse valor, a pessoa não mexeu e a consulta seguinte pode trocá-lo. */
+export type Automaticos = Partial<Record<(typeof CAMPOS)[number], string>>
+
 /**
- * Preenche o endereço com o que a consulta trouxe, sem apagar o que a pessoa já
- * digitou: a consulta só completa campo vazio. Consulta que falha não faz nada,
- * e a pessoa digita.
+ * Preenche o endereço com o que a consulta trouxe, sem apagar o que a pessoa
+ * digitou: a consulta completa campo vazio e troca o que a consulta anterior
+ * pôs e a pessoa não tocou (CEP corrigido). Consulta que falha não faz nada,
+ * e a pessoa digita. Devolve o que ficou preenchido pela consulta, para a
+ * próxima.
  */
-export function completar<T extends ComEndereco>(formulario: UseFormReturn<T>, achado: EnderecoConsultado) {
+export function completar<T extends ComEndereco>(formulario: UseFormReturn<T>, achado: EnderecoConsultado, anteriores: Automaticos = {}): Automaticos {
+  const automaticos: Automaticos = { ...anteriores }
   for (const campo of CAMPOS) {
     const valor = campo === 'cep' && achado.cep ? mascaraCep(achado.cep) : achado[campo]
     const caminho = `endereco.${campo}` as Path<T>
-    if (!valor || String(formulario.getValues(caminho) ?? '').trim()) continue
+    const atual = String(formulario.getValues(caminho) ?? '').trim()
+    if (!valor || (atual && atual !== anteriores[campo])) continue
     formulario.setValue(caminho, valor as PathValue<T, Path<T>>, { shouldDirty: true, shouldValidate: true })
+    automaticos[campo] = String(valor)
   }
+  return automaticos
 }
 
 /** A razão social e o endereço pelo CNPJ (BrasilAPI, pela nossa API). Nulo se não achou. */
