@@ -26,3 +26,4 @@ apagada, ganha a situação Substituída e o número da que a substitui.
 | [0018](0018-documentos-em-pdf-pelo-gotenberg.md) | Contrato e distrato em PDF pelo Gotenberg, a partir de HTML | Aceita |
 | [0019](0019-transferencia-de-clientes-no-encerramento.md) | Transferência dos clientes no encerramento por uma função e uma política próprias | Aceita |
 | [0020](0020-mes-fechado-garantido-no-banco.md) | Mês fechado garantido no banco, com a linha atrasada passada ao mês corrente | Aceita |
+| [0021](0021-limite-e-conferencia-do-recebido-por-fora-na-auditoria.md) | Limite e conferência do recebido por fora guardados na auditoria | Aceita |

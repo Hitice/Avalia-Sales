@@ -70,9 +70,9 @@ public sealed class DadoDeClienteAlheioTest(ApiDeTeste api)
     {
         var c = await Montar("Revenda Cliente Alheio Ficha");
 
-        // A ficha de qualquer placa abre para o vendedor; o contato do cliente só se ele o cadastrou.
+        // O vendedor só abre a venda das placas que vendeu (a ficha da placa de outro vendedor vem sem venda); o contato do cliente só se ele o cadastrou.
         Assert.Equal("(11) *****-7777", (await c.Ana.Pegar($"/placas/{c.PlacaDaAna}")).GetProperty("venda").GetProperty("telefone").GetString());
-        Assert.Equal("(11) *****-7777", (await c.Ana.Pegar($"/placas/{c.PlacaDoRui}")).GetProperty("venda").GetProperty("telefone").GetString());
+        Assert.Equal(System.Text.Json.JsonValueKind.Null, (await c.Ana.Pegar($"/placas/{c.PlacaDoRui}")).GetProperty("venda").ValueKind);
         Assert.Equal(Telefone, (await c.Rui.Pegar($"/placas/{c.PlacaDoRui}")).GetProperty("venda").GetProperty("telefone").GetString());
         Assert.Equal(Telefone, (await c.Revenda.Dono.Pegar($"/placas/{c.PlacaDaAna}")).GetProperty("venda").GetProperty("telefone").GetString());
 
