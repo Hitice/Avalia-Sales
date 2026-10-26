@@ -96,6 +96,8 @@ Avalia nem lê o banco de produção dele.
   registro de mudanças do fim dele. Refatoração sem efeito visível não precisa.
 - O que está no código vale mais que o documento: se discordarem, corrigir o
   documento no mesmo trabalho, ou perguntar se for regra de negócio.
+- O registro de mudanças guarda as entradas recentes; as de 21 a 24/10/2026 estão em
+  `docs/historico/`. Linha nova entra no topo da tabela do próprio documento.
 - Decisão estrutural nova (tecnologia, isolamento, integração, segurança)
   ganha um ADR em `docs/adr` e uma linha no índice dele.
 - Três travas cobram isso: o hook de fim de turno do Claude Code
