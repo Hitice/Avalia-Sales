@@ -97,6 +97,7 @@ export function TelaDeCadastro() {
               <Campo formulario={formulario} nome="nome" rotulo="Seu nome" autoComplete="name" />
               <Campo formulario={formulario} nome="email" rotulo="E-mail" type="email" autoComplete="email" />
               <p className="text-xs text-muted-foreground">Enviaremos um link para este e-mail. Ao abri-lo, você cria a senha.</p>
+              <p className="text-xs text-muted-foreground">Ao cadastrar, você confirma ter lido a <Link to="/privacidade" className="underline underline-offset-4">Política de Privacidade</Link>.</p>
               {CHAVE_DO_CAPTCHA && <Captcha aoMudar={setCaptcha} reinicio={reinicio} />}
               <Button type="submit" size="lg" disabled={isSubmitting}>{isSubmitting ? 'Cadastrando...' : 'Cadastrar'}</Button>
             </FieldGroup>

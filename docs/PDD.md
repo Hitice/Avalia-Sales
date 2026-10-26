@@ -674,7 +674,7 @@ segmento (CPC 22 / IFRS 8). O preço do pacote da revenda Avalia é o das outras
     "Fecha em zero" ou a diferença.
   - Revenda fora do grupo - aparece só pelo que paga à operadora, na lista por revenda. O
     DRE dela nunca é lido.
-- Fora do consolidado - a tarifa do Pagar.me, porque o razão não a guarda.
+- Tarifa do Pagar.me - entra como despesa mensal da operadora, categoria "Tarifa do gateway", lançada à mão com o valor do extrato.
 
 ## 8. Dados pessoais (LGPD)
 
@@ -693,7 +693,7 @@ segmento (CPC 22 / IFRS 8). O preço do pacote da revenda Avalia é o das outras
 - Fim do contrato - pelo distrato, a revenda exporta os dados por 30 dias.
   Depois, a Avalia elimina ou anonimiza o que não precisar manter e guarda o
   que a lei exige (cláusulas 3.3 do distrato e 8.9 do contrato).
-- O texto da política de privacidade espera a revisão jurídica (seção 13).
+- A política de privacidade fica em `/privacidade`, com link no rodapé e no cadastro; o texto espera a revisão jurídica (seção 13).
 
 ## 9. Marca da revenda
 
@@ -806,17 +806,18 @@ porque está impresso nas placas vendidas.
 
 | Decisão | Opções | Situação |
 | --- | --- | --- |
-| Recebedor da revenda Avalia | Mesmo recebedor da conta do marketplace ou um separado | Hoje é o mesmo, com a cobrança numa regra só. Separado, o extrato da revenda não se mistura com a parte da Avalia nos serviços |
-| Comissão na renovação | Renovação sempre sem comissão ou comissão de renovação ligada pela revenda | Hoje sem comissão; a opção de ligar não existe |
-| Custo real da placa no consolidado | Acompanhar a receita da venda em doze partes ou entrar inteiro no mês da venda | Hoje acompanha a receita, para custo e receita ficarem no mesmo período; a troca é local ao cálculo |
-| Tarifa do Pagar.me no consolidado | Guardar a tarifa no razão ou ler do extrato | Fora do consolidado: o razão não a guarda |
-| Texto do termo do cliente final | Rascunho ou revisão jurídica | Espera a revisão jurídica; a venda ainda não gera o termo |
-| Política de privacidade | Texto | Espera a revisão jurídica |
+| Recebedor da revenda Avalia | Mesmo recebedor da conta do marketplace ou um separado | Decidido: separado. O extrato da revenda não se mistura com a parte da Avalia nos serviços. Falta criar o segundo recebedor no Pagar.me e informá-lo em Revendedores |
+| Comissão na renovação | Renovação sempre sem comissão ou comissão de renovação ligada pela revenda | Decidido: sem comissão. A opção de ligar não existe |
+| Custo real da placa no consolidado | Acompanhar a receita da venda em doze partes ou entrar inteiro no mês da venda | Decidido: doze partes, acompanhando a receita da venda, para custo e receita ficarem no mesmo período |
+| Tarifa do Pagar.me no consolidado | Guardar a tarifa no razão ou ler do extrato | Decidido: despesa mensal manual da operadora, na categoria "Tarifa do gateway", lançada com o valor do extrato do Pagar.me. O razão não guarda a tarifa por pagamento |
+| Texto do termo do cliente final | Rascunho ou revisão jurídica | Texto final escrito (modelo `termo-do-cliente.html`), a revisão jurídica ainda vai ocorrer. A venda ainda não gera o termo, e nenhum cliente assina até a revisão |
+| Política de privacidade | Texto | Texto final publicado em `/privacidade` (versão 1), a revisão jurídica ainda vai ocorrer |
 
 ## 14. Registro de mudanças
 
 | Data | Mudança |
 | --- | --- |
+| 26/10/2026 | Política de privacidade publicada em `/privacidade` (versão 1), com link no rodapé da entrada e no cadastro. Modelo do termo do cliente final escrito, ainda não gerado pela venda. Categoria de despesa da operadora "Tarifa do gateway". Decididos: recebedor separado para a revenda Avalia, renovação sem comissão, custo da placa em doze partes e tarifa como despesa manual. |
 | 26/10/2026 | Início, lista de Vendas e painel do vendedor contam como recebida a venda paga no sistema anterior, depois de o histórico lançar a receita dela no razão; antes, o Início mostrava só os pagamentos feitos pela plataforma e destoava do Financeiro. |
 | 26/10/2026 | Página /now no celular e no tablet - o banner das telas fica entre a chamada e a descrição; no computador continua ao lado do texto. |
 | 26/10/2026 | Financeiro da operadora e resultado do grupo - livro da operadora (taxa da plataforma e parte da Avalia no pagamento, pedido de placas na ativação do lote), despesas e fechamento do mês da operadora, custo de produção por lote, marca de revenda do grupo e a tela Resultado do grupo com as colunas revenda do grupo, operadora, eliminações e consolidado, conciliação e recebido ainda não reconhecido (seção 7.5, ADR 0025). |

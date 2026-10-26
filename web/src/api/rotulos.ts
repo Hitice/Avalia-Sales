@@ -254,6 +254,7 @@ export const ROTULO_DA_DESPESA_DA_OPERADORA: Record<CategoriaDeDespesaDaOperador
   SoftwareEFerramentas: 'Software e ferramentas',
   Impostos: 'Impostos',
   Outros: 'Outros',
+  TarifaDoGateway: 'Tarifa do gateway',
 }
 
 export const ROTULO_DA_RETIRADA: Record<NaturezaDaRetirada, string> = {

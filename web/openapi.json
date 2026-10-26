@@ -6502,7 +6502,8 @@
           "Frete",
           "SoftwareEFerramentas",
           "Impostos",
-          "Outros"
+          "Outros",
+          "TarifaDoGateway"
         ]
       },
       "CategoriaDoLote": {

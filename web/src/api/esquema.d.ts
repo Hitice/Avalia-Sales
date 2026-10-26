@@ -7398,7 +7398,7 @@ export interface components {
         /** @enum {unknown} */
         CategoriaDeDespesa: "PlacasEMaterial" | "Frete" | "Marketing" | "SoftwareEFerramentas" | "Impostos" | "Taxas" | "Outros" | "ServicoDePjComNota";
         /** @enum {unknown} */
-        CategoriaDeDespesaDaOperadora: "GraficaEMaterial" | "ExecucaoDeServico" | "Frete" | "SoftwareEFerramentas" | "Impostos" | "Outros";
+        CategoriaDeDespesaDaOperadora: "GraficaEMaterial" | "ExecucaoDeServico" | "Frete" | "SoftwareEFerramentas" | "Impostos" | "Outros" | "TarifaDoGateway";
         /**
          * @description Para que o código serve: nem todo código vira placa de avaliação.
          * @default Placa

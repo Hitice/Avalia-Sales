@@ -1,3 +1,5 @@
+import { Link } from 'react-router'
+
 /**
  * Quem processa o pagamento, com os logos oficiais nas cores das marcas
  * (arquivos de pagar.me). A Stone tem só o símbolo, então o nome vai ao lado.
@@ -19,7 +21,7 @@ export function Rodape() {
           </li>
         ))}
       </ul>
-      <p>© {new Date().getFullYear()} Avalia. Todos os direitos reservados. v{__VERSAO__}</p>
+      <p>© {new Date().getFullYear()} Avalia. Todos os direitos reservados. v{__VERSAO__} · <Link to="/privacidade" className="underline underline-offset-4">Privacidade</Link></p>
     </footer>
   )
 }

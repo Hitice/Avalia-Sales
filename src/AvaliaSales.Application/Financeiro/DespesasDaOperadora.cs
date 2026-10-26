@@ -98,6 +98,7 @@ public sealed class DespesasDaOperadora(IBancoDeDados banco, FechamentosDaOperad
         CategoriaDeDespesaDaOperadora.Frete => "Frete",
         CategoriaDeDespesaDaOperadora.SoftwareEFerramentas => "Software e ferramentas",
         CategoriaDeDespesaDaOperadora.Impostos => "Impostos",
+        CategoriaDeDespesaDaOperadora.TarifaDoGateway => "Tarifa do gateway",
         _ => "Outros",
     };
 

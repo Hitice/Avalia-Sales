@@ -8,6 +8,7 @@ public enum CategoriaDeDespesaDaOperadora
     SoftwareEFerramentas = 4,
     Impostos = 5,
     Outros = 6,
+    TarifaDoGateway = 7,
 }
 
 /// <summary>
