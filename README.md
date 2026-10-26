@@ -132,7 +132,7 @@ teste de contrato HTTP contra servidor falso.
 | Gotenberg | Contrato e distrato em PDF, num contêiner sem rede | Produção |
 | Sentry | Erros da API, do Worker e do front, com o commit publicado como versão, monitor de `/api/health` e check-in do Worker | Produção |
 | Cloudflare R2 | Cópia diária do banco, cifrada e conferida por ETag, com retenção de 30 dias | Produção |
-| Cloudflare Turnstile | Captcha do cadastro público | Ativo com as chaves configuradas |
+| Cloudflare Turnstile | Captcha do cadastro público | Em produção |
 | SonarCloud | Análise de código e cobertura dos testes da API, pelo CI | Em uso |
 | Protheus | Pedido de placas pago vira pedido de venda no ERP, uma vez só | Conector com simulador |
 
