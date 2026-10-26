@@ -33,7 +33,8 @@ public sealed class AuditoriaDaOperadoraNaRota(RequestDelegate proximo)
 
         var rota = (http.GetEndpoint() as RouteEndpoint)?.RoutePattern.RawText ?? http.Request.Path.Value ?? Prefixo;
         var valores = http.GetRouteData().Values;
-        var referencia = (valores.GetValueOrDefault("id") ?? valores.GetValueOrDefault("pedidoId") ?? valores.GetValueOrDefault("codigo"))?.ToString();
+        var referencia = (valores.GetValueOrDefault("id") ?? valores.GetValueOrDefault("pedidoId") ?? valores.GetValueOrDefault("loteId")
+            ?? valores.GetValueOrDefault("competencia") ?? valores.GetValueOrDefault("codigo"))?.ToString();
         banco.AuditoriaDaOperadora.Add(new RegistroDaOperadora(quem, $"{metodo} {rota}", referencia, corpo, relogio.GetUtcNow()));
         await banco.SaveChangesAsync(http.RequestAborted);
     }

@@ -30,3 +30,4 @@ apagada, ganha a situação Substituída e o número da que a substitui.
 | [0022](0022-cadastro-pendente-por-link-sem-senha-no-cadastro.md) | Cadastro pendente por link, sem senha no cadastro | Aceita |
 | [0023](0023-busca-sem-acento-pela-extensao-unaccent.md) | Busca sem acento pela extensão unaccent | Aceita |
 | [0024](0024-email-sensivel-cifrado-em-repouso.md) | E-mail sensível cifrado em repouso | Aceita |
+| [0025](0025-livro-da-operadora-e-leitura-restrita-do-grupo.md) | Livro da operadora e leitura restrita das revendas do grupo | Aceita |

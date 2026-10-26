@@ -59,6 +59,10 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
     public DbSet<Socio> Socios => Set<Socio>();
     public DbSet<Retirada> Retiradas => Set<Retirada>();
     public DbSet<FechamentoDoMes> Fechamentos => Set<FechamentoDoMes>();
+    public DbSet<LancamentoDaOperadora> LancamentosDaOperadora => Set<LancamentoDaOperadora>();
+    public DbSet<DespesaDaOperadora> DespesasDaOperadora => Set<DespesaDaOperadora>();
+    public DbSet<FechamentoDaOperadora> FechamentosDaOperadora => Set<FechamentoDaOperadora>();
+    public DbSet<CustoDoLote> CustosDeLote => Set<CustoDoLote>();
     public DbSet<Renovacao> Renovacoes => Set<Renovacao>();
     public DbSet<EnvioAoErp> EnviosAoErp => Set<EnvioAoErp>();
     public DbSet<LogoDoRevendedor> Logos => Set<LogoDoRevendedor>();
@@ -320,6 +324,7 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
         ConfigurarFase1(modelo);
         ConfigurarFase2(modelo);
         ConfigurarFinanceiro(modelo);
+        ConfigurarFinanceiroDaOperadora(modelo);
         FiltrarPorRevendedor(modelo);
     }
 
@@ -374,6 +379,58 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
 
             // Um fechamento em vigor por mês; o reaberto fica como histórico.
             f.HasIndex(x => new { x.RevendedorId, x.Competencia }).IsUnique().HasFilter("reaberto_em is null");
+        });
+    }
+
+    /// <summary>
+    /// O livro, as despesas, o fechamento e os custos de lote da operadora (ADR 0025). Não são de
+    /// revendedor: sem filtro do EF; o RLS os fecha a quem não é a operadora, e o livro aceita a
+    /// inserção da revenda de origem, para o pagamento lançar a taxa na transação dele.
+    /// </summary>
+    private static void ConfigurarFinanceiroDaOperadora(ModelBuilder modelo)
+    {
+        modelo.Entity<LancamentoDaOperadora>(l =>
+        {
+            l.ToTable("lancamentos_da_operadora");
+            l.Property(x => x.Tipo).HasConversion<string>().HasMaxLength(30);
+            l.Property(x => x.Descricao).HasMaxLength(200).IsRequired();
+            l.Property(x => x.Competencia).HasMaxLength(7).IsFixedLength();
+            l.Property(x => x.Categoria).HasMaxLength(30);
+            l.HasOne<Revendedor>().WithMany().HasForeignKey(x => x.RevendedorOrigemId).OnDelete(DeleteBehavior.Restrict);
+            l.HasOne<LancamentoDaOperadora>().WithMany().HasForeignKey(x => x.EstornaId).OnDelete(DeleteBehavior.Restrict);
+
+            // Como no razão: o mesmo fato nunca é lançado duas vezes, e a mesma linha nunca é estornada duas vezes.
+            l.HasIndex(x => new { x.OrigemId, x.Tipo, x.VendaId }).IsUnique().AreNullsDistinct(false).HasFilter("estorna_id is null");
+            l.HasIndex(x => x.EstornaId).IsUnique().HasFilter("estorna_id is not null");
+            l.HasIndex(x => new { x.Competencia, x.Tipo });
+            l.HasIndex(x => new { x.RevendedorOrigemId, x.Competencia });
+        });
+
+        modelo.Entity<DespesaDaOperadora>(d =>
+        {
+            d.ToTable("despesas_da_operadora");
+            d.Property(x => x.Descricao).HasMaxLength(DespesaDaOperadora.DescricaoMaxima).IsRequired();
+            d.Property(x => x.Categoria).HasConversion<string>().HasMaxLength(30);
+            d.Ignore(x => x.Competencia);
+            d.HasOne<LancamentoDaOperadora>().WithMany().HasForeignKey(x => x.LancamentoId).OnDelete(DeleteBehavior.Restrict);
+            d.HasIndex(x => new { x.Data, x.CriadaEm, x.Id });
+        });
+
+        modelo.Entity<FechamentoDaOperadora>(f =>
+        {
+            f.ToTable("fechamentos_da_operadora");
+            f.Property(x => x.Competencia).HasMaxLength(7).IsFixedLength();
+            f.Property(x => x.MotivoDaReabertura).HasMaxLength(FechamentoDoMes.MotivoMaximo);
+            f.HasIndex(x => x.Competencia).IsUnique().HasFilter("reaberto_em is null");
+        });
+
+        modelo.Entity<CustoDoLote>(c =>
+        {
+            c.ToTable("custos_de_lote");
+            c.HasKey(x => x.LoteId);
+            c.Ignore(x => x.TotalCents);
+            c.Ignore(x => x.PorPlacaCents);
+            c.HasOne<Lote>().WithOne().HasForeignKey<CustoDoLote>(x => x.LoteId).OnDelete(DeleteBehavior.Cascade);
         });
     }
 

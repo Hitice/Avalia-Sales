@@ -8,12 +8,12 @@ namespace AvaliaSales.Application.Revendedores;
 public sealed record RevendedorDto(Guid Id, string Nome, string? Cnpj, int TaxaAvaliaBps, int ComissaoPadraoBps,
     string? RecebedorPagarme, DateTimeOffset? ContratoAssinadoEm, DateTimeOffset CriadoEm, int RenovacaoBps, string? Celular,
     bool TemEndereco, DateTimeOffset? EncerramentoPedidoEm, DateTimeOffset? EncerradaEm, DateTimeOffset? ReaberturaPedidaEm,
-    DateTimeOffset? SuspensaEm = null, string? MotivoDaSuspensao = null);
+    DateTimeOffset? SuspensaEm = null, string? MotivoDaSuspensao = null, bool DoGrupoDaOperadora = false);
 
 public sealed record MinhaRevenda(RevendedorDto Revendedor, SituacaoDoContrato? Contrato);
 
 /// <summary>O cadastro dos revendedores visto pela operadora, e a própria revenda vista pelo dono.</summary>
-public sealed class Revendedores(IBancoDeDados banco, IRevendedorAtual atual, Equipe.IContas contas, Avisos.FilaDeEmails emails,
+public sealed class Revendedores(IBancoDeDados banco, IRevendedorAtual atual, IUsuarioAtual usuario, Equipe.IContas contas, Avisos.FilaDeEmails emails,
     Notificacoes.Notificacoes notificacoes, IOptions<OpcoesDaPlataforma> plataforma, TimeProvider relogio)
 {
     /// <summary>Por nome; a busca vale para o nome e o CNPJ.</summary>
@@ -29,7 +29,7 @@ public sealed class Revendedores(IBancoDeDados banco, IRevendedorAtual atual, Eq
 
         return await consulta.OrderBy(r => r.Nome).ThenBy(r => r.Id)
             .Select(r => new RevendedorDto(r.Id, r.Nome, r.Cnpj, r.TaxaAvaliaBps, r.ComissaoPadraoBps, r.RecebedorPagarme, r.ContratoAssinadoEm, r.CriadoEm, r.RenovacaoBps, r.Celular,
-                r.Endereco != null, r.EncerramentoPedidoEm, r.EncerradaEm, r.ReaberturaPedidaEm, r.SuspensaEm, r.MotivoDaSuspensao))
+                r.Endereco != null, r.EncerramentoPedidoEm, r.EncerradaEm, r.ReaberturaPedidaEm, r.SuspensaEm, r.MotivoDaSuspensao, r.DoGrupoDaOperadora))
             .PaginarAsync(pedido, ct);
     }
 
@@ -61,6 +61,18 @@ public sealed class Revendedores(IBancoDeDados banco, IRevendedorAtual atual, Eq
         var revendedor = await Achar(id, ct);
         revendedor.Reativar();
         notificacoes.ParaDono(revendedor.Id, "Revenda reativada", "As vendas e os pedidos de placas estão liberados de novo.", "/painel/inicio");
+        await banco.SaveChangesAsync(ct);
+    }
+
+    /// <summary>
+    /// A decisão explícita da operadora: esta revenda é do mesmo grupo dela, e o resultado do grupo lê o DRE dela
+    /// (ADR 0025). Vale a partir de agora para todos os meses; quem marcou e quando ficam no cadastro, e a rota
+    /// entra na trilha da operadora.
+    /// </summary>
+    public async Task DefinirDoGrupo(Guid id, bool doGrupo, CancellationToken ct)
+    {
+        var revendedor = await Achar(id, ct);
+        revendedor.DefinirDoGrupo(doGrupo, usuario.UsuarioId, relogio.GetUtcNow());
         await banco.SaveChangesAsync(ct);
     }
 

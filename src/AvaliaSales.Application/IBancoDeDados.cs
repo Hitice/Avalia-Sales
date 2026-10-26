@@ -46,6 +46,10 @@ public interface IBancoDeDados
     DbSet<Socio> Socios { get; }
     DbSet<Retirada> Retiradas { get; }
     DbSet<FechamentoDoMes> Fechamentos { get; }
+    DbSet<LancamentoDaOperadora> LancamentosDaOperadora { get; }
+    DbSet<DespesaDaOperadora> DespesasDaOperadora { get; }
+    DbSet<FechamentoDaOperadora> FechamentosDaOperadora { get; }
+    DbSet<CustoDoLote> CustosDeLote { get; }
     DbSet<Renovacao> Renovacoes { get; }
     DbSet<EnvioAoErp> EnviosAoErp { get; }
     DbSet<LogoDoRevendedor> Logos { get; }

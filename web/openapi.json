@@ -2290,6 +2290,39 @@
         }
       }
     },
+    "/operadora/revendedores/{id}/grupo": {
+      "put": {
+        "tags": [
+          "Operadora"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DefinirGrupo"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/operadora/revendedores/{id}/reabertura": {
       "post": {
         "tags": [
@@ -2405,6 +2438,425 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/operadora/financeiro/resultado": {
+      "get": {
+        "tags": [
+          "Operadora"
+        ],
+        "parameters": [
+          {
+            "name": "competencia",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultadoDoGrupoDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/operadora/financeiro/receita-por-revenda": {
+      "get": {
+        "tags": [
+          "Operadora"
+        ],
+        "parameters": [
+          {
+            "name": "competencia",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "busca",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Pagina",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "Tamanho",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginaOfReceitaDaRevenda"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/operadora/financeiro/meses": {
+      "get": {
+        "tags": [
+          "Operadora"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MesDoFinanceiro"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/operadora/financeiro/fechamentos": {
+      "post": {
+        "tags": [
+          "Operadora"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FecharMes"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/operadora/financeiro/fechamentos/{competencia}/reabertura": {
+      "post": {
+        "tags": [
+          "Operadora"
+        ],
+        "parameters": [
+          {
+            "name": "competencia",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReabrirMes"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/operadora/financeiro/despesas": {
+      "get": {
+        "tags": [
+          "Operadora"
+        ],
+        "parameters": [
+          {
+            "name": "competencia",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "busca",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Pagina",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "Tamanho",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginaOfDespesaDaOperadoraDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Operadora"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NovaDespesaDaOperadora"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/operadora/financeiro/despesas/{id}": {
+      "put": {
+        "tags": [
+          "Operadora"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NovaDespesaDaOperadora"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DespesaDaOperadoraDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Operadora"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/operadora/financeiro/custos-de-lote": {
+      "get": {
+        "tags": [
+          "Operadora"
+        ],
+        "parameters": [
+          {
+            "name": "pendentes",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "busca",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Pagina",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "Tamanho",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginaOfCustoDoLoteDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Operadora"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NovoCustoDoLote"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/operadora/financeiro/custos-de-lote/{loteId}": {
+      "put": {
+        "tags": [
+          "Operadora"
+        ],
+        "parameters": [
+          {
+            "name": "loteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GravarCustoDoLote"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustoDoLoteDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Operadora"
+        ],
+        "parameters": [
+          {
+            "name": "loteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
           }
         }
       }
@@ -5663,6 +6115,29 @@
           "LimiteDePorForaDefinido"
         ]
       },
+      "AindaNaoReconhecido": {
+        "required": [
+          "totalCents",
+          "pedidos",
+          "daRevendaDoGrupoCents"
+        ],
+        "type": "object",
+        "properties": {
+          "totalCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "pedidos": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "daRevendaDoGrupoCents": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "description": "Pedidos pagos e ainda n\u00E3o ativados no fim do m\u00EAs: adiantamento de cliente, e n\u00E3o receita."
+      },
       "AjustarProduto": {
         "required": [
           "precoCents",
@@ -6018,6 +6493,16 @@
           "Taxas",
           "Outros",
           "ServicoDePjComNota"
+        ]
+      },
+      "CategoriaDeDespesaDaOperadora": {
+        "enum": [
+          "GraficaEMaterial",
+          "ExecucaoDeServico",
+          "Frete",
+          "SoftwareEFerramentas",
+          "Impostos",
+          "Outros"
         ]
       },
       "CategoriaDoLote": {
@@ -6586,6 +7071,78 @@
           }
         }
       },
+      "CustoDoLoteDto": {
+        "required": [
+          "loteId",
+          "rotulo",
+          "titulo",
+          "quantidade",
+          "revendedor",
+          "ativadoEm",
+          "informado",
+          "pendente",
+          "graficaCents",
+          "acrilicoCents",
+          "totalCents",
+          "porPlacaCents"
+        ],
+        "type": "object",
+        "properties": {
+          "loteId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "rotulo": {
+            "type": "string"
+          },
+          "titulo": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "quantidade": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "revendedor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "ativadoEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "informado": {
+            "type": "boolean"
+          },
+          "pendente": {
+            "type": "boolean"
+          },
+          "graficaCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "acrilicoCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "porPlacaCents": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "description": "Um lote e o custo real de produ\u00E7\u00E3o dele. Sem custo informado, o lote despachado a um pedido \u00E9\npend\u00EAncia: o resultado do grupo n\u00E3o tem como levar o custo das placas vendidas."
+      },
       "DadosDaConta": {
         "required": [
           "nome",
@@ -6748,6 +7305,17 @@
           }
         }
       },
+      "DefinirGrupo": {
+        "required": [
+          "doGrupo"
+        ],
+        "type": "object",
+        "properties": {
+          "doGrupo": {
+            "type": "boolean"
+          }
+        }
+      },
       "DefinirRecebedor": {
         "required": [
           "recebedor"
@@ -6849,6 +7417,36 @@
         "properties": {
           "categoria": {
             "$ref": "#/components/schemas/CategoriaDeDespesa"
+          },
+          "valorCents": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "DespesaDaOperadoraDto": {
+        "required": [
+          "id",
+          "data",
+          "descricao",
+          "categoria",
+          "valorCents"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "data": {
+            "type": "string",
+            "format": "date"
+          },
+          "descricao": {
+            "type": "string"
+          },
+          "categoria": {
+            "$ref": "#/components/schemas/CategoriaDeDespesaDaOperadora"
           },
           "valorCents": {
             "type": "integer",
@@ -7580,6 +8178,23 @@
           }
         }
       },
+      "GravarCustoDoLote": {
+        "required": [
+          "graficaCents",
+          "acrilicoCents"
+        ],
+        "type": "object",
+        "properties": {
+          "graficaCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "acrilicoCents": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
       "GravarLink": {
         "required": [
           "titulo",
@@ -7985,6 +8600,77 @@
             "type": "boolean"
           }
         }
+      },
+      "LinhaDeConciliacao": {
+        "required": [
+          "chave",
+          "rotulo",
+          "naRevendaCents",
+          "naOperadoraCents",
+          "diferencaCents"
+        ],
+        "type": "object",
+        "properties": {
+          "chave": {
+            "type": "string"
+          },
+          "rotulo": {
+            "type": "string"
+          },
+          "naRevendaCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "naOperadoraCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "diferencaCents": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "description": "Cada transa\u00E7\u00E3o interna lida de dois lados, de fontes diferentes: a diferen\u00E7a \u00E9 zero quando o livro e o raz\u00E3o est\u00E3o completos."
+      },
+      "LinhaDoResultado": {
+        "required": [
+          "chave",
+          "rotulo",
+          "tipo",
+          "revendaCents",
+          "operadoraCents",
+          "eliminacoesCents",
+          "consolidadoCents"
+        ],
+        "type": "object",
+        "properties": {
+          "chave": {
+            "type": "string"
+          },
+          "rotulo": {
+            "type": "string"
+          },
+          "tipo": {
+            "$ref": "#/components/schemas/TipoDaLinhaDoResultado"
+          },
+          "revendaCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "operadoraCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "eliminacoesCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "consolidadoCents": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "description": "Uma linha do resultado, em positivo: receita soma, custo subtrai. O consolidado \u00E9 a soma das tr\u00EAs colunas."
       },
       "LinkDto": {
         "required": [
@@ -8545,6 +9231,31 @@
           }
         }
       },
+      "NovaDespesaDaOperadora": {
+        "required": [
+          "data",
+          "descricao",
+          "categoria",
+          "valorCents"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "string",
+            "format": "date"
+          },
+          "descricao": {
+            "type": "string"
+          },
+          "categoria": {
+            "$ref": "#/components/schemas/CategoriaDeDespesaDaOperadora"
+          },
+          "valorCents": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
       "NovaMensagem": {
         "required": [
           "texto"
@@ -8810,6 +9521,28 @@
           },
           "texto": {
             "type": "string"
+          }
+        }
+      },
+      "NovoCustoDoLote": {
+        "required": [
+          "loteId",
+          "graficaCents",
+          "acrilicoCents"
+        ],
+        "type": "object",
+        "properties": {
+          "loteId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "graficaCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "acrilicoCents": {
+            "type": "integer",
+            "format": "int64"
           }
         }
       },
@@ -9266,6 +9999,62 @@
         },
         "description": "Resposta de toda listagem que cresce com o uso. Total \u00E9 o que o filtro pega (n\u00E3o s\u00F3 a\np\u00E1gina); Proxima \u00E9 o n\u00FAmero da pr\u00F3xima p\u00E1gina, ou nulo na \u00FAltima."
       },
+      "PaginaOfCustoDoLoteDto": {
+        "required": [
+          "itens",
+          "total",
+          "proxima"
+        ],
+        "type": "object",
+        "properties": {
+          "itens": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CustoDoLoteDto"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "proxima": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        },
+        "description": "Resposta de toda listagem que cresce com o uso. Total \u00E9 o que o filtro pega (n\u00E3o s\u00F3 a\np\u00E1gina); Proxima \u00E9 o n\u00FAmero da pr\u00F3xima p\u00E1gina, ou nulo na \u00FAltima."
+      },
+      "PaginaOfDespesaDaOperadoraDto": {
+        "required": [
+          "itens",
+          "total",
+          "proxima"
+        ],
+        "type": "object",
+        "properties": {
+          "itens": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DespesaDaOperadoraDto"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "proxima": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        },
+        "description": "Resposta de toda listagem que cresce com o uso. Total \u00E9 o que o filtro pega (n\u00E3o s\u00F3 a\np\u00E1gina); Proxima \u00E9 o n\u00FAmero da pr\u00F3xima p\u00E1gina, ou nulo na \u00FAltima."
+      },
       "PaginaOfDespesaDto": {
         "required": [
           "itens",
@@ -9474,6 +10263,34 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/PlacaDaCarteira"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "proxima": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        },
+        "description": "Resposta de toda listagem que cresce com o uso. Total \u00E9 o que o filtro pega (n\u00E3o s\u00F3 a\np\u00E1gina); Proxima \u00E9 o n\u00FAmero da pr\u00F3xima p\u00E1gina, ou nulo na \u00FAltima."
+      },
+      "PaginaOfReceitaDaRevenda": {
+        "required": [
+          "itens",
+          "total",
+          "proxima"
+        ],
+        "type": "object",
+        "properties": {
+          "itens": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReceitaDaRevenda"
             }
           },
           "total": {
@@ -9859,6 +10676,23 @@
           "haLoteLivre": {
             "type": "boolean",
             "default": false
+          }
+        }
+      },
+      "PendenciasDoGrupo": {
+        "required": [
+          "lotesSemCusto",
+          "placasVendidasSemCusto"
+        ],
+        "type": "object",
+        "properties": {
+          "lotesSemCusto": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "placasVendidasSemCusto": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },
@@ -10256,6 +11090,46 @@
           }
         }
       },
+      "ReceitaDaRevenda": {
+        "required": [
+          "revendedorId",
+          "revendedor",
+          "doGrupo",
+          "taxaDaPlataformaCents",
+          "parteDaAvaliaCents",
+          "pedidosDePlacasCents",
+          "totalCents"
+        ],
+        "type": "object",
+        "properties": {
+          "revendedorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "revendedor": {
+            "type": "string"
+          },
+          "doGrupo": {
+            "type": "boolean"
+          },
+          "taxaDaPlataformaCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "parteDaAvaliaCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "pedidosDePlacasCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalCents": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
       "RegistroDaOperadoraDto": {
         "required": [
           "id",
@@ -10495,6 +11369,66 @@
           "conferidos": {
             "type": "integer",
             "format": "int32"
+          }
+        }
+      },
+      "ResultadoDoGrupoDto": {
+        "required": [
+          "competencia",
+          "fechado",
+          "fechadoEm",
+          "revendasDoGrupo",
+          "linhas",
+          "conciliacao",
+          "diferencaDaConciliacaoCents",
+          "aindaNaoReconhecido",
+          "pendencias",
+          "retiradasDeSocioCents"
+        ],
+        "type": "object",
+        "properties": {
+          "competencia": {
+            "type": "string"
+          },
+          "fechado": {
+            "type": "boolean"
+          },
+          "fechadoEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "revendasDoGrupo": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "linhas": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinhaDoResultado"
+            }
+          },
+          "conciliacao": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinhaDeConciliacao"
+            }
+          },
+          "diferencaDaConciliacaoCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "aindaNaoReconhecido": {
+            "$ref": "#/components/schemas/AindaNaoReconhecido"
+          },
+          "pendencias": {
+            "$ref": "#/components/schemas/PendenciasDoGrupo"
+          },
+          "retiradasDeSocioCents": {
+            "type": "integer",
+            "format": "int64"
           }
         }
       },
@@ -10790,6 +11724,10 @@
               "null",
               "string"
             ]
+          },
+          "doGrupoDaOperadora": {
+            "type": "boolean",
+            "default": false
           }
         }
       },
@@ -10984,6 +11922,14 @@
             ]
           }
         }
+      },
+      "TipoDaLinhaDoResultado": {
+        "enum": [
+          "Receita",
+          "Custo",
+          "Total",
+          "Resultado"
+        ]
       },
       "TipoDeDestino": {
         "enum": [

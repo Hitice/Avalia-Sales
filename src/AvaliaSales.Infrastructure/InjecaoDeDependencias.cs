@@ -51,6 +51,7 @@ public static class InjecaoDeDependencias
         servicos.AddSingleton<IValidateOptions<OpcoesDeSeguranca>, ValidadorDasOpcoesDeSeguranca>();
         servicos.AddSingleton<ICifraDeEmails, CifraDeEmails>();
         servicos.AddScoped<ITransferenciaDeClientes, TransferenciaDeClientes>();
+        servicos.AddScoped<AvaliaSales.Application.Financeiro.IEscopoDeRevenda, EscopoDeRevenda>();
         servicos.AdicionarCasosDeUso();
 
         servicos

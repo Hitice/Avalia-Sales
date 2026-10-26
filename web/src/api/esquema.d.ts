@@ -2807,6 +2807,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/operadora/revendedores/{id}/grupo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["DefinirGrupo"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/operadora/revendedores/{id}/reabertura": {
         parameters: {
             query?: never;
@@ -2932,6 +2971,436 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/operadora/financeiro/resultado": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    competencia?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ResultadoDoGrupoDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/operadora/financeiro/receita-por-revenda": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    competencia?: string;
+                    busca?: string;
+                    Pagina?: number;
+                    Tamanho?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PaginaOfReceitaDaRevenda"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/operadora/financeiro/meses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MesDoFinanceiro"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/operadora/financeiro/fechamentos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["FecharMes"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/operadora/financeiro/fechamentos/{competencia}/reabertura": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    competencia: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ReabrirMes"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/operadora/financeiro/despesas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    competencia?: string;
+                    busca?: string;
+                    Pagina?: number;
+                    Tamanho?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PaginaOfDespesaDaOperadoraDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["NovaDespesaDaOperadora"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/operadora/financeiro/despesas/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["NovaDespesaDaOperadora"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DespesaDaOperadoraDto"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/operadora/financeiro/custos-de-lote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    pendentes?: boolean;
+                    busca?: string;
+                    Pagina?: number;
+                    Tamanho?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PaginaOfCustoDoLoteDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["NovoCustoDoLote"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/operadora/financeiro/custos-de-lote/{loteId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    loteId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["GravarCustoDoLote"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CustoDoLoteDto"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    loteId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
@@ -6832,6 +7301,15 @@ export interface components {
     schemas: {
         /** @enum {unknown} */
         AcaoAuditada: "DestinoDefinido" | "DestinoTrocado" | "PlacaSuspensa" | "PlacaNoAr" | "PlacaTrocada" | "VendaCancelada" | "VendaEmCortesia" | "RecebidoPorFora" | "RecebimentoDesfeito" | "VendedorCadastrado" | "VendedorAlterado" | "VendedorDesativado" | "VendedorReativado" | "VendedorExcluido" | "ComissaoPadraoAlterada" | "ProdutoAlterado" | "RepasseRegistrado" | "ClienteAnonimizado" | "MarcaAlterada" | "LinkAlterado" | "LinkExcluido" | "SegundoFatorLigado" | "SegundoFatorDesligado" | "EmpresaAlterada" | "EncerramentoPedido" | "EncerramentoDesistido" | "ContaEncerrada" | "ReaberturaPedida" | "ClienteAlterado" | "ClienteExcluido" | "ClientesJuntados" | "VendaCorrigida" | "RepasseDesfeito" | "MesFechado" | "MesReaberto" | "SocioCadastrado" | "SocioAlterado" | "SocioExcluido" | "ClienteCadastrado" | "SaldoInicialDoCaixaDefinido" | "SaldoInicialDoCaixaExcluido" | "RenovacaoRecebidaPorFora" | "RenovacaoDesfeita" | "LinkCriado" | "RecebimentoConferido" | "LimiteDePorForaDefinido";
+        /** @description Pedidos pagos e ainda não ativados no fim do mês: adiantamento de cliente, e não receita. */
+        AindaNaoReconhecido: {
+            /** Format: int64 */
+            totalCents: number;
+            /** Format: int32 */
+            pedidos: number;
+            /** Format: int64 */
+            daRevendaDoGrupoCents: number;
+        };
         AjustarProduto: {
             /** Format: int64 */
             precoCents: number;
@@ -6919,6 +7397,8 @@ export interface components {
         };
         /** @enum {unknown} */
         CategoriaDeDespesa: "PlacasEMaterial" | "Frete" | "Marketing" | "SoftwareEFerramentas" | "Impostos" | "Taxas" | "Outros" | "ServicoDePjComNota";
+        /** @enum {unknown} */
+        CategoriaDeDespesaDaOperadora: "GraficaEMaterial" | "ExecucaoDeServico" | "Frete" | "SoftwareEFerramentas" | "Impostos" | "Outros";
         /**
          * @description Para que o código serve: nem todo código vira placa de avaliação.
          * @default Placa
@@ -7077,6 +7557,31 @@ export interface components {
             usos: number;
             ativo: boolean;
         };
+        /**
+         * @description Um lote e o custo real de produção dele. Sem custo informado, o lote despachado a um pedido é
+         *     pendência: o resultado do grupo não tem como levar o custo das placas vendidas.
+         */
+        CustoDoLoteDto: {
+            /** Format: uuid */
+            loteId: string;
+            rotulo: string;
+            titulo: null | string;
+            /** Format: int32 */
+            quantidade: number;
+            revendedor: null | string;
+            /** Format: date-time */
+            ativadoEm: null | string;
+            informado: boolean;
+            pendente: boolean;
+            /** Format: int64 */
+            graficaCents: number;
+            /** Format: int64 */
+            acrilicoCents: number;
+            /** Format: int64 */
+            totalCents: number;
+            /** Format: int64 */
+            porPlacaCents: number;
+        };
         /** @description Empresa só para o dono; recebimento só para o vendedor. */
         DadosDaConta: {
             nome: string;
@@ -7109,6 +7614,9 @@ export interface components {
             /** Format: int32 */
             comissaoBps: number;
         };
+        DefinirGrupo: {
+            doGrupo: boolean;
+        };
         DefinirRecebedor: {
             recebedor: string;
         };
@@ -7138,6 +7646,16 @@ export interface components {
         };
         DespesaDaCategoria: {
             categoria: components["schemas"]["CategoriaDeDespesa"];
+            /** Format: int64 */
+            valorCents: number;
+        };
+        DespesaDaOperadoraDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: date */
+            data: string;
+            descricao: string;
+            categoria: components["schemas"]["CategoriaDeDespesaDaOperadora"];
             /** Format: int64 */
             valorCents: number;
         };
@@ -7334,6 +7852,12 @@ export interface components {
             /** Format: int32 */
             usosMaximos: null | number;
         };
+        GravarCustoDoLote: {
+            /** Format: int64 */
+            graficaCents: number;
+            /** Format: int64 */
+            acrilicoCents: number;
+        };
         /** @description Título e destino; o destino vem como na venda (lugar do Google, link de avaliação colado ou link do cliente). */
         GravarLink: {
             titulo: string;
@@ -7470,6 +7994,31 @@ export interface components {
             /** Format: date-time */
             ocorridoEm: string;
             estorno: boolean;
+        };
+        /** @description Cada transação interna lida de dois lados, de fontes diferentes: a diferença é zero quando o livro e o razão estão completos. */
+        LinhaDeConciliacao: {
+            chave: string;
+            rotulo: string;
+            /** Format: int64 */
+            naRevendaCents: number;
+            /** Format: int64 */
+            naOperadoraCents: number;
+            /** Format: int64 */
+            diferencaCents: number;
+        };
+        /** @description Uma linha do resultado, em positivo: receita soma, custo subtrai. O consolidado é a soma das três colunas. */
+        LinhaDoResultado: {
+            chave: string;
+            rotulo: string;
+            tipo: components["schemas"]["TipoDaLinhaDoResultado"];
+            /** Format: int64 */
+            revendaCents: number;
+            /** Format: int64 */
+            operadoraCents: number;
+            /** Format: int64 */
+            eliminacoesCents: number;
+            /** Format: int64 */
+            consolidadoCents: number;
         };
         LinkDto: {
             /** Format: uuid */
@@ -7632,6 +8181,14 @@ export interface components {
             /** Format: int64 */
             valorCents: number;
         };
+        NovaDespesaDaOperadora: {
+            /** Format: date */
+            data: string;
+            descricao: string;
+            categoria: components["schemas"]["CategoriaDeDespesaDaOperadora"];
+            /** Format: int64 */
+            valorCents: number;
+        };
         NovaMensagem: {
             texto: string;
         };
@@ -7707,6 +8264,14 @@ export interface components {
         NovoChamado: {
             assunto: string;
             texto: string;
+        };
+        NovoCustoDoLote: {
+            /** Format: uuid */
+            loteId: string;
+            /** Format: int64 */
+            graficaCents: number;
+            /** Format: int64 */
+            acrilicoCents: number;
         };
         NovoPedido: {
             /** Format: uuid */
@@ -7851,6 +8416,28 @@ export interface components {
          * @description Resposta de toda listagem que cresce com o uso. Total é o que o filtro pega (não só a
          *     página); Proxima é o número da próxima página, ou nulo na última.
          */
+        PaginaOfCustoDoLoteDto: {
+            itens: components["schemas"]["CustoDoLoteDto"][];
+            /** Format: int32 */
+            total: number;
+            /** Format: int32 */
+            proxima: null | number;
+        };
+        /**
+         * @description Resposta de toda listagem que cresce com o uso. Total é o que o filtro pega (não só a
+         *     página); Proxima é o número da próxima página, ou nulo na última.
+         */
+        PaginaOfDespesaDaOperadoraDto: {
+            itens: components["schemas"]["DespesaDaOperadoraDto"][];
+            /** Format: int32 */
+            total: number;
+            /** Format: int32 */
+            proxima: null | number;
+        };
+        /**
+         * @description Resposta de toda listagem que cresce com o uso. Total é o que o filtro pega (não só a
+         *     página); Proxima é o número da próxima página, ou nulo na última.
+         */
         PaginaOfDespesaDto: {
             itens: components["schemas"]["DespesaDto"][];
             /** Format: int32 */
@@ -7930,6 +8517,17 @@ export interface components {
          */
         PaginaOfPlacaDaCarteira: {
             itens: components["schemas"]["PlacaDaCarteira"][];
+            /** Format: int32 */
+            total: number;
+            /** Format: int32 */
+            proxima: null | number;
+        };
+        /**
+         * @description Resposta de toda listagem que cresce com o uso. Total é o que o filtro pega (não só a
+         *     página); Proxima é o número da próxima página, ou nulo na última.
+         */
+        PaginaOfReceitaDaRevenda: {
+            itens: components["schemas"]["ReceitaDaRevenda"][];
             /** Format: int32 */
             total: number;
             /** Format: int32 */
@@ -8058,6 +8656,12 @@ export interface components {
             /** @default false */
             haLoteLivre: boolean;
         };
+        PendenciasDoGrupo: {
+            /** Format: int32 */
+            lotesSemCusto: number;
+            /** Format: int32 */
+            placasVendidasSemCusto: number;
+        };
         /** @description Um recebimento por fora que o dono ainda não conferiu; a comissão dele não entra em repasse até a conferência. */
         PendenteDeConferencia: {
             /** Format: uuid */
@@ -8176,6 +8780,20 @@ export interface components {
         ReceberPorFora: {
             meio: components["schemas"]["MeioDePagamento"];
         };
+        ReceitaDaRevenda: {
+            /** Format: uuid */
+            revendedorId: string;
+            revendedor: string;
+            doGrupo: boolean;
+            /** Format: int64 */
+            taxaDaPlataformaCents: number;
+            /** Format: int64 */
+            parteDaAvaliaCents: number;
+            /** Format: int64 */
+            pedidosDePlacasCents: number;
+            /** Format: int64 */
+            totalCents: number;
+        };
         RegistroDaOperadoraDto: {
             /** Format: uuid */
             id: string;
@@ -8245,6 +8863,22 @@ export interface components {
         ResultadoDaConferencia: {
             /** Format: int32 */
             conferidos: number;
+        };
+        ResultadoDoGrupoDto: {
+            competencia: string;
+            fechado: boolean;
+            /** Format: date-time */
+            fechadoEm: null | string;
+            /** Format: int32 */
+            revendasDoGrupo: number;
+            linhas: components["schemas"]["LinhaDoResultado"][];
+            conciliacao: components["schemas"]["LinhaDeConciliacao"][];
+            /** Format: int64 */
+            diferencaDaConciliacaoCents: number;
+            aindaNaoReconhecido: components["schemas"]["AindaNaoReconhecido"];
+            pendencias: components["schemas"]["PendenciasDoGrupo"];
+            /** Format: int64 */
+            retiradasDeSocioCents: number;
         };
         /** @description A fila inteira da operadora, e não só a página aberta: quantos esperam resposta e quantos já passaram do prazo. */
         ResumoDaFila: {
@@ -8340,6 +8974,8 @@ export interface components {
             /** Format: date-time */
             suspensaEm?: null | string;
             motivoDaSuspensao?: null | string;
+            /** @default false */
+            doGrupoDaOperadora: boolean;
         };
         /** @description AguardandoConferenciaCents - parte da comissão em aberto cuja venda foi recebida por fora e o dono ainda não conferiu: não entra em repasse. */
         SaldoDeComissao: {
@@ -8395,6 +9031,8 @@ export interface components {
         SuspenderRevenda: {
             motivo: null | string;
         };
+        /** @enum {unknown} */
+        TipoDaLinhaDoResultado: "Receita" | "Custo" | "Total" | "Resultado";
         /** @enum {unknown} */
         TipoDeDestino: "Google" | "Link";
         /**

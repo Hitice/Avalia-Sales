@@ -16,7 +16,7 @@ namespace AvaliaSales.Application.Pagamentos;
 /// juntos, e um evento repetido não acha nada a fazer.
 /// </summary>
 public sealed class EfeitosDaCobranca(IBancoDeDados banco, FilaDeEmails avisos, Erp.FilaDoErp erp, Notificacoes.Notificacoes notificacoes,
-    Equipe.IContas contas, IOptions<OpcoesDaPlataforma> plataforma)
+    Equipe.IContas contas, IOptions<OpcoesDaPlataforma> plataforma, Financeiro.LivroDaOperadora livro)
 {
     public async Task Aplicar(Cobranca cobranca, DateTimeOffset agora, CancellationToken ct)
     {
@@ -114,9 +114,11 @@ public sealed class EfeitosDaCobranca(IBancoDeDados banco, FilaDeEmails avisos, 
         banco.Lancamentos.Add(new Lancamento(TipoDeLancamento.Receita, cobranca.Id, receitaCents, $"Venda da {item}", quando, venda.Id, venda.VendedorId));
         if (taxaCents > 0)
         {
-            var oQue = venda.ParteDaAvaliaCents > 0 ? "Parte da Avalia" : "Taxa da plataforma";
+            var oQue = venda.ParteDaAvaliaCents > 0 ? Lancamento.InicioDaParteDaAvalia : "Taxa da plataforma";
             var taxa = cobranca.PorFora ? $"{oQue} a acertar, {item} recebida por fora" : $"{oQue}, {item}";
-            banco.Lancamentos.Add(new Lancamento(TipoDeLancamento.TaxaAvalia, cobranca.Id, -taxaCents, taxa, quando, venda.Id));
+            var linhaDaTaxa = new Lancamento(TipoDeLancamento.TaxaAvalia, cobranca.Id, -taxaCents, taxa, quando, venda.Id);
+            banco.Lancamentos.Add(linhaDaTaxa);
+            livro.Taxa(linhaDaTaxa, venda.RevendedorId, cobranca.PorFora);
         }
 
         if (venda.ComissaoCents > 0)
@@ -177,7 +179,9 @@ public sealed class EfeitosDaCobranca(IBancoDeDados banco, FilaDeEmails avisos, 
         if (cobranca.TaxaAvaliaCents > 0)
         {
             var taxa = cobranca.PorFora ? $"Taxa da plataforma a acertar, renovação {placa.Codigo} recebida por fora" : $"Taxa da plataforma, renovação {placa.Codigo}";
-            banco.Lancamentos.Add(new Lancamento(TipoDeLancamento.TaxaAvalia, cobranca.Id, -cobranca.TaxaAvaliaCents, taxa, quando, renovacao.VendaId));
+            var linhaDaTaxa = new Lancamento(TipoDeLancamento.TaxaAvalia, cobranca.Id, -cobranca.TaxaAvaliaCents, taxa, quando, renovacao.VendaId);
+            banco.Lancamentos.Add(linhaDaTaxa);
+            livro.Taxa(linhaDaTaxa, placa.RevendedorId, cobranca.PorFora);
         }
     }
 
@@ -192,7 +196,9 @@ public sealed class EfeitosDaCobranca(IBancoDeDados banco, FilaDeEmails avisos, 
         var jaEstornadas = await banco.Lancamentos.Where(l => l.OrigemId == cobranca.Id && l.EstornaId != null).Select(l => l.EstornaId).ToListAsync(ct);
         foreach (var linha in originais.Where(l => !jaEstornadas.Contains(l.Id)))
         {
-            banco.Lancamentos.Add(linha.Estorno(cobranca.PorFora ? "recebimento por fora desfeito" : "pagamento estornado no Pagar.me", agora));
+            var estorno = linha.Estorno(cobranca.PorFora ? "recebimento por fora desfeito" : "pagamento estornado no Pagar.me", agora);
+            banco.Lancamentos.Add(estorno);
+            livro.TaxaEstornada(linha, estorno, cobranca.RevendedorId, cobranca.PorFora);
         }
 
         if (cobranca.Origem == OrigemDaCobranca.Venda && cobranca.OrigemId is { } origem)

@@ -80,7 +80,24 @@ public sealed class Revendedor
 
     public DateTimeOffset CriadoEm { get; private set; } = DateTimeOffset.UtcNow;
 
+    /// <summary>
+    /// A operadora marcou a revenda como pertencente ao mesmo grupo dela (ADR 0025): só para ela, e só
+    /// para os agregados do resultado do grupo, a operadora lê o DRE desta revenda. Decisão explícita
+    /// da operadora; nenhuma regra deduz o grupo do CNPJ ou do nome.
+    /// </summary>
+    public bool DoGrupoDaOperadora { get; private set; }
+
+    public DateTimeOffset? GrupoDefinidoEm { get; private set; }
+    public Guid? GrupoDefinidoPor { get; private set; }
+
     private Revendedor() => Nome = string.Empty;
+
+    public void DefinirDoGrupo(bool doGrupo, Guid? usuarioId, DateTimeOffset agora)
+    {
+        DoGrupoDaOperadora = doGrupo;
+        GrupoDefinidoEm = agora;
+        GrupoDefinidoPor = usuarioId;
+    }
 
     public Revendedor(string nome, string? cnpj = null)
     {

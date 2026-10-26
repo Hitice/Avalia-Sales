@@ -104,6 +104,18 @@ independentes (ADR 0001):
   quando quem grava é a operadora e a tabela é atendida por ela. Para todos os
   outros, a revenda continua saindo do token, mesmo que o registro venha com
   outra. A política de RLS barra o resto (ADR 0015).
+- Financeiro da operadora - `lancamentos_da_operadora`, `despesas_da_operadora`,
+  `custos_de_lote` e `fechamentos_da_operadora` não têm `revendedor_id`, e a política
+  de RLS delas nomeia a operadora (`app.operadora = 'sim'`). O livro também aceita
+  a inserção da revenda de origem (`revendedor_origem_id` igual ao `app.revendedor_id`
+  da sessão), para o pagamento e a ativação do lote lançarem na transação deles; a revenda
+  insere a própria linha e não lê nenhuma. `fechamentos_da_operadora` é de leitura aberta,
+  porque o gatilho do livro a lê na sessão de quem lança. Nenhum UPDATE nem DELETE no
+  livro (ADR 0025).
+- Leitura do grupo - para o resultado consolidado, `IEscopoDeRevenda` (`EscopoDeRevenda`)
+  abre uma sessão com a revenda marcada (`revendedores.do_grupo_da_operadora`) e devolve só
+  números somados. Confere a marca no banco a cada leitura, recusa a revenda não marcada
+  mesmo com o id certo e só serve a quem entra como operadora (ADR 0025).
 - Tabelas sem RLS de propósito - `usuarios`, `sessoes`, `links_de_senha` e
   `aparelhos_conhecidos` (o login lê antes de saber a revenda);
   `revendedores` (a lista que o Worker percorre); `vinculos_externos` (o
@@ -202,7 +214,7 @@ do `Up`.
 
 | Tabela | Guarda | Regra |
 | --- | --- | --- |
-| `revendedores` | A revenda - nome, CNPJ, celular (só dígitos, com DDD), endereço (`endereco_logradouro`, `_numero`, `_complemento`, `_bairro`, `_cidade`, `_uf`, `_cep`), recebedor no Pagar.me (`recebedor_pagarme`), taxa da Avalia (`taxa_avalia_bps`, padrão 0), comissão padrão (`comissao_padrao_bps`, 2000 = 20%), renovação (`renovacao_bps`, 6000 = 60%), marca (`nome_exibido`, `cor_primaria`, `cor_destaque`, `cabecalho_na_cor`, `marca_alterada_em`), `contrato_assinado_em`, encerramento (`encerramento_pedido_em`, `encerrada_em`, `reabertura_pedida_em`, `reaberta_em`) e suspensão (`suspensa_em`, `motivo_da_suspensao`) | Sem RLS; CNPJ único |
+| `revendedores` | A revenda - nome, CNPJ, celular (só dígitos, com DDD), endereço (`endereco_logradouro`, `_numero`, `_complemento`, `_bairro`, `_cidade`, `_uf`, `_cep`), recebedor no Pagar.me (`recebedor_pagarme`), taxa da Avalia (`taxa_avalia_bps`, padrão 0), comissão padrão (`comissao_padrao_bps`, 2000 = 20%), renovação (`renovacao_bps`, 6000 = 60%), marca (`nome_exibido`, `cor_primaria`, `cor_destaque`, `cabecalho_na_cor`, `marca_alterada_em`), `contrato_assinado_em`, encerramento (`encerramento_pedido_em`, `encerrada_em`, `reabertura_pedida_em`, `reaberta_em`), suspensão (`suspensa_em`, `motivo_da_suspensao`) e a marca de revenda do grupo da operadora (`do_grupo_da_operadora`, `grupo_definido_em`, `grupo_definido_por`) | Sem RLS; CNPJ único |
 | `usuarios`, `papeis` e demais do Identity | Login, `papel` (Operadora, Dono, Vendedor), `ativo`, revenda e `segundo_fator_por_email` | Sem RLS; e-mail único na plataforma; check: operadora sem revenda, os outros com |
 | `sessoes` | Refresh token pelo hash SHA-256, família do login, validade de 14 dias | Sem RLS; hash único |
 | `links_de_senha` | Convite, redefinição e confirmação de e-mail: hash do token, finalidade, validade, `hash_do_codigo` e `erros_do_codigo` | Sem RLS |
@@ -223,6 +235,10 @@ do `Up`.
 | `cobrancas` | Cobrança: origem (venda, pedido de placas, renovação) e id da origem, meio, valor, taxa da Avalia com a parte do serviço (`taxa_avalia_cents`), `estornado_cents`, situação, pedido e link no Pagar.me, URL do checkout, Pix (copia e cola, QR, vencimento), `conferida_em` | RLS; `pedido_no_gateway` único; taxa copiada na criação |
 | `renovacoes` | Placa, venda, valor, situação, de, até, paga em | RLS; uma aberta por placa |
 | `lancamentos` | Razão da revenda: tipo (`Receita`, `TaxaAvalia`, `ComissaoDevida`, `ComissaoPaga`, `CustoDaPlaca`, `Perda`, `Despesa`, `RetiradaDeSocio`, `AporteDeSocio`, `SaldoInicialDoCaixa`), origem, venda, vendedor, valor com sinal, competência, `categoria` (da despesa ou natureza da retirada), `placa_id` e a linha estornada (`estorna_id`) | RLS; só inserção, com `REVOKE UPDATE, DELETE` do papel da aplicação (ADR 0011); único (origem, tipo, venda, vendedor), com nulos iguais, na linha original e único `estorna_id` no estorno; gatilho `lancamento_em_mes_aberto` passa ao mês corrente a linha de mês fechado (ADR 0020). Despesa, retirada e perda usam origem nova por versão, para o índice aceitar a correção |
+| `lancamentos_da_operadora` | Livro da operadora: tipo (`TaxaDaPlataforma`, `ParteDaAvaliaNosServicos`, `PedidoDePlacas`, `Despesa`), revenda de origem (`revendedor_origem_id`, nula na despesa), origem (cobrança, pedido ou versão da despesa), venda, valor com sinal, competência, `por_fora`, `categoria` e a linha estornada (`estorna_id`). O Id da taxa é o da linha `TaxaAvalia` do razão que ela espelha | RLS só da operadora, com inserção também da revenda de origem; só inserção (`REVOKE UPDATE, DELETE`); único (origem, tipo, venda), com nulos iguais, na linha original e único `estorna_id` no estorno; gatilho `lancamento_da_operadora_em_mes_aberto` (ADR 0025) |
+| `despesas_da_operadora` | Data, descrição, categoria (`GraficaEMaterial`, `ExecucaoDeServico`, `Frete`, `SoftwareEFerramentas`, `Impostos`, `Outros`), valor e a linha do livro em vigor | RLS só da operadora |
+| `fechamentos_da_operadora` | Mês do livro fechado: competência, fechado em e por, reaberto em e por, motivo | Leitura aberta, escrita só da operadora; um em vigor por mês |
+| `custos_de_lote` | Custo real de produção do lote: gráfica, acrílico e quantidade; o custo por placa é o total pela quantidade | RLS só da operadora; chave é o lote, apagada com ele |
 | `repasses` | Comissão paga ao vendedor: valor, vendas, data de corte, comprovante, `desfeito_em` | RLS; vendedor travado na gravação |
 | `despesas` | Data, descrição, categoria, valor e a linha do razão em vigor (`lancamento_id`) | RLS |
 | `socios` | Sócio do contrato social: nome e CPF opcional | RLS; não se exclui com retirada |
@@ -554,8 +570,31 @@ Revenda por revenda, a cada volta:
   encerradas (`notificacoes.venda_id`).
 - Troca de placa - trava a placa nova (`FOR UPDATE`) e encerra a antiga com o
   motivo (`Placa.ReceberVendaDe`).
+- Livro da operadora (`LivroDaOperadora`) - o mesmo `SaveChanges` que lança a linha
+  `TaxaAvalia` no razão lança a linha do livro (taxa da plataforma ou parte da Avalia, pelo
+  começo da descrição), com o Id da linha do razão; o estorno do razão estorna a do livro
+  (`EfeitosDaCobranca.Estornar` e `Cobrancas.EstornarVenda`). `PedidosDePlacas.Ativar`
+  lança o pedido pago como receita da operadora. Tudo na sessão da revenda, que só insere.
 - Custo da placa vendida e apropriação da receita são lidos do razão na DRE
   (`Dre`, `Domain/Financeiro/Reconhecimento`), e não lançados.
+
+### Financeiro da operadora
+
+- Rotas (política `operadora`, todas sob `/operadora/financeiro`): `GET /resultado?competencia=`
+  (`ResultadoDoGrupo.DoMes`), `GET /receita-por-revenda` (paginada), `GET /meses`,
+  `POST /fechamentos`, `POST /fechamentos/{competencia}/reabertura`, `GET/POST /despesas` e
+  `PUT/DELETE /despesas/{id}`, `GET/POST /custos-de-lote` e `PUT/DELETE /custos-de-lote/{loteId}`.
+  A marca é `PUT /operadora/revendedores/{id}/grupo`. A trilha da operadora registra as escritas.
+- Casos de uso: `LivroDaOperadora`, `DespesasDaOperadora`, `FechamentosDaOperadora`,
+  `CustosDeLote`, `ResultadoDoGrupo`. O `Dre` recebe o `TimeProvider` e não depende mais de
+  `Fechamentos`, para rodar numa sessão que não é do usuário da requisição.
+- `ResultadoDoGrupo` junta o livro do mês (separado pela marca do grupo), o `Dre` de cada revenda
+  marcada, lido pelo `IEscopoDeRevenda`, e o custo dos lotes. Cada linha traz as quatro colunas; a
+  conciliação lê a taxa da plataforma, a parte da Avalia e o pedido de placas do razão da revenda e do
+  livro. O custo real da placa vendida usa `Reconhecimento` com o custo por placa do lote. A
+  receita por revenda lista só o que cada uma paga à operadora.
+- Migration `FinanceiroDaOperadora`: tabelas, colunas de `revendedores`, políticas, gatilho e o
+  backfill (`BackfillDoLivroDaOperadora`), idempotente.
 
 ### Encerramento da conta
 
@@ -739,6 +778,7 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
 | 22/10/2026 | Transferência de clientes por função e política de RLS próprias | Mudar a revenda de uma linha só dentro da função, sem depender de superusuário (ADR 0019) |
 | 24/10/2026 | Mês fechado garantido por gatilho no banco, que passa a linha atrasada ao mês corrente | Linhas do razão nascem em vários pontos; o pagamento de fim de mês processado depois do fechamento não pode travar o Worker (ADR 0020) |
 | 24/10/2026 | Custo da placa vendida e apropriação lidos do razão na DRE, e não lançados | A receita da venda já traz a venda e o estorno; nada a mais no caminho do pagamento |
+| 26/10/2026 | Livro próprio da operadora e leitura restrita das revendas marcadas como do grupo | A operadora não tem revenda e não lê o razão das outras; o consolidado lê só agregados da revenda marcada (ADR 0025) |
 
 ## 13. Pendências técnicas
 
@@ -776,12 +816,13 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
 | 26/10/2026 | `/now` - abaixo de 1024 px, `.abertura-texto` vira `display: contents` e os blocos da abertura se ordenam por `order` em volta da figura, sem mexer no HTML. |
 | 26/10/2026 | Busca sem acento - `Application/Busca.cs` (`Busca.Normalizar`) é o ponto único das buscas por texto das listagens, mapeada com `HasDbFunction` para `avalia_normalizar(text)`, que a migration `BuscaSemAcento` cria sobre `CREATE EXTENSION unaccent` (trusted no PG 13+, criada pelo dono do banco; função `IMMUTABLE` com o dicionário explícito, execução concedida a `avalia_app`). Os dois lados da comparação passam por ela e o `Contains` continua `strpos`, então `%` e `_` seguem literais; a busca continua cortada em 100 caracteres (a da auditoria agora também). Sem índice trigram: não medido, as listas já filtram por revenda antes. `BuscaSemAcentoTest`. ADR 0023. |
 | 26/10/2026 | E-mails sensíveis cifrados em repouso - `ICifraDeEmails`/`CifraDeEmails` (AES-256-GCM, nonce aleatório por linha, formato `avalia-cifra:v1:` + base64, chave do e-mail como dado associado) com `Seguranca__ChaveDosEmails` (32 bytes em base64, igual na API e no Worker) e `Seguranca__ChaveAnteriorDosEmails` para a rotação. `FilaDeEmails` cifra ao enfileirar, `EnvioDeEmails` abre antes do envio; linha antiga em claro ainda envia; chave que não abre vira falha definitiva (`EmailNaFila.FalharDefinitivamente`) com o conteúdo apagado e sem o texto no log. A subida falha fora do Development sem a chave (`ValidadorDasOpcoesDeSeguranca`); Development e testes usam chave embutida. Sem migration (usa as colunas `assunto` e `texto`). `EmailCifradoTest`. ADR 0024. |
+| 26/10/2026 | Financeiro da operadora (ADR 0025) - migration `FinanceiroDaOperadora` (tabelas `lancamentos_da_operadora`, `despesas_da_operadora`, `fechamentos_da_operadora`, `custos_de_lote`, colunas `revendedores.do_grupo_da_operadora`, `grupo_definido_em` e `grupo_definido_por`, políticas de RLS, gatilho do mês fechado e backfill). Rotas `/operadora/financeiro/*` e `PUT /operadora/revendedores/{id}/grupo`; casos de uso `LivroDaOperadora`, `DespesasDaOperadora`, `FechamentosDaOperadora`, `CustosDeLote`, `ResultadoDoGrupo`; `IEscopoDeRevenda`; `Dre` passa a receber o `TimeProvider`. Tela `web/src/operadora/TelaDoResultadoDoGrupo`. `ResultadoDoGrupoTest`, `LivroDaOperadoraNoBancoTest`, `LivroDaOperadoraDominioTest`. |
 | 26/10/2026 | `POST /placas/{codigo}/renovacao` e `/renovacao/recebimento` passam do grupo `equipe` para o `dono`; `Renovacoes.AbrirRenovacao` recusa o papel Vendedor; `RecebimentosPorFora.DoDia` conta só vendas. Front - o cartão Renovação da ficha só aparece para o revendedor, e a carteira do vendedor só oferece o WhatsApp. |
 | 26/10/2026 | Operação - comandos de manutenção com `docker compose run` levam `-T` e `timeout`; o `run` com terminal anexado pode girar por dias na CPU se o terminal cai (24/10, causa do limite de 40% da CPU aplicado pela Hostinger). |
 | 26/10/2026 | VPS de um núcleo - o Compose de produção dá prioridade de CPU por serviço (`cpu_shares`: banco, API e Nginx 2048; Worker e migrar 512; Gotenberg 256; certbot e backup 128), que só pesa quando há disputa, e o Deploy compila uma imagem por vez (`COMPOSE_PARALLEL_LIMIT=1`). |
 | 25/10/2026 | Cópia fora do VPS - `backup.sh` envia a cópia, criptografada com `BACKUP_SENHA`, a um bucket compatível com S3 (`S3_ENDPOINT`, `S3_BUCKET`, `S3_KEY_ID`, `S3_APP_KEY`; assinatura SigV4 pelo `curl`, ETag conferido com o MD5), apaga do bucket o que passou de `BACKUP_DIAS_NO_BUCKET` dias só depois de um envio conferido, e tem o modo `testar-bucket`. Falha do bucket não segura o Deploy. Testado contra o Cloudflare R2. |
 | 25/10/2026 | O Deploy repassa `TURNSTILE_CHAVE_SITE` (variável) e `TURNSTILE_CHAVE_SECRETA` (segredo) do ambiente `producao` ao Compose, sem passar pelo `.env` do servidor. |
-| 25/10/2026 | Paginação - toda rota GET de lista que cresce responde `{ itens, total, proxima }` (`Application/Pagina.cs`) com `pagina` e `tamanho` (padrão 50, máximo 100 aplicado no servidor, valor fora da faixa é corrigido), ordem total com `Id` no fim e `busca` aplicada antes da página (cortada em 100 caracteres); mensagens de chamado usam o cursor `antes`; resumos próprios em `/vendas/resumo`, `/operadora/chamados/resumo` e `?situacao=` em `/servicos`. `/placas` conta o estado no SQL; `PaginaDePlacas.placas` e `PaginaDeAuditoria.registros` viraram `itens`. A busca por acento ficou equivalente à antiga em 26/10/2026 (ver ADR 0023). Front - `useListaPaginada`, `ListaPaginada` e `Paginacao` (`lib/paginacao.ts`, `componentes`), busca com atraso de 300 ms na API, chave de consulta por página, busca e filtro. Migration `IndicesDaPaginacao` (sete índices em `vendas`, `pedidos_placas`, `links`, `lancamentos`, `repasses` e `envios_ao_erp`). `PaginacaoTest`. |
+| 25/10/2026 | Paginação - toda rota GET de lista que cresce responde `{ itens, total, proxima }` (`Application/Pagina.cs`) com `pagina` e `tamanho` (padrão 50, máximo 100 aplicado no servidor, valor fora da faixa é corrigido), ordem total com `Id` no fim e `busca` aplicada antes da página (cortada em 100 caracteres); mensagens de chamado usam o cursor `antes`; resumos próprios em `/vendas/resumo`, `/operadora/chamados/resumo` e `?situacao=` em `/servicos`. `/placas` conta o estado no SQL; `PaginaDePlacas.placas` e `PaginaDeAuditoria.registros` viraram `itens`. A busca por acento ficou equivalente à antiga em 26/10/2026 (ver ADR 0025). Front - `useListaPaginada`, `ListaPaginada` e `Paginacao` (`lib/paginacao.ts`, `componentes`), busca com atraso de 300 ms na API, chave de consulta por página, busca e filtro. Migration `IndicesDaPaginacao` (sete índices em `vendas`, `pedidos_placas`, `links`, `lancamentos`, `repasses` e `envios_ao_erp`). `PaginacaoTest`. |
 | 25/10/2026 | Cadastro pendente (ADR 0022) - `FinalidadeDoLink.CadastroPendente` marca o cadastro público não confirmado, sem coluna nova; `POST /cadastro` sem senha devolve 202 e `POST /cadastro/reenvio` devolve 204; `Cadastro` (Application) orquestra limites e situação, com `IContas` ampliado e `JanelaDeTentativas`; `IVerificadorDeCaptcha` em `VerificadorTurnstile` (`HttpClient` tipado, falha fechada, desligado sem `Turnstile__ChaveSecreta`); o Worker roda `LimpezaDeCadastros` a cada 10 minutos, separada da `LimpezaDeExpirados`; opções `Cadastro__*`, `Limites__CadastrosPorHoraPorIp`; a CSP do Nginx libera `challenges.cloudflare.com`; o front lê `VITE_TURNSTILE_CHAVE_SITE` no build. `CadastroPublicoTest`, `CadastroComCaptchaTest`, `VerificadorTurnstileTest`. |
 | 25/10/2026 | `Idempotency-Key` nas gravações POST autenticadas, num middleware único (`IdempotenciaDaRequisicao`): chave por usuário e rota, resposta gravada por 24 h em `chaves_de_idempotencia` (RLS próprio; a operadora grava com revendedor nulo), 422 com corpo diferente, 409 na execução simultânea, hash HMAC do corpo; rotas de segredo ficam de fora (`SemIdempotencia`); o front manda uma chave por chamada POST. Migration `IdempotenciaEEmailsSensiveis`. |
 | 25/10/2026 | Refresh token com tolerância de 10 s (`GestorDeSessoes.JanelaDeTolerancia`, até 10 reenvios por token); reuso fora da janela, ou depois de sair, revoga a família. `emails.sensivel`: assunto e texto com link de senha ou código são apagados depois do envio e na falha definitiva, e o parado além de 2 dias é descartado (a cifra em repouso veio em 26/10/2026). O Worker apaga a cada 10 min chaves de idempotência vencidas, famílias de sessão vencidas, links de senha vencidos há 7 dias e e-mails com mais de 30 dias (`LimpezaDeExpirados`). |

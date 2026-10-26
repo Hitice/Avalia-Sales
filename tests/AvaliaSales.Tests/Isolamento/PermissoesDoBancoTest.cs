@@ -29,12 +29,14 @@ public sealed class PermissoesDoBancoTest(ApiDeTeste api)
         Assert.Contains(IsolamentoNoBanco.PapelDaAplicacao + ":false:false", papeis, StringComparison.Ordinal);
     }
 
-    /// <summary>Razão e trilhas de auditoria só recebem inserção; correção é estorno (ADR 0011).</summary>
+    /// <summary>Razão, livro da operadora e trilhas de auditoria só recebem inserção; correção é estorno (ADR 0011 e 0023).</summary>
     [Theory]
     [InlineData("lancamentos", "UPDATE")]
     [InlineData("lancamentos", "DELETE")]
     [InlineData("auditoria", "UPDATE")]
     [InlineData("auditoria", "DELETE")]
+    [InlineData("lancamentos_da_operadora", "UPDATE")]
+    [InlineData("lancamentos_da_operadora", "DELETE")]
     [InlineData("auditoria_da_operadora", "UPDATE")]
     [InlineData("auditoria_da_operadora", "DELETE")]
     public async Task Aplicacao_nao_altera_nem_apaga_razao_e_auditorias(string tabela, string operacao)

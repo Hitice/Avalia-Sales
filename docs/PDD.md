@@ -35,7 +35,9 @@ Termos usados neste documento:
 
 A plataforma tem uma operadora só. A Avalia também é uma revenda, com o mesmo
 peso de qualquer outra: mesmo fluxo, mesma taxa, usuários separados dos da
-operadora. Nenhuma regra pergunta se a revenda é a Avalia.
+operadora. Nenhuma regra pergunta se a revenda é a Avalia. Para o resultado
+da empresa, a operadora marca no cadastro as revendas que são do mesmo grupo
+dela (seção 7.5); a marca é decisão dela e não sai do CNPJ nem do nome.
 
 ## 3. Modelo de negócio
 
@@ -69,6 +71,8 @@ operadora. Nenhuma regra pergunta se a revenda é a Avalia.
   cobrança no momento dela, para voltar a ser cobrada sem mudar o sistema
   (contrato, cláusulas 5.4 e 5.7). Venda feita guarda a taxa dela. O razão e
   as Configurações só mostram a taxa quando ela existe.
+- Receita da operadora - a taxa da plataforma e a parte da Avalia entram no pagamento; o pedido de
+  placas entra na ativação do lote (seção 7.5).
 - Serviço vendido - a venda paga de serviço (Perfil no Google, cardápio,
   landing page, sistema, kit mesa, QR dinâmico) vira ordem de serviço para a
   Avalia executar (seção 6.8).
@@ -156,10 +160,11 @@ maiúscula ("otica" acha "Ótica").
 | Pacotes e Cupons | Cadastro dos pacotes de placas e dos cupons |
 | Catálogo da Avalia | Cadastrar e editar produto, foto com recorte, preço sugerido, desconto da revenda (e a parte da Avalia que sai dele), pedido mínimo, ordem e situação |
 | Serviços | Fila de ordens de serviço - iniciar, entregar, cancelar e reabrir |
-| Revendedores | Revendas, recebedor no Pagar.me, percentual da renovação, contrato em papel, suspensão, encerramento e pedido de reabertura |
+| Revendedores | Revendas, recebedor no Pagar.me, percentual da renovação, contrato em papel, suspensão, encerramento, pedido de reabertura e a marca de revenda do grupo da operadora |
 | Atendimento | Fila de chamados pelo prazo, com o atrasado em vermelho |
 | ERP | Envios ao Protheus e reenvio |
 | Auditoria da operadora | O que a operadora mudou na plataforma, com o que foi enviado, busca, 20 por página e exportação em JSON |
+| Resultado do grupo | Resultado do mês por revenda do grupo, operadora, eliminações e consolidado, a conciliação das eliminações, o recebido e ainda não reconhecido, a receita por revenda, as despesas da operadora, o custo de produção por lote e o fechamento do mês (seção 7.5) |
 
 ### Público
 
@@ -624,6 +629,53 @@ vendedor.
   ao mês corrente. O pagamento do mês fechado que chega depois também entra no
   mês corrente. Reabrir pede o motivo. Fechar e reabrir vão à auditoria.
 
+### 7.5 Financeiro da operadora e resultado do grupo
+
+O dono quer o resultado da Avalia empresa, que é a revenda Avalia mais a operadora. O desenho
+segue a consolidação com eliminação das transações internas (CPC 36 / IFRS 10), a receita
+reconhecida quando o controle passa ao cliente (CPC 47 / IFRS 15) e a informação por
+segmento (CPC 22 / IFRS 8). O preço do pacote da revenda Avalia é o das outras revendas.
+
+- Livro da operadora - o que a operadora ganha de cada revenda, só de inserção, como o
+  razão. Estorno é linha contrária que aponta para a estornada.
+  - Taxa da plataforma e parte da Avalia nos serviços - lançadas junto com o pagamento e
+    estornadas junto com o estorno. A taxa "a acertar" de venda recebida por fora entra
+    marcada como tal.
+  - Pedido de placas - receita da operadora na ativação do lote, quando a revenda passa a
+    ter o controle das placas. Pago e ainda não ativado é adiantamento: a tela mostra
+    "recebido e ainda não reconhecido". Pedido com cupom de 100% não lança.
+- Despesas da operadora - data, descrição, categoria (gráfica e material, execução de
+  serviço, frete, software e ferramentas, impostos, outros) e valor. Vão ao livro como a
+  despesa da revenda: editar estorna e lança de novo, excluir só estorna, data no futuro
+  é recusada.
+- Fechamento do mês da operadora - fecha mês que já acabou. Fechado, a despesa com data nele
+  é recusada, e a correção entra no mês corrente. Reabrir pede o motivo.
+- Custo de produção do lote - a operadora informa, por lote, o que a gráfica cobrou e o
+  que o acrílico custou, com criar, editar e excluir. O custo por placa é o total dividido
+  pela quantidade, para baixo. Lote despachado a um pedido e sem custo é pendência, e a tela
+  conta as placas vendidas do mês que ficaram sem custo.
+- Revenda do grupo - a operadora marca no cadastro da revenda que ela pertence ao mesmo
+  grupo. É decisão explícita, com quem marcou e quando, e a marca vale para todos os meses.
+  Só as marcadas têm o DRE lido pela operadora, e só em números somados; a operadora não
+  abre o razão da revenda. A revenda Avalia é marcada como qualquer outra.
+- Resultado do grupo, por mês - colunas Revenda do grupo, Operadora, Eliminações e
+  Consolidado.
+  - Consolidado - receita reconhecida da revenda do grupo (e de nenhuma outra) mais a receita
+    da operadora que vem de revendas de fora do grupo; menos comissões, o custo real de
+    produção das placas, as despesas da revenda do grupo e as da operadora. Retiradas de
+    sócio ficam fora do resultado.
+  - Eliminações - a taxa da plataforma, a parte da Avalia nos serviços e o pedido de placas
+    que a revenda do grupo paga à operadora saem dos dois lados. O custo da placa pelo preço
+    da operadora sai da revenda, e entra o custo real de produção.
+  - Custo real da placa vendida - acompanha a receita da venda, nas mesmas doze partes. A
+    placa perdida, quebrada ou dada em cortesia leva o custo real no mês em que saiu.
+  - Conciliação - cada transação interna é lida dos dois lados (razão da revenda do grupo e
+    livro da operadora). A diferença é zero quando os dois estão completos; a tela mostra
+    "Fecha em zero" ou a diferença.
+  - Revenda fora do grupo - aparece só pelo que paga à operadora, na lista por revenda. O
+    DRE dela nunca é lido.
+- Fora do consolidado - a tarifa do Pagar.me, porque o razão não a guarda.
+
 ## 8. Dados pessoais (LGPD)
 
 - Papéis - a revenda é a controladora dos dados dos clientes e da equipe
@@ -756,6 +808,8 @@ porque está impresso nas placas vendidas.
 | --- | --- | --- |
 | Recebedor da revenda Avalia | Mesmo recebedor da conta do marketplace ou um separado | Hoje é o mesmo, com a cobrança numa regra só. Separado, o extrato da revenda não se mistura com a parte da Avalia nos serviços |
 | Comissão na renovação | Renovação sempre sem comissão ou comissão de renovação ligada pela revenda | Hoje sem comissão; a opção de ligar não existe |
+| Custo real da placa no consolidado | Acompanhar a receita da venda em doze partes ou entrar inteiro no mês da venda | Hoje acompanha a receita, para custo e receita ficarem no mesmo período; a troca é local ao cálculo |
+| Tarifa do Pagar.me no consolidado | Guardar a tarifa no razão ou ler do extrato | Fora do consolidado: o razão não a guarda |
 | Texto do termo do cliente final | Rascunho ou revisão jurídica | Espera a revisão jurídica; a venda ainda não gera o termo |
 | Política de privacidade | Texto | Espera a revisão jurídica |
 
@@ -765,6 +819,7 @@ porque está impresso nas placas vendidas.
 | --- | --- |
 | 26/10/2026 | Início, lista de Vendas e painel do vendedor contam como recebida a venda paga no sistema anterior, depois de o histórico lançar a receita dela no razão; antes, o Início mostrava só os pagamentos feitos pela plataforma e destoava do Financeiro. |
 | 26/10/2026 | Página /now no celular e no tablet - o banner das telas fica entre a chamada e a descrição; no computador continua ao lado do texto. |
+| 26/10/2026 | Financeiro da operadora e resultado do grupo - livro da operadora (taxa da plataforma e parte da Avalia no pagamento, pedido de placas na ativação do lote), despesas e fechamento do mês da operadora, custo de produção por lote, marca de revenda do grupo e a tela Resultado do grupo com as colunas revenda do grupo, operadora, eliminações e consolidado, conciliação e recebido ainda não reconhecido (seção 7.5, ADR 0025). |
 | 26/10/2026 | A renovação da placa é anual e só do revendedor: o vendedor não a pede nem a registra por fora (a ficha e a carteira dele não oferecem Renovar, e a API recusa com 403). A renovação deixa de gastar a cota diária de recebido por fora do vendedor. |
 | 26/10/2026 | A busca das listas paginadas (vendas, clientes, carteira, lotes, pedidos, chamados, links, serviços, repasses, razão, despesas, retiradas, revendedores, ERP e auditoria) volta a achar sem acento: "otica" acha "Ótica", "sao" acha "São João". |
 | 25/10/2026 | Listas do painel abrem em páginas de 50 (no máximo 100), e a busca vale para a lista inteira, e não só para a página aberta. Antes, vendas, clientes, carteira, ERP e repasses cortavam em 200 ou 500 sem avisar. Os números do Início e das telas de vendas (vendas no mês, recebido, gráfico de 30 dias, comissão esperando) são calculados sobre todas as vendas, no mês de Brasília. A carteira ganha o filtro de vencimento, e o repasse só se desfaz no último de cada vendedor. Para o vendedor, a busca não olha telefone, documento nem e-mail de cliente. |

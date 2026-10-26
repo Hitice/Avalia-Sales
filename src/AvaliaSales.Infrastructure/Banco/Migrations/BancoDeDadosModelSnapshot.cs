@@ -718,6 +718,38 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                     b.ToTable("envios_ao_erp", (string)null);
                 });
 
+            modelBuilder.Entity("AvaliaSales.Domain.Financeiro.CustoDoLote", b =>
+                {
+                    b.Property<Guid>("LoteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("lote_id");
+
+                    b.Property<long>("AcrilicoCents")
+                        .HasColumnType("bigint")
+                        .HasColumnName("acrilico_cents");
+
+                    b.Property<DateTimeOffset>("AtualizadoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("atualizado_em");
+
+                    b.Property<long>("GraficaCents")
+                        .HasColumnType("bigint")
+                        .HasColumnName("grafica_cents");
+
+                    b.Property<DateTimeOffset>("InformadoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("informado_em");
+
+                    b.Property<int>("Quantidade")
+                        .HasColumnType("integer")
+                        .HasColumnName("quantidade");
+
+                    b.HasKey("LoteId")
+                        .HasName("pk_custos_de_lote");
+
+                    b.ToTable("custos_de_lote", (string)null);
+                });
+
             modelBuilder.Entity("AvaliaSales.Domain.Financeiro.Despesa", b =>
                 {
                     b.Property<Guid>("Id")
@@ -767,6 +799,99 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .HasDatabaseName("ix_despesas_revendedor_id_data");
 
                     b.ToTable("despesas", (string)null);
+                });
+
+            modelBuilder.Entity("AvaliaSales.Domain.Financeiro.DespesaDaOperadora", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Categoria")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("categoria");
+
+                    b.Property<DateTimeOffset>("CriadaEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("criada_em");
+
+                    b.Property<DateOnly>("Data")
+                        .HasColumnType("date")
+                        .HasColumnName("data");
+
+                    b.Property<string>("Descricao")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("descricao");
+
+                    b.Property<Guid>("LancamentoId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("lancamento_id");
+
+                    b.Property<long>("ValorCents")
+                        .HasColumnType("bigint")
+                        .HasColumnName("valor_cents");
+
+                    b.HasKey("Id")
+                        .HasName("pk_despesas_da_operadora");
+
+                    b.HasIndex("LancamentoId")
+                        .HasDatabaseName("ix_despesas_da_operadora_lancamento_id");
+
+                    b.HasIndex("Data", "CriadaEm", "Id")
+                        .HasDatabaseName("ix_despesas_da_operadora_data_criada_em_id");
+
+                    b.ToTable("despesas_da_operadora", (string)null);
+                });
+
+            modelBuilder.Entity("AvaliaSales.Domain.Financeiro.FechamentoDaOperadora", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Competencia")
+                        .IsRequired()
+                        .HasMaxLength(7)
+                        .HasColumnType("character(7)")
+                        .HasColumnName("competencia")
+                        .IsFixedLength();
+
+                    b.Property<DateTimeOffset>("FechadoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("fechado_em");
+
+                    b.Property<Guid?>("FechadoPor")
+                        .HasColumnType("uuid")
+                        .HasColumnName("fechado_por");
+
+                    b.Property<string>("MotivoDaReabertura")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("motivo_da_reabertura");
+
+                    b.Property<DateTimeOffset?>("ReabertoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("reaberto_em");
+
+                    b.Property<Guid?>("ReabertoPor")
+                        .HasColumnType("uuid")
+                        .HasColumnName("reaberto_por");
+
+                    b.HasKey("Id")
+                        .HasName("pk_fechamentos_da_operadora");
+
+                    b.HasIndex("Competencia")
+                        .IsUnique()
+                        .HasDatabaseName("ix_fechamentos_da_operadora_competencia")
+                        .HasFilter("reaberto_em is null");
+
+                    b.ToTable("fechamentos_da_operadora", (string)null);
                 });
 
             modelBuilder.Entity("AvaliaSales.Domain.Financeiro.FechamentoDoMes", b =>
@@ -912,6 +1037,89 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .HasDatabaseName("ix_lancamentos_competencia_ocorrido_id");
 
                     b.ToTable("lancamentos", (string)null);
+                });
+
+            modelBuilder.Entity("AvaliaSales.Domain.Financeiro.LancamentoDaOperadora", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Categoria")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("categoria");
+
+                    b.Property<string>("Competencia")
+                        .IsRequired()
+                        .HasMaxLength(7)
+                        .HasColumnType("character(7)")
+                        .HasColumnName("competencia")
+                        .IsFixedLength();
+
+                    b.Property<string>("Descricao")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("descricao");
+
+                    b.Property<Guid?>("EstornaId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("estorna_id");
+
+                    b.Property<DateTimeOffset>("OcorridoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("ocorrido_em");
+
+                    b.Property<Guid>("OrigemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("origem_id");
+
+                    b.Property<bool>("PorFora")
+                        .HasColumnType("boolean")
+                        .HasColumnName("por_fora");
+
+                    b.Property<Guid?>("RevendedorOrigemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("revendedor_origem_id");
+
+                    b.Property<string>("Tipo")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("tipo");
+
+                    b.Property<long>("ValorCents")
+                        .HasColumnType("bigint")
+                        .HasColumnName("valor_cents");
+
+                    b.Property<Guid?>("VendaId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("venda_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_lancamentos_da_operadora");
+
+                    b.HasIndex("EstornaId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_lancamentos_da_operadora_estorna_id")
+                        .HasFilter("estorna_id is not null");
+
+                    b.HasIndex("Competencia", "Tipo")
+                        .HasDatabaseName("ix_lancamentos_da_operadora_competencia_tipo");
+
+                    b.HasIndex("RevendedorOrigemId", "Competencia")
+                        .HasDatabaseName("ix_lancamentos_da_operadora_revendedor_origem_id_competencia");
+
+                    b.HasIndex("OrigemId", "Tipo", "VendaId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_lancamentos_da_operadora_origem_id_tipo_venda_id")
+                        .HasFilter("estorna_id is null");
+
+                    NpgsqlIndexBuilderExtensions.AreNullsDistinct(b.HasIndex("OrigemId", "Tipo", "VendaId"), false);
+
+                    b.ToTable("lancamentos_da_operadora", (string)null);
                 });
 
             modelBuilder.Entity("AvaliaSales.Domain.Financeiro.Repasse", b =>
@@ -1895,6 +2103,10 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("criado_em");
 
+                    b.Property<bool>("DoGrupoDaOperadora")
+                        .HasColumnType("boolean")
+                        .HasColumnName("do_grupo_da_operadora");
+
                     b.Property<DateTimeOffset?>("EncerradaEm")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("encerrada_em");
@@ -1902,6 +2114,14 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                     b.Property<DateTimeOffset?>("EncerramentoPedidoEm")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("encerramento_pedido_em");
+
+                    b.Property<DateTimeOffset?>("GrupoDefinidoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("grupo_definido_em");
+
+                    b.Property<Guid?>("GrupoDefinidoPor")
+                        .HasColumnType("uuid")
+                        .HasColumnName("grupo_definido_por");
 
                     b.Property<DateTimeOffset?>("MarcaAlteradaEm")
                         .HasColumnType("timestamp with time zone")
@@ -2939,6 +3159,16 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .HasConstraintName("fk_envios_ao_erp_revendedores_revendedor_id");
                 });
 
+            modelBuilder.Entity("AvaliaSales.Domain.Financeiro.CustoDoLote", b =>
+                {
+                    b.HasOne("AvaliaSales.Domain.Placas.Lote", null)
+                        .WithOne()
+                        .HasForeignKey("AvaliaSales.Domain.Financeiro.CustoDoLote", "LoteId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_custos_de_lote_lotes_lote_id");
+                });
+
             modelBuilder.Entity("AvaliaSales.Domain.Financeiro.Despesa", b =>
                 {
                     b.HasOne("AvaliaSales.Domain.Financeiro.Lancamento", null)
@@ -2954,6 +3184,16 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_despesas_revendedores_revendedor_id");
+                });
+
+            modelBuilder.Entity("AvaliaSales.Domain.Financeiro.DespesaDaOperadora", b =>
+                {
+                    b.HasOne("AvaliaSales.Domain.Financeiro.LancamentoDaOperadora", null)
+                        .WithMany()
+                        .HasForeignKey("LancamentoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_despesas_da_operadora_lancamentos_da_operadora_lancamento_id");
                 });
 
             modelBuilder.Entity("AvaliaSales.Domain.Financeiro.FechamentoDoMes", b =>
@@ -2980,6 +3220,21 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_lancamentos_revendedores_revendedor_id");
+                });
+
+            modelBuilder.Entity("AvaliaSales.Domain.Financeiro.LancamentoDaOperadora", b =>
+                {
+                    b.HasOne("AvaliaSales.Domain.Financeiro.LancamentoDaOperadora", null)
+                        .WithMany()
+                        .HasForeignKey("EstornaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_lancamentos_da_operadora_lancamentos_da_operadora_estorna_id");
+
+                    b.HasOne("AvaliaSales.Domain.Revendedores.Revendedor", null)
+                        .WithMany()
+                        .HasForeignKey("RevendedorOrigemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_lancamentos_da_operadora_revendedores_revendedor_origem_id");
                 });
 
             modelBuilder.Entity("AvaliaSales.Domain.Financeiro.Repasse", b =>

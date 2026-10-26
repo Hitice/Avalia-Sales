@@ -25,6 +25,12 @@ public sealed class AutorizacaoPorRecursoTest(ApiDeTeste api)
     /// </summary>
     private const string TabelaDeLinhasDaOperadora = "chaves_de_idempotencia";
 
+    /// <summary>
+    /// As tabelas do financeiro da operadora (ADR 0025): não têm revendedor_id, então o laço abaixo não as percorre,
+    /// mas a política delas nomeia a operadora. O isolamento delas, com o papel real, está em LivroDaOperadoraNoBancoTest.
+    /// </summary>
+    private static readonly string[] TabelasDoFinanceiroDaOperadora = ["custos_de_lote", "despesas_da_operadora", "fechamentos_da_operadora", "lancamentos_da_operadora"];
+
     private async Task<(HttpClient Cliente, Guid Id)> Vendedor(Revenda revenda, string nome)
     {
         var email = $"vendedor-{Guid.NewGuid():N}@teste.com.br";
@@ -194,6 +200,7 @@ public sealed class AutorizacaoPorRecursoTest(ApiDeTeste api)
         }
 
         Assert.True(atendidas.Remove(TabelaDeLinhasDaOperadora), "A tabela das chaves de idempotência precisa ter a política que abre as linhas da operadora.");
+        Assert.All(TabelasDoFinanceiroDaOperadora, t => Assert.True(atendidas.Remove(t), $"A tabela {t} precisa ter a política que a abre só à operadora."));
         Assert.Equal(TabelasDaOperadora, atendidas.Order().ToArray());
 
         var totalDeA = new Dictionary<string, long>();

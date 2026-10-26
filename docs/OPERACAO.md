@@ -378,6 +378,25 @@ renovação, destino e suspensão de placa são feitos só na plataforma.
 - Próximo passo - desligar o módulo de vendas do sistema anterior, mantendo o
   repasse do `/q/`.
 
+## Resultado do grupo
+
+O financeiro da operadora mostra o resultado consolidado da Avalia empresa: a revenda do grupo
+mais a operadora, com as eliminações entre as duas (PDD, seção 7.5; ADR 0025). Dois passos
+dependem de quem opera:
+
+- Marcar a revenda do grupo - em Revendedores, "Marcar como do grupo da operadora" na revenda
+  Avalia. Sem a marca, o consolidado mostra só a operadora. É decisão explícita, vale para todos
+  os meses e fica com quem marcou e quando. Marque só a revenda da mesma empresa da operadora:
+  a marca deixa a operadora ler o resultado dela, somado. "Tirar do grupo" desfaz.
+- Informar o custo dos lotes - em Resultado do grupo, aba Custo dos lotes, a gráfica e o
+  acrílico de cada lote. Lote despachado sem custo aparece como pendência, e a placa vendida dele
+  não leva custo ao consolidado até o custo ser informado. Os lotes que já existiam ficam
+  pendentes até alguém informar.
+
+Depois da migration, o livro da operadora já traz as taxas e os pedidos ativados de antes, e a
+conciliação do mês mostra se os dois lados fecham. O fechamento do mês da operadora é separado do
+fechamento das revendas.
+
 ## Listagens paginadas
 
 Toda rota GET que devolve uma lista que cresce com o uso responde no mesmo
@@ -403,7 +422,8 @@ formato, com o limite aplicado no servidor (`Application/Pagina.cs`):
   `/chamados`, `/links`, `/servicos`, `/repasses`, `/razao` (os lançamentos
   do mês, em `lancamentos`), `/financeiro/despesas`, `/financeiro/retiradas`,
   `/auditoria`, e da operadora `/operadora/pedidos`, `/lotes`, `/erp`,
-  `/cupons`, `/revendedores`, `/servicos`, `/chamados`, `/auditoria`.
+  `/cupons`, `/revendedores`, `/servicos`, `/chamados`, `/auditoria`,
+  `/operadora/financeiro/receita-por-revenda`, `/despesas` e `/custos-de-lote`.
   `/placas` e `/operadora/lotes` trazem campos a mais (`porEstado`,
   `arquivados`). `GET /chamados/{id}` devolve as mensagens mais novas e
   `antes={idDaMensagemMaisAntiga}` busca as anteriores (`haAnteriores`).

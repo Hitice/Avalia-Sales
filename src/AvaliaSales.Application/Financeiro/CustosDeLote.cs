@@ -1,0 +1,106 @@
+using AvaliaSales.Domain;
+using AvaliaSales.Domain.Financeiro;
+using AvaliaSales.Domain.Placas;
+using Microsoft.EntityFrameworkCore;
+
+namespace AvaliaSales.Application.Financeiro;
+
+/// <summary>
+/// Um lote e o custo real de produção dele. Sem custo informado, o lote despachado a um pedido é
+/// pendência: o resultado do grupo não tem como levar o custo das placas vendidas.
+/// </summary>
+public sealed record CustoDoLoteDto(
+    Guid LoteId, string Rotulo, string? Titulo, int Quantidade, string? Revendedor, DateTimeOffset? AtivadoEm,
+    bool Informado, bool Pendente, long GraficaCents, long AcrilicoCents, long TotalCents, long PorPlacaCents);
+
+public sealed record GravarCustoDoLote(long GraficaCents, long AcrilicoCents);
+
+public sealed record NovoCustoDoLote(Guid LoteId, long GraficaCents, long AcrilicoCents);
+
+/// <summary>
+/// O custo de produção por lote, com criar, editar e excluir. O custo por placa é o total dividido
+/// pela quantidade do lote. É cadastro da operadora, não lançamento: a tabela é fechada às revendas
+/// e a mudança vale para o resultado do grupo dos meses ainda não fechados (ADR 0025).
+/// </summary>
+public sealed class CustosDeLote(IBancoDeDados banco, TimeProvider relogio)
+{
+    /// <summary>
+    /// Os lotes da operadora, do número mais alto ao mais baixo, sem os importados de outro sistema (que
+    /// nasceram ativados e não têm produção a custear). Com <paramref name="soPendentes"/>, os despachados
+    /// sem custo. A busca vale para o número, o título e a revenda.
+    /// </summary>
+    public async Task<Pagina<CustoDoLoteDto>> Listar(bool soPendentes, string? busca, PedidoDePagina pedido, CancellationToken ct)
+    {
+        var consulta =
+            from l in banco.Lotes.AsNoTracking()
+            where (l.PedidoId != null || l.DespachadoEm == null) && l.ArquivadoEm == null
+            join c in banco.CustosDeLote.AsNoTracking() on l.Id equals c.LoteId into custos
+            from c in custos.DefaultIfEmpty()
+            select new { Lote = l, Custo = c };
+        if (soPendentes)
+        {
+            consulta = consulta.Where(x => x.Lote.PedidoId != null && x.Custo == null);
+        }
+
+        var termo = Paginacao.Termo(busca);
+        if (termo.Length > 0)
+        {
+            int? numero = int.TryParse(new string(termo.Where(char.IsAsciiDigit).ToArray()), out var lido) ? lido : null;
+            consulta = consulta.Where(x => (x.Lote.Titulo != null && Busca.Normalizar(x.Lote.Titulo).Contains(Busca.Normalizar(termo)))
+                || (numero != null && x.Lote.Numero == numero)
+                || banco.Revendedores.Any(r => r.Id == x.Lote.RevendedorId && Busca.Normalizar(r.Nome).Contains(Busca.Normalizar(termo))));
+        }
+
+        var pagina = await consulta.OrderByDescending(x => x.Lote.Numero).ThenByDescending(x => x.Lote.Id)
+            .Select(x => new { x.Lote, x.Custo }).PaginarAsync(pedido, ct);
+        var ids = pagina.Itens.Select(x => x.Lote.RevendedorId).Where(r => r != null).Select(r => r!.Value).Distinct().ToList();
+        var nomes = await banco.Revendedores.AsNoTracking().Where(r => ids.Contains(r.Id)).ToDictionaryAsync(r => r.Id, r => r.Nome, ct);
+        return pagina.Mapear(x => Dto(x.Lote, x.Custo, x.Lote.RevendedorId is { } r ? nomes.GetValueOrDefault(r) : null));
+    }
+
+    /// <summary>Quantos lotes despachados a pedidos seguem sem custo: a pendência que o resultado do grupo mostra.</summary>
+    public Task<int> Pendentes(CancellationToken ct) =>
+        banco.Lotes.AsNoTracking().CountAsync(l => l.PedidoId != null && l.ArquivadoEm == null && !banco.CustosDeLote.Any(c => c.LoteId == l.Id), ct);
+
+    public async Task<CustoDoLoteDto> Criar(NovoCustoDoLote pedido, CancellationToken ct)
+    {
+        var lote = await AcharLote(pedido.LoteId, ct);
+        if (await banco.CustosDeLote.AnyAsync(c => c.LoteId == lote.Id, ct))
+        {
+            throw new RegraDeNegocioException($"O lote {lote.Rotulo} já tem custo. Edite o custo dele.");
+        }
+
+        var custo = new CustoDoLote(lote.Id, lote.Quantidade, pedido.GraficaCents, pedido.AcrilicoCents, relogio.GetUtcNow());
+        banco.CustosDeLote.Add(custo);
+        await banco.SaveChangesAsync(ct);
+        return Dto(lote, custo, null);
+    }
+
+    public async Task<CustoDoLoteDto> Alterar(Guid loteId, GravarCustoDoLote pedido, CancellationToken ct)
+    {
+        var lote = await AcharLote(loteId, ct);
+        var custo = await banco.CustosDeLote.SingleOrDefaultAsync(c => c.LoteId == loteId, ct)
+            ?? throw new RegraDeNegocioException($"O lote {lote.Rotulo} ainda não tem custo. Informe o custo dele.");
+        custo.Alterar(lote.Quantidade, pedido.GraficaCents, pedido.AcrilicoCents, relogio.GetUtcNow());
+        await banco.SaveChangesAsync(ct);
+        return Dto(lote, custo, null);
+    }
+
+    public async Task Excluir(Guid loteId, CancellationToken ct)
+    {
+        var custo = await banco.CustosDeLote.SingleOrDefaultAsync(c => c.LoteId == loteId, ct)
+            ?? throw new RegraDeNegocioException("Custo não encontrado.");
+        banco.CustosDeLote.Remove(custo);
+        await banco.SaveChangesAsync(ct);
+    }
+
+    private async Task<Lote> AcharLote(Guid loteId, CancellationToken ct)
+    {
+        var lote = await banco.Lotes.AsNoTracking().SingleOrDefaultAsync(l => l.Id == loteId, ct) ?? throw new RegraDeNegocioException("Lote não encontrado.");
+        return lote.PedidoId is null && lote.DespachadoEm is not null ? throw new RegraDeNegocioException("Lote importado de outro sistema não tem custo de produção.") : lote;
+    }
+
+    private static CustoDoLoteDto Dto(Lote l, CustoDoLote? c, string? revendedor) =>
+        new(l.Id, l.Rotulo, l.Titulo, l.Quantidade, revendedor, l.AtivadoEm, c is not null, c is null && l.PedidoId is not null,
+            c?.GraficaCents ?? 0, c?.AcrilicoCents ?? 0, c?.TotalCents ?? 0, c?.PorPlacaCents ?? 0);
+}

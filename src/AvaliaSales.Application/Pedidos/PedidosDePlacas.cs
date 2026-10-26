@@ -31,6 +31,7 @@ public sealed class PedidosDePlacas(
     Pagamentos.Cobrancas cobrancas,
     Erp.FilaDoErp erp,
     Notificacoes.Notificacoes notificacoes,
+    Financeiro.LivroDaOperadora livro,
     IOptions<OpcoesDaPlataforma> plataforma,
     TimeProvider relogio)
 {
@@ -246,6 +247,7 @@ public sealed class PedidosDePlacas(
         lote.Ativar(revendedorId, agora);
         var pedido = await banco.Pedidos.SingleAsync(p => p.Id == lote.PedidoId, ct);
         pedido.Ativar(agora);
+        livro.PedidoAtivado(pedido, lote.Rotulo, agora);
         banco.AvisarAoVivo("estoque", revendedorId, operadora: true);
         notificacoes.ParaOperadora(revendedorId, "Pedido entregue", $"O lote {lote.Rotulo} foi ativado pela revenda.", "/operadora/pedidos");
 

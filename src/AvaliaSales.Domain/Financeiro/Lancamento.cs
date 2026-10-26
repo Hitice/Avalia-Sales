@@ -105,6 +105,12 @@ public sealed class Lancamento : IDoRevendedor
     public Lancamento Estorno(string motivo, DateTimeOffset agora, string? competencia = null) =>
         new(Tipo, OrigemId, -ValorCents, $"Estorno: {motivo}", agora, VendaId, VendedorId, Id, competencia, Categoria, PlacaId);
 
+    /// <summary>Como começa a descrição da taxa que é a parte da Avalia nos serviços; a outra é a taxa da plataforma.</summary>
+    public const string InicioDaParteDaAvalia = "Parte da Avalia";
+
+    /// <summary>A descrição de uma linha original de taxa que é a parte da Avalia nos serviços, e não a taxa da plataforma.</summary>
+    public static bool EParteDaAvalia(string descricao) => descricao.StartsWith(InicioDaParteDaAvalia, StringComparison.Ordinal);
+
     private static readonly TimeZoneInfo Brasilia = TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo");
 
     /// <summary>O dia em Brasília, para a data da despesa e da retirada.</summary>

@@ -27,7 +27,7 @@ public sealed record CobrancaDto(
     DateTimeOffset? PixExpiraEm,
     string? UrlDoLink = null);
 
-public sealed class Cobrancas(IBancoDeDados banco, IGatewayDePagamento gateway, IRevendedorAtual atual, EfeitosDaCobranca efeitos, TimeProvider relogio)
+public sealed class Cobrancas(IBancoDeDados banco, IGatewayDePagamento gateway, IRevendedorAtual atual, EfeitosDaCobranca efeitos, Financeiro.LivroDaOperadora livro, TimeProvider relogio)
 {
     public const int ParcelasMaximas = Parcelamento.Maximo;
 
@@ -313,7 +313,9 @@ public sealed class Cobrancas(IBancoDeDados banco, IGatewayDePagamento gateway, 
             {
                 foreach (var linha in linhas)
                 {
-                    banco.Lancamentos.Add(linha.Estorno(cobranca.PorFora ? "venda do grupo desfeita, devolvida por fora" : "venda do grupo estornada no Pagar.me", agora));
+                    var estorno = linha.Estorno(cobranca.PorFora ? "venda do grupo desfeita, devolvida por fora" : "venda do grupo estornada no Pagar.me", agora);
+                    banco.Lancamentos.Add(estorno);
+                    livro.TaxaEstornada(linha, estorno, cobranca.RevendedorId, cobranca.PorFora);
                 }
             }
         }

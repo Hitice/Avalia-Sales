@@ -45,13 +45,15 @@ public sealed record MesDoHistorico(string Competencia, long RecebidoCents, long
 /// 94: contrato de até um ano). Como o razão de mês fechado não muda, a DRE
 /// dele também não.
 /// </summary>
-public sealed class Dre(IBancoDeDados banco, Fechamentos fechamentos)
+public sealed class Dre(IBancoDeDados banco, TimeProvider relogio)
 {
+    private string MesCorrente() => Lancamento.CompetenciaDe(relogio.GetUtcNow());
+
     public const int MesesDoHistorico = 6;
 
     public async Task<DreDoMes> DoMes(string? competencia, CancellationToken ct)
     {
-        var mes = string.IsNullOrWhiteSpace(competencia) ? fechamentos.MesCorrente() : Competencias.Conferir(competencia);
+        var mes = string.IsNullOrWhiteSpace(competencia) ? MesCorrente() : Competencias.Conferir(competencia);
         var (linhas, receitas, custos) = await Carregar(mes, ct);
         var (inicio, fim) = (Lancamento.InicioDe(mes), Lancamento.InicioDe(Competencias.Somar(mes, 1)));
         var vendidas = await banco.Vendas.AsNoTracking()
@@ -82,7 +84,7 @@ public sealed class Dre(IBancoDeDados banco, Fechamentos fechamentos)
     /// <summary>Recebido e resultado dos últimos meses até <paramref name="ate"/>, do mais antigo ao mais novo, para o gráfico.</summary>
     public async Task<IReadOnlyList<MesDoHistorico>> Historico(string? ate, CancellationToken ct)
     {
-        var ultimo = string.IsNullOrWhiteSpace(ate) ? fechamentos.MesCorrente() : Competencias.Conferir(ate);
+        var ultimo = string.IsNullOrWhiteSpace(ate) ? MesCorrente() : Competencias.Conferir(ate);
         var (linhas, receitas, custos) = await Carregar(ultimo, ct);
         return Enumerable.Range(0, MesesDoHistorico).Select(i => Competencias.Somar(ultimo, i - MesesDoHistorico + 1)).Select(mes =>
         {
