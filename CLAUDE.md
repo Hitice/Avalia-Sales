@@ -79,6 +79,8 @@ Avalia nem lê o banco de produção dele.
 - Documento descreve o produto e as decisões técnicas, sem bastidor do
   desenvolvimento: nada de falha passada de outro sistema nem de motivo pessoal
   do projeto. A Avalia pode aparecer comercialmente.
+- Commit em inglês, no formato Conventional Commits (`feat:`, `fix:`, `chore:`,
+  `docs:`, `refactor:`, `test:`, `ci:`; escopo opcional), resumo no imperativo.
 - Mensagem de commit escrita em arquivo e enviada com `git commit -F`, só com o
   autor configurado no repositório: sem linha `Co-Authored-By` e sem rodapé de
   ferramenta, nem em PR.
