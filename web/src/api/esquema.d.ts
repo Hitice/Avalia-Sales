@@ -303,6 +303,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/limite-de-destinos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SituacaoDoLimite"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/marca": {
         parameters: {
             query?: never;
@@ -2176,6 +2211,262 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/operadora/destinos-bloqueados": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    busca?: string;
+                    Pagina?: number;
+                    Tamanho?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PaginaOfDestinoBloqueadoDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["BloquearDestino"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/operadora/destinos-bloqueados/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/operadora/fornecedores": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    busca?: string;
+                    funcao?: components["schemas"]["FuncaoDoFornecedor"];
+                    ativos?: boolean;
+                    Pagina?: number;
+                    Tamanho?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PaginaOfFornecedorDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["GravarFornecedor"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/operadora/fornecedores/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["GravarFornecedor"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FornecedorDto"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/operadora/fornecedores/{id}/ativo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AlterarAtivo"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/operadora/lotes": {
         parameters: {
             query?: never;
@@ -2507,6 +2798,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/operadora/pedidos/{id}/estorno": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["EstornarPedido"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/operadora/pedidos/{id}/producao": {
         parameters: {
             query?: never;
@@ -2714,6 +3044,84 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": components["schemas"]["DefinirRecebedor"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/operadora/revendedores/{id}/liberacao-de-destinos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["LiberarDestinos"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/operadora/revendedores/{id}/cadastro": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CorrigirCadastro"];
                 };
             };
             responses: {
@@ -3048,6 +3456,139 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/operadora/financeiro/a-acertar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    busca?: string;
+                    soComSaldo?: boolean;
+                    Pagina?: number;
+                    Tamanho?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PaginaOfSaldoAAcertarDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/operadora/financeiro/acertos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query: {
+                    revendedorId: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AcertoDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["NovoAcerto"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/operadora/financeiro/acertos/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
@@ -3472,6 +4013,43 @@ export interface paths {
             };
         };
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/revenda/limite-de-destinos/solicitacao": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SolicitarLiberacao"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -7301,6 +7879,19 @@ export interface components {
     schemas: {
         /** @enum {unknown} */
         AcaoAuditada: "DestinoDefinido" | "DestinoTrocado" | "PlacaSuspensa" | "PlacaNoAr" | "PlacaTrocada" | "VendaCancelada" | "VendaEmCortesia" | "RecebidoPorFora" | "RecebimentoDesfeito" | "VendedorCadastrado" | "VendedorAlterado" | "VendedorDesativado" | "VendedorReativado" | "VendedorExcluido" | "ComissaoPadraoAlterada" | "ProdutoAlterado" | "RepasseRegistrado" | "ClienteAnonimizado" | "MarcaAlterada" | "LinkAlterado" | "LinkExcluido" | "SegundoFatorLigado" | "SegundoFatorDesligado" | "EmpresaAlterada" | "EncerramentoPedido" | "EncerramentoDesistido" | "ContaEncerrada" | "ReaberturaPedida" | "ClienteAlterado" | "ClienteExcluido" | "ClientesJuntados" | "VendaCorrigida" | "RepasseDesfeito" | "MesFechado" | "MesReaberto" | "SocioCadastrado" | "SocioAlterado" | "SocioExcluido" | "ClienteCadastrado" | "SaldoInicialDoCaixaDefinido" | "SaldoInicialDoCaixaExcluido" | "RenovacaoRecebidaPorFora" | "RenovacaoDesfeita" | "LinkCriado" | "RecebimentoConferido" | "LimiteDePorForaDefinido";
+        AcertoDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            revendedorId: string;
+            /** Format: int64 */
+            valorCents: number;
+            /** Format: date */
+            data: string;
+            observacao: null | string;
+            /** Format: date-time */
+            criadoEm: string;
+        };
         /** @description Pedidos pagos e ainda não ativados no fim do mês: adiantamento de cliente, e não receita. */
         AindaNaoReconhecido: {
             /** Format: int64 */
@@ -7372,6 +7963,10 @@ export interface components {
         };
         BaixarPlaca: {
             motivo: components["schemas"]["MotivoDaBaixa"];
+        };
+        BloquearDestino: {
+            dominio: string;
+            motivo: null | string;
         };
         CaixaDeNotificacoes: {
             notificacoes: components["schemas"]["NotificacaoDto"][];
@@ -7534,6 +8129,10 @@ export interface components {
             /** Format: int32 */
             quantidade: null | number;
         };
+        CorrigirCadastro: {
+            nome: string;
+            cnpj: string;
+        };
         /** @description Só o que muda: valor digitado errado, vendedor errado. */
         CorrigirVenda: {
             /** Format: int64 */
@@ -7581,6 +8180,9 @@ export interface components {
             totalCents: number;
             /** Format: int64 */
             porPlacaCents: number;
+            /** Format: uuid */
+            fornecedorId?: null | string;
+            fornecedor?: null | string;
         };
         /** @description Empresa só para o dono; recebimento só para o vendedor. */
         DadosDaConta: {
@@ -7637,12 +8239,13 @@ export interface components {
             titulo: null | string;
             categoria: components["schemas"]["CategoriaDoLote"];
         };
-        /** @description Retirada: a revenda busca a caixa na Avalia, sem envio. */
         DespacharPedido: {
             /** Format: int32 */
             lote: number;
             /** @default false */
             retirada: boolean;
+            transportadora?: null | string;
+            codigoDeRastreio?: null | string;
         };
         DespesaDaCategoria: {
             categoria: components["schemas"]["CategoriaDeDespesa"];
@@ -7658,6 +8261,9 @@ export interface components {
             categoria: components["schemas"]["CategoriaDeDespesaDaOperadora"];
             /** Format: int64 */
             valorCents: number;
+            /** Format: uuid */
+            fornecedorId?: null | string;
+            fornecedor?: null | string;
         };
         DespesaDto: {
             /** Format: uuid */
@@ -7668,6 +8274,14 @@ export interface components {
             categoria: components["schemas"]["CategoriaDeDespesa"];
             /** Format: int64 */
             valorCents: number;
+        };
+        DestinoBloqueadoDto: {
+            /** Format: uuid */
+            id: string;
+            dominio: string;
+            motivo: string;
+            /** Format: date-time */
+            criadoEm: string;
         };
         /** @description O destino como vem da tela. O link colado vence a busca: foi a pessoa que o trouxe do perfil. */
         DestinoInformado: {
@@ -7793,6 +8407,10 @@ export interface components {
             /** Format: date-time */
             reaberturaPedidaEm: null | string;
         };
+        /** @description Retirada: a revenda busca a caixa na Avalia, sem envio. */
+        EstornarPedido: {
+            motivo: null | string;
+        };
         FecharMes: {
             competencia: string;
         };
@@ -7835,6 +8453,20 @@ export interface components {
         FiltroDaCarteira: "Todas" | "Vencendo" | "Vencidas" | null;
         /** @enum {unknown} */
         FormatoDaImpressao: "SvgEPng" | "Svg" | "Png" | null;
+        FornecedorDto: {
+            /** Format: uuid */
+            id: string;
+            nome: string;
+            documento: null | string;
+            contato: null | string;
+            funcoes: components["schemas"]["FuncaoDoFornecedor"][];
+            observacao: null | string;
+            ativo: boolean;
+            /** Format: int32 */
+            usos: number;
+        };
+        /** @description O que o fornecedor faz para a operadora. Um mesmo fornecedor pode ter mais de uma função. */
+        FuncaoDoFornecedor: string;
         GerarLote: {
             /** Format: int32 */
             quantidade: number;
@@ -7857,6 +8489,15 @@ export interface components {
             graficaCents: number;
             /** Format: int64 */
             acrilicoCents: number;
+            /** Format: uuid */
+            fornecedorId?: null | string;
+        };
+        GravarFornecedor: {
+            nome: string;
+            documento: null | string;
+            contato: null | string;
+            funcoes: components["schemas"]["FuncaoDoFornecedor"][];
+            observacao: null | string;
         };
         /** @description Título e destino; o destino vem como na venda (lugar do Google, link de avaliação colado ou link do cliente). */
         GravarLink: {
@@ -7975,6 +8616,10 @@ export interface components {
             dia: string;
             /** Format: int32 */
             total: number;
+        };
+        LiberarDestinos: {
+            /** Format: int32 */
+            quantidade: number;
         };
         /** @description O que o vendedor pode registrar como recebido por fora (dinheiro, outro Pix): por dia, em valor e em quantidade, e por venda. */
         LimitesDePorFora: {
@@ -8188,6 +8833,8 @@ export interface components {
             categoria: components["schemas"]["CategoriaDeDespesaDaOperadora"];
             /** Format: int64 */
             valorCents: number;
+            /** Format: uuid */
+            fornecedorId?: null | string;
         };
         NovaMensagem: {
             texto: string;
@@ -8251,6 +8898,15 @@ export interface components {
             /** @default false */
             testeGratuito: boolean;
         };
+        NovoAcerto: {
+            /** Format: uuid */
+            revendedorId: string;
+            /** Format: int64 */
+            valorCents: number;
+            /** Format: date */
+            data: string;
+            observacao: null | string;
+        };
         /** @description Sem senha: ela nasce depois do link do e-mail, quando o dono prova que o endereço é dele. */
         NovoCadastro: {
             empresa: string;
@@ -8272,6 +8928,8 @@ export interface components {
             graficaCents: number;
             /** Format: int64 */
             acrilicoCents: number;
+            /** Format: uuid */
+            fornecedorId?: null | string;
         };
         NovoPedido: {
             /** Format: uuid */
@@ -8449,8 +9107,30 @@ export interface components {
          * @description Resposta de toda listagem que cresce com o uso. Total é o que o filtro pega (não só a
          *     página); Proxima é o número da próxima página, ou nulo na última.
          */
+        PaginaOfDestinoBloqueadoDto: {
+            itens: components["schemas"]["DestinoBloqueadoDto"][];
+            /** Format: int32 */
+            total: number;
+            /** Format: int32 */
+            proxima: null | number;
+        };
+        /**
+         * @description Resposta de toda listagem que cresce com o uso. Total é o que o filtro pega (não só a
+         *     página); Proxima é o número da próxima página, ou nulo na última.
+         */
         PaginaOfEnvioDto: {
             itens: components["schemas"]["EnvioDto"][];
+            /** Format: int32 */
+            total: number;
+            /** Format: int32 */
+            proxima: null | number;
+        };
+        /**
+         * @description Resposta de toda listagem que cresce com o uso. Total é o que o filtro pega (não só a
+         *     página); Proxima é o número da próxima página, ou nulo na última.
+         */
+        PaginaOfFornecedorDto: {
+            itens: components["schemas"]["FornecedorDto"][];
             /** Format: int32 */
             total: number;
             /** Format: int32 */
@@ -8592,6 +9272,17 @@ export interface components {
          * @description Resposta de toda listagem que cresce com o uso. Total é o que o filtro pega (não só a
          *     página); Proxima é o número da próxima página, ou nulo na última.
          */
+        PaginaOfSaldoAAcertarDto: {
+            itens: components["schemas"]["SaldoAAcertarDto"][];
+            /** Format: int32 */
+            total: number;
+            /** Format: int32 */
+            proxima: null | number;
+        };
+        /**
+         * @description Resposta de toda listagem que cresce com o uso. Total é o que o filtro pega (não só a
+         *     página); Proxima é o número da próxima página, ou nulo na última.
+         */
         PaginaOfVendaDaLista: {
             itens: components["schemas"]["VendaDaLista"][];
             /** Format: int32 */
@@ -8655,6 +9346,8 @@ export interface components {
             retirada: boolean;
             /** @default false */
             haLoteLivre: boolean;
+            transportadora?: null | string;
+            codigoDeRastreio?: null | string;
         };
         PendenciasDoGrupo: {
             /** Format: int32 */
@@ -8977,6 +9670,18 @@ export interface components {
             /** @default false */
             doGrupoDaOperadora: boolean;
         };
+        /** @description Uma revenda com o que deve à Avalia por venda recebida por fora, o que já quitou e o que falta. */
+        SaldoAAcertarDto: {
+            /** Format: uuid */
+            revendedorId: string;
+            revendedor: string;
+            /** Format: int64 */
+            devidoCents: number;
+            /** Format: int64 */
+            acertadoCents: number;
+            /** Format: int64 */
+            saldoCents: number;
+        };
         /** @description AguardandoConferenciaCents - parte da comissão em aberto cuja venda foi recebida por fora e o dono ainda não conferiu: não entra em repasse. */
         SaldoDeComissao: {
             /** Format: uuid */
@@ -9011,6 +9716,13 @@ export interface components {
         SituacaoDoContrato: "Rascunho" | "AguardandoAssinatura" | "Assinado" | "Cancelado" | null;
         /** @enum {unknown} */
         SituacaoDoEnvio: "Pendente" | "Enviado" | "Parado";
+        SituacaoDoLimite: {
+            /** Format: int32 */
+            usados: number;
+            /** Format: int32 */
+            limite: number;
+            esgotado: boolean;
+        };
         /** @enum {unknown} */
         SituacaoDoPedido: "AguardandoPagamento" | "Pago" | "Despachado" | "Ativado" | "Cancelado" | "EmProducao";
         /** @enum {unknown} */
@@ -9027,6 +9739,9 @@ export interface components {
             cpf: null | string;
             /** Format: int32 */
             retiradas: number;
+        };
+        SolicitarLiberacao: {
+            motivo: null | string;
         };
         SuspenderRevenda: {
             motivo: null | string;
@@ -9071,6 +9786,8 @@ export interface components {
             pagamento: null | components["schemas"]["SituacaoDaCobranca"];
             /** Format: date-time */
             vendidaEm: string;
+            /** Format: uuid */
+            clienteId?: null | string;
         };
         VendaDaLista: {
             /** Format: uuid */

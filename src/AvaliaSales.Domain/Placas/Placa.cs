@@ -70,6 +70,21 @@ public sealed class Placa : IDoRevendedor
     public Guid? VendaId { get; private set; }
     public DateTimeOffset? VendidaEm { get; private set; }
     public DateTimeOffset? VenceEm { get; private set; }
+
+    /// <summary>O vencimento sobre o qual a revenda e o cliente já foram avisados, e a menor janela (em dias) avisada para ele.</summary>
+    public DateTimeOffset? VencimentoAvisado { get; private set; }
+
+    public int? JanelaAvisada { get; private set; }
+
+    /// <summary>Vencimento novo (venda ou renovação) recomeça os avisos; no mesmo vencimento, só a janela mais curta que ainda não saiu.</summary>
+    public bool PrecisaAvisarDoVencimento(int janelaEmDias) =>
+        VenceEm is not null && (VencimentoAvisado != VenceEm || JanelaAvisada > janelaEmDias);
+
+    public void AvisouDoVencimento(int janelaEmDias)
+    {
+        VencimentoAvisado = VenceEm;
+        JanelaAvisada = janelaEmDias;
+    }
     public long TotalLeituras { get; private set; }
     public DateTimeOffset? UltimaLeituraEm { get; private set; }
     public DateTimeOffset EntrouEm { get; private set; }

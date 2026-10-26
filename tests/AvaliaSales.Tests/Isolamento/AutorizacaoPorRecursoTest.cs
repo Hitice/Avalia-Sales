@@ -26,10 +26,10 @@ public sealed class AutorizacaoPorRecursoTest(ApiDeTeste api)
     private const string TabelaDeLinhasDaOperadora = "chaves_de_idempotencia";
 
     /// <summary>
-    /// As tabelas do financeiro da operadora (ADR 0025): não têm revendedor_id, então o laço abaixo não as percorre,
-    /// mas a política delas nomeia a operadora. O isolamento delas, com o papel real, está em LivroDaOperadoraNoBancoTest.
+    /// As tabelas do financeiro da operadora (ADR 0025): a maioria não tem revendedor_id, então o laço abaixo não as percorre,
+    /// mas a política delas nomeia a operadora (acertos_de_revenda tem revendedor_id e a revenda lê os dela; destinos_bloqueados é lida por todas na leitura do QR). O isolamento delas, com o papel real, está em LivroDaOperadoraNoBancoTest.
     /// </summary>
-    private static readonly string[] TabelasDoFinanceiroDaOperadora = ["custos_de_lote", "despesas_da_operadora", "fechamentos_da_operadora", "lancamentos_da_operadora"];
+    private static readonly string[] TabelasDoFinanceiroDaOperadora = ["acertos_de_revenda", "custos_de_lote", "despesas_da_operadora", "destinos_bloqueados", "fechamentos_da_operadora", "fornecedores", "lancamentos_da_operadora"];
 
     private async Task<(HttpClient Cliente, Guid Id)> Vendedor(Revenda revenda, string nome)
     {

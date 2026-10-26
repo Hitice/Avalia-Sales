@@ -112,6 +112,18 @@ public sealed class Revendedor
         Renomear(nome);
     }
 
+    /// <summary>
+    /// Só a operadora corrige o CNPJ, quando a empresa muda de documento (a revenda Avalia passou para outro
+    /// CNPJ). O dono não muda o CNPJ: ele é a parte do contrato.
+    /// </summary>
+    public void CorrigirCadastro(string nome, string cnpj)
+    {
+        Renomear(nome);
+        Cnpj = Documentos.Normalizar(cnpj, obrigatorio: true) is { Length: 14 } valido
+            ? valido
+            : throw new RegraDeNegocioException("Informe o CNPJ da empresa, com 14 números.");
+    }
+
     /// <summary>O nome da empresa. O CNPJ não muda: é a parte do contrato.</summary>
     public void Renomear(string nome)
     {
@@ -138,6 +150,31 @@ public sealed class Revendedor
 
     public void DefinirCelular(string? celular) =>
         Celular = Telefones.Normalizar(celular, obrigatorio: false) ?? throw new RegraDeNegocioException("Informe o celular com DDD.");
+
+    /// <summary>Destinos novos por dia (placa vendida, destino trocado, link criado ou alterado) antes de pedir liberação à operadora.</summary>
+    public const int DestinosPorDia = 10;
+
+    public const int LiberacaoMaxima = 500;
+
+    /// <summary>Quantos destinos a operadora liberou além do padrão no dia de <see cref="DestinosLiberadosEm"/>.</summary>
+    public int DestinosLiberados { get; private set; }
+
+    /// <summary>O dia (Brasília) da liberação extra; ela vale só nesse dia.</summary>
+    public DateOnly? DestinosLiberadosEm { get; private set; }
+
+    public int LimiteDeDestinosEm(DateOnly dia) => DestinosPorDia + (DestinosLiberadosEm == dia ? DestinosLiberados : 0);
+
+    /// <summary>Soma à liberação do dia; liberação de um dia que já passou recomeça do zero.</summary>
+    public void LiberarDestinos(int quantidade, DateOnly hoje)
+    {
+        if (quantidade is < 1 or > LiberacaoMaxima)
+        {
+            throw new RegraDeNegocioException($"A liberação vai de 1 a {LiberacaoMaxima} cadastros.");
+        }
+
+        DestinosLiberados = (DestinosLiberadosEm == hoje ? DestinosLiberados : 0) + quantidade;
+        DestinosLiberadosEm = hoje;
+    }
 
     public void DefinirComissaoPadrao(int bps) => ComissaoPadraoBps = Comissao.Conferir(bps);
 

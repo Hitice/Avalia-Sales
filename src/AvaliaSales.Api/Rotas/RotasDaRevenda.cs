@@ -22,6 +22,12 @@ public sealed record NovoPedido(Guid PacoteId, string? Cupom);
 
 public sealed record DefinirRenovacao(int RenovacaoBps);
 
+public sealed record CorrigirCadastro(string Nome, string Cnpj);
+
+public sealed record SolicitarLiberacao(string? Motivo);
+
+public sealed record LiberarDestinos(int Quantidade);
+
 public sealed record ClienteCadastrado(Guid Id);
 
 public sealed record AtivarLote(string Numero);
@@ -52,6 +58,14 @@ public static class RotasDaRevenda
         dono.MapPut("/revenda/comissao", async (DefinirComissao pedido, Equipe equipe, CancellationToken ct) =>
         {
             await equipe.DefinirComissaoPadrao(pedido.ComissaoBps, ct);
+            return Results.NoContent();
+        });
+
+        // Equipe consulta o limite do dia na Nova venda; só o dono pede a liberação à operadora.
+        rotas.MapGet("/limite-de-destinos", (LimiteDeDestinos limite, CancellationToken ct) => limite.Situacao(ct)).RequireAuthorization(Politicas.Equipe).WithTags("Revenda");
+        dono.MapPost("/revenda/limite-de-destinos/solicitacao", async (SolicitarLiberacao pedido, LimiteDeDestinos limite, CancellationToken ct) =>
+        {
+            await limite.Solicitar(pedido.Motivo, ct);
             return Results.NoContent();
         });
 

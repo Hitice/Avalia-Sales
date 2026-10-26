@@ -16,7 +16,7 @@ namespace AvaliaSales.Application.Pagamentos;
 /// juntos, e um evento repetido não acha nada a fazer.
 /// </summary>
 public sealed class EfeitosDaCobranca(IBancoDeDados banco, FilaDeEmails avisos, Erp.FilaDoErp erp, Notificacoes.Notificacoes notificacoes,
-    Equipe.IContas contas, IOptions<OpcoesDaPlataforma> plataforma, Financeiro.LivroDaOperadora livro)
+    Equipe.IContas contas, IOptions<OpcoesDaPlataforma> plataforma, Financeiro.LivroDaOperadora livro, ConfirmacoesDePagamento confirmacoes)
 {
     public async Task Aplicar(Cobranca cobranca, DateTimeOffset agora, CancellationToken ct)
     {
@@ -69,6 +69,7 @@ public sealed class EfeitosDaCobranca(IBancoDeDados banco, FilaDeEmails avisos, 
             """);
         notificacoes.ParaOperadora(pedido.RevendedorId, "Pedido pago", $"{revendedor} pagou {pedido.Quantidade} placas.", "/operadora/pedidos");
         notificacoes.ParaDono(pedido.RevendedorId, "Pedido pago", $"Recebemos o pagamento das {pedido.Quantidade} placas.", "/painel/pedidos");
+        await confirmacoes.PedidoPago(pedido, ct);
     }
 
     /// <summary>
@@ -95,6 +96,8 @@ public sealed class EfeitosDaCobranca(IBancoDeDados banco, FilaDeEmails avisos, 
             (receitaQueSobra, taxaQueSobra) = (receitaQueSobra - receita, taxaQueSobra - taxa);
             await LancarVenda(cobranca, venda, receita, taxa, ct);
         }
+
+        await confirmacoes.VendaPaga(cobranca, vendas, ct);
     }
 
     private async Task LancarVenda(Cobranca cobranca, Domain.Vendas.Venda venda, long receitaCents, long taxaCents, CancellationToken ct)

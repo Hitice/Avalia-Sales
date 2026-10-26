@@ -11,6 +11,11 @@ public sealed class CustoDoLote
     public long GraficaCents { get; private set; }
     public long AcrilicoCents { get; private set; }
 
+    /// <summary>Quem produziu o lote (gráfica, confecção). Opcional.</summary>
+    public Guid? FornecedorId { get; private set; }
+
+    public void DefinirFornecedor(Guid? fornecedorId) => FornecedorId = fornecedorId;
+
     /// <summary>A quantidade do lote no momento em que o custo foi informado.</summary>
     public int Quantidade { get; private set; }
 

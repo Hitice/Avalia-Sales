@@ -53,6 +53,8 @@ public sealed class FluxoFinanceiroTest(ApiDeTeste api)
         Assert.Equal("Pago", pedidos.EnumerateArray().Single(p => p.GetProperty("id").GetGuid() == pedido).GetProperty("situacao").GetString());
         await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
         Assert.Equal(1, await banco.Contar($"select count(*) from emails where chave = 'pedido:{pedido:N}:pago'"));
+        // O dono da revenda também recebe a confirmação do pagamento, uma vez só.
+        Assert.Equal(1, await banco.Contar($"select count(*) from emails where chave like 'pagamento:pedido:{pedido:N}:%' and assunto like 'Pagamento confirmado%'"));
         Assert.Equal(90_000, await banco.Contar($"select taxa_avalia_cents from cobrancas where origem = 'PedidoDePlacas' and origem_id = '{pedido}'"));
     }
 

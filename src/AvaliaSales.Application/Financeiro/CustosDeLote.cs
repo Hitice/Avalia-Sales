@@ -11,18 +11,19 @@ namespace AvaliaSales.Application.Financeiro;
 /// </summary>
 public sealed record CustoDoLoteDto(
     Guid LoteId, string Rotulo, string? Titulo, int Quantidade, string? Revendedor, DateTimeOffset? AtivadoEm,
-    bool Informado, bool Pendente, long GraficaCents, long AcrilicoCents, long TotalCents, long PorPlacaCents);
+    bool Informado, bool Pendente, long GraficaCents, long AcrilicoCents, long TotalCents, long PorPlacaCents,
+    Guid? FornecedorId = null, string? Fornecedor = null);
 
-public sealed record GravarCustoDoLote(long GraficaCents, long AcrilicoCents);
+public sealed record GravarCustoDoLote(long GraficaCents, long AcrilicoCents, Guid? FornecedorId = null);
 
-public sealed record NovoCustoDoLote(Guid LoteId, long GraficaCents, long AcrilicoCents);
+public sealed record NovoCustoDoLote(Guid LoteId, long GraficaCents, long AcrilicoCents, Guid? FornecedorId = null);
 
 /// <summary>
 /// O custo de produção por lote, com criar, editar e excluir. O custo por placa é o total dividido
 /// pela quantidade do lote. É cadastro da operadora, não lançamento: a tabela é fechada às revendas
 /// e a mudança vale para o resultado do grupo dos meses ainda não fechados (ADR 0025).
 /// </summary>
-public sealed class CustosDeLote(IBancoDeDados banco, TimeProvider relogio)
+public sealed class CustosDeLote(IBancoDeDados banco, Fornecedores fornecedores, TimeProvider relogio)
 {
     /// <summary>
     /// Os lotes da operadora, do número mais alto ao mais baixo, sem os importados de outro sistema (que
@@ -55,7 +56,8 @@ public sealed class CustosDeLote(IBancoDeDados banco, TimeProvider relogio)
             .Select(x => new { x.Lote, x.Custo }).PaginarAsync(pedido, ct);
         var ids = pagina.Itens.Select(x => x.Lote.RevendedorId).Where(r => r != null).Select(r => r!.Value).Distinct().ToList();
         var nomes = await banco.Revendedores.AsNoTracking().Where(r => ids.Contains(r.Id)).ToDictionaryAsync(r => r.Id, r => r.Nome, ct);
-        return pagina.Mapear(x => Dto(x.Lote, x.Custo, x.Lote.RevendedorId is { } r ? nomes.GetValueOrDefault(r) : null));
+        var fornecedoresDaPagina = await fornecedores.Nomes(pagina.Itens.Where(x => x.Custo?.FornecedorId != null).Select(x => x.Custo!.FornecedorId!.Value), ct);
+        return pagina.Mapear(x => Dto(x.Lote, x.Custo, x.Lote.RevendedorId is { } r ? nomes.GetValueOrDefault(r) : null, x.Custo?.FornecedorId is { } f ? fornecedoresDaPagina.GetValueOrDefault(f) : null));
     }
 
     /// <summary>Quantos lotes despachados a pedidos seguem sem custo: a pendência que o resultado do grupo mostra.</summary>
@@ -71,6 +73,8 @@ public sealed class CustosDeLote(IBancoDeDados banco, TimeProvider relogio)
         }
 
         var custo = new CustoDoLote(lote.Id, lote.Quantidade, pedido.GraficaCents, pedido.AcrilicoCents, relogio.GetUtcNow());
+        await fornecedores.ExigirAtivo(pedido.FornecedorId, ct);
+        custo.DefinirFornecedor(pedido.FornecedorId);
         banco.CustosDeLote.Add(custo);
         await banco.SaveChangesAsync(ct);
         return Dto(lote, custo, null);
@@ -82,6 +86,12 @@ public sealed class CustosDeLote(IBancoDeDados banco, TimeProvider relogio)
         var custo = await banco.CustosDeLote.SingleOrDefaultAsync(c => c.LoteId == loteId, ct)
             ?? throw new RegraDeNegocioException($"O lote {lote.Rotulo} ainda não tem custo. Informe o custo dele.");
         custo.Alterar(lote.Quantidade, pedido.GraficaCents, pedido.AcrilicoCents, relogio.GetUtcNow());
+        if (custo.FornecedorId != pedido.FornecedorId)
+        {
+            await fornecedores.ExigirAtivo(pedido.FornecedorId, ct);
+            custo.DefinirFornecedor(pedido.FornecedorId);
+        }
+
         await banco.SaveChangesAsync(ct);
         return Dto(lote, custo, null);
     }
@@ -100,7 +110,7 @@ public sealed class CustosDeLote(IBancoDeDados banco, TimeProvider relogio)
         return lote.PedidoId is null && lote.DespachadoEm is not null ? throw new RegraDeNegocioException("Lote importado de outro sistema não tem custo de produção.") : lote;
     }
 
-    private static CustoDoLoteDto Dto(Lote l, CustoDoLote? c, string? revendedor) =>
+    private static CustoDoLoteDto Dto(Lote l, CustoDoLote? c, string? revendedor, string? fornecedor = null) =>
         new(l.Id, l.Rotulo, l.Titulo, l.Quantidade, revendedor, l.AtivadoEm, c is not null, c is null && l.PedidoId is not null,
-            c?.GraficaCents ?? 0, c?.AcrilicoCents ?? 0, c?.TotalCents ?? 0, c?.PorPlacaCents ?? 0);
+            c?.GraficaCents ?? 0, c?.AcrilicoCents ?? 0, c?.TotalCents ?? 0, c?.PorPlacaCents ?? 0, c?.FornecedorId, fornecedor);
 }

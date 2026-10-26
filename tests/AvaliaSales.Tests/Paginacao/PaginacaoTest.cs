@@ -209,7 +209,8 @@ public sealed class PaginacaoTest(ApiDeTeste api)
     public async Task Pedido_pago_sabe_se_ha_lote_livre_da_quantidade_dele_sem_a_tela_baixar_todos_os_lotes()
     {
         var operadora = await api.ClienteLogado(await api.CriarOperadora());
-        var nome = "Revenda do Lote Livre " + Guid.NewGuid().ToString("N")[..6];
+        // Sem dígitos: a busca do pedido também procura o número do lote, e dígitos do sufixo casariam com outro pedido.
+        var nome = "Revenda do Lote Livre " + new string(Guid.NewGuid().ToString("N").Where(char.IsAsciiLetter).Take(6).ToArray());
         var (_, email) = await api.CriarRevendedor(nome);
         var dono = await api.ClienteLogado(email);
         var quantidade = Random.Shared.Next(951, 1_000);
@@ -508,6 +509,8 @@ public sealed class PaginacaoTest(ApiDeTeste api)
         var operadora = await api.ClienteLogado(await api.CriarOperadora());
         var nomeDeA = $"{marca} Revenda A";
         var a = await RevendaGrande(operadora, nomeDeA, 137);
+        // O limite de 10 destinos por dia vale para qualquer revenda; a que vende em massa pede liberação à operadora.
+        await operadora.Postar($"/operadora/revendedores/{a.Id}/liberacao-de-destinos", new { quantidade = Revendedor.LiberacaoMaxima }, HttpStatusCode.NoContent);
         var b = await api.RevendaComEstoque($"{marca} Revenda B");
         var kit = await Cenarios.ProdutoDoCatalogo(a.Dono, "kit-mesa", 3_990L);
         var kitDeB = await Cenarios.ProdutoDoCatalogo(b.Dono, "kit-mesa", 3_990L);

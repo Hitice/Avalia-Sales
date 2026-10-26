@@ -12,7 +12,7 @@ namespace AvaliaSales.Application.Placas;
 public sealed record LeituraDto(DateOnly Dia, int Total);
 
 public sealed record VendaDaFicha(Guid Id, string Cliente, string Responsavel, string Telefone, string Produto, string Vendedor,
-    long ValorCents, long ComissaoCents, SituacaoDaCobranca? Pagamento, DateTimeOffset VendidaEm);
+    long ValorCents, long ComissaoCents, SituacaoDaCobranca? Pagamento, DateTimeOffset VendidaEm, Guid? ClienteId = null);
 
 /// <summary>A última renovação paga da placa; a recebida por fora o revendedor pode desfazer.</summary>
 public sealed record RenovacaoDaFicha(long ValorCents, DateTimeOffset PagaEm, MeioDePagamento Meio, bool PorFora);
@@ -25,7 +25,8 @@ public sealed record FichaDto(string Codigo, string Endereco, long Sequencia, Es
 /// A placa vendida: destino, vencimento, leituras e o liga e desliga. O dono
 /// mexe em qualquer placa; o vendedor, só nas que vendeu.
 /// </summary>
-public sealed class FichaDaPlaca(IBancoDeDados banco, IUsuarioAtual usuario, IContas contas, Clientes.PrivacidadeDoCliente privacidade, Auditoria.Auditoria auditoria, IOptions<OpcoesDaPlataforma> plataforma, TimeProvider relogio)
+public sealed class FichaDaPlaca(IBancoDeDados banco, IUsuarioAtual usuario, IContas contas, Clientes.PrivacidadeDoCliente privacidade, Auditoria.Auditoria auditoria, IOptions<OpcoesDaPlataforma> plataforma, TimeProvider relogio,
+    Revendedores.LimiteDeDestinos limiteDeDestinos, Links.DestinosBloqueados destinosBloqueados)
 {
     public const int DiasDeLeitura = 30;
 
@@ -53,7 +54,7 @@ public sealed class FichaDaPlaca(IBancoDeDados banco, IUsuarioAtual usuario, ICo
                 .Select(c => new { c.Nome, c.Responsavel, c.Telefone }).SingleAsync(ct);
             var telefoneDoCliente = Clientes.PrivacidadeDoCliente.Ver(await privacidade.Libera(transferido, ct), cliente.Telefone, null, null).Telefone;
             venda = new VendaDaFicha(vendaAntiga, cliente.Nome, cliente.Responsavel, telefoneDoCliente, "Placa transferida no encerramento de outra revenda",
-                "Revenda anterior", placa.ValorDaVendaCents ?? 0, 0, null, placa.VendidaEm ?? placa.TransferidaEm.Value);
+                "Revenda anterior", placa.ValorDaVendaCents ?? 0, 0, null, placa.VendidaEm ?? placa.TransferidaEm.Value, transferido);
         }
         else if (placa.VendaId is { } vendaId)
         {
@@ -67,7 +68,7 @@ public sealed class FichaDaPlaca(IBancoDeDados banco, IUsuarioAtual usuario, ICo
             var nomes = await contas.Nomes([linha.v.VendedorId], ct);
             var telefone = Clientes.PrivacidadeDoCliente.Ver(await privacidade.Libera(linha.ClienteId, ct), linha.Telefone, null, null).Telefone;
             venda = new VendaDaFicha(linha.v.Id, linha.Nome, linha.Responsavel, telefone, linha.Produto,
-                nomes.GetValueOrDefault(linha.v.VendedorId, "Não identificado"), linha.v.ValorCents, linha.v.ComissaoCents, linha.Pagamento, linha.v.VendidaEm);
+                nomes.GetValueOrDefault(linha.v.VendedorId, "Não identificado"), linha.v.ValorCents, linha.v.ComissaoCents, linha.Pagamento, linha.v.VendidaEm, linha.ClienteId);
         }
 
         var renovacao = await (
@@ -93,7 +94,14 @@ public sealed class FichaDaPlaca(IBancoDeDados banco, IUsuarioAtual usuario, ICo
         var placa = await Achar(codigo, ct);
         await ExigirQuePodeMexer(placa, ct);
         var antes = placa.Destino;
-        placa.Apontar(destino.Resolver(plataforma.Value.HostPublico));
+        var novo = destino.Resolver(plataforma.Value.HostPublico);
+        if (novo != antes)
+        {
+            await destinosBloqueados.ExigirPermitido(novo, ct);
+            await limiteDeDestinos.Exigir(1, ct);
+        }
+
+        placa.Apontar(novo);
         if (placa.Destino != antes)
         {
             auditoria.Registrar(AcaoAuditada.DestinoTrocado, $"Placa {placa.Codigo}", placa.Codigo, antes, placa.Destino);

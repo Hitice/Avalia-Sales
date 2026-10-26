@@ -48,6 +48,9 @@ public interface IBancoDeDados
     DbSet<FechamentoDoMes> Fechamentos { get; }
     DbSet<LancamentoDaOperadora> LancamentosDaOperadora { get; }
     DbSet<DespesaDaOperadora> DespesasDaOperadora { get; }
+    DbSet<Fornecedor> Fornecedores { get; }
+    DbSet<DestinoBloqueado> DestinosBloqueados { get; }
+    DbSet<AcertoDeRevenda> AcertosDeRevenda { get; }
     DbSet<FechamentoDaOperadora> FechamentosDaOperadora { get; }
     DbSet<CustoDoLote> CustosDeLote { get; }
     DbSet<Renovacao> Renovacoes { get; }

@@ -13,7 +13,7 @@ public sealed record PedidoDto(
     Guid Id, Guid RevendedorId, string Revendedor, int Quantidade, long ValorCents, SituacaoDoPedido Situacao,
     DateTimeOffset CriadoEm, DateTimeOffset? PagoEm, string? Lote, DateTimeOffset? DespachadoEm, DateTimeOffset? AtivadoEm, DateTimeOffset? ProducaoEm,
     long PrecoDoPacoteCents, string? Cupom, long DescontoCents, string? UrlDePagamento, bool Retirada,
-    bool HaLoteLivre = false);
+    bool HaLoteLivre = false, string? Transportadora = null, string? CodigoDeRastreio = null);
 
 public sealed record AtivacaoDto(string Lote, int Placas, string PrimeiroCodigo, string UltimoCodigo);
 
@@ -33,7 +33,9 @@ public sealed class PedidosDePlacas(
     Notificacoes.Notificacoes notificacoes,
     Financeiro.LivroDaOperadora livro,
     IOptions<OpcoesDaPlataforma> plataforma,
-    TimeProvider relogio)
+    TimeProvider relogio,
+    ConfirmacoesDePagamento confirmacoes,
+    Revendedores.AcoesSensiveisDaOperadora sensiveis)
 {
     /// <summary>
     /// A página dos pedidos, do mais novo ao mais antigo. Com <paramref name="busca"/>, o texto no nome do revendedor,
@@ -80,7 +82,7 @@ public sealed class PedidosDePlacas(
             p.Id, p.RevendedorId, revendedores.GetValueOrDefault(p.RevendedorId, ""), p.Quantidade, p.ValorCents, p.Situacao,
             p.CriadoEm, p.PagoEm, p.LoteId is { } l && lotes.TryGetValue(l, out var n) ? Lote.Rotular(n) : null,
             p.DespachadoEm, p.AtivadoEm, p.ProducaoEm, p.PrecoDoPacoteCents, p.Cupom, p.DescontoCents, linkDe.GetValueOrDefault(p.Id), p.Retirada,
-            comLoteLivre.Contains(p.Quantidade))).ToList();
+            comLoteLivre.Contains(p.Quantidade), p.Transportadora, p.CodigoDeRastreio)).ToList();
     }
 
     /// <summary>Sem contrato de revenda assinado, não há pedido. O cupom é conferido e gasto aqui.</summary>
@@ -174,13 +176,102 @@ public sealed class PedidosDePlacas(
         await banco.SaveChangesAsync(ct);
     }
 
+    /// <summary>Quem entrega e o código de rastreio, quando a operadora informou: vai no e-mail e no sino da revenda.</summary>
+    private static string Entrega(PedidoDePlacas pedido) => (pedido.Transportadora, pedido.CodigoDeRastreio) switch
+    {
+        (null, null) => string.Empty,
+        ({ } t, null) => $" pela {t}",
+        (null, { } r) => $". Código de rastreio: {r}",
+        ({ } t, { } r) => $" pela {t}. Código de rastreio: {r}",
+    };
+
+    /// <summary>
+    /// Operadora: desfaz o pedido pago que ainda não foi despachado. O sistema muda a situação, devolve o uso do cupom e avisa os dois lados;
+    /// a devolução do dinheiro sai pelo painel do Pagar.me (o webhook do estorno chega depois e não muda mais nada), ou por fora, se o pagamento foi por fora.
+    /// </summary>
+    public async Task Estornar(Guid id, string? motivo, CancellationToken ct)
+    {
+        await sensiveis.Exigir("Estornar um pedido", ct);
+        var pedido = await Achar(id, ct);
+        var valor = pedido.ValorCents;
+        pedido.EstornarPago();
+        if (pedido.Cupom is { } codigo && await banco.Cupons.SingleOrDefaultAsync(c => c.Codigo == codigo, ct) is { } cupom)
+        {
+            cupom.Devolver();
+        }
+
+        banco.AvisarAoVivo("pedido", pedido.RevendedorId, operadora: true);
+        var revendedor = await banco.Revendedores.AsNoTracking().Where(r => r.Id == pedido.RevendedorId).Select(r => r.Nome).SingleAsync(ct);
+        var porque = string.IsNullOrWhiteSpace(motivo) ? string.Empty : $" Motivo: {motivo.Trim()}.";
+        notificacoes.ParaDono(pedido.RevendedorId, "Pedido estornado", $"O pedido de {pedido.Quantidade} placas foi estornado.{porque} A Avalia devolve o pagamento.", "/painel/pedidos");
+        foreach (var dono in await contas.EmailsDosDonos(pedido.RevendedorId, ct))
+        {
+            avisos.Enfileirar($"pedido:{pedido.Id:N}:estornado:{dono}", dono, $"Pedido de {pedido.Quantidade} placas estornado",
+                $"""
+                O pedido de {pedido.Quantidade} placas, {Reais(valor)}, foi estornado pela Avalia.{porque}
+
+                A devolução do pagamento é feita pela Avalia pelo mesmo meio em que você pagou.
+                """);
+        }
+
+        var site = plataforma.Value;
+        avisos.Enfileirar($"pedido:{pedido.Id:N}:estornado:operadora", site.EmailDaOperadora, $"Devolver pagamento - pedido de {pedido.Quantidade} placas - {revendedor}",
+            $"""
+            O pedido {pedido.Id} de {revendedor} foi estornado: devolva {Reais(valor)}.{porque}
+
+            Pago pelo Pagar.me: estorne a cobrança no painel do Pagar.me. Pago por fora: devolva por fora.
+            Se o pedido já foi ao Protheus, cancele o pedido de venda lá.
+            """);
+        await banco.SaveChangesAsync(ct);
+    }
+
+    /// <summary>
+    /// Pedido despachado e nunca ativado: lembra o dono a cada 7 dias (até 3 vezes) e, aos 30 dias, avisa a operadora para falar com a revenda.
+    /// Uma passada pelo revendedor da sessão; devolve quantos avisos saíram.
+    /// </summary>
+    public async Task<int> LembrarDaAtivacao(CancellationToken ct)
+    {
+        var agora = relogio.GetUtcNow();
+        var pedidos = await banco.Pedidos.Where(p => p.Situacao == SituacaoDoPedido.Despachado && p.DespachadoEm != null).ToListAsync(ct);
+        var avisados = 0;
+        foreach (var pedido in pedidos)
+        {
+            var numero = pedido.LoteId is { } loteId ? await banco.Lotes.AsNoTracking().Where(l => l.Id == loteId).Select(l => (int?)l.Numero).SingleOrDefaultAsync(ct) : null;
+            var qual = numero is { } n ? $"o lote {Lote.Rotular(n)}" : $"o lote de {pedido.Quantidade} placas";
+            if (pedido.PrecisaLembrarDaAtivacao(agora))
+            {
+                pedido.LembrouDaAtivacao();
+                notificacoes.ParaDono(pedido.RevendedorId, "Ative o lote", $"{char.ToUpperInvariant(qual[0])}{qual[1..]} saiu e ainda não foi ativado. Digite o número impresso na caixa em Pedidos.", "/painel/pedidos");
+                avisados++;
+            }
+
+            if (pedido.PrecisaAvisarAOperadoraDaAtivacao(agora))
+            {
+                pedido.AvisouAOperadoraDaAtivacao(agora);
+                var revendedor = await banco.Revendedores.AsNoTracking().Where(r => r.Id == pedido.RevendedorId).Select(r => r.Nome).SingleAsync(ct);
+                notificacoes.ParaOperadora(pedido.RevendedorId, "Lote sem ativação", $"{revendedor}: {qual} saiu há mais de {PedidoDePlacas.DiasParaAvisarAOperadora} dias e não foi ativado. Confirme se chegou.", "/operadora/pedidos");
+                avisados++;
+            }
+        }
+
+        if (avisados > 0)
+        {
+            await banco.SaveChangesAsync(ct);
+        }
+
+        return avisados;
+    }
+
     /// <summary>Operadora: pagamento recebido por fora, até o checkout do Pagar.me entrar.</summary>
     public async Task RegistrarPagamento(Guid id, CancellationToken ct)
     {
+        await sensiveis.Exigir("Registrar um pagamento por fora", ct);
         var pedido = await Achar(id, ct);
         pedido.RegistrarPagamento(relogio.GetUtcNow());
         banco.AvisarAoVivo("pedido", pedido.RevendedorId, operadora: true);
         await erp.Enfileirar(pedido, pedido.RevendedorId, ct);
+        notificacoes.ParaDono(pedido.RevendedorId, "Pedido pago", $"Recebemos o pagamento das {pedido.Quantidade} placas.", "/painel/pedidos");
+        await confirmacoes.PedidoPago(pedido, ct);
         await banco.SaveChangesAsync(ct);
     }
 
@@ -198,7 +289,7 @@ public sealed class PedidosDePlacas(
     /// Operadora: liga um lote livre da mesma quantidade ao pedido e avisa o
     /// dono, que recebe pelo envio ou retira a caixa na Avalia.
     /// </summary>
-    public async Task Despachar(Guid id, int numeroDoLote, bool retirada, CancellationToken ct)
+    public async Task Despachar(Guid id, int numeroDoLote, bool retirada, string? transportadora, string? codigoDeRastreio, CancellationToken ct)
     {
         var pedido = await Achar(id, ct);
         var lote = await banco.Lotes.SingleOrDefaultAsync(l => l.Numero == numeroDoLote, ct)
@@ -207,15 +298,15 @@ public sealed class PedidosDePlacas(
 
         await using var transacao = await banco.Database.BeginTransactionAsync(ct);
         lote.Despachar(pedido.Id, pedido.RevendedorId, pedido.Quantidade, agora);
-        pedido.Despachar(lote.Id, agora, retirada);
+        pedido.Despachar(lote.Id, agora, retirada, transportadora, codigoDeRastreio);
         banco.AvisarAoVivo("pedido", pedido.RevendedorId, operadora: true);
         var (titulo, texto, assunto, corpo) = retirada
             ? ("Placas prontas para retirada", $"O lote {lote.Rotulo} com {pedido.Quantidade} placas está pronto para retirada na Avalia. Ative pelo número da caixa.",
                 $"Suas {pedido.Quantidade} placas estão prontas para retirada - lote {lote.Rotulo}",
                 $"O lote {lote.Rotulo} com {pedido.Quantidade} placas está pronto para retirada na Avalia.\n\nAo retirar a caixa, ative o lote pelo número impresso nela.")
-            : ("Placas enviadas", $"O lote {lote.Rotulo} com {pedido.Quantidade} placas saiu. Ative pelo número da caixa.",
+            : ("Placas enviadas", $"O lote {lote.Rotulo} com {pedido.Quantidade} placas saiu{Entrega(pedido)}. Ative pelo número da caixa.",
                 $"Suas {pedido.Quantidade} placas saíram - lote {lote.Rotulo}",
-                $"O lote {lote.Rotulo} com {pedido.Quantidade} placas foi despachado.\n\nQuando a caixa chegar, ative o lote pelo número impresso nela.");
+                $"O lote {lote.Rotulo} com {pedido.Quantidade} placas foi despachado{Entrega(pedido)}.\n\nQuando a caixa chegar, ative o lote pelo número impresso nela.");
         notificacoes.ParaDono(pedido.RevendedorId, titulo, texto, "/painel/estoque");
         foreach (var dono in await contas.EmailsDosDonos(pedido.RevendedorId, ct))
         {

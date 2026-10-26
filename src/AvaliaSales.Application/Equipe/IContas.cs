@@ -26,6 +26,9 @@ public interface IContas
 
     Task Excluir(Guid usuarioId, CancellationToken ct);
 
+    /// <summary>Se o login tem o segundo fator ligado.</summary>
+    Task<bool> TemSegundoFator(Guid usuarioId, CancellationToken ct);
+
     Task<IReadOnlyList<string>> EmailsDosDonos(Guid revendedorId, CancellationToken ct);
 
     /// <summary>O primeiro dono com e-mail confirmado, na ordem de <see cref="EmailsDosDonos"/>: quem assina pela revenda.</summary>

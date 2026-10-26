@@ -52,12 +52,7 @@ internal static class Demonstracao
             }
 
             await Login(escopo.ServiceProvider, "Operação Avalia", Operadora, Papel.Operadora, null);
-            // 20, 50 e 100 vêm da migration, com os preços de verdade; a demonstração só acrescenta o de 10, do teste.
-            if (!await banco.Pacotes.AnyAsync(p => p.Quantidade == 10, ct))
-            {
-                banco.Pacotes.Add(new Pacote(10, 15_000));
-            }
-
+            // 20, 50 e 100 vêm da migration, com os preços de verdade.
             banco.Cupons.Add(new Cupom("BEMVINDO10", 1_000, null, DateTimeOffset.UtcNow.AddMonths(3), 50));
             await banco.SaveChangesAsync(ct);
 
