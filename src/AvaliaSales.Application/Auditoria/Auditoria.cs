@@ -60,16 +60,13 @@ public sealed class Auditoria(IBancoDeDados banco, IUsuarioAtual usuario, IConta
             return consulta;
         }
 
-        var termo = busca.Trim().ToLowerInvariant();
+        var termo = Paginacao.Termo(busca);
         var semEspaco = termo.Replace(" ", string.Empty, StringComparison.Ordinal);
         var acoes = Enum.GetValues<AcaoAuditada>().Where(a => a.ToString().ToLowerInvariant().Contains(semEspaco, StringComparison.Ordinal)).ToList();
-        // Vira lower(...) LIKE no Postgres: a cultura do .NET não entra na consulta.
-#pragma warning disable CA1304, CA1311, CA1862
-        var quem = await banco.Vendedores.AsNoTracking().Where(v => v.Nome.ToLower().Contains(termo)).Select(v => (Guid?)v.Id).ToListAsync(ct);
-        return consulta.Where(r => r.Alvo.ToLower().Contains(termo) || r.Referencia.ToLower().Contains(termo)
-            || (r.Antes != null && r.Antes.ToLower().Contains(termo)) || (r.Depois != null && r.Depois.ToLower().Contains(termo))
+        var quem = await banco.Vendedores.AsNoTracking().Where(v => Busca.Normalizar(v.Nome).Contains(Busca.Normalizar(termo))).Select(v => (Guid?)v.Id).ToListAsync(ct);
+        return consulta.Where(r => Busca.Normalizar(r.Alvo).Contains(Busca.Normalizar(termo)) || Busca.Normalizar(r.Referencia).Contains(Busca.Normalizar(termo))
+            || (r.Antes != null && Busca.Normalizar(r.Antes).Contains(Busca.Normalizar(termo))) || (r.Depois != null && Busca.Normalizar(r.Depois).Contains(Busca.Normalizar(termo)))
             || acoes.Contains(r.Acao) || quem.Contains(r.UsuarioId));
-#pragma warning restore CA1304, CA1311, CA1862
     }
 
     private async Task<List<RegistroDto>> ParaDto(IReadOnlyList<RegistroDeAuditoria> registros, CancellationToken ct)

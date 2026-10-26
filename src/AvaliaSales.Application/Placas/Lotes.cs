@@ -38,12 +38,9 @@ public sealed class Lotes(IBancoDeDados banco, TimeProvider relogio)
         if (termo.Length > 0)
         {
             int? numero = int.TryParse(new string(termo.Where(char.IsAsciiDigit).ToArray()), out var lido) ? lido : null;
-            // Vira lower(...) LIKE no Postgres: a cultura do .NET não entra na consulta.
-#pragma warning disable CA1304, CA1311, CA1862
-            consulta = consulta.Where(l => (l.Titulo != null && l.Titulo.ToLower().Contains(termo))
+            consulta = consulta.Where(l => (l.Titulo != null && Busca.Normalizar(l.Titulo).Contains(Busca.Normalizar(termo)))
                 || (numero != null && l.Numero == numero)
-                || banco.Revendedores.Any(r => r.Id == l.RevendedorId && r.Nome.ToLower().Contains(termo)));
-#pragma warning restore CA1304, CA1311, CA1862
+                || banco.Revendedores.Any(r => r.Id == l.RevendedorId && Busca.Normalizar(r.Nome).Contains(Busca.Normalizar(termo))));
         }
 
         if (filtro.Livres)

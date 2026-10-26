@@ -29,10 +29,7 @@ public sealed class FilaDoErp(IBancoDeDados banco, TimeProvider relogio)
         if (termo.Length > 0)
         {
             var situacoes = Enum.GetValues<SituacaoDoEnvio>().Where(s => s.ToString().ToLowerInvariant().Contains(termo, StringComparison.Ordinal)).ToList();
-            // Vira lower(...) LIKE no Postgres: a cultura do .NET não entra na consulta.
-#pragma warning disable CA1304, CA1311, CA1862
-            consulta = consulta.Where(e => e.Cliente.ToLower().Contains(termo) || (e.NumeroNoErp != null && e.NumeroNoErp.ToLower().Contains(termo)) || situacoes.Contains(e.Situacao));
-#pragma warning restore CA1304, CA1311, CA1862
+            consulta = consulta.Where(e => Busca.Normalizar(e.Cliente).Contains(Busca.Normalizar(termo)) || (e.NumeroNoErp != null && Busca.Normalizar(e.NumeroNoErp).Contains(Busca.Normalizar(termo))) || situacoes.Contains(e.Situacao));
         }
 
         return await consulta.OrderByDescending(e => e.CriadoEm).ThenByDescending(e => e.PedidoId)

@@ -46,12 +46,9 @@ public sealed class PedidosDePlacas(
         if (termo.Length > 0)
         {
             int? numero = int.TryParse(new string(termo.Where(char.IsAsciiDigit).ToArray()), out var lido) ? lido : null;
-            // Vira lower(...) LIKE no Postgres: a cultura do .NET não entra na consulta.
-#pragma warning disable CA1304, CA1311, CA1862
-            consulta = consulta.Where(p => banco.Revendedores.Any(r => r.Id == p.RevendedorId && r.Nome.ToLower().Contains(termo))
-                || (p.Cupom != null && p.Cupom.ToLower().Contains(termo))
+            consulta = consulta.Where(p => banco.Revendedores.Any(r => r.Id == p.RevendedorId && Busca.Normalizar(r.Nome).Contains(Busca.Normalizar(termo)))
+                || (p.Cupom != null && Busca.Normalizar(p.Cupom).Contains(Busca.Normalizar(termo)))
                 || (numero != null && banco.Lotes.Any(l => l.Id == p.LoteId && l.Numero == numero)));
-#pragma warning restore CA1304, CA1311, CA1862
         }
 
         var pagina = await consulta.OrderByDescending(p => p.CriadoEm).ThenByDescending(p => p.Id).PaginarAsync(pedido, ct);

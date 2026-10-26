@@ -28,11 +28,8 @@ public sealed class AuditoriaDaOperadora(IBancoDeDados banco, IContas contas)
         var consulta = banco.AuditoriaDaOperadora.AsNoTracking();
         if (!string.IsNullOrWhiteSpace(busca))
         {
-            var termo = busca.Trim().ToLowerInvariant();
-            // Vira lower(...) LIKE no Postgres: a cultura do .NET não entra na consulta.
-#pragma warning disable CA1304, CA1311, CA1862
-            consulta = consulta.Where(r => r.Acao.ToLower().Contains(termo) || (r.Referencia != null && r.Referencia.ToLower().Contains(termo)));
-#pragma warning restore CA1304, CA1311, CA1862
+            var termo = Paginacao.Termo(busca);
+            consulta = consulta.Where(r => Busca.Normalizar(r.Acao).Contains(Busca.Normalizar(termo)) || (r.Referencia != null && Busca.Normalizar(r.Referencia).Contains(Busca.Normalizar(termo))));
         }
 
         return consulta;

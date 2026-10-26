@@ -42,12 +42,9 @@ public sealed class Chamados(IBancoDeDados banco, IUsuarioAtual usuario, IRevend
         if (termo.Length > 0)
         {
             long? numero = long.TryParse(new string(termo.Where(char.IsAsciiDigit).ToArray()), out var lido) ? lido : null;
-            // Vira lower(...) LIKE no Postgres: a cultura do .NET não entra na consulta.
-#pragma warning disable CA1304, CA1311, CA1862
-            consulta = consulta.Where(c => c.Assunto.ToLower().Contains(termo)
+            consulta = consulta.Where(c => Busca.Normalizar(c.Assunto).Contains(Busca.Normalizar(termo))
                 || (numero != null && c.Numero == numero)
-                || banco.Revendedores.Any(r => r.Id == c.RevendedorId && r.Nome.ToLower().Contains(termo)));
-#pragma warning restore CA1304, CA1311, CA1862
+                || banco.Revendedores.Any(r => r.Id == c.RevendedorId && Busca.Normalizar(r.Nome).Contains(Busca.Normalizar(termo))));
         }
 
         var ordenada = daOperadora

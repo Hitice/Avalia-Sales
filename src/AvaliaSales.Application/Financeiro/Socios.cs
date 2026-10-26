@@ -71,10 +71,7 @@ public sealed class Socios(IBancoDeDados banco, Fechamentos fechamentos, Auditor
         var termo = Paginacao.Termo(busca);
         if (termo.Length > 0)
         {
-            // Vira lower(...) LIKE no Postgres: a cultura do .NET não entra na consulta.
-#pragma warning disable CA1304, CA1311, CA1862
-            consulta = consulta.Where(x => x.Socio.ToLower().Contains(termo) || (x.r.Observacao != null && x.r.Observacao.ToLower().Contains(termo)));
-#pragma warning restore CA1304, CA1311, CA1862
+            consulta = consulta.Where(x => Busca.Normalizar(x.Socio).Contains(Busca.Normalizar(termo)) || (x.r.Observacao != null && Busca.Normalizar(x.r.Observacao).Contains(Busca.Normalizar(termo))));
         }
 
         return await consulta.OrderByDescending(x => x.r.Data).ThenByDescending(x => x.r.CriadaEm).ThenByDescending(x => x.r.Id)

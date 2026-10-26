@@ -41,10 +41,7 @@ public sealed class Links(IBancoDeDados banco, IRevendedorAtual atual, IUsuarioA
         var termo = Paginacao.Termo(busca);
         if (termo.Length > 0)
         {
-            // Vira lower(...) LIKE no Postgres: a cultura do .NET não entra na consulta.
-#pragma warning disable CA1304, CA1311, CA1862
-            consulta = consulta.Where(l => l.Titulo.ToLower().Contains(termo) || l.Codigo.ToLower().Contains(termo) || l.Destino.ToLower().Contains(termo));
-#pragma warning restore CA1304, CA1311, CA1862
+            consulta = consulta.Where(l => Busca.Normalizar(l.Titulo).Contains(Busca.Normalizar(termo)) || Busca.Normalizar(l.Codigo).Contains(Busca.Normalizar(termo)) || Busca.Normalizar(l.Destino).Contains(Busca.Normalizar(termo)));
         }
 
         return (await consulta.OrderByDescending(l => l.CriadoEm).ThenByDescending(l => l.Id).PaginarAsync(pedido, ct)).Mapear(ParaDto);

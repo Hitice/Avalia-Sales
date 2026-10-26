@@ -24,10 +24,7 @@ public sealed class Revendedores(IBancoDeDados banco, IRevendedorAtual atual, Eq
         var digitos = new string(termo.Where(char.IsAsciiDigit).ToArray());
         if (termo.Length > 0)
         {
-            // Vira lower(...) LIKE no Postgres: a cultura do .NET não entra na consulta.
-#pragma warning disable CA1304, CA1311, CA1862
-            consulta = consulta.Where(r => r.Nome.ToLower().Contains(termo) || (digitos.Length >= 4 && r.Cnpj != null && r.Cnpj.Contains(digitos)));
-#pragma warning restore CA1304, CA1311, CA1862
+            consulta = consulta.Where(r => Busca.Normalizar(r.Nome).Contains(Busca.Normalizar(termo)) || (digitos.Length >= 4 && r.Cnpj != null && r.Cnpj.Contains(digitos)));
         }
 
         return await consulta.OrderBy(r => r.Nome).ThenBy(r => r.Id)

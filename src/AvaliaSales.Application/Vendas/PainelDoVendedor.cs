@@ -90,11 +90,8 @@ public sealed class PainelDoVendedor(IBancoDeDados banco, IUsuarioAtual usuario,
         var buscaPorTelefone = usuario.Papel != Papel.Vendedor;
         if (termo.Length > 0)
         {
-            // Vira lower(...) LIKE no Postgres: a cultura do .NET não entra na consulta.
-#pragma warning disable CA1304, CA1311, CA1862
-            juntas = juntas.Where(x => x.Nome.ToLower().Contains(termo) || x.Responsavel.ToLower().Contains(termo) || x.Codigo.ToLower().Contains(termo)
+            juntas = juntas.Where(x => Busca.Normalizar(x.Nome).Contains(Busca.Normalizar(termo)) || Busca.Normalizar(x.Responsavel).Contains(Busca.Normalizar(termo)) || Busca.Normalizar(x.Codigo).Contains(Busca.Normalizar(termo))
                 || (buscaPorTelefone && digitos.Length >= 4 && x.Telefone.Contains(digitos)));
-#pragma warning restore CA1304, CA1311, CA1862
         }
 
         var (numeroDaPagina, tamanho) = Paginacao.Normalizar(pedido);

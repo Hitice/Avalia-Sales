@@ -39,11 +39,8 @@ public sealed class Clientes(IBancoDeDados banco, IRevendedorAtual atual, Audito
         var consulta = banco.Clientes.AsNoTracking();
         if (termo.Length > 0)
         {
-            // Vira lower(...) LIKE no Postgres: a cultura do .NET não entra na consulta.
-#pragma warning disable CA1304, CA1311, CA1862
-            consulta = consulta.Where(c => c.Nome.ToLower().Contains(termo) || c.Responsavel.ToLower().Contains(termo)
+            consulta = consulta.Where(c => Busca.Normalizar(c.Nome).Contains(Busca.Normalizar(termo)) || Busca.Normalizar(c.Responsavel).Contains(Busca.Normalizar(termo))
                 || (digitos.Length >= 4 && (c.Telefone.Contains(digitos) || (c.Documento != null && c.Documento.Contains(digitos)))));
-#pragma warning restore CA1304, CA1311, CA1862
         }
 
         return await consulta.OrderBy(c => c.Nome).ThenBy(c => c.Id)

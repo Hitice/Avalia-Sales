@@ -79,6 +79,8 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
     {
         base.OnModelCreating(modelo);
 
+        modelo.HasDbFunction(typeof(Busca).GetMethod(nameof(Busca.Normalizar), [typeof(string)])!).HasName("avalia_normalizar");
+
         modelo.Entity<Usuario>(u =>
         {
             u.ToTable("usuarios");

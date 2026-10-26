@@ -30,10 +30,7 @@ public sealed class Razao(IBancoDeDados banco, TimeProvider relogio)
         var termo = Paginacao.Termo(busca);
         if (termo.Length > 0)
         {
-            // Vira lower(...) LIKE no Postgres: a cultura do .NET não entra na consulta.
-#pragma warning disable CA1304, CA1311, CA1862
-            doMes = doMes.Where(l => l.Descricao.ToLower().Contains(termo));
-#pragma warning restore CA1304, CA1311, CA1862
+            doMes = doMes.Where(l => Busca.Normalizar(l.Descricao).Contains(Busca.Normalizar(termo)));
         }
 
         var pagina = await doMes.OrderByDescending(l => l.OcorridoEm).ThenByDescending(l => l.Id).PaginarAsync(pedido, ct);

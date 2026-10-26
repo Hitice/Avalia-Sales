@@ -195,10 +195,7 @@ public sealed class Estoque(IBancoDeDados banco, IUsuarioAtual usuario, IRevende
         if (termo.Length > 0)
         {
             int? numero = int.TryParse(new string(termo.Where(char.IsAsciiDigit).ToArray()), out var lido) ? lido : null;
-            // Vira lower(...) LIKE no Postgres: a cultura do .NET não entra na consulta.
-#pragma warning disable CA1304, CA1311, CA1862
-            consulta = consulta.Where(l => (l.Titulo != null && l.Titulo.ToLower().Contains(termo)) || (numero != null && l.Numero == numero));
-#pragma warning restore CA1304, CA1311, CA1862
+            consulta = consulta.Where(l => (l.Titulo != null && Busca.Normalizar(l.Titulo).Contains(Busca.Normalizar(termo))) || (numero != null && l.Numero == numero));
         }
 
         var pagina = await consulta.OrderByDescending(l => l.Numero).ThenByDescending(l => l.Id).PaginarAsync(pedido, ct);

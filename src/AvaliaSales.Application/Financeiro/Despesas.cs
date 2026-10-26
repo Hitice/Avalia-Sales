@@ -25,10 +25,7 @@ public sealed class Despesas(IBancoDeDados banco, Fechamentos fechamentos, TimeP
         if (termo.Length > 0)
         {
             var categorias = Enum.GetValues<CategoriaDeDespesa>().Where(c => c.ToString().ToLowerInvariant().Contains(termo, StringComparison.Ordinal)).ToList();
-            // Vira lower(...) LIKE no Postgres: a cultura do .NET não entra na consulta.
-#pragma warning disable CA1304, CA1311, CA1862
-            consulta = consulta.Where(d => d.Descricao.ToLower().Contains(termo) || categorias.Contains(d.Categoria));
-#pragma warning restore CA1304, CA1311, CA1862
+            consulta = consulta.Where(d => Busca.Normalizar(d.Descricao).Contains(Busca.Normalizar(termo)) || categorias.Contains(d.Categoria));
         }
 
         return await consulta.OrderByDescending(d => d.Data).ThenByDescending(d => d.CriadaEm).ThenByDescending(d => d.Id)

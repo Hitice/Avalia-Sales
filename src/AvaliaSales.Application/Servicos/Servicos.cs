@@ -31,12 +31,9 @@ public sealed class Servicos(IBancoDeDados banco, IRevendedorAtual atual, Notifi
         if (termo.Length > 0)
         {
             long? numero = long.TryParse(new string(termo.Where(char.IsAsciiDigit).ToArray()), out var lido) ? lido : null;
-            // Vira lower(...) LIKE no Postgres: a cultura do .NET não entra na consulta.
-#pragma warning disable CA1304, CA1311, CA1862
-            consulta = consulta.Where(o => o.Produto.ToLower().Contains(termo) || o.Cliente.ToLower().Contains(termo)
+            consulta = consulta.Where(o => Busca.Normalizar(o.Produto).Contains(Busca.Normalizar(termo)) || Busca.Normalizar(o.Cliente).Contains(Busca.Normalizar(termo))
                 || (numero != null && o.Numero == numero)
-                || banco.Revendedores.Any(r => r.Id == o.RevendedorId && r.Nome.ToLower().Contains(termo)));
-#pragma warning restore CA1304, CA1311, CA1862
+                || banco.Revendedores.Any(r => r.Id == o.RevendedorId && Busca.Normalizar(r.Nome).Contains(Busca.Normalizar(termo))));
         }
 
         var pagina = await consulta

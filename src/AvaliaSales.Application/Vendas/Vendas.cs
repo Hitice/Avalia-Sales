@@ -791,12 +791,9 @@ public sealed class Vendas(
             select new { v, p, Cliente = c.Nome, Produto = pr.Nome };
         if (termo.Length > 0)
         {
-            // Vira lower(...) LIKE no Postgres: a cultura do .NET não entra na consulta.
-#pragma warning disable CA1304, CA1311, CA1862
-            juntas = juntas.Where(x => x.Cliente.ToLower().Contains(termo) || x.Produto.ToLower().Contains(termo)
-                || (x.p != null && x.p.Codigo.ToLower().Contains(termo))
-                || banco.Vendedores.Any(e => e.Id == x.v.VendedorId && e.Nome.ToLower().Contains(termo)));
-#pragma warning restore CA1304, CA1311, CA1862
+            juntas = juntas.Where(x => Busca.Normalizar(x.Cliente).Contains(Busca.Normalizar(termo)) || Busca.Normalizar(x.Produto).Contains(Busca.Normalizar(termo))
+                || (x.p != null && Busca.Normalizar(x.p.Codigo).Contains(Busca.Normalizar(termo)))
+                || banco.Vendedores.Any(e => e.Id == x.v.VendedorId && Busca.Normalizar(e.Nome).Contains(Busca.Normalizar(termo))));
         }
 
         var total = await juntas.CountAsync(ct);

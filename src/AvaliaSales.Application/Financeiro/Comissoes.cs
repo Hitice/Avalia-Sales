@@ -62,11 +62,8 @@ public sealed class Comissoes(IBancoDeDados banco, IUsuarioAtual usuario, IConta
         var termo = Paginacao.Termo(busca);
         if (termo.Length > 0)
         {
-            // Vira lower(...) LIKE no Postgres: a cultura do .NET não entra na consulta.
-#pragma warning disable CA1304, CA1311, CA1862
-            consulta = consulta.Where(r => (r.Comprovante != null && r.Comprovante.ToLower().Contains(termo))
-                || banco.Vendedores.Any(v => v.Id == r.VendedorId && v.Nome.ToLower().Contains(termo)));
-#pragma warning restore CA1304, CA1311, CA1862
+            consulta = consulta.Where(r => (r.Comprovante != null && Busca.Normalizar(r.Comprovante).Contains(Busca.Normalizar(termo)))
+                || banco.Vendedores.Any(v => v.Id == r.VendedorId && Busca.Normalizar(v.Nome).Contains(Busca.Normalizar(termo))));
         }
 
         var pagina = await consulta.OrderByDescending(r => r.PagoEm).ThenByDescending(r => r.Id).PaginarAsync(pedido, ct);
