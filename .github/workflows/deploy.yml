@@ -53,7 +53,11 @@ jobs:
         with:
           ref: ${{ env.VERSAO }}
 
+      # A VPS tem um núcleo e 4 GB: compilar a API, o Worker e o front ao mesmo tempo disputa CPU e RAM com
+      # o site no ar. Uma imagem por vez deixa a API e o banco respondendo durante o build.
       - name: Imagens da versão
+        env:
+          COMPOSE_PARALLEL_LIMIT: "1"
         run: docker compose -f docker-compose.producao.yml --env-file "$ENV_FILE" build
 
       # Cópia do banco antes de qualquer migration desta versão. Com o contêiner de

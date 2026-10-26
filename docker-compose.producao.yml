@@ -59,6 +59,7 @@ services:
       timeout: 5s
       retries: 10
     restart: unless-stopped
+    cpu_shares: 2048
 
   migrar:
     image: avalia-sales-api:${VERSAO:-local}
@@ -72,6 +73,7 @@ services:
       postgres:
         condition: service_healthy
     restart: "no"
+    cpu_shares: 512
 
   api:
     image: avalia-sales-api:${VERSAO:-local}
@@ -89,6 +91,7 @@ services:
       retries: 5
       start_period: 20s
     restart: unless-stopped
+    cpu_shares: 2048
 
   worker:
     image: avalia-sales-worker:${VERSAO:-local}
@@ -103,6 +106,7 @@ services:
       gotenberg:
         condition: service_started
     restart: unless-stopped
+    cpu_shares: 512
 
   gotenberg:
     # O PDF do contrato e do distrato (Chromium). Sem porta publicada e sem saída
@@ -114,6 +118,7 @@ services:
       CHROMIUM_DISABLE_JAVASCRIPT: "true"
       API_TIMEOUT: 60s
     restart: unless-stopped
+    cpu_shares: 256
 
   nginx:
     image: avalia-sales-nginx:${VERSAO:-local}
@@ -136,6 +141,7 @@ services:
       api:
         condition: service_healthy
     restart: unless-stopped
+    cpu_shares: 2048
 
   # Renova o certificado duas vezes por dia; o Nginx relê a cada 6 horas.
   certbot:
@@ -145,6 +151,7 @@ services:
       - desafio-acme:/var/www/certbot
     entrypoint: ["/bin/sh", "-c", "trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 12h & wait $${!}; done"]
     restart: unless-stopped
+    cpu_shares: 128
 
   # Cópia às 02:00 de Brasília no disco e, com BACKUP_PARA, por e-mail pelo Resend.
   backup:
@@ -175,6 +182,7 @@ services:
       postgres:
         condition: service_healthy
     restart: unless-stopped
+    cpu_shares: 128
 
 volumes:
   dados-postgres:
