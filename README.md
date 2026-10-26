@@ -43,15 +43,20 @@ publicada aparece no rodapé do app e segue o `version` de `web/package.json`.
 Cancelar devolve só a parte do item cancelado (estorno parcial). O endereço
 impresso na placa (`/q/{codigo}`) é da plataforma e redireciona com 302 sem
 cache: o destino muda sem reimprimir, e a placa vendida responde para sempre.
+As placas do sistema anterior estão na plataforma desde 24/10/2026, e o
+`/q/{codigo}` antigo repassa para o novo com 302.
 
 ### Depois da venda
 
 - **Razão** - só de inserção: correção vira estorno, nada se apaga. Comissões e
   repasses saem dele.
-- **Financeiro** - DRE do mês, despesas, retiradas de sócio, perdas de placa e
-  fechamento do mês, com o mês fechado garantido por trigger no banco.
+- **Financeiro** - DRE do mês, despesas, retiradas e aportes de sócio, perdas de
+  placa e fechamento do mês, com o mês fechado garantido por trigger no banco. A
+  receita da placa é reconhecida em 12 partes. O caixa da revenda parte de um
+  saldo inicial, e o histórico de vendas do sistema anterior é importável.
 - **Renovação** - a placa vale 12 meses e se renova com uma cobrança nova, sem
-  trocar o endereço impresso.
+  trocar o endereço impresso. Só o revendedor renova; o vendedor não pede nem
+  registra a renovação.
 - **Serviços** - a venda paga de um serviço vira ordem para a operadora, com a
   quantidade vendida.
 
@@ -101,6 +106,9 @@ isolamento entre revendas.
 - **Webhook não é confiável** - a rota só grava o evento cru, com chave única
   (`ON CONFLICT DO NOTHING`), e o Worker reconsulta a fonte antes de mudar
   qualquer coisa. Dois Workers nunca pegam o mesmo evento (`FOR UPDATE SKIP LOCKED`).
+- **Gravação repetível** - toda gravação POST autenticada aceita
+  `Idempotency-Key`: a resposta fica guardada por 24 horas, e repetir o pedido
+  não cobra nem lança duas vezes.
 - **Migrations aditivas** - a versão anterior lê o banco novo, então voltar o
   deploy não pede restauração.
 - **Contrato da API versionado** - os tipos do front são gerados do OpenAPI, e o
@@ -116,13 +124,16 @@ teste de contrato HTTP contra servidor falso.
 
 | Integração | Para quê | Situação |
 | --- | --- | --- |
-| Pagar.me | Checkout com cupom, Pix e cartão, split entre recebedores, estorno total e parcial | Produção |
+| Pagar.me | Checkout com cupom, Pix e cartão, marketplace com split entre recebedores, estorno total e parcial, webhook com reconsulta | Produção desde 23/10/2026 |
 | D4Sign | Contrato de revenda e distrato assinados eletronicamente | Sandbox |
 | Resend | E-mails transacionais, com fila na transação e retentativa exponencial | Produção |
 | Google Places e Maps | Achar o negócio do cliente e o mapa das vendas por cidade | Produção |
 | BrasilAPI | Razão social e endereço pelo CNPJ e pelo CEP | Produção |
 | Gotenberg | Contrato e distrato em PDF, num contêiner sem rede | Produção |
-| Sentry | Erros da API, do Worker e do front, com o commit publicado como versão | Produção |
+| Sentry | Erros da API, do Worker e do front, com o commit publicado como versão, monitor de `/api/health` e check-in do Worker | Produção |
+| Cloudflare R2 | Cópia diária do banco, cifrada e conferida por ETag, com retenção de 30 dias | Produção |
+| Cloudflare Turnstile | Captcha do cadastro público | Ativo com as chaves configuradas |
+| SonarCloud | Análise de código e cobertura dos testes da API, pelo CI | Em uso |
 | Protheus | Pedido de placas pago vira pedido de venda no ERP, uma vez só | Conector com simulador |
 
 ## Stack
@@ -132,20 +143,22 @@ teste de contrato HTTP contra servidor falso.
 | Back-end | C# e .NET, ASP.NET Core (minimal APIs), Worker Service, EF Core, ASP.NET Identity com JWT, SignalR, Polly |
 | Front-end | React, TypeScript, Vite, React Router, TanStack Query, Zustand, React Hook Form, Zod, Tailwind CSS, shadcn/ui, Recharts |
 | Dados | PostgreSQL com row-level security, LISTEN/NOTIFY |
-| Infraestrutura | Linux, Docker e Docker Compose, Nginx, Let's Encrypt, backup diário com cópia fora do servidor |
+| Infraestrutura | Linux, Docker e Docker Compose, Nginx, Let's Encrypt, backup diário cifrado com cópia fora do servidor |
 | Entrega | GitHub Actions com runner self-hosted e aprovação de ambiente |
-| Qualidade | xUnit, Vitest, Playwright com axe, Storybook, gitleaks, Sentry |
+| Qualidade | xUnit, Vitest, Playwright com axe, Storybook, gitleaks, SonarCloud, Sentry |
 
 As versões ficam fixadas em `Directory.Packages.props` e `web/package.json`. O
 design system está descrito em [DESIGN.md](DESIGN.md).
 
 ## Qualidade
 
-- Cerca de 475 testes automáticos por publicação: 347 na API, 116 no front
-  (incluindo cada história do Storybook com o axe) e 16 jornadas ponta a ponta
-  no celular e no computador.
+- Testes automáticos por publicação: 519 na API, 223 no front (incluindo cada
+  história do Storybook com o axe) e 25 cenários ponta a ponta, no celular e no
+  computador.
 - Os testes da API rodam contra um PostgreSQL de verdade, com o mesmo papel e o
   mesmo RLS da produção.
+- A revisão de segurança cobriu quatro frentes: autorização e isolamento,
+  dinheiro e fila, sessão e entrada, e o front.
 - Erro em produção chega pelo Sentry com a versão publicada, vira um teste que
   reproduz, e o commit da correção fecha o alerta.
 
@@ -154,6 +167,12 @@ design system está descrito em [DESIGN.md](DESIGN.md).
 - Token de acesso de vida curta, só em memória, e refresh rotativo em cookie
   HttpOnly; um token reapresentado encerra a sessão inteira.
 - Bloqueio por tentativas, limite por IP e segundo fator por TOTP ou e-mail.
+- Cadastro público com confirmação por link, captcha Turnstile e limite por
+  hora por IP. E-mail com link de senha ou código tem o conteúdo apagado depois
+  do envio.
+- Vendedor lê só o que é dele: documento, e-mail e telefone de cliente alheio
+  saem mascarados, e o recebido por fora tem limite e conferência.
+- Listagens paginadas no servidor, com tamanho máximo de 100.
 - Cartão tokenizado no navegador: a plataforma nunca vê número nem CVV.
 - HSTS, CSP e Permissions-Policy na borda; Swagger e OpenAPI só em Development.
 - Auditoria só de inserção. A revenda é a controladora e a plataforma a operadora
@@ -270,8 +289,8 @@ app abre o NFC Tools com o endereço copiado.
 ## Produção
 
 VPS Linux com Docker Compose (`docker-compose.producao.yml`): Nginx com
-Let's Encrypt, API, Worker, Gotenberg, PostgreSQL e backup diário. Só o Nginx
-publica porta.
+Let's Encrypt, API, Worker, Gotenberg, PostgreSQL e backup diário, cifrado e
+enviado a um bucket fora do servidor. Só o Nginx publica porta.
 
 Publicação: push no `main`, CI verde (build, testes da API e do front, ponta a
 ponta com axe, segredos e qualidade) e o workflow Deploy, que espera a aprovação
