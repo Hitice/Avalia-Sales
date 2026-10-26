@@ -45,6 +45,6 @@ public sealed class AparelhoNovoTest(ApiDeTeste api)
     private async Task<long> Avisos(string email)
     {
         await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
-        return await banco.Contar($"select count(*) from emails where para = '{email}' and assunto = 'Acesso de um aparelho novo'");
+        return (await banco.Emails(email)).Count(e => e.Assunto == "Acesso de um aparelho novo");
     }
 }

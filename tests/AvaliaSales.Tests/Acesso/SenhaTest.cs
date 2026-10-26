@@ -104,13 +104,13 @@ public sealed partial class SenhaTest(ApiDeTeste api)
         Assert.Equal(HttpStatusCode.Unauthorized, antiga.StatusCode);
         await anonimo.Postar("/auth/entrar", new { email, senha = "senha-nova-do-dono" });
         await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
-        Assert.Equal(1, await banco.Contar($"select count(*) from emails where para = '{email}' and assunto = 'Sua senha foi alterada'"));
+        Assert.Equal(1, (await banco.Emails(email)).Count(e => e.Assunto == "Sua senha foi alterada"));
     }
 
     private async Task<string> UltimoEmail(string para)
     {
         await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
-        return await banco.Texto($"select texto from emails where para = '{para}' order by criado_em desc limit 1");
+        return (await banco.UltimoEmail(para)).Texto;
     }
 
     private static string TokenDoLink(string texto) => Link().Match(texto) is { Success: true } achado

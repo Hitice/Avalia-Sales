@@ -108,7 +108,9 @@ Todas no mesmo app, liberadas pelo papel do usuário. No computador, toda
 tabela rola dentro dela, com o cabeçalho fixo, e as ações da linha ficam no
 menu "⋯" da última coluna. No celular, cada linha é um cartão que corre com a
 página, e a primeira ação vira botão. A partir de sete linhas, a lista ganha
-uma busca pelo texto da linha, sem acento. Gravar confirma na tela.
+uma busca pelo texto da linha, sem acento. Gravar confirma na tela. A busca
+que a API faz nas listas paginadas também acha sem acento e sem diferença de
+maiúscula ("otica" acha "Ótica").
 
 ### Acesso e conta
 
@@ -762,6 +764,7 @@ porque está impresso nas placas vendidas.
 | Data | Mudança |
 | --- | --- |
 | 26/10/2026 | A renovação da placa é anual e só do revendedor: o vendedor não a pede nem a registra por fora (a ficha e a carteira dele não oferecem Renovar, e a API recusa com 403). A renovação deixa de gastar a cota diária de recebido por fora do vendedor. |
+| 26/10/2026 | A busca das listas paginadas (vendas, clientes, carteira, lotes, pedidos, chamados, links, serviços, repasses, razão, despesas, retiradas, revendedores, ERP e auditoria) volta a achar sem acento: "otica" acha "Ótica", "sao" acha "São João". |
 | 25/10/2026 | Listas do painel abrem em páginas de 50 (no máximo 100), e a busca vale para a lista inteira, e não só para a página aberta. Antes, vendas, clientes, carteira, ERP e repasses cortavam em 200 ou 500 sem avisar. Os números do Início e das telas de vendas (vendas no mês, recebido, gráfico de 30 dias, comissão esperando) são calculados sobre todas as vendas, no mês de Brasília. A carteira ganha o filtro de vencimento, e o repasse só se desfaz no último de cada vendedor. Para o vendedor, a busca não olha telefone, documento nem e-mail de cliente. |
 | 25/10/2026 | Cadastro público com confirmação do e-mail antes de a conta funcionar, sem senha digitada no cadastro (a senha é criada pelo link), resposta igual para e-mail e CNPJ novos ou já cadastrados, cadastro pendente descartado em 48 horas, captcha Turnstile (desligado até ligar) e limites por IP, e-mail, CNPJ e dia. |
 | 25/10/2026 | Repetir um envio (toque duplo, rede ruim) não duplica mais venda, despesa, pedido nem repasse; reenviar o acesso por rede ruim não desloga mais o usuário (janela de 10 s); cupom e repasse com data em outro fuso deixam de dar erro. |

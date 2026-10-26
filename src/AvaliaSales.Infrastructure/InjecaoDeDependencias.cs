@@ -16,6 +16,7 @@ using AvaliaSales.Infrastructure.Integracoes.Pagarme;
 using AvaliaSales.Infrastructure.Integracoes.Protheus;
 using AvaliaSales.Infrastructure.Integracoes.Resend;
 using AvaliaSales.Infrastructure.Integracoes.Turnstile;
+using AvaliaSales.Infrastructure.Seguranca;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -46,6 +47,9 @@ public static class InjecaoDeDependencias
         servicos.AddScoped<CaixaDeEntrada>();
         servicos.AddOptions<OpcoesDaPlataforma>().BindConfiguration(OpcoesDaPlataforma.Secao).ValidateDataAnnotations().ValidateOnStart();
         servicos.AddOptions<OpcoesDoCadastro>().BindConfiguration(OpcoesDoCadastro.Secao).ValidateDataAnnotations().ValidateOnStart();
+        servicos.AddOptions<OpcoesDeSeguranca>().BindConfiguration(OpcoesDeSeguranca.Secao).ValidateOnStart();
+        servicos.AddSingleton<IValidateOptions<OpcoesDeSeguranca>, ValidadorDasOpcoesDeSeguranca>();
+        servicos.AddSingleton<ICifraDeEmails, CifraDeEmails>();
         servicos.AddScoped<ITransferenciaDeClientes, TransferenciaDeClientes>();
         servicos.AdicionarCasosDeUso();
 

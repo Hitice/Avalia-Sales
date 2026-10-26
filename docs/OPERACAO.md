@@ -395,8 +395,9 @@ formato, com o limite aplicado no servidor (`Application/Pagina.cs`):
   `proxima` é o número da próxima página, ou nulo na última.
 - Ordem total: o último critério é sempre o `Id`, para o Postgres não
   repetir nem pular item entre uma página e a outra quando o horário empata.
-- `busca` (texto livre) compara em minúsculas e com acento, como a de
-  clientes e a da auditoria já faziam; vale antes da página. O front manda o termo à API; a busca local da tabela fica ligada só
+- `busca` (texto livre) ignora caixa e acento ("otica" acha "Ótica"), pela função
+  `avalia_normalizar` do banco sobre a extensão `unaccent`, criada pela migration `BuscaSemAcento`
+  com o dono do banco; `%` e `_` valem como letra. Vale antes da página. O front manda o termo à API; a busca local da tabela fica ligada só
   em tabela que não é paginada (`<Table semBusca>` nas outras).
 - Rotas: `/vendas`, `/clientes`, `/carteira`, `/placas`, `/lotes`, `/pedidos`,
   `/chamados`, `/links`, `/servicos`, `/repasses`, `/razao` (os lançamentos
@@ -502,3 +503,35 @@ pendente: continua entrando e confirma pelo painel, como antes.
 Só no `.env` do VPS, fora do repositório. Troca de `JWT_CHAVE` derruba os
 tokens de acesso (15 minutos) e nada mais: o refresh fica no banco. Troca do
 segredo do webhook do Pagar.me pede o endereço novo no painel do Pagar.me.
+
+### Chave dos e-mails sensíveis
+
+`CHAVE_DOS_EMAILS` (variável `Seguranca__ChaveDosEmails` na API e no Worker)
+cifra o assunto e o texto dos e-mails com link de senha ou código de acesso
+enquanto esperam na fila (AES-256-GCM, nonce aleatório por linha). Tem de ser a
+mesma nos dois contêineres e ter 32 bytes em base64. Sem ela, a API e o Worker
+não sobem (o Compose também recusa o `up`). Só em Development e nos testes
+vale uma chave embutida.
+
+Gerar:
+
+```bash
+openssl rand -base64 32
+```
+
+Rotação, sem perder e-mail na fila:
+
+1. No `.env`, `CHAVE_ANTERIOR_DOS_EMAILS` recebe o valor atual e
+   `CHAVE_DOS_EMAILS` recebe a chave nova.
+2. Suba a API e o Worker juntos (`docker compose ... up -d api worker`). O que
+   já estava cifrado ainda abre pela anterior; o que entra agora usa a nova.
+3. Depois de 2 dias (a maior validade de link ou código) esvazie
+   `CHAVE_ANTERIOR_DOS_EMAILS` e suba de novo.
+
+Se o Worker não conseguir abrir um e-mail (chave diferente da API, ou chave
+perdida), o e-mail vai para falha definitiva com o conteúdo apagado e o log
+registra só o id; o usuário pede o link ou o código de novo. Conferir:
+
+```sql
+select count(*) from emails where ultimo_erro like 'Conteúdo cifrado%';
+```

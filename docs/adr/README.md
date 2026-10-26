@@ -28,3 +28,5 @@ apagada, ganha a situação Substituída e o número da que a substitui.
 | [0020](0020-mes-fechado-garantido-no-banco.md) | Mês fechado garantido no banco, com a linha atrasada passada ao mês corrente | Aceita |
 | [0021](0021-limite-e-conferencia-do-recebido-por-fora-na-auditoria.md) | Limite e conferência do recebido por fora guardados na auditoria | Aceita |
 | [0022](0022-cadastro-pendente-por-link-sem-senha-no-cadastro.md) | Cadastro pendente por link, sem senha no cadastro | Aceita |
+| [0023](0023-busca-sem-acento-pela-extensao-unaccent.md) | Busca sem acento pela extensão unaccent | Aceita |
+| [0024](0024-email-sensivel-cifrado-em-repouso.md) | E-mail sensível cifrado em repouso | Aceita |

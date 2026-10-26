@@ -213,10 +213,10 @@ public sealed class ApiDeTeste : IAsyncLifetime
     /// Os serviços do Worker sobre o mesmo banco, com o Pagar.me e a D4Sign
     /// trocados por falsos e o relógio controlado pelo teste.
     /// </summary>
-    public ServiceProvider AmbienteDoWorker(GatewayFalso gateway, AssinaturaFalsa assinatura, TimeProvider? relogio = null, Application.Erp.IErp? erp = null, Application.Avisos.IEnvioDeEmail? email = null)
+    public ServiceProvider AmbienteDoWorker(GatewayFalso gateway, AssinaturaFalsa assinatura, TimeProvider? relogio = null, Application.Erp.IErp? erp = null, Application.Avisos.IEnvioDeEmail? email = null, IEnumerable<KeyValuePair<string, string?>>? configuracaoExtra = null)
     {
         var configuracao = new ConfigurationBuilder()
-            .AddInMemoryCollection(Integracoes.Append(new("ConnectionStrings:Banco", ConexaoDaAplicacao)))
+            .AddInMemoryCollection(Integracoes.Append(new("ConnectionStrings:Banco", ConexaoDaAplicacao)).Concat(configuracaoExtra ?? []))
             .Build();
         var servicos = new ServiceCollection();
         servicos.AddSingleton<IConfiguration>(configuracao);

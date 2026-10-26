@@ -24,7 +24,7 @@ public sealed partial class ConfirmacaoDeEmailTest(ApiDeTeste api)
         var revendedor = await banco.Texto($"select revendedor_id from usuarios where email = '{email}'");
         Assert.Empty(await Donos(Guid.Parse(revendedor)));
 
-        var token = TokenDoCadastro(await banco.Texto($"select texto from emails where para = '{email}' order by criado_em desc limit 1"));
+        var token = TokenDoCadastro((await banco.UltimoEmail(email)).Texto);
         await cliente.Postar("/auth/email", new { token }, HttpStatusCode.UnprocessableEntity);
         Assert.Empty(await Donos(Guid.Parse(revendedor)));
         var entrou = await cliente.Postar("/auth/senha", new { token, senha = "senha-escolhida-123" });
@@ -45,7 +45,7 @@ public sealed partial class ConfirmacaoDeEmailTest(ApiDeTeste api)
         Assert.Equal(HttpStatusCode.OK, (await cliente.GetAsync("/conta/segundo-fator", Ct)).StatusCode);
 
         await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
-        var token = Token(await banco.Texto($"select texto from emails where para = '{email}' order by criado_em desc limit 1"));
+        var token = Token((await banco.UltimoEmail(email)).Texto);
         await cliente.Postar("/auth/email", new { token }, HttpStatusCode.NoContent);
         var renovado = await cliente.Postar("/auth/renovar", new { });
         cliente.DefaultRequestHeaders.Authorization = new("Bearer", renovado.GetProperty("token").GetString());
@@ -59,12 +59,12 @@ public sealed partial class ConfirmacaoDeEmailTest(ApiDeTeste api)
         var email = await api.CriarDonoSemConfirmar("Revenda Reenvio Email");
         var cliente = await api.ClienteLogado(email);
         await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
-        var primeiro = Token(await banco.Texto($"select texto from emails where para = '{email}' order by criado_em desc limit 1"));
+        var primeiro = Token((await banco.UltimoEmail(email)).Texto);
 
         await cliente.Postar("/conta/email/confirmacao", new { }, HttpStatusCode.UnprocessableEntity);
         await PassarUmMinuto(banco, email);
         await cliente.Postar("/conta/email/confirmacao", new { }, HttpStatusCode.NoContent);
-        var segundo = Token(await banco.Texto($"select texto from emails where para = '{email}' order by criado_em desc limit 1"));
+        var segundo = Token((await banco.UltimoEmail(email)).Texto);
 
         await cliente.Postar("/auth/email", new { token = primeiro }, HttpStatusCode.UnprocessableEntity);
         await cliente.Postar("/auth/email", new { token = segundo }, HttpStatusCode.NoContent);
@@ -77,7 +77,7 @@ public sealed partial class ConfirmacaoDeEmailTest(ApiDeTeste api)
         var email = await api.CriarDonoSemConfirmar("Revenda Codigo");
         var cliente = await api.ClienteLogado(email);
         await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
-        var codigo = Codigo(await banco.Texto($"select assunto from emails where para = '{email}' order by criado_em desc limit 1"));
+        var codigo = Codigo((await banco.UltimoEmail(email)).Assunto);
         var errado = codigo == "000000" ? "111111" : "000000";
 
         for (var i = 0; i < 4; i++)
@@ -91,7 +91,7 @@ public sealed partial class ConfirmacaoDeEmailTest(ApiDeTeste api)
 
         var outro = await api.CriarDonoSemConfirmar("Revenda Codigo Errado");
         cliente = await api.ClienteLogado(outro);
-        var certo = Codigo(await banco.Texto($"select assunto from emails where para = '{outro}' order by criado_em desc limit 1"));
+        var certo = Codigo((await banco.UltimoEmail(outro)).Assunto);
         var invalido = certo == "000000" ? "111111" : "000000";
         for (var i = 0; i < 5; i++)
         {

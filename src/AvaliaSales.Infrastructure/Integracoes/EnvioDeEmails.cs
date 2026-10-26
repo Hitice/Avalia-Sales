@@ -12,7 +12,7 @@ namespace AvaliaSales.Infrastructure.Integracoes;
 /// mesmo e-mail chegam ao Resend com a mesma Idempotency-Key, e ele entrega
 /// uma vez só.
 /// </summary>
-public sealed partial class EnvioDeEmails(BancoDeDados banco, IEnvioDeEmail envio, TimeProvider relogio, ILogger<EnvioDeEmails> log)
+public sealed partial class EnvioDeEmails(BancoDeDados banco, IEnvioDeEmail envio, ICifraDeEmails cifra, TimeProvider relogio, ILogger<EnvioDeEmails> log)
 {
     public async Task<int> Executar(int lote, CancellationToken ct)
     {
@@ -35,8 +35,15 @@ public sealed partial class EnvioDeEmails(BancoDeDados banco, IEnvioDeEmail envi
             try
             {
                 var remetente = email.NomeDoRemetente is { } nome ? new RemetenteDoEmail(nome, email.ResponderPara, email.CorDaMarca) : null;
-                email.MarcarEnviado(await envio.Enviar(new MensagemDeEmail(email.Chave, email.Para, email.Assunto, email.Texto, remetente), ct), relogio.GetUtcNow());
+                var (assunto, texto) = email.Sensivel && cifra.EstaCifrado(email.Texto) ? cifra.Abrir(email.Chave, email.Texto) : (email.Assunto, email.Texto);
+                email.MarcarEnviado(await envio.Enviar(new MensagemDeEmail(email.Chave, email.Para, assunto, texto, remetente), ct), relogio.GetUtcNow());
                 enviados++;
+            }
+            catch (CifraDeEmailInvalidaException)
+            {
+                // Repetir não adianta e o log não leva o conteúdo: só o id.
+                LogCifraInvalida(log, email.Id);
+                email.FalharDefinitivamente("Conteúdo cifrado não abre com a chave configurada: confira Seguranca__ChaveDosEmails na API e no Worker.");
             }
             catch (IntegracaoException erro)
             {
@@ -49,6 +56,9 @@ public sealed partial class EnvioDeEmails(BancoDeDados banco, IEnvioDeEmail envi
 
         return enviados;
     }
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "E-mail {Id} cifrado não abriu com a chave configurada e foi descartado")]
+    private static partial void LogCifraInvalida(ILogger log, Guid id);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "E-mail {Id} não saiu e volta para a fila")]
     private static partial void LogFalha(ILogger log, Guid id, Exception erro);

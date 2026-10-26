@@ -95,7 +95,7 @@ public sealed class SessaoTest(ApiDeTeste api)
         Assert.Equal(HttpStatusCode.UnprocessableEntity, semEndereco.StatusCode);
 
         await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
-        var texto = await banco.Texto($"select texto from emails where para = '{email}' order by criado_em desc limit 1");
+        var texto = (await banco.UltimoEmail(email)).Texto;
         var token = System.Text.RegularExpressions.Regex.Match(texto, "/confirmar-cadastro#([A-Za-z0-9_-]{20,})").Groups[1].Value;
         var entrou = await cliente.PostAsJsonAsync("/auth/senha", new { token, senha = ApiDeTeste.Senha }, ct);
         var perfil = await entrou.Content.ReadFromJsonAsync<ApiDeTeste.TokenLido>(ct);

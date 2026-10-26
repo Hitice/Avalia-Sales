@@ -54,7 +54,7 @@ public sealed partial class SegundoFatorTest(ApiDeTeste api)
 
         await dono.Postar("/conta/segundo-fator/desligar/codigo", new { }, HttpStatusCode.NoContent);
         await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
-        var assunto = await banco.Texto($"select assunto from emails where para = '{email}' and assunto like 'Código de acesso%' order by criado_em desc limit 1");
+        var assunto = (await banco.Emails(email)).First(e => e.Assunto.StartsWith("Código de acesso", StringComparison.Ordinal)).Assunto;
         var codigo = System.Text.RegularExpressions.Regex.Match(assunto, @"\d{6}").Value;
 
         await dono.Postar("/conta/segundo-fator/desligar", new { codigo }, HttpStatusCode.NoContent);
@@ -70,7 +70,7 @@ public sealed partial class SegundoFatorTest(ApiDeTeste api)
         var anonimo = api.Fabrica.CreateClient();
         await anonimo.Postar("/auth/senha/link", new { email }, HttpStatusCode.NoContent);
         await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
-        var texto = await banco.Texto($"select texto from emails where para = '{email}' order by criado_em desc limit 1");
+        var texto = (await banco.UltimoEmail(email)).Texto;
         var token = LinkDaSenha().Match(texto).Groups[1].Value;
 
         var resposta = await anonimo.PostAsJsonAsync("/auth/senha", new { token, senha = "senha-nova-com-2fa" }, Ct);

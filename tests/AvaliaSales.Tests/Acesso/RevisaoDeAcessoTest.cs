@@ -70,7 +70,7 @@ public sealed class RevisaoDeAcessoTest(ApiDeTeste api)
         }
 
         await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
-        Assert.Equal(1, await banco.Contar($"select count(*) from emails where para = '{email}' and assunto = 'Trocar a senha'"));
+        Assert.Equal(1, (await banco.Emails(email)).Count(e => e.Assunto == "Trocar a senha"));
     }
 
     /// <summary>O link de troca de senha vale uma vez, também quando usado em paralelo.</summary>
@@ -80,7 +80,7 @@ public sealed class RevisaoDeAcessoTest(ApiDeTeste api)
         var (_, email) = await api.CriarRevendedor("Revenda Link Paralelo");
         await api.Fabrica.CreateClient().Postar("/auth/senha/link", new { email }, HttpStatusCode.NoContent);
         await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
-        var texto = await banco.Texto($"select texto from emails where para = '{email}' order by criado_em desc limit 1");
+        var texto = (await banco.UltimoEmail(email)).Texto;
         var token = System.Text.RegularExpressions.Regex.Match(texto, @"/senha#([A-Za-z0-9_-]{20,})").Groups[1].Value;
         Assert.NotEmpty(token);
 

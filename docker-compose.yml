@@ -17,6 +17,9 @@ x-integracoes: &integracoes
   Resend__ChaveApi: ${RESEND_CHAVE_API:-}
   Resend__Remetente: ${RESEND_REMETENTE:-}
   Resend__ResponderPara: ${RESEND_RESPONDER_PARA:-}
+  # Igual na API e no Worker: cifra assunto e texto dos e-mails com link de senha ou código na fila.
+  Seguranca__ChaveDosEmails: ${CHAVE_DOS_EMAILS:?defina CHAVE_DOS_EMAILS no .env, 32 bytes em base64 (openssl rand -base64 32)}
+  Seguranca__ChaveAnteriorDosEmails: ${CHAVE_ANTERIOR_DOS_EMAILS:-}
   Google__ChaveDoServidor: ${GOOGLE_CHAVE_DO_SERVIDOR:-}
   Protheus__UrlBase: ${PROTHEUS_URL_BASE:-}
   Protheus__Usuario: ${PROTHEUS_USUARIO:-}

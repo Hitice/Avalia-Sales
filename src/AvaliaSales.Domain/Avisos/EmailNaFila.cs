@@ -112,6 +112,15 @@ public sealed class EmailNaFila
         CorDaMarca = cor is { Length: 7 } && cor[0] == '#' && cor[1..].All(Uri.IsHexDigit) ? cor.ToLowerInvariant() : null;
     }
 
+    /// <summary>Falha que repetir não resolve (chave de cifra errada): sai da fila sem nova tentativa e o conteúdo some do banco.</summary>
+    public void FalharDefinitivamente(string erro)
+    {
+        Tentativas = TentativasMaximas;
+        UltimoErro = erro.Length > 500 ? erro[..500] : erro;
+        ProximaTentativaEm = null;
+        LimparConteudo();
+    }
+
     public void RegistrarFalha(string erro, DateTimeOffset agora)
     {
         Tentativas++;

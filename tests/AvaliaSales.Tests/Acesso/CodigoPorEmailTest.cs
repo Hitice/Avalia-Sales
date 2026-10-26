@@ -51,7 +51,7 @@ public sealed partial class CodigoPorEmailTest(ApiDeTeste api)
     private async Task<string> UltimoCodigo(string email)
     {
         await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
-        var assunto = await banco.Texto($"select assunto from emails where para = '{email}' and assunto like 'Código de acesso%' order by criado_em desc limit 1");
+        var assunto = (await banco.Emails(email)).First(e => e.Assunto.StartsWith("Código de acesso", StringComparison.Ordinal)).Assunto;
         return Codigo().Match(assunto).Value;
     }
 
