@@ -33,11 +33,15 @@ async function preencher(usuario: ReturnType<typeof userEvent.setup>) {
   await usuario.type(screen.getByLabelText('E-mail'), 'ana@revenda.dev')
 }
 
+// O formulário tem onze campos e ~120 teclas. Sem a pausa entre teclas (delay: null) e com folga de tempo, o teste
+// não depende da velocidade do executor: no CI, com o Chromium das histórias em paralelo, ele passou de 5 s.
+const TEMPO_DO_PREENCHIMENTO = 20_000
+
 describe('TelaDeCadastro', () => {
   it('não pede senha, manda o cadastro e passa ao aviso de verificar o e-mail', async () => {
     const fetch = vi.fn((url: string) => Promise.resolve(url.startsWith('/api/cadastro/') ? resposta(404) : resposta(202, { mensagem: 'Enviamos um e-mail para continuar.' })))
     vi.stubGlobal('fetch', fetch)
-    const usuario = userEvent.setup()
+    const usuario = userEvent.setup({ delay: null })
     render(<MemoryRouter><TelaDeCadastro /></MemoryRouter>)
 
     expect(screen.queryByLabelText('Senha')).not.toBeInTheDocument()
@@ -50,11 +54,11 @@ describe('TelaDeCadastro', () => {
     const corpo = JSON.parse(envio[1].body as string) as Record<string, unknown>
     expect(corpo).toMatchObject({ cnpj: '13186091000143', email: 'ana@revenda.dev', celular: '11987654321' })
     expect(corpo).not.toHaveProperty('senha')
-  })
+  }, TEMPO_DO_PREENCHIMENTO)
 
   it('mostra a recusa da API no formulário e mantém o que foi digitado', async () => {
     vi.stubGlobal('fetch', vi.fn((url: string) => Promise.resolve(url.startsWith('/api/cadastro/') ? resposta(404) : resposta(503, { detail: 'Recebemos muitos cadastros agora. Tente de novo mais tarde.' }))))
-    const usuario = userEvent.setup()
+    const usuario = userEvent.setup({ delay: null })
     render(<MemoryRouter><TelaDeCadastro /></MemoryRouter>)
 
     await preencher(usuario)
@@ -62,7 +66,7 @@ describe('TelaDeCadastro', () => {
 
     expect(await screen.findByText('Recebemos muitos cadastros agora. Tente de novo mais tarde.')).toBeInTheDocument()
     expect(screen.getByLabelText('E-mail')).toHaveValue('ana@revenda.dev')
-  })
+  }, TEMPO_DO_PREENCHIMENTO)
 })
 
 describe('VerifiqueSeuEmail', () => {
