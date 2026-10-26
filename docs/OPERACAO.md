@@ -184,15 +184,16 @@ o workflow compila de novo.
   Senha errada ou arquivo corrompido falha com `bad decrypt`. O `.dump`
   resultante restaura como qualquer outro, com `pg_restore` (abaixo).
 - Cópia na hora: `docker compose -f docker-compose.producao.yml --env-file /srv/avalia-sales/.env exec backup sh /backup.sh agora`.
-- Teste a restauração todo mês, num banco à parte:
+- Teste a restauração todo mês, num banco à parte. Na pasta do checkout, com o dump mais novo de
+  `/srv/avalia-sales/backups` (a linha imprime as contagens entre `CONTAGEM` e `FIM`; todas devem ser
+  maiores que zero e sem erro de tabela antes delas):
 
   ```bash
-  docker compose -f docker-compose.producao.yml --env-file /srv/avalia-sales/.env exec postgres \
-    sh -c 'createdb -U avalia_dono ensaio && pg_restore -U avalia_dono -d ensaio /backups/<arquivo>.dump'
+  C="docker compose -f docker-compose.producao.yml --env-file /srv/avalia-sales/.env"; $C cp /srv/avalia-sales/backups/<arquivo>.dump postgres:/tmp/e.dump && $C exec -T postgres sh -c "createdb -U avalia_dono ensaio && pg_restore -U avalia_dono -d ensaio --no-owner /tmp/e.dump 2>&1 | tail -3; echo CONTAGEM; psql -U avalia_dono -d ensaio -Atc \"select (select count(*) from lancamentos), (select count(*) from vendas), (select count(*) from revendedores)\"; dropdb -U avalia_dono ensaio; rm -f /tmp/e.dump; echo FIM"
   ```
 
-  (monte a pasta de backup no `postgres` para esse ensaio ou copie o arquivo
-  para dentro com `docker compose cp`).
+  Só o banco `ensaio` e o arquivo temporário são apagados; a produção não é tocada. Ensaiado em
+  26/10/2026 com o dump das 02:57Z: 53 lançamentos, 53 vendas, 1 revendedor, sem erro.
 - Restaurar a produção: pare `api`, `worker` e `nginx`, recrie o banco a
   partir do dump com `pg_restore --clean --if-exists`, e suba de novo.
 
