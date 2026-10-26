@@ -748,15 +748,17 @@ public sealed class Vendas(
             v.Cortesia,
             Pagamento = banco.Cobrancas.Where(k => k.Origem == OrigemDaCobranca.Venda && k.OrigemId == (v.GrupoId ?? v.Id))
                 .OrderByDescending(k => k.CriadaEm).ThenByDescending(k => k.Id).Select(k => (SituacaoDaCobranca?)k.Situacao).FirstOrDefault(),
+            // Venda trazida do sistema anterior não tem cobrança aqui: o histórico lança a receita dela no razão, com a própria venda de origem.
+            PagaNoAnterior = v.DoSistemaAnterior && banco.Lancamentos.Any(l => l.OrigemId == v.Id && l.Tipo == TipoDeLancamento.Receita && l.EstornaId == null),
         });
         var soma = await comPagamento.GroupBy(_ => 1).Select(g => new
         {
             Total = g.Count(),
-            Pagas = g.Count(x => x.Pagamento == SituacaoDaCobranca.Paga),
-            ComissaoPaga = g.Where(x => x.Pagamento == SituacaoDaCobranca.Paga).Sum(x => x.ComissaoCents),
+            Pagas = g.Count(x => x.Pagamento == SituacaoDaCobranca.Paga || x.PagaNoAnterior),
+            ComissaoPaga = g.Where(x => x.Pagamento == SituacaoDaCobranca.Paga || x.PagaNoAnterior).Sum(x => x.ComissaoCents),
             NoMes = g.Count(x => x.Situacao == SituacaoDaVenda.Registrada && x.VendidaEm >= inicioDoMes),
-            Recebido = g.Where(x => x.Situacao == SituacaoDaVenda.Registrada && x.VendidaEm >= inicioDoMes && x.Pagamento == SituacaoDaCobranca.Paga).Sum(x => x.ValorCents),
-            Esperando = g.Where(x => x.Situacao == SituacaoDaVenda.Registrada && x.Pagamento != SituacaoDaCobranca.Paga && !x.Cortesia && x.ComissaoCents > 0).Sum(x => x.ComissaoCents),
+            Recebido = g.Where(x => x.Situacao == SituacaoDaVenda.Registrada && x.VendidaEm >= inicioDoMes && (x.Pagamento == SituacaoDaCobranca.Paga || x.PagaNoAnterior)).Sum(x => x.ValorCents),
+            Esperando = g.Where(x => x.Situacao == SituacaoDaVenda.Registrada && x.Pagamento != SituacaoDaCobranca.Paga && !x.PagaNoAnterior && !x.Cortesia && x.ComissaoCents > 0).Sum(x => x.ComissaoCents),
         }).SingleOrDefaultAsync(ct);
 
         var instantes = await consulta.Where(v => v.Situacao == SituacaoDaVenda.Registrada && v.VendidaEm >= inicioDaJanela).Select(v => v.VendidaEm).ToListAsync(ct);

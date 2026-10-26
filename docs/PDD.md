@@ -763,6 +763,7 @@ porque está impresso nas placas vendidas.
 
 | Data | Mudança |
 | --- | --- |
+| 26/10/2026 | Início, lista de Vendas e painel do vendedor contam como recebida a venda paga no sistema anterior, depois de o histórico lançar a receita dela no razão; antes, o Início mostrava só os pagamentos feitos pela plataforma e destoava do Financeiro. |
 | 26/10/2026 | Página /now no celular e no tablet - o banner das telas fica entre a chamada e a descrição; no computador continua ao lado do texto. |
 | 26/10/2026 | A renovação da placa é anual e só do revendedor: o vendedor não a pede nem a registra por fora (a ficha e a carteira dele não oferecem Renovar, e a API recusa com 403). A renovação deixa de gastar a cota diária de recebido por fora do vendedor. |
 | 26/10/2026 | A busca das listas paginadas (vendas, clientes, carteira, lotes, pedidos, chamados, links, serviços, repasses, razão, despesas, retiradas, revendedores, ERP e auditoria) volta a achar sem acento: "otica" acha "Ótica", "sao" acha "São João". |

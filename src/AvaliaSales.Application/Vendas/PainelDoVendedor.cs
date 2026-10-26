@@ -1,4 +1,5 @@
 using AvaliaSales.Domain.Acesso;
+using AvaliaSales.Domain.Financeiro;
 using AvaliaSales.Domain.Pagamentos;
 using AvaliaSales.Domain.Placas;
 using AvaliaSales.Domain.Vendas;
@@ -33,7 +34,7 @@ public sealed class PainelDoVendedor(IBancoDeDados banco, IUsuarioAtual usuario,
 {
     private static readonly TimeZoneInfo Brasilia = TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo");
 
-    /// <summary>Venda paga no mês de Brasília conta: venda registrada, sem cortesia, com a cobrança dela paga.</summary>
+    /// <summary>Venda paga no mês de Brasília conta: venda registrada, sem cortesia, com a cobrança dela paga ou, se veio do sistema anterior, com a receita lançada pelo histórico.</summary>
     public async Task<ResumoDoVendedor> Resumo(CancellationToken ct)
     {
         var agora = relogio.GetUtcNow();
@@ -43,7 +44,9 @@ public sealed class PainelDoVendedor(IBancoDeDados banco, IUsuarioAtual usuario,
         var pagas = await (
             from v in banco.Vendas.AsNoTracking()
             where v.VendidaEm >= inicio && v.Situacao == SituacaoDaVenda.Registrada && !v.Cortesia
-                && banco.Cobrancas.Any(c => c.Origem == OrigemDaCobranca.Venda && c.OrigemId == (v.GrupoId ?? v.Id) && c.Situacao == SituacaoDaCobranca.Paga)
+                && (banco.Cobrancas.Any(c => c.Origem == OrigemDaCobranca.Venda && c.OrigemId == (v.GrupoId ?? v.Id) && c.Situacao == SituacaoDaCobranca.Paga)
+                    // Venda paga no sistema anterior: sem cobrança aqui, com a receita lançada pelo histórico.
+                    || (v.DoSistemaAnterior && banco.Lancamentos.Any(l => l.OrigemId == v.Id && l.Tipo == TipoDeLancamento.Receita && l.EstornaId == null)))
             group v by v.VendedorId into g
             select new { VendedorId = g.Key, Vendas = g.Count(), ValorCents = g.Sum(v => v.ValorCents) }).ToListAsync(ct);
         var equipe = await banco.Vendedores.AsNoTracking().Where(v => v.Ativo).Select(v => new { v.Id, v.Nome, v.MetaMensalCents }).ToListAsync(ct);
