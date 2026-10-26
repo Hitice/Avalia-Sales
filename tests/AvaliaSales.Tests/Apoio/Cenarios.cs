@@ -12,6 +12,18 @@ public static class Cenarios
     /// Revenda com 10 placas ativadas, recebedor no Pagar.me e um produto de
     /// R$ 149,90. A taxa da Avalia é zero, como em produção; o teste da taxa passa outra.
     /// </summary>
+    /// <summary>
+    /// O pacote da quantidade, criado se ainda não existe. A quantidade do pacote é única e o banco é compartilhado entre os testes,
+    /// então dois testes que sortearam a mesma quantidade usam o mesmo pacote em vez de falhar.
+    /// </summary>
+    public static async Task<Guid> PacoteDaQuantidade(HttpClient operadora, int quantidade, long precoCents)
+    {
+        var existente = (await operadora.Pegar("/operadora/pacotes")).EnumerateArray().FirstOrDefault(p => p.GetProperty("quantidade").GetInt32() == quantidade);
+        return existente.ValueKind == JsonValueKind.Object
+            ? existente.GetProperty("id").GetGuid()
+            : (await operadora.Postar("/operadora/pacotes", new { quantidade, precoCents }, HttpStatusCode.Created)).GetProperty("id").GetGuid();
+    }
+
     public static async Task<Revenda> RevendaComEstoque(this ApiDeTeste api, string nome, int taxaAvaliaBps = 0)
     {
         var operadora = await api.ClienteLogado(await api.CriarOperadora());

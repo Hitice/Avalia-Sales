@@ -72,7 +72,7 @@ test('o Catálogo tem tela própria no menu, e a aba antiga de Vendas leva para 
   await page.goto('/painel/vendas?aba=catalogo')
   await expect(page).toHaveURL(/\/catalogo$/)
   await expect(page.getByRole('heading', { level: 1, name: 'Catálogo' })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Pedir placas' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Pedir placas' })).toBeVisible()
   await semViolacaoGrave(page)
 })
 

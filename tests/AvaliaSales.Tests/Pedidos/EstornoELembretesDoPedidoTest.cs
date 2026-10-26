@@ -25,9 +25,9 @@ public sealed class EstornoELembretesDoPedidoTest(ApiDeTeste api)
         var (_, email) = await api.CriarRevendedor(nome);
         var dono = await api.ClienteLogado(email);
         var quantidade = Random.Shared.Next(610, 690);
-        var pacote = await operadora.Postar("/operadora/pacotes", new { quantidade, precoCents = quantidade * 1_400L }, HttpStatusCode.Created);
+        var pacote = await Cenarios.PacoteDaQuantidade(operadora, quantidade, quantidade * 1_400L);
         var lote = await operadora.Postar("/operadora/lotes", new { quantidade }, HttpStatusCode.Created);
-        var pedido = (await dono.Postar("/pedidos", new { pacoteId = pacote.GetProperty("id").GetGuid() }, HttpStatusCode.Created)).GetProperty("id").GetGuid();
+        var pedido = (await dono.Postar("/pedidos", new { pacoteId = pacote }, HttpStatusCode.Created)).GetProperty("id").GetGuid();
         await operadora.Postar($"/operadora/pedidos/{pedido}/pagamento", new { }, HttpStatusCode.NoContent);
         return (operadora, dono, pedido, lote);
     }

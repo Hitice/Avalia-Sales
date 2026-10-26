@@ -1,5 +1,5 @@
 import { type Browser, expect, test } from '@playwright/test'
-import { CLIENTE_A, CLIENTE_B, OPERADOR, VENDEDOR_A, VENDEDOR_B, apiComo, cpfNovo, entrar } from './apoio'
+import { CLIENTE_A, CLIENTE_B, OPERADOR, VENDEDOR_A, VENDEDOR_B, apiComo, cpfNovo, entrar, pacoteDeDez } from './apoio'
 
 /** Um navegador por papel: computador para a operadora e a revenda, celular para a vendedora. */
 async function abrir(browser: Browser, email: string, celular = false) {
@@ -24,7 +24,10 @@ test('jornada entre operadora, revenda e vendedora, e cada um vê só o que é d
   const lote = (await operador.locator('tbody tr td:first-child').allInnerTexts()).find((r) => !antes.includes(r))!.trim()
   expect(lote).toMatch(/^LT-\d{4}$/)
 
-  // 2. A revenda A pede o pacote de 10.
+  // 2. A revenda A pede o pacote de 10 (o teste o cria, porque o produto não tem pacote de teste).
+  const api = await apiComo(OPERADOR)
+  await pacoteDeDez(api)
+  await api.dispose()
   const cliente = await abrir(browser, CLIENTE_A)
   await cliente.goto('/painel/pedidos')
   await expect(cliente.getByText('10 placas', { exact: true })).toBeVisible()
