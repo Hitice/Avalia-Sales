@@ -758,11 +758,10 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
   `PROTHEUS_USUARIO` e `PROTHEUS_SENHA` no `.env` de produção.
 - Placas da Avalia - desligar o módulo de vendas do sistema anterior. O
   repasse do `/q/` de lá continua para sempre.
-- Backup - cópia fora do VPS, criptografada, num bucket de armazenamento de
-  objetos (recomendado o Backblaze B2, com 10 GB sem custo), e ensaio
-  periódico de restauração.
-- SonarCloud - desligar a análise automática no painel do SonarCloud, para
-  valer só a análise do CI. Renovar o `SONAR_TOKEN` antes de 24/11/2026.
+- Backup - o envio ao bucket está pronto; falta gravar `S3_*` no `.env` do servidor
+  e conferir a primeira cópia no bucket. Ensaio periódico de restauração: baixar o
+  `.dump.enc` do bucket, decifrar e restaurar num banco à parte.
+- SonarCloud - renovar o `SONAR_TOKEN` antes de 24/11/2026.
 - Limite de memória e CPU por contêiner no Compose de produção, a definir com
   o tamanho do VPS.
 - Pacote inicial do front com 460 kB em 23/10/2026 (React, Router, Query, Zod
@@ -773,6 +772,7 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
 
 | Data | Mudança |
 | --- | --- |
+| 25/10/2026 | Cópia fora do VPS - `backup.sh` envia a cópia, criptografada com `BACKUP_SENHA`, a um bucket compatível com S3 (`S3_ENDPOINT`, `S3_BUCKET`, `S3_KEY_ID`, `S3_APP_KEY`; assinatura SigV4 pelo `curl`, ETag conferido com o MD5), apaga do bucket o que passou de `BACKUP_DIAS_NO_BUCKET` dias só depois de um envio conferido, e tem o modo `testar-bucket`. Falha do bucket não segura o Deploy. Testado contra o Cloudflare R2. |
 | 25/10/2026 | O Deploy repassa `TURNSTILE_CHAVE_SITE` (variável) e `TURNSTILE_CHAVE_SECRETA` (segredo) do ambiente `producao` ao Compose, sem passar pelo `.env` do servidor. |
 | 25/10/2026 | Paginação - toda rota GET de lista que cresce responde `{ itens, total, proxima }` (`Application/Pagina.cs`) com `pagina` e `tamanho` (padrão 50, máximo 100 aplicado no servidor, valor fora da faixa é corrigido), ordem total com `Id` no fim e `busca` aplicada antes da página (cortada em 100 caracteres); mensagens de chamado usam o cursor `antes`; resumos próprios em `/vendas/resumo`, `/operadora/chamados/resumo` e `?situacao=` em `/servicos`. `/placas` conta o estado no SQL; `PaginaDePlacas.placas` e `PaginaDeAuditoria.registros` viraram `itens`. A busca por acento não é equivalente à antiga (precisa da extensão `unaccent`, ainda não ligada). Front - `useListaPaginada`, `ListaPaginada` e `Paginacao` (`lib/paginacao.ts`, `componentes`), busca com atraso de 300 ms na API, chave de consulta por página, busca e filtro. Migration `IndicesDaPaginacao` (sete índices em `vendas`, `pedidos_placas`, `links`, `lancamentos`, `repasses` e `envios_ao_erp`). `PaginacaoTest`. |
 | 25/10/2026 | Cadastro pendente (ADR 0022) - `FinalidadeDoLink.CadastroPendente` marca o cadastro público não confirmado, sem coluna nova; `POST /cadastro` sem senha devolve 202 e `POST /cadastro/reenvio` devolve 204; `Cadastro` (Application) orquestra limites e situação, com `IContas` ampliado e `JanelaDeTentativas`; `IVerificadorDeCaptcha` em `VerificadorTurnstile` (`HttpClient` tipado, falha fechada, desligado sem `Turnstile__ChaveSecreta`); o Worker roda `LimpezaDeCadastros` a cada 10 minutos, separada da `LimpezaDeExpirados`; opções `Cadastro__*`, `Limites__CadastrosPorHoraPorIp`; a CSP do Nginx libera `challenges.cloudflare.com`; o front lê `VITE_TURNSTILE_CHAVE_SITE` no build. `CadastroPublicoTest`, `CadastroComCaptchaTest`, `VerificadorTurnstileTest`. |

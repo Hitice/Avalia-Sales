@@ -163,6 +163,12 @@ services:
       BACKUP_SENHA: ${BACKUP_SENHA:-}
       RESEND_CHAVE_API: ${RESEND_CHAVE_API:-}
       RESEND_REMETENTE: ${RESEND_REMETENTE:-}
+      # Cópia fora do VPS: qualquer bucket compatível com S3 (Cloudflare R2, Backblaze B2...). Exige BACKUP_SENHA.
+      S3_ENDPOINT: ${S3_ENDPOINT:-}
+      S3_BUCKET: ${S3_BUCKET:-}
+      S3_KEY_ID: ${S3_KEY_ID:-}
+      S3_APP_KEY: ${S3_APP_KEY:-}
+      BACKUP_DIAS_NO_BUCKET: ${BACKUP_DIAS_NO_BUCKET:-30}
     volumes:
       - ${PASTA_DE_BACKUP:-./backups}:/backups
     depends_on:

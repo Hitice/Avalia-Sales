@@ -154,9 +154,21 @@ o workflow compila de novo.
   `BACKUP_SENHA`. `BACKUP_SENHA` é obrigatória com `BACKUP_PARA`: sem ela o
   e-mail é desligado, com aviso no log, e a cópia no disco continua. Guarde a senha fora do
   VPS (gerenciador de senhas): perdida, as cópias por e-mail não abrem. O
-  arquivo no disco do VPS não é criptografado. O destino fora do VPS que fica é
-  um bucket de armazenamento de objetos, com o Backblaze B2 recomendado (10 GB
-  sem custo); pendente até o bucket existir (docs/SDD.md, seção 13).
+  arquivo no disco do VPS não é criptografado. O destino fora do VPS é o bucket descrito abaixo.
+- Cópia fora do VPS num bucket compatível com S3 (Cloudflare R2 ou Backblaze B2).
+  Com `S3_ENDPOINT`, `S3_BUCKET`, `S3_KEY_ID`, `S3_APP_KEY` e `BACKUP_SENHA` no `.env`,
+  cada cópia é criptografada (a mesma senha e o mesmo formato do anexo por e-mail),
+  enviada e conferida pelo ETag; só então o script apaga do bucket o que passou de
+  `BACKUP_DIAS_NO_BUCKET` dias (30). Sem `BACKUP_SENHA` nada vai ao bucket, e falha do
+  bucket aparece no log e não segura o deploy. Teste a conexão sem dado de cliente:
+
+  ```bash
+  docker compose -f docker-compose.producao.yml --env-file /srv/avalia-sales/.env exec backup sh /backup.sh testar-bucket
+  ```
+
+  No R2 crie o bucket e um token de API de leitura e escrita restrito a ele; o endereço
+  é `https://<account-id>.r2.cloudflarestorage.com`. Para restaurar, baixe o `.dump.enc`
+  do painel do bucket e use o `openssl enc -d` abaixo.
 - O `backup.sh` grava em `.parcial` e só renomeia depois que o
   `pg_restore --list` lê o arquivo e acha os dados de `lancamentos`. Cópia
   cortada ou vazia sai com erro e não apaga as anteriores.
