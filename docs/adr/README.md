@@ -31,3 +31,6 @@ apagada, ganha a situação Substituída e o número da que a substitui.
 | [0023](0023-busca-sem-acento-pela-extensao-unaccent.md) | Busca sem acento pela extensão unaccent | Aceita |
 | [0024](0024-email-sensivel-cifrado-em-repouso.md) | E-mail sensível cifrado em repouso | Aceita |
 | [0025](0025-livro-da-operadora-e-leitura-restrita-do-grupo.md) | Livro da operadora e leitura restrita das revendas do grupo | Aceita |
+| [0026](0026-limite-diario-de-destinos-e-lista-de-destinos-bloqueados.md) | Limite diário de destinos e lista de destinos bloqueados | Aceita |
+| [0027](0027-segundo-fator-obrigatorio-nas-acoes-de-dinheiro-da-operadora.md) | Segundo fator obrigatório nas ações de dinheiro da operadora | Aceita |
+| [0028](0028-acerto-do-que-a-revenda-deve-por-venda-recebida-por-fora.md) | Acerto do que a revenda deve por venda recebida por fora | Aceita |

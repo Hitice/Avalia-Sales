@@ -33,9 +33,10 @@ Termos usados neste documento:
 - Revendedor - o papel do dono da revenda. A interface mostra "Revendedor";
   o valor interno do papel é `Dono`.
 
-A plataforma tem uma operadora só. A Avalia também é uma revenda, com o mesmo
-peso de qualquer outra: mesmo fluxo, mesma taxa, usuários separados dos da
-operadora. Nenhuma regra pergunta se a revenda é a Avalia. Para o resultado
+A plataforma tem uma operadora só, a Avalia. A revenda Avalia vende como
+qualquer outra, com o mesmo peso: mesmo fluxo, mesma taxa, usuários separados
+dos da operadora e CNPJ próprio (39.914.870/0001-01), distinto do da operadora.
+Nenhuma regra pergunta se a revenda é a Avalia. Para o resultado
 da empresa, a operadora marca no cadastro as revendas que são do mesmo grupo
 dela (seção 7.5); a marca é decisão dela e não sai do CNPJ nem do nome.
 
@@ -58,7 +59,7 @@ dela (seção 7.5); a marca é decisão dela e não sai do CNPJ nem do nome.
   leva placa). Só a placa é comprada no atacado.
 - Pacotes de placas - configuráveis pela operadora. Hoje, 20, 50 e 100 placas
   a R$ 23,90, R$ 16,90 e R$ 13,90 a placa (R$ 478,00, R$ 845,00 e
-  R$ 1.390,00), e um de 10 para o teste da revenda Avalia. O preço do pacote
+  R$ 1.390,00). O preço do pacote
   cobre a produção e a margem da Avalia.
 - Parte da Avalia no serviço - a revenda compra o serviço com desconto sobre o
   preço sugerido (20% em todos), e a Avalia recebe o resto do sugerido pelo
@@ -89,9 +90,9 @@ dela (seção 7.5); a marca é decisão dela e não sai do CNPJ nem do nome.
 3. Pedido - "Pedir placas" no Catálogo ou em Pedidos: pacote e cupom
    opcional, pago antes do envio pelo checkout do Pagar.me.
 4. Envio - a Avalia recebe o pedido por e-mail, no sino e na fila, marca em
-   produção e despacha um lote da mesma quantidade, pelo envio ou para
-   retirada na Avalia. O revendedor recebe o e-mail e a notificação com o
-   número do lote.
+   produção e despacha um lote da mesma quantidade, pelo envio (com a
+   transportadora e o código de rastreio) ou para retirada na Avalia. O
+   revendedor recebe o e-mail e a notificação com o número do lote.
 5. Ativação - o revendedor digita o número do lote (LT-0001, lt 1 ou 1). As
    placas entram no estoque com o custo do pacote, e o pedido fica entregue.
 6. Equipe - cadastro dos vendedores, da comissão e da meta de cada um.
@@ -121,33 +122,31 @@ maiúscula ("otica" acha "Ótica").
 | Tela | Quem usa | O que faz |
 | --- | --- | --- |
 | Entrada, cadastro e senha | Todos | Entrar, cadastrar a revenda (o CNPJ preenche razão social e endereço), confirmar o e-mail, criar e recuperar a senha. Senha com o botão de mostrar. No pé da entrada, os logos do Pagar.me e da Stone |
-| Meus dados | Todos | No menu da conta. Nome de todos; nome da empresa, celular e endereço da revenda (o CNPJ é o do contrato e não muda); telefone e chave Pix do vendedor; troca de senha. O revendedor encerra a conta aqui. O e-mail muda pelo Suporte |
-| Segurança | Revendedor e operadora | Segundo fator por app autenticador ou por código no e-mail, com códigos de recuperação. A tela convida a ligar o fator |
+| Meus dados | Todos | No menu da conta. Só dados pessoais: nome de todos; nome da empresa, celular e endereço da revenda (o CNPJ é o do contrato; só a operadora o corrige); telefone e chave Pix do vendedor. O e-mail muda pelo Suporte |
+| Segurança | Todos | Troca de senha, para todos os papéis, e o segundo fator por app autenticador ou por código no e-mail, com códigos de recuperação, para o revendedor e a operadora. A tela convida a ligar o fator |
 | Notificações | Todos | O sino do cabeçalho. Pendências da revenda (contrato, recebimento, celular, endereço, distrato) e avisos ao vivo; o vendedor vê os dele (venda paga, venda cancelada, comissão repassada, placas com ele) |
 
 ### Revenda
 
 | Tela | Quem usa | Pensada para | O que faz |
 | --- | --- | --- | --- |
-| Início do revendedor | Revendedor | Computador e celular | Quatro números do mês (placas em estoque, placas no ar, vendas e recebido), vendas por dia nos últimos 30 dias, para onde foi o dinheiro do mês (resultado, custo das placas, comissões e taxas) e as vendas de hoje com a situação |
+| Início do revendedor | Revendedor | Computador e celular | Quatro números do mês (placas em estoque, placas no ar, vendas e recebido), vendas por dia nos últimos 30 dias, o link para o Financeiro (onde está para onde foi o dinheiro do mês) e as vendas de hoje com a situação |
 | Início do vendedor | Vendedor | Celular | Vendas do mês, comissão a receber, esperando pagamento e recebida, placas com ele; meta do mês com a barra de progresso, ranking da equipe, vendas dos últimos 30 dias e a rosca da comissão |
 | Nova venda | Revendedor e vendedor | Celular | Itens (a placa abre a leitura do QR e o destino; o serviço entra com a quantidade, a partir do pedido mínimo), cliente, cobrança de tudo numa vez e gravação do NFC de cada placa |
 | Vendas | Revendedor e vendedor | Computador e celular | Lista das vendas, com a quantidade do serviço ("10x Kit Mesa") e as vendas feitas juntas marcadas. Ações - gerar cobrança, receber por fora, trocar a placa, corrigir valor e vendedor, cortesia e cancelamento. O vendedor vê só as dele |
-| Detalhe da venda | Revendedor e vendedor | Computador e celular | Aberto pelo nome do cliente na lista. Produto, placa, valor, vendedor, comissão (e se já foi repassada), vencimento, cancelamento com motivo; o cliente; o pagamento (situação, meio, valor, estornado, datas); os itens da mesma cobrança; as ordens de serviço; o Pix em aberto, para copiar ou mandar pelo WhatsApp; as linhas do razão, só para o revendedor. As ações são as da lista. O vendedor só abre a venda dele |
-| Ficha da placa | Revendedor e vendedor | Celular | Destino, vencimento, leituras dos últimos 30 dias, histórico e troca; a renovação só aparece para o revendedor |
-| Carteira | Revendedor e vendedor | Celular e computador | Placas vendidas com o vencimento e as leituras dos últimos 30 dias, com os botões Renovar (só o revendedor) e WhatsApp (mensagem pronta). O vendedor vê a dele e chama o cliente; o revendedor vê a da revenda inteira e renova |
-| Catálogo | Revendedor e vendedor | Computador e celular | Produtos da Avalia com foto, preço sugerido, pedido mínimo e o preço da revenda. O revendedor ajusta o preço e pede placas; Vender abre a Nova venda com o item. O vendedor não vê o custo |
+| Detalhe da venda | Revendedor e vendedor | Computador e celular | Aberto pelo nome do cliente na lista. Produto, placa, valor, vendedor, comissão (e se já foi repassada), vencimento, cancelamento com motivo; o cliente (o nome abre a ficha dele em Clientes; aqui ficam só o responsável e o telefone, e o aviso de que falta CNPJ ou CPF e e-mail para cobrar); o pagamento (situação, meio, valor, estornado, datas); os itens da mesma cobrança; as ordens de serviço; o Pix em aberto, para copiar ou mandar pelo WhatsApp; as linhas do razão, só para o revendedor. As ações são as da lista. O vendedor só abre a venda dele |
+| Ficha da placa | Revendedor e vendedor | Celular | Destino, vencimento, leituras dos últimos 30 dias, histórico e troca; o cliente (link para a ficha dele), o produto, a data da venda e o botão Ver a venda, que leva ao detalhe com valor, vendedor, comissão e pagamento; a renovação só aparece para o revendedor |
+| Carteira | Revendedor e vendedor | Celular e computador | Placas vendidas, com o nome do cliente (link para a ficha dele, só para o revendedor), o vencimento e as leituras dos últimos 30 dias, com os botões Renovar (só o revendedor) e WhatsApp (mensagem pronta). O vendedor vê a dele e chama o cliente; o revendedor vê a da revenda inteira e renova |
+| Catálogo | Revendedor e vendedor | Computador e celular | Produtos da Avalia com foto, preço sugerido, pedido mínimo e o preço da revenda. O revendedor ajusta o preço e vai a Pedidos pelo botão Pedir placas; Vender abre a Nova venda com o item. O vendedor não vê o custo |
 | Clientes | Revendedor | Computador | Clientes da revenda, cadastro antes da venda e a ficha do cliente - editar (com o lugar no Google, que põe no mapa), placas e vendas, juntar cadastro duplicado, excluir o que não tem venda, exportar e anonimizar (LGPD). A coluna Placas conta só placas em venda ativa |
 | Serviços | Revendedor e vendedor | Celular | Abas Link (link curto `/L/` de qualquer endereço colado), NFC (grava o link curto na tag), Maps (busca o negócio no Google e cria o link curto da avaliação) e Status (só o revendedor; as ordens dos serviços vendidos). O revendedor edita, desliga e exclui o link |
 | Mapa | Revendedor | Computador | Lugares vendidos no Google Maps, em tema escuro, com uma aba por cidade, aberto na que tem mais lugares |
 | Estoque | Revendedor (Minhas placas, para o vendedor) | Computador | Placas por situação, com filtro por vendedor; consignação ao vendedor; ativação, lista e arquivamento de lote; baixa de placa com motivo |
 | Pedidos | Revendedor | Computador | Pedidos de placas com a situação (aguardando pagamento, pago, em produção, enviado ou pronto para retirada, entregue) e o link de pagamento |
 | Equipe | Revendedor | Computador | Criar, editar, desativar e excluir vendedor, com CPF, comissão própria e meta do mês; convite por e-mail ou WhatsApp |
-| Comissões | Revendedor | Computador | Saldo de cada vendedor, repasse com comprovante (o botão aparece desligado, com o motivo, quando não há o que pagar) e o desfazer do último repasse |
-| Razão | Revendedor | Computador | Linhas do mês, com a coluna Condição para o estorno |
-| Financeiro | Revendedor | Celular e computador | Abas Resultado (DRE do mês, gráfico de para onde foi o dinheiro, despesas por categoria, recebido e resultado nos últimos 6 meses), Despesas e Sócios (sócios do contrato e retiradas), com criar, editar e excluir; fechar e reabrir o mês |
-| Configurações | Revendedor | Computador e celular | Comissão padrão, percentual da renovação (só leitura; quem define é a operadora) e o contrato de revenda (reenviar, conferir assinatura, baixar cópia) |
-| Marca | Revendedor | Computador | Logo com recorte (horizontal ou quadrado, arrastar e zoom), cores, nome exibido e cabeçalho branco ou na cor primária, com prévia nas cores escolhidas |
+| Comissões | Revendedor | Computador | Saldo de cada vendedor, a confirmação do dinheiro que o vendedor recebeu por fora, repasse com comprovante (o botão aparece desligado, com o motivo, quando não há o que pagar) e o desfazer do último repasse |
+| Financeiro | Revendedor | Celular e computador | Abas Resultado (DRE do mês, gráfico de para onde foi o dinheiro, despesas por categoria, recebido e resultado nos últimos 6 meses), Despesas, Sócios (sócios do contrato e retiradas) e Lançamentos (o razão do mês, com a coluna Condição para o estorno), com criar, editar e excluir; fechar e reabrir o mês |
+| Configurações | Revendedor | Computador e celular | Aba Geral - comissão padrão, percentual da renovação (só leitura; quem define é a operadora), o contrato de revenda (reenviar, conferir assinatura, baixar cópia) e o encerramento da conta. Aba Marca - logo com recorte (horizontal ou quadrado, arrastar e zoom), cores, nome exibido e cabeçalho branco ou na cor primária, com prévia nas cores escolhidas |
 | Auditoria | Revendedor | Computador | Quem mudou o quê, com antes e depois; busca por placa, cliente, vendedor ou ação; filtro pela ação, 20 por página e exportação em JSON |
 | Suporte | Revendedor | Computador e celular | Chamados com a Avalia, com o prazo de resposta |
 
@@ -155,16 +154,18 @@ maiúscula ("otica" acha "Ótica").
 
 | Tela | O que faz |
 | --- | --- |
-| Pedidos | Fila de pedidos de placas - produção e despacho do lote pelo envio ou para retirada |
+| Pedidos | Fila de pedidos de placas - produção, despacho do lote pelo envio (com transportadora e código de rastreio) ou para retirada, e estorno do pedido pago ainda não despachado |
 | Lotes | Geração e impressão de lotes com título e categoria, exclusão antes do primeiro download e arquivamento |
 | Pacotes e Cupons | Cadastro dos pacotes de placas e dos cupons |
 | Catálogo da Avalia | Cadastrar e editar produto, foto com recorte, preço sugerido, desconto da revenda (e a parte da Avalia que sai dele), pedido mínimo, ordem e situação |
 | Serviços | Fila de ordens de serviço - iniciar, entregar, cancelar e reabrir |
-| Revendedores | Revendas, recebedor no Pagar.me, percentual da renovação, contrato em papel, suspensão, encerramento, pedido de reabertura e a marca de revenda do grupo da operadora |
+| Revendedores | Revendas, nome e CNPJ, recebedor no Pagar.me, percentual da renovação, contrato em papel, suspensão, encerramento, pedido de reabertura, liberação de cadastros de destino do dia e a marca de revenda do grupo da operadora |
+| Fornecedores | Cadastro de quem produz e entrega para a operadora (gráfica, acrílico, confecção com dado variável, logística), com criar, editar, desativar e excluir |
+| Destinos bloqueados | Domínios que a plataforma recusa como destino de QR e de link curto, e que deixam de redirecionar |
 | Atendimento | Fila de chamados pelo prazo, com o atrasado em vermelho |
 | ERP | Envios ao Protheus e reenvio |
 | Auditoria da operadora | O que a operadora mudou na plataforma, com o que foi enviado, busca, 20 por página e exportação em JSON |
-| Resultado do grupo | Resultado do mês por revenda do grupo, operadora, eliminações e consolidado, a conciliação das eliminações, o recebido e ainda não reconhecido, a receita por revenda, as despesas da operadora, o custo de produção por lote e o fechamento do mês (seção 7.5) |
+| Resultado do grupo | Resultado do mês por revenda do grupo, operadora, eliminações e consolidado, a conciliação das eliminações, o recebido e ainda não reconhecido, a receita por revenda, o a acertar das vendas recebidas por fora, as despesas da operadora, o custo de produção por lote e o fechamento do mês (seção 7.5) |
 
 ### Público
 
@@ -198,6 +199,10 @@ maiúscula ("otica" acha "Ótica").
 - Segundo fator opcional para o revendedor e a operadora. Desativar pede um
   código novo enviado ao e-mail cadastrado; o código do app e os de
   recuperação também valem.
+- A conta da operadora precisa do segundo fator ligado para trocar o nome, o
+  CNPJ ou o recebedor de uma revenda, registrar pagamento por fora, estornar
+  pedido e registrar acerto. Trocar o recebedor avisa o dono da revenda no
+  sino e por e-mail (ADR 0027).
 - Vendedor convidado por e-mail cria a própria senha; o convite vale 24
   horas. O revendedor também pode mandar o link pelo WhatsApp.
 
@@ -216,8 +221,10 @@ maiúscula ("otica" acha "Ótica").
   pode pagar depois, e a comissão só conta quando ele paga.
 - A venda é gravada antes da cobrança. Pagar.me fora do ar não segura o
   vendedor: a venda fica registrada e a cobrança é gerada de novo pela lista.
-- Teste gratuito de 7 dias - escolhido na cobrança da Nova venda, só quando a
-  venda tem apenas placas. Não há cobrança na hora. Dois dias antes do fim, o
+- Teste gratuito de 7 dias - escolhido na cobrança da Nova venda, só para uma
+  placa de avaliação no Google e uma vez por cliente: quem já teve teste compra
+  com cobrança. Exige CNPJ ou CPF e e-mail do cliente, porque a cobrança sai
+  deles no fim. Não há cobrança na hora. Dois dias antes do fim, o
   revendedor e o vendedor são avisados. No fim, sem pagamento, a placa sai do
   ar e a venda mostra "teste vencido: receber ou devolver". Pago, a placa
   volta ao ar e os 12 meses contam do pagamento.
@@ -225,6 +232,13 @@ maiúscula ("otica" acha "Ótica").
   do Perfil da Empresa; o link colado vence a busca) ou link livre do cliente.
   Só http e https, com domínio, até 1.000 caracteres, e nunca o endereço de
   outra placa ou de outro link da plataforma.
+- Limite diário de destinos - cada revenda cadastra até 10 destinos novos por
+  dia (Brasília): placa vendida com destino, destino trocado, link curto criado
+  ou alterado. Passando disso, o dono usa Solicitar liberação, que abre um
+  chamado, e a operadora libera mais para aquele dia (ADR 0026).
+- Destinos bloqueados - a operadora bloqueia um domínio, e os subdomínios dele
+  também. Ninguém cria destino nele, e a placa ou o link que já apontava para
+  ele deixa de redirecionar e mostra "Endereço bloqueado", sem mexer na placa.
 - Só vende placa de lote ativado pela própria revenda. Código de outra revenda
   responde como inexistente, porque o código está impresso e qualquer um lê.
 - Placa consignada a um vendedor e vendida por outro vale para quem vendeu.
@@ -285,7 +299,12 @@ maiúscula ("otica" acha "Ótica").
   vendedor ou pelo revendedor, só sem Pix em aberto e sem pagamento. O razão
   recebe a venda como se o Pix tivesse caído, com a comissão devida. O que
   seria da Avalia pelo split (taxa e parte do serviço) fica "a acertar"; com
-  a taxa zero, a placa recebida por fora não deixa nada a acertar. Só o
+  a taxa zero, a placa recebida por fora não deixa nada a acertar. A
+operadora quita o a acertar de cada revenda em Resultado do grupo, na aba A
+acertar, registrando o que a revenda pagou por fora; o acerto não passa do
+devido e o distrato desconta o que já foi quitado (ADR 0028). O dinheiro que o
+vendedor recebeu em mãos só vira comissão em repasse depois de o revendedor
+confirmar, em Comissões, que ele chegou. Só o
   revendedor desfaz, e só antes do repasse da comissão. A renovação é anual e
   só do revendedor, o vendedor não renova; ela também se confirma por fora, na
   ficha da placa, depois de uma confirmação na tela, e vai à auditoria com quem
@@ -303,6 +322,15 @@ maiúscula ("otica" acha "Ótica").
   devolve o mesmo enquanto ele valer. Com link em aberto, o pedido não é
   cancelado, porque o dinheiro ainda pode entrar.
 - A operadora também pode registrar um pagamento recebido por fora.
+- Pagamento confirmado - o dono recebe um e-mail a cada pagamento que entra,
+  do pedido de placas e da venda, com o cliente, os itens e o valor.
+- Estorno do pedido - a operadora desfaz o pedido pago e ainda não despachado:
+  o pedido vira cancelado, o uso do cupom volta e os dois lados são avisados. A
+  devolução do dinheiro sai pelo painel do Pagar.me ou por fora. Depois do
+  despacho, não se estorna por aqui.
+- Lote despachado e não ativado - a revenda é lembrada a cada 7 dias, até 3
+  vezes, e aos 30 dias a operadora é avisada, porque a receita do pedido só
+  entra na ativação.
 - Situação do pedido - aguardando pagamento, pago, em produção, enviado ou
   pronto para retirada, entregue, ou cancelado.
 - Retirada - a operadora escolhe "Pronto para retirada" em vez de despachar;
@@ -361,6 +389,10 @@ maiúscula ("otica" acha "Ótica").
   em Revendedores, e ele vale para renovação nova; a revenda só lê.
 - Base da renovação - o valor da venda. Na cortesia e na venda de R$ 0, a
   tabela gravada na venda; sem ela, o preço de hoje do produto.
+- Aviso do vencimento - 30 e 7 dias antes, o dono e o vendedor que vendeu veem
+  o aviso no sino, e o cliente recebe e-mail em nome da revenda (se tem
+  e-mail), com o contato dela. Cada vencimento recebe cada aviso uma vez; a
+  renovação paga recomeça a série.
 - A renovação conta a partir do vencimento antigo, mesmo paga com atraso. Uma
   renovação em aberto por placa; pedir de novo devolve o mesmo Pix. Renova
   quem vendeu a placa ou o revendedor.
@@ -454,8 +486,8 @@ maiúscula ("otica" acha "Ótica").
   sozinha quem espera assinatura há mais de 30 minutos. Assinado, o
   revendedor recebe o aviso no sino. O mesmo vale para o distrato (conta
   encerrada ou distrato cancelado).
-- O termo do cliente final ainda não sai na venda: espera o texto jurídico
-  (seção 13).
+- O comprador não assina documento: o cliente final paga e usa a placa sem
+  termo na plataforma. Só a revenda assina com a Avalia.
 
 ### 6.13 Encerramento da conta (distrato)
 
@@ -650,6 +682,15 @@ segmento (CPC 22 / IFRS 8). O preço do pacote da revenda Avalia é o das outras
   é recusada.
 - Fechamento do mês da operadora - fecha mês que já acabou. Fechado, a despesa com data nele
   é recusada, e a correção entra no mês corrente. Reabrir pede o motivo.
+- Fornecedores - cadastro da operadora de quem produz e entrega: gráfica,
+  acrílico, confecção (a operadora atua em confecções porque a placa leva dado
+  variável, o QR de cada uma) e logística de entrega. Um fornecedor pode ter
+  mais de uma função. A despesa da operadora e o custo de lote apontam para
+  ele, e o despacho do pedido usa o de logística como transportadora.
+  Fornecedor com despesa ou custo apontando para ele não se exclui: desativa.
+- A acertar - o que cada revenda deve à Avalia pelas vendas recebidas por fora
+  (a taxa da plataforma e a parte da Avalia nos serviços, líquidas de estorno),
+  o que já quitou e o saldo. A quitação é caixa e não passa pelo resultado.
 - Custo de produção do lote - a operadora informa, por lote, o que a gráfica cobrou e o
   que o acrílico custou, com criar, editar e excluir. O custo por placa é o total dividido
   pela quantidade, para baixo. Lote despachado a um pedido e sem custo é pendência, e a tela
@@ -723,6 +764,9 @@ revenda leva o nome e a cor dela (seção 6.11).
   chamados, dentro da plataforma. O WhatsApp aparece só como link com a
   mensagem pronta (convite, Pix em aberto, renovação).
 - Domínio próprio por revenda. Todas usam o mesmo domínio.
+- Nota fiscal (NF-e e NFS-e): a plataforma ainda não emite nem coleta os dados
+  para ela. Hoje ninguém emite nota ao cliente final pela plataforma, e o
+  pedido de venda ao Protheus fica na fila. Entra quando a operação escalar.
 
 ## 11. A Avalia na plataforma
 
@@ -743,10 +787,10 @@ A Avalia vendia placas num módulo do sistema anterior (o Sales). Desde
 - Repasse - o do `/q/` pelo sistema anterior continua para sempre, porque as
   placas impressas apontam para avaliaone.com.br/q/. O próximo passo é
   desligar o módulo de vendas do sistema anterior.
-- Recebedor - a revenda Avalia recebe no mesmo recebedor da conta da Avalia
-  no Pagar.me: a cobrança vai numa regra só do split e há um saque só. O
-  pedido de placas dela tem o pagamento registrado pela operadora, sem passar
-  pelo Pagar.me.
+- Recebedor - a revenda Avalia recebe em recebedor próprio no Pagar.me,
+  separado do da conta da Avalia (seção 13). Até ele ser criado, vale o da
+  conta da Avalia, numa regra só do split. O pedido de placas dela tem o
+  pagamento registrado pela operadora, sem passar pelo Pagar.me.
 - Ferramentas (docs/OPERACAO.md) - reserva dos códigos de outro sistema,
   conversor do backup diário do Sales no arquivo de importação, importação de
   placas e de lotes de origem, com ensaio que só mostra os totais, e
@@ -804,7 +848,7 @@ porque está impresso nas placas vendidas.
 
 ## 13. Decisões de negócio
 
-Sem decisão em aberto. As duas últimas esperam a revisão jurídica.
+Sem decisão em aberto. A política de privacidade espera a revisão jurídica.
 
 | Decisão | Opções | Situação |
 | --- | --- | --- |
@@ -812,7 +856,9 @@ Sem decisão em aberto. As duas últimas esperam a revisão jurídica.
 | Comissão na renovação | Renovação sempre sem comissão ou comissão de renovação ligada pela revenda | Decidido: sem comissão. A opção de ligar não existe |
 | Custo real da placa no consolidado | Acompanhar a receita da venda em doze partes ou entrar inteiro no mês da venda | Decidido: doze partes, acompanhando a receita da venda, para custo e receita ficarem no mesmo período |
 | Tarifa do Pagar.me no consolidado | Guardar a tarifa no razão ou ler do extrato | Decidido: despesa mensal manual da operadora, na categoria "Tarifa do gateway", lançada com o valor do extrato do Pagar.me. O razão não guarda a tarifa por pagamento |
-| Texto do termo do cliente final | Rascunho ou revisão jurídica | Texto final escrito (modelo `termo-do-cliente.html`), a revisão jurídica ainda vai ocorrer. A venda ainda não gera o termo, e nenhum cliente assina até a revisão |
+| Termo do cliente final | Texto e assinatura do comprador ou nenhum documento | Decidido: o comprador não assina documento. O modelo do termo saiu da plataforma |
+| Nota fiscal | Emitir já ou quando a operação escalar | Decidido: depois. Hoje ninguém emite nota pela plataforma |
+| CNPJ da revenda Avalia | O mesmo da operadora ou outro | Decidido: outro, 39.914.870/0001-01. A operadora corrige nome e CNPJ em Revendedores, e `Plataforma__CnpjDaRevendaDaAvalia` leva o mesmo valor |
 | Política de privacidade | Texto | Texto final publicado em `/privacidade` (versão 1), a revisão jurídica ainda vai ocorrer |
 
 ## 14. Registro de mudanças
@@ -821,6 +867,10 @@ As mudanças de 21 a 24/10/2026 estão em [historico/pdd-ate-24-10.md](historico
 
 | Data | Mudança |
 | --- | --- |
+| 26/10/2026 | Cada tela com uma responsabilidade, sem dado repetido: o cliente tem a casa dele em Clientes (Venda, Ficha da placa e Carteira só o apontam); a venda, no Detalhe da venda (a Ficha da placa leva a ele); o razão virou a aba Lançamentos do Financeiro; a marca virou a aba Marca de Configurações, com o encerramento da conta; a senha foi para Segurança, que abre para todos os papéis; Pedir placas só em Pedidos; o Início deixou de repetir o gráfico do Financeiro. Em Comissões, o que era "conferir" passou a "confirmar o dinheiro" que o vendedor recebeu. |
+| 26/10/2026 | Fornecedores da operadora (cadastro com várias funções, ligado à despesa e ao custo de lote), transportadora e código de rastreio no despacho, estorno do pedido pago antes do despacho, lembrete de lote não ativado, a acertar das vendas recebidas por fora com registro de acerto (ADR 0028), aviso automático de vencimento da placa e e-mail de pagamento confirmado ao dono. |
+| 26/10/2026 | Limite de 10 destinos novos por dia por revenda, com Solicitar liberação e liberação da operadora, e lista de destinos bloqueados que também para de redirecionar o que já existia (ADR 0026). Segundo fator exigido na conta da operadora para trocar recebedor, CNPJ e registrar dinheiro (ADR 0027), com aviso ao dono na troca de recebedor. |
+| 26/10/2026 | Teste gratuito só para uma placa de avaliação no Google, uma vez por cliente e com CNPJ ou CPF e e-mail. Termo do cliente final e pacote de teste saem: o comprador não assina documento. Revenda Avalia com CNPJ próprio (39.914.870/0001-01), corrigido pela operadora em Revendedores. Nota fiscal fica fora do escopo até a operação escalar. |
 | 26/10/2026 | Decisões de negócio fechadas e seção 13 sem item em aberto; registro de mudanças de 21 a 24/10 movido para `docs/historico/`. |
 | 26/10/2026 | Política de privacidade publicada em `/privacidade` (versão 1), com link no rodapé da entrada e no cadastro. Modelo do termo do cliente final escrito, ainda não gerado pela venda. Categoria de despesa da operadora "Tarifa do gateway". Decididos: recebedor separado para a revenda Avalia, renovação sem comissão, custo da placa em doze partes e tarifa como despesa manual. |
 | 26/10/2026 | Início, lista de Vendas e painel do vendedor contam como recebida a venda paga no sistema anterior, depois de o histórico lançar a receita dela no razão; antes, o Início mostrava só os pagamentos feitos pela plataforma e destoava do Financeiro. |
