@@ -199,7 +199,16 @@ o workflow compila de novo.
 ## Reservar códigos e importar placas
 
 Os dois comandos servem a qualquer revendedor que já venda placas em outro
-sistema, como o Sales da Avalia. Rodam pelo contêiner da API:
+sistema, como o Sales da Avalia. Rodam pelo contêiner da API.
+
+Todo comando de manutenção que usa `run` (importação, `--completar-clientes`,
+`--lotes-de-origem`, `--conferir-pagarme`) deve levar `-T` e um `timeout`, por
+exemplo `timeout 600 docker compose ... run --rm -T ...`. O `run` com terminal
+anexado, se o terminal fecha ou perde a conexão, pode ficar girando a 60% a 70%
+da CPU por dias: em 24/10/2026 um `--completar-clientes --ensaio` esquecido
+fez a Hostinger limitar a VPS a 40% da CPU. Para achar e encerrar um desses:
+`ps -eo pid,etime,pcpu,args --sort=-pcpu | head`, depois
+`docker ps -a --filter "name=-run-" -q | xargs -r docker rm -f`.
 
 ```bash
 docker compose -f docker-compose.producao.yml --env-file /srv/avalia-sales/.env run --rm \
