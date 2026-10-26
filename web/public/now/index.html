@@ -146,7 +146,7 @@
           <tr><th scope="row">Telas</th><td>Blade, Alpine.js e Tailwind</td><td>React e TypeScript, com tipos gerados do contrato OpenAPI</td></tr>
           <tr><th scope="row">Banco de dados</th><td>MySQL</td><td>PostgreSQL com row-level security por revenda</td></tr>
           <tr><th scope="row">Hospedagem</th><td>Hospedagem compartilhada</td><td>Servidor próprio com Docker Compose, Nginx e TLS</td></tr>
-          <tr><th scope="row">Publicação</th><td>Script no servidor, disparado por cron após o push</td><td>GitHub Actions com testes, aprovação manual e health check</td></tr>
+          <tr><th scope="row">Publicação</th><td>Script no servidor, disparado por cron após o push</td><td>GitHub Actions com testes, análise do SonarCloud, aprovação manual e health check</td></tr>
         </tbody>
       </table>
     </div>
@@ -183,9 +183,9 @@
           <div class="aprofundar-corpo">
             <dl class="decisao">
           <div><dt>Contexto</dt><dd>O webhook do Pagar.me pode chegar repetido, fora de ordem ou forjado, e a rede pode cair no meio da cobrança.</dd></div>
-          <div><dt>Decisão</dt><dd>A cobrança é gravada antes de chamar o Pagar.me. O webhook só registra o evento. O Worker reconsulta a cobrança no gateway e trava a linha do evento (FOR UPDATE SKIP LOCKED) antes da baixa.</dd></div>
+          <div><dt>Decisão</dt><dd>A cobrança é gravada antes de chamar o Pagar.me, numa transação que recusa uma segunda cobrança viva da mesma venda. O webhook só registra o evento. O Worker reconsulta a cobrança no gateway e trava a linha do evento (FOR UPDATE SKIP LOCKED) antes da baixa. Uma vez por dia reconsulta também as cobranças pagas, para pegar estorno e chargeback feitos no painel do Pagar.me.</dd></div>
           <div><dt>Motivo</dt><dd>A venda só muda de situação pelo estado confirmado no Pagar.me, e o mesmo aviso não é aplicado duas vezes.</dd></div>
-          <div><dt>Evidência</dt><dd><p class="evidencia"><a href="https://github.com/Hitice/Avalia-Sales/blob/main/docs/adr/0004-cobranca-gravada-antes-de-chamar-o-pagar-me.md" rel="noopener">ADR 0004</a><a href="https://github.com/Hitice/Avalia-Sales/blob/main/docs/adr/0005-webhook-so-grava-o-worker-reconsulta-a-fonte.md" rel="noopener">ADR 0005</a><a href="https://github.com/Hitice/Avalia-Sales/blob/main/tests/AvaliaSales.Tests/Integracoes/FluxoDePagamentoTest.cs" rel="noopener">Testes do pagamento</a></p></dd></div>
+          <div><dt>Evidência</dt><dd><p class="evidencia"><a href="https://github.com/Hitice/Avalia-Sales/blob/main/docs/adr/0004-cobranca-gravada-antes-de-chamar-o-pagar-me.md" rel="noopener">ADR 0004</a><a href="https://github.com/Hitice/Avalia-Sales/blob/main/docs/adr/0005-webhook-so-grava-o-worker-reconsulta-a-fonte.md" rel="noopener">ADR 0005</a><a href="https://github.com/Hitice/Avalia-Sales/blob/main/tests/AvaliaSales.Tests/Integracoes/FluxoDePagamentoTest.cs" rel="noopener">Testes do pagamento</a><a href="https://github.com/Hitice/Avalia-Sales/blob/main/tests/AvaliaSales.Tests/Integracoes/ChargebackTest.cs" rel="noopener">Teste de chargeback</a></p></dd></div>
         </dl>
             <p class="no-fluxo"><a href="#venda">No fluxo: etapas 3 e 4</a></p>
           </div>
@@ -207,15 +207,31 @@
           </div>
         </details>
       </li>
+      <li id="d-idempotencia">
+        <h3>Gravação repetida responde igual, sem efeito duplo</h3>
+        <p>Toda gravação POST autenticada aceita Idempotency-Key: a mesma chave devolve a resposta gravada, sem cobrar nem lançar de novo.</p>
+        <details class="aprofundar">
+          <summary>Ver contexto e evidência</summary>
+          <div class="aprofundar-corpo">
+            <dl class="decisao">
+          <div><dt>Contexto</dt><dd>Duplo clique, rede lenta e nova tentativa do navegador reenviam a mesma gravação.</dd></div>
+          <div><dt>Decisão</dt><dd>Um middleware guarda a resposta por 24 horas, por usuário e rota. A mesma chave com outro corpo responde 422, e a execução simultânea responde 409. O front manda uma chave por chamada.</dd></div>
+          <div><dt>Motivo</dt><dd>Repetir o pedido não cobra, não comissiona e não envia e-mail duas vezes.</dd></div>
+          <div><dt>Evidência</dt><dd><p class="evidencia"><a href="https://github.com/Hitice/Avalia-Sales/blob/main/tests/AvaliaSales.Tests/Api/IdempotenciaTest.cs" rel="noopener">Testes de idempotência</a><a href="https://github.com/Hitice/Avalia-Sales/blob/main/docs/SDD.md" rel="noopener">SDD</a></p></dd></div>
+        </dl>
+            <p class="no-fluxo"><a href="#venda">No fluxo: etapa 3</a></p>
+          </div>
+        </details>
+      </li>
       <li id="d-migracao">
         <h3>Migração incremental a partir do sistema em Laravel/PHP</h3>
-        <p>Rotas trocadas uma a uma e dados importados numa transação, sem mudar o endereço das placas vendidas.</p>
+        <p>Rotas trocadas uma a uma, dados importados numa transação e virada concluída em 24/10/2026, sem mudar o endereço das placas vendidas.</p>
         <details class="aprofundar">
           <summary>Ver contexto e evidência</summary>
           <div class="aprofundar-corpo">
             <dl class="decisao">
           <div><dt>Contexto</dt><dd>O sistema anterior estava em uso, com placas impressas cujo endereço do QR Code não pode mudar.</dd></div>
-          <div><dt>Decisão</dt><dd>As rotas do sistema anterior passaram a redirecionar para a nova plataforma uma a uma (padrão strangler fig). Os dados foram convertidos a partir do backup e importados numa transação única, depois de um ensaio.</dd></div>
+          <div><dt>Decisão</dt><dd>As rotas do sistema anterior passaram a redirecionar para a nova plataforma uma a uma (padrão strangler fig). Os dados foram convertidos a partir do backup e importados numa transação única, depois de um ensaio. As placas estão hoje na plataforma, e o endereço antigo (/q/) repassa para o novo com 302, sem cache. O histórico financeiro das vendas também é importável, para a DRE dos meses de origem.</dd></div>
           <div><dt>Motivo</dt><dd>A operação continuou durante a troca, e uma importação com erro é desfeita por inteiro.</dd></div>
           <div><dt>Evidência</dt><dd><p class="evidencia"><a href="https://github.com/Hitice/Avalia-Sales/blob/main/docs/OPERACAO.md" rel="noopener">Operação</a><a href="https://github.com/Hitice/Avalia-Sales/blob/main/infra/migracao/converter_do_sales.py" rel="noopener">Conversor</a><a href="https://github.com/Hitice/Avalia-Sales/blob/main/src/AvaliaSales.Application/Importacao/Importacao.cs" rel="noopener">Importação</a></p></dd></div>
         </dl>
@@ -340,7 +356,7 @@
             <span class="passo-numero" aria-hidden="true">5</span>
             <span class="passo-texto"><strong>Divisão</strong>A plataforma calcula a parte da revenda, da operadora e a comissão do vendedor.</span>
           </button>
-          <p class="passo-tec">Valores em centavos no razão, split do Pagar.me por recebedor e comissão paga em repasse.</p>
+          <p class="passo-tec">Valores em centavos no razão, split do Pagar.me por recebedor e comissão paga em repasse. Caixa e DRE saem do razão, com a receita da placa reconhecida em 12 partes.</p>
         </li>
         <li>
           <button type="button" class="passo" data-ir="6" aria-pressed="false">
@@ -363,12 +379,12 @@
     <ul class="provas">
       <li>
         <h3>Testes automáticos</h3>
-        <p>347 testes da API (xUnit, contra PostgreSQL real), 116 do front (Vitest, com axe) e 16 cenários ponta a ponta (Playwright) no celular e no computador.</p>
+        <p>519 testes da API (xUnit, contra PostgreSQL real, com o papel e o RLS da produção), 223 do front (Vitest, com axe) e 25 cenários ponta a ponta (Playwright), no celular e no computador.</p>
         <a href="https://github.com/Hitice/Avalia-Sales/tree/main/tests/AvaliaSales.Tests" rel="noopener">Testes da API</a>
       </li>
       <li>
         <h3>Publicação controlada</h3>
-        <p>CI verde, aprovação manual, cópia do banco antes de subir e health check pelo domínio. Rollback por nova publicação do commit anterior.</p>
+        <p>CI verde, com análise do SonarCloud, aprovação manual, cópia do banco antes de subir e health check pelo domínio. Rollback por nova publicação do commit anterior.</p>
         <a href="https://github.com/Hitice/Avalia-Sales/blob/main/.github/workflows/deploy.yml" rel="noopener">Fluxo de publicação</a>
       </li>
       <li>
@@ -378,11 +394,16 @@
       </li>
       <li>
         <h3>Erros rastreados por versão</h3>
-        <p>Erros da API, do Worker e do navegador chegam ao Sentry marcados com o commit publicado.</p>
+        <p>Erros da API, do Worker e do navegador chegam ao Sentry marcados com o commit publicado. Monitor de disponibilidade em /api/health a cada 60 s e check-in do Worker a cada 5 minutos.</p>
       </li>
       <li>
         <h3>Segurança e dados pessoais</h3>
-        <p>Sessão curta com refresh rotativo, segundo fator, cartão tokenizado no navegador, auditoria das ações e anonimização do cliente.</p>
+        <p>Revisão em quatro frentes (autorização e isolamento, dinheiro e fila, sessão e entrada, front-end), com testes no repositório. Sessão curta com refresh rotativo, segundo fator, captcha no cadastro público e cartão tokenizado no navegador. Contato de cliente alheio sai mascarado para o vendedor.</p>
+      </li>
+      <li>
+        <h3>Cópia do banco fora do servidor</h3>
+        <p>Cópia diária cifrada (AES-256) para um bucket no Cloudflare R2, conferida pelo ETag, com retenção de 30 dias, e também por e-mail, cifrada. Só vale a cópia que o pg_restore consegue ler.</p>
+        <a href="https://github.com/Hitice/Avalia-Sales/blob/main/docs/OPERACAO.md" rel="noopener">Backup e restauração</a>
       </li>
     </ul>
 
@@ -392,19 +413,19 @@
         <caption class="vh">Integrações, uso e estado</caption>
         <thead><tr><th scope="col">Serviço</th><th scope="col">Uso</th><th scope="col">Estado</th></tr></thead>
         <tbody>
-          <tr><th scope="row"><span class="servico"><span class="ico ico-letra" aria-hidden="true">P</span>Pagar.me</span></th><td>Pix, cartão, split por recebedor e estorno total ou parcial</td><td><span class="estado estado-ok">Em produção</span></td></tr>
+          <tr><th scope="row"><span class="servico"><span class="ico ico-letra" aria-hidden="true">P</span>Pagar.me</span></th><td>Pix, cartão, marketplace com split por recebedor, estorno total ou parcial e webhook com reconsulta</td><td><span class="estado estado-ok">Em produção</span></td></tr>
           <tr><th scope="row"><span class="servico"><span class="ico i-resend" aria-hidden="true"></span>Resend</span></th><td>E-mails transacionais com fila e retentativa</td><td><span class="estado estado-ok">Em produção</span></td></tr>
           <tr><th scope="row"><span class="servico"><span class="ico i-googlemaps" aria-hidden="true"></span>Google Places API e Maps API</span></th><td>Localização do estabelecimento e mapa de vendas</td><td><span class="estado estado-ok">Em produção</span></td></tr>
           <tr><th scope="row"><span class="servico"><span class="ico ico-letra" aria-hidden="true">BR</span>BrasilAPI</span></th><td>Razão social e endereço por CNPJ e CEP</td><td><span class="estado estado-ok">Em produção</span></td></tr>
           <tr><th scope="row"><span class="servico"><span class="ico ico-letra" aria-hidden="true">PDF</span>Gotenberg</span></th><td>Contrato e distrato em PDF, num contêiner sem rede</td><td><span class="estado estado-ok">Em produção</span></td></tr>
-          <tr><th scope="row"><span class="servico"><span class="ico i-sentry" aria-hidden="true"></span>Sentry</span></th><td>Erros com a versão publicada</td><td><span class="estado estado-ok">Em produção</span></td></tr>
+          <tr><th scope="row"><span class="servico"><span class="ico i-sentry" aria-hidden="true"></span>Sentry</span></th><td>Erros com a versão publicada, monitor do site e do Worker</td><td><span class="estado estado-ok">Em produção</span></td></tr>
+          <tr><th scope="row"><span class="servico"><span class="ico ico-letra" aria-hidden="true">R2</span>Cloudflare R2</span></th><td>Cópia diária do banco, cifrada, fora do servidor</td><td><span class="estado estado-ok">Em produção</span></td></tr>
+          <tr><th scope="row"><span class="servico"><span class="ico ico-letra" aria-hidden="true">SC</span>SonarCloud</span></th><td>Análise de código e cobertura dos testes no CI</td><td><span class="estado estado-ok">No CI</span></td></tr>
           <tr><th scope="row"><span class="servico"><span class="ico ico-letra" aria-hidden="true">D4</span>D4Sign</span></th><td>Assinatura eletrônica do contrato de revenda</td><td><span class="estado estado-espera">Sandbox</span></td></tr>
           <tr><th scope="row"><span class="servico"><span class="ico i-totvs" aria-hidden="true"></span>Protheus</span></th><td>Pedido de placas pago gerado como pedido de venda no ERP</td><td><span class="estado estado-neutro">Standby/Endpoint</span></td></tr>
         </tbody>
       </table>
     </div>
-  </section>
-
   </section>
 
   <!-- Aprofundamento -->
@@ -416,7 +437,7 @@
     <ul class="leituras">
       <li><a href="https://github.com/Hitice/Avalia-Sales/blob/main/docs/PDD.md" rel="noopener"><strong>Regras do produto</strong><span>PDD: cada regra de venda, cobrança, comissão e placa</span></a></li>
       <li><a href="https://github.com/Hitice/Avalia-Sales/blob/main/docs/SDD.md" rel="noopener"><strong>Arquitetura</strong><span>SDD: camadas, tabelas, integrações e o registro de mudanças</span></a></li>
-      <li><a href="https://github.com/Hitice/Avalia-Sales/tree/main/docs/adr" rel="noopener"><strong>20 registros de decisão</strong><span>ADRs com contexto, opções e consequências</span></a></li>
+      <li><a href="https://github.com/Hitice/Avalia-Sales/tree/main/docs/adr" rel="noopener"><strong>22 registros de decisão</strong><span>ADRs com contexto, opções e consequências</span></a></li>
       <li><a href="https://github.com/Hitice/Avalia-Sales/blob/main/docs/OPERACAO.md" rel="noopener"><strong>Operação</strong><span>Instalação, publicação, volta de versão, backup e restauração</span></a></li>
       <li><a href="https://github.com/Hitice/Avalia-Sales/blob/main/web/openapi.json" rel="noopener"><strong>Contrato da API</strong><span>OpenAPI de onde saem os tipos do front</span></a></li>
       <li><a href="https://github.com/Hitice/Avalia-Sales" rel="noopener"><strong>Código-fonte</strong><span>Repositório completo no GitHub</span></a></li>
