@@ -34,17 +34,16 @@ if [ -n "${BACKUP_PARA:-}" ] && [ -z "${BACKUP_SENHA:-}" ]; then
 fi
 
 enviar() {
-  original="$1"
-  cifrado="$original.enc"
+  copia="$1"
+  anexo_cifrado="$copia.enc"
   # A senha vai pelo ambiente do openssl, e não pela linha de comando (visível em ps).
-  if ! openssl enc -aes-256-cbc -pbkdf2 -iter 600000 -salt -pass env:BACKUP_SENHA -in "$original" -out "$cifrado"; then
-    rm -f "$cifrado"
+  if ! openssl enc -aes-256-cbc -pbkdf2 -iter 600000 -salt -pass env:BACKUP_SENHA -in "$copia" -out "$anexo_cifrado"; then
+    rm -f "$anexo_cifrado"
     echo "criptografia da cópia falhou; nada foi enviado" >&2
     return 0
   fi
-  arquivo="$cifrado"
-  nome=$(basename "$arquivo")
-  tamanho=$(wc -c < "$arquivo")
+  nome=$(basename "$anexo_cifrado")
+  tamanho=$(wc -c < "$anexo_cifrado")
   dia=$(TZ=America/Sao_Paulo date +%d/%m/%Y)
   corpo=/tmp/email.json
   if [ "$tamanho" -le "$LIMITE_DO_ANEXO" ]; then
@@ -52,12 +51,12 @@ enviar() {
       printf '{"from":"%s","to":["%s"],"subject":"Cópia do banco do Avalia Sales - %s",' "$RESEND_REMETENTE" "$BACKUP_PARA" "$dia"
       printf '"text":"Cópia diária do banco, criptografada (AES-256-CBC), %s bytes. Restauração em docs/OPERACAO.md.",' "$tamanho"
       printf '"attachments":[{"filename":"%s","content":"' "$nome"
-      base64 -w0 "$arquivo"
+      base64 -w0 "$anexo_cifrado"
       printf '"}]}'
     } > "$corpo"
   else
     printf '{"from":"%s","to":["%s"],"subject":"Cópia do banco do Avalia Sales - %s - SEM ANEXO","text":"A cópia tem %s bytes e passou do limite do e-mail. Ela ficou só no disco do VPS (%s). Configure outro destino externo."}' \
-      "$RESEND_REMETENTE" "$BACKUP_PARA" "$dia" "$tamanho" "$(basename "$original")" > "$corpo"
+      "$RESEND_REMETENTE" "$BACKUP_PARA" "$dia" "$tamanho" "$(basename "$copia")" > "$corpo"
   fi
   if curl -fsS --retry 3 --retry-all-errors -o /dev/null https://api.resend.com/emails \
       -H "Authorization: Bearer $RESEND_CHAVE_API" -H "Content-Type: application/json" \
@@ -66,7 +65,7 @@ enviar() {
   else
     echo "envio da cópia falhou" >&2
   fi
-  rm -f "$corpo" "$cifrado"
+  rm -f "$corpo" "$anexo_cifrado"
 }
 
 bucket_ligado() {
@@ -91,24 +90,24 @@ md5_de() {
 
 # Criptografa, envia ao bucket e confere. Devolve 0 só com o envio conferido.
 guardar_no_bucket() {
-  original="$1"
+  copia_do_banco="$1"
   bucket_ligado || return 1
   if [ -z "${BACKUP_SENHA:-}" ]; then
     echo "AVISO: o bucket está ligado e BACKUP_SENHA está vazia; a cópia não vai ao bucket em claro." >&2
     return 1
   fi
-  cifrado="$original.bucket.enc"
+  cifrado_do_bucket="$copia_do_banco.bucket.enc"
   cabecalhos=/tmp/s3-cabecalhos
-  if ! openssl enc -aes-256-cbc -pbkdf2 -iter 600000 -salt -pass env:BACKUP_SENHA -in "$original" -out "$cifrado"; then
-    rm -f "$cifrado"
+  if ! openssl enc -aes-256-cbc -pbkdf2 -iter 600000 -salt -pass env:BACKUP_SENHA -in "$copia_do_banco" -out "$cifrado_do_bucket"; then
+    rm -f "$cifrado_do_bucket"
     echo "criptografia da cópia falhou; nada foi ao bucket" >&2
     return 1
   fi
-  nome="$(basename "$original").enc"
-  esperado=$(md5_de "$cifrado")
-  codigo=$(s3 PUT "/$nome" -T "$cifrado" -D "$cabecalhos" -o /dev/null -w '%{http_code}') || codigo=000
+  nome="$(basename "$copia_do_banco").enc"
+  esperado=$(md5_de "$cifrado_do_bucket")
+  codigo=$(s3 PUT "/$nome" -T "$cifrado_do_bucket" -D "$cabecalhos" -o /dev/null -w '%{http_code}') || codigo=000
   recebido=$(tr -d '"\r' < "$cabecalhos" 2>/dev/null | sed -n 's/^[Ee][Tt]ag: *//p' | tail -n 1)
-  rm -f "$cifrado" "$cabecalhos"
+  rm -f "$cifrado_do_bucket" "$cabecalhos"
   if [ "$codigo" = 200 ] && [ "$recebido" = "$esperado" ]; then
     echo "cópia no bucket: $nome"
     return 0
@@ -160,10 +159,11 @@ copiar() {
   if pg_dump -Fc -f "$arquivo.parcial" && pg_restore --list "$arquivo.parcial" | grep -q "TABLE DATA public lancamentos"; then
     mv "$arquivo.parcial" "$arquivo"
     echo "backup gravado: $arquivo"
+    dump="$arquivo"
     if [ -n "${BACKUP_PARA:-}" ] && [ -n "${RESEND_CHAVE_API:-}" ] && [ -n "${RESEND_REMETENTE:-}" ]; then
-      enviar "$arquivo"
+      enviar "$dump"
     fi
-    if bucket_ligado && guardar_no_bucket "$arquivo"; then
+    if bucket_ligado && guardar_no_bucket "$dump"; then
       limpar_bucket
     fi
   else

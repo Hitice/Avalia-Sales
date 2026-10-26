@@ -40,6 +40,8 @@ jobs:
           # O global.json aceita qualquer 10.0.x (latestFeature); aqui o CI instala uma versão que se sabe baixar.
           dotnet-version: 10.0.402
       - run: dotnet restore
+      - name: Fluxo do backup (e-mail e bucket juntos)
+        run: sh infra/backup/teste-do-fluxo.sh
       - run: dotnet build --no-restore -c Release
       - run: dotnet test --no-build -c Release
 
