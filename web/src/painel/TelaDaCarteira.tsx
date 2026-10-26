@@ -24,8 +24,8 @@ function whatsapp(p: PlacaDaCarteira) {
 
 /**
  * A carteira: as placas vendidas, da que vence primeiro à última, com as
- * leituras (o argumento da renovação) e o caminho para renovar ou chamar o
- * cliente. O vendedor vê as dele; o revendedor, todas.
+ * leituras (o argumento da renovação) e o caminho para renovar (só o revendedor)
+ * ou chamar o cliente. O vendedor vê as dele; o revendedor, todas.
  */
 export function TelaDaCarteira() {
   const dono = useSessao((s) => s.perfil?.papel === 'Dono')
@@ -70,8 +70,10 @@ export function TelaDaCarteira() {
                         <TableCell>{formatarData(p.venceEm)}</TableCell>
                         <TableCell>{p.leiturasEm30Dias} <span className="text-xs text-muted-foreground">de {p.totalLeituras}</span></TableCell>
                         <TableCell>
-                          <AcoesDaLinha nome={`placa ${p.codigo}`} principal={{ rotulo: 'Renovar', para: `/placa/${p.codigo}` }}
-                            outras={telefoneMascarado(p.telefone) ? [] : [{ rotulo: 'WhatsApp', href: whatsapp(p) }]} />
+                          {/* Só o revendedor renova; o vendedor chama o cliente e o revendedor fecha a renovação. */}
+                          <AcoesDaLinha nome={`placa ${p.codigo}`}
+                            principal={dono ? { rotulo: 'Renovar', para: `/placa/${p.codigo}` } : !telefoneMascarado(p.telefone) && { rotulo: 'WhatsApp', href: whatsapp(p) }}
+                            outras={dono && !telefoneMascarado(p.telefone) ? [{ rotulo: 'WhatsApp', href: whatsapp(p) }] : []} />
                         </TableCell>
                       </TableRow>
                     ))}

@@ -115,7 +115,7 @@ public sealed class RecebimentosPorFora(IBancoDeDados banco, IUsuarioAtual usuar
         }
     }
 
-    /// <summary>O que o vendedor já registrou hoje como recebido por fora e segue de pé: o desfeito libera o limite.</summary>
+    /// <summary>As vendas do vendedor recebidas por fora hoje e que seguem de pé: o desfeito libera o limite.</summary>
     private async Task<(int Quantidade, long ValorCents)> DoDia(Guid vendedorId, DateTimeOffset inicio, CancellationToken ct)
     {
         var porFora = banco.Cobrancas.AsNoTracking()
@@ -123,11 +123,8 @@ public sealed class RecebimentosPorFora(IBancoDeDados banco, IUsuarioAtual usuar
         var deVenda = from c in porFora.Where(c => c.Origem == OrigemDaCobranca.Venda)
                       where banco.Vendas.Any(v => (v.GrupoId ?? v.Id) == c.OrigemId && v.VendedorId == vendedorId)
                       select c.ValorCents;
-        var deRenovacao = from c in porFora.Where(c => c.Origem == OrigemDaCobranca.Renovacao)
-                          join r in banco.Renovacoes on c.OrigemId equals r.Id
-                          where banco.Vendas.Any(v => v.Id == r.VendaId && v.VendedorId == vendedorId)
-                          select c.ValorCents;
-        var valores = await deVenda.Concat(deRenovacao).ToListAsync(ct);
+        // A renovação é só do revendedor e não gasta a cota do vendedor.
+        var valores = await deVenda.ToListAsync(ct);
         return (valores.Count, valores.Sum());
     }
 

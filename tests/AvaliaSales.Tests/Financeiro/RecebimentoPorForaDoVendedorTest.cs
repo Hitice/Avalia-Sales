@@ -158,20 +158,20 @@ public sealed class RecebimentoPorForaDoVendedorTest(ApiDeTeste api)
     }
 
     [Fact]
-    public async Task Renovacao_recebida_por_fora_pelo_vendedor_avisa_o_dono_e_conta_no_limite_do_dia()
+    public async Task Vendedor_nao_renova_a_placa_e_a_renovacao_do_revendedor_nao_gera_aviso_nem_gasta_cota()
     {
         var c = await Montar("Revenda Por Fora Renovacao");
         var venda = await Vender(c, 0, "11955550051");
         var codigo = c.Revenda.Codigos[0];
         await c.Revenda.Dono.Colocar($"/equipe/{c.RuiId}/limites-por-fora", new { diaCents = 1_000_000, diaQuantidade = 1, vendaCents = 500_000 }, HttpStatusCode.NoContent);
 
-        await c.Rui.Postar($"/placas/{codigo}/renovacao/recebimento", new { meio = "Dinheiro" });
+        // A renovação é anual e só do revendedor: nem a placa que o vendedor vendeu.
+        Assert.Equal(HttpStatusCode.Forbidden, (await c.Rui.PostAsJsonAsync($"/placas/{codigo}/renovacao/recebimento", new { meio = "Dinheiro" }, Ct)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await c.Rui.PostAsJsonAsync($"/placas/{codigo}/renovacao", new { }, Ct)).StatusCode);
 
-        var aviso = (await c.Revenda.Dono.Pegar("/notificacoes")).GetProperty("notificacoes").EnumerateArray().Single(n => n.GetProperty("titulo").GetString() == "Recebido por fora");
-        Assert.Equal($"Rui Prado registrou R$ 89,94 recebido em dinheiro da renovação da placa {codigo}.", aviso.GetProperty("texto").GetString());
-        Assert.Equal($"/placa/{codigo}", aviso.GetProperty("link").GetString());
-        Assert.Contains("Rui Prado", (await c.Revenda.Dono.Pegar("/auditoria?acao=RenovacaoRecebidaPorFora")).GetRawText());
-        // A renovação gastou a cota do dia: o recebimento da venda espera.
-        await c.Rui.Postar($"/vendas/{venda}/recebimento", new { meio = "Dinheiro" }, HttpStatusCode.UnprocessableEntity);
+        // O revendedor renova, a auditoria guarda quem foi, e a cota do vendedor continua inteira.
+        await c.Revenda.Dono.Postar($"/placas/{codigo}/renovacao/recebimento", new { meio = "Dinheiro" });
+        Assert.Contains("RenovacaoRecebidaPorFora", (await c.Revenda.Dono.Pegar("/auditoria?acao=RenovacaoRecebidaPorFora")).GetRawText());
+        await c.Rui.Postar($"/vendas/{venda}/recebimento", new { meio = "Dinheiro" }, HttpStatusCode.NoContent);
     }
 }

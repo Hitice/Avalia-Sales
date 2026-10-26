@@ -29,10 +29,6 @@ public static class RotasDaEquipe
         equipe.MapPost("/placas/{codigo}/alternar", async (string codigo, FichaDaPlaca ficha, CancellationToken ct) =>
             Results.Ok(new { Estado = await ficha.Alternar(codigo, ct) }));
 
-        equipe.MapPost("/placas/{codigo}/renovacao", (string codigo, Renovacoes renovacoes, CancellationToken ct) => renovacoes.Renovar(codigo, ct));
-        equipe.MapPost("/placas/{codigo}/renovacao/recebimento", (string codigo, ReceberPorFora pedido, Renovacoes renovacoes, CancellationToken ct) =>
-            renovacoes.ReceberPorFora(codigo, pedido.Meio, ct));
-
         // O dono vê o saldo de todos; o vendedor, só o dele.
         equipe.MapGet("/comissoes", (Comissoes comissoes, CancellationToken ct) => comissoes.Saldos(ct));
 

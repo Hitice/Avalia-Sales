@@ -203,6 +203,10 @@ public static class RotasDaRevenda
             await vendas.DesfazerRecebimento(id, ct);
             return Results.NoContent();
         });
+        // A renovação da placa é anual e só o revendedor a faz; o vendedor não renova.
+        dono.MapPost("/placas/{codigo}/renovacao", (string codigo, Application.Placas.Renovacoes renovacoes, CancellationToken ct) => renovacoes.Renovar(codigo, ct));
+        dono.MapPost("/placas/{codigo}/renovacao/recebimento", (string codigo, ReceberPorFora pedido, Application.Placas.Renovacoes renovacoes, CancellationToken ct) =>
+            renovacoes.ReceberPorFora(codigo, pedido.Meio, ct));
         dono.MapDelete("/placas/{codigo}/renovacao/recebimento", async (string codigo, Application.Placas.Renovacoes renovacoes, CancellationToken ct) =>
         {
             await renovacoes.DesfazerRecebimento(codigo, ct);

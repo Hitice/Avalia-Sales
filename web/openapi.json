@@ -3826,8 +3826,8 @@
         }
       }
     },
-    "/placas/{codigo}/renovacao/recebimento": {
-      "delete": {
+    "/placas/{codigo}/renovacao": {
+      "post": {
         "tags": [
           "Revenda"
         ],
@@ -3843,13 +3843,22 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RenovacaoAberta"
+                }
+              }
+            }
           }
         }
-      },
+      }
+    },
+    "/placas/{codigo}/renovacao/recebimento": {
       "post": {
         "tags": [
-          "Balc\u00E3o"
+          "Revenda"
         ],
         "parameters": [
           {
@@ -3881,6 +3890,26 @@
                 }
               }
             }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Revenda"
+        ],
+        "parameters": [
+          {
+            "name": "codigo",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
           }
         }
       }
@@ -4700,35 +4729,6 @@
         "responses": {
           "200": {
             "description": "OK"
-          }
-        }
-      }
-    },
-    "/placas/{codigo}/renovacao": {
-      "post": {
-        "tags": [
-          "Balc\u00E3o"
-        ],
-        "parameters": [
-          {
-            "name": "codigo",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RenovacaoAberta"
-                }
-              }
-            }
           }
         }
       }

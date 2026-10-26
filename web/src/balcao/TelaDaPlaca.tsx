@@ -100,7 +100,8 @@ export function TelaDaPlaca() {
           </CardContent>
         </Card>
       )}
-      {f.venda && (f.estado === 'Ativa' || f.estado === 'Carencia' || f.estado === 'Vencida') && (
+      {/* A renovação é anual e só do revendedor. */}
+      {dono && f.venda && (f.estado === 'Ativa' || f.estado === 'Carencia' || f.estado === 'Vencida') && (
         <Card>
           <CardHeader><CardTitle>Renovação</CardTitle></CardHeader>
           <CardContent className="grid gap-3">

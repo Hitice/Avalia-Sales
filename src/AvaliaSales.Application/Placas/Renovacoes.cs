@@ -59,12 +59,6 @@ public sealed class Renovacoes(IBancoDeDados banco, IUsuarioAtual usuario, Cobra
     {
         var eu = usuario.UsuarioId ?? Guid.Empty;
         await using var transacao = await banco.Database.BeginTransactionAsync(ct);
-        if (usuario.Papel == Papel.Vendedor)
-        {
-            // Travado antes de contar o dia: dois cliques seguidos não passam juntos pelo limite.
-            await banco.TravarVendedor(eu, ct);
-        }
-
         var (placa, _, renovacao) = await AbrirRenovacao(codigo, ct);
 
         // Duplo clique no balcão: o segundo espera o primeiro e encontra a renovação paga.
@@ -137,9 +131,10 @@ public sealed class Renovacoes(IBancoDeDados banco, IUsuarioAtual usuario, Cobra
                 ? (transferido, valor, null)
                 : throw new RegraDeNegocioException("Placa sem venda não tem o que renovar.");
 
-        if (usuario.Papel == Papel.Vendedor && vendedor != usuario.UsuarioId)
+        // A renovação é anual e só do revendedor: o vendedor não renova, nem a placa que vendeu.
+        if (usuario.Papel == Papel.Vendedor)
         {
-            throw new RegraDeNegocioException("Só quem vendeu a placa, ou o revendedor, renova.");
+            throw new RegraDeNegocioException("Só o revendedor renova a placa.");
         }
 
         var renovacao = await banco.Renovacoes.SingleOrDefaultAsync(r => r.PlacaId == placa.Id && r.Situacao == SituacaoDaRenovacao.Aberta, ct);

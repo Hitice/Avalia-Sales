@@ -772,6 +772,7 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
 
 | Data | Mudança |
 | --- | --- |
+| 26/10/2026 | `POST /placas/{codigo}/renovacao` e `/renovacao/recebimento` passam do grupo `equipe` para o `dono`; `Renovacoes.AbrirRenovacao` recusa o papel Vendedor; `RecebimentosPorFora.DoDia` conta só vendas. Front - o cartão Renovação da ficha só aparece para o revendedor, e a carteira do vendedor só oferece o WhatsApp. |
 | 26/10/2026 | Operação - comandos de manutenção com `docker compose run` levam `-T` e `timeout`; o `run` com terminal anexado pode girar por dias na CPU se o terminal cai (24/10, causa do limite de 40% da CPU aplicado pela Hostinger). |
 | 26/10/2026 | VPS de um núcleo - o Compose de produção dá prioridade de CPU por serviço (`cpu_shares`: banco, API e Nginx 2048; Worker e migrar 512; Gotenberg 256; certbot e backup 128), que só pesa quando há disputa, e o Deploy compila uma imagem por vez (`COMPOSE_PARALLEL_LIMIT=1`). |
 | 25/10/2026 | Cópia fora do VPS - `backup.sh` envia a cópia, criptografada com `BACKUP_SENHA`, a um bucket compatível com S3 (`S3_ENDPOINT`, `S3_BUCKET`, `S3_KEY_ID`, `S3_APP_KEY`; assinatura SigV4 pelo `curl`, ETag conferido com o MD5), apaga do bucket o que passou de `BACKUP_DIAS_NO_BUCKET` dias só depois de um envio conferido, e tem o modo `testar-bucket`. Falha do bucket não segura o Deploy. Testado contra o Cloudflare R2. |

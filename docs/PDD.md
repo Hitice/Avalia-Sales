@@ -128,8 +128,8 @@ uma busca pelo texto da linha, sem acento. Gravar confirma na tela.
 | Nova venda | Revendedor e vendedor | Celular | Itens (a placa abre a leitura do QR e o destino; o serviço entra com a quantidade, a partir do pedido mínimo), cliente, cobrança de tudo numa vez e gravação do NFC de cada placa |
 | Vendas | Revendedor e vendedor | Computador e celular | Lista das vendas, com a quantidade do serviço ("10x Kit Mesa") e as vendas feitas juntas marcadas. Ações - gerar cobrança, receber por fora, trocar a placa, corrigir valor e vendedor, cortesia e cancelamento. O vendedor vê só as dele |
 | Detalhe da venda | Revendedor e vendedor | Computador e celular | Aberto pelo nome do cliente na lista. Produto, placa, valor, vendedor, comissão (e se já foi repassada), vencimento, cancelamento com motivo; o cliente; o pagamento (situação, meio, valor, estornado, datas); os itens da mesma cobrança; as ordens de serviço; o Pix em aberto, para copiar ou mandar pelo WhatsApp; as linhas do razão, só para o revendedor. As ações são as da lista. O vendedor só abre a venda dele |
-| Ficha da placa | Revendedor e vendedor | Celular | Destino, vencimento, leituras dos últimos 30 dias, histórico, troca e renovação |
-| Carteira | Revendedor e vendedor | Celular e computador | Placas vendidas com o vencimento e as leituras dos últimos 30 dias, com os botões Renovar e WhatsApp (mensagem pronta). O vendedor vê a dele; o revendedor, a da revenda inteira |
+| Ficha da placa | Revendedor e vendedor | Celular | Destino, vencimento, leituras dos últimos 30 dias, histórico e troca; a renovação só aparece para o revendedor |
+| Carteira | Revendedor e vendedor | Celular e computador | Placas vendidas com o vencimento e as leituras dos últimos 30 dias, com os botões Renovar (só o revendedor) e WhatsApp (mensagem pronta). O vendedor vê a dele e chama o cliente; o revendedor vê a da revenda inteira e renova |
 | Catálogo | Revendedor e vendedor | Computador e celular | Produtos da Avalia com foto, preço sugerido, pedido mínimo e o preço da revenda. O revendedor ajusta o preço e pede placas; Vender abre a Nova venda com o item. O vendedor não vê o custo |
 | Clientes | Revendedor | Computador | Clientes da revenda, cadastro antes da venda e a ficha do cliente - editar (com o lugar no Google, que põe no mapa), placas e vendas, juntar cadastro duplicado, excluir o que não tem venda, exportar e anonimizar (LGPD). A coluna Placas conta só placas em venda ativa |
 | Serviços | Revendedor e vendedor | Celular | Abas Link (link curto `/L/` de qualquer endereço colado), NFC (grava o link curto na tag), Maps (busca o negócio no Google e cria o link curto da avaliação) e Status (só o revendedor; as ordens dos serviços vendidos). O revendedor edita, desliga e exclui o link |
@@ -279,9 +279,10 @@ uma busca pelo texto da linha, sem acento. Gravar confirma na tela.
   recebe a venda como se o Pix tivesse caído, com a comissão devida. O que
   seria da Avalia pelo split (taxa e parte do serviço) fica "a acertar"; com
   a taxa zero, a placa recebida por fora não deixa nada a acertar. Só o
-  revendedor desfaz, e só antes do repasse da comissão. A renovação também se
-  confirma por fora, na ficha da placa, depois de uma confirmação na tela, e
-  vai à auditoria com quem registrou. Só o revendedor desfaz a renovação
+  revendedor desfaz, e só antes do repasse da comissão. A renovação é anual e
+  só do revendedor, o vendedor não renova; ela também se confirma por fora, na
+  ficha da placa, depois de uma confirmação na tela, e vai à auditoria com quem
+  registrou. Só o revendedor desfaz a renovação
   recebida por fora - estorno no razão, a placa volta ao vencimento de antes e
   a renovação reabre. A paga pelo Pagar.me volta pelo estorno de lá.
 - Renovação em aberto com Pix vivo segura o cancelamento e a troca, porque,
@@ -760,6 +761,7 @@ porque está impresso nas placas vendidas.
 
 | Data | Mudança |
 | --- | --- |
+| 26/10/2026 | A renovação da placa é anual e só do revendedor: o vendedor não a pede nem a registra por fora (a ficha e a carteira dele não oferecem Renovar, e a API recusa com 403). A renovação deixa de gastar a cota diária de recebido por fora do vendedor. |
 | 25/10/2026 | Listas do painel abrem em páginas de 50 (no máximo 100), e a busca vale para a lista inteira, e não só para a página aberta. Antes, vendas, clientes, carteira, ERP e repasses cortavam em 200 ou 500 sem avisar. Os números do Início e das telas de vendas (vendas no mês, recebido, gráfico de 30 dias, comissão esperando) são calculados sobre todas as vendas, no mês de Brasília. A carteira ganha o filtro de vencimento, e o repasse só se desfaz no último de cada vendedor. Para o vendedor, a busca não olha telefone, documento nem e-mail de cliente. |
 | 25/10/2026 | Cadastro público com confirmação do e-mail antes de a conta funcionar, sem senha digitada no cadastro (a senha é criada pelo link), resposta igual para e-mail e CNPJ novos ou já cadastrados, cadastro pendente descartado em 48 horas, captcha Turnstile (desligado até ligar) e limites por IP, e-mail, CNPJ e dia. |
 | 25/10/2026 | Repetir um envio (toque duplo, rede ruim) não duplica mais venda, despesa, pedido nem repasse; reenviar o acesso por rede ruim não desloga mais o usuário (janela de 10 s); cupom e repasse com data em outro fuso deixam de dar erro. |

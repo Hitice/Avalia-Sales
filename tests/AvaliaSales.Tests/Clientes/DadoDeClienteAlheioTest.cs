@@ -1,3 +1,4 @@
+using System.Net.Http.Json;
 using System.Net;
 using System.Text.Json;
 using AvaliaSales.Tests.Apoio;
@@ -128,10 +129,14 @@ public sealed class DadoDeClienteAlheioTest(ApiDeTeste api)
         Assert.Equal(HttpStatusCode.Forbidden, (await c.Ana.GetAsync($"/clientes/{clienteId}", Ct)).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await c.Ana.GetAsync($"/clientes/{clienteId}/dados", Ct)).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await c.Ana.GetAsync("/mapa", Ct)).StatusCode);
-        await c.Ana.Postar($"/placas/{c.PlacaDoRui}/renovacao", new { }, HttpStatusCode.UnprocessableEntity);
 
-        // Na renovação da própria placa a resposta é só a cobrança: nada do pagador.
-        var renovacao = (await c.Ana.Postar($"/placas/{c.PlacaDaAna}/renovacao", new { })).GetRawText();
+        // A renovação é anual e só do revendedor: o vendedor não renova, nem a placa de outro nem a que ele vendeu.
+        Assert.Equal(HttpStatusCode.Forbidden, (await c.Ana.PostAsJsonAsync($"/placas/{c.PlacaDoRui}/renovacao", new { }, Ct)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await c.Ana.PostAsJsonAsync($"/placas/{c.PlacaDaAna}/renovacao", new { }, Ct)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await c.Ana.PostAsJsonAsync($"/placas/{c.PlacaDaAna}/renovacao/recebimento", new { meio = "Dinheiro" }, Ct)).StatusCode);
+
+        // A resposta ao revendedor é só a cobrança: nada do pagador.
+        var renovacao = (await c.Revenda.Dono.Postar($"/placas/{c.PlacaDaAna}/renovacao", new { })).GetRawText();
         Assert.DoesNotContain(Documento, renovacao, StringComparison.Ordinal);
         Assert.DoesNotContain(Email, renovacao, StringComparison.OrdinalIgnoreCase);
     }
