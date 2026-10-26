@@ -69,8 +69,8 @@ export const comValor = (linhas: LinhaDaVenda[], id: string, valorCents: number 
 export const totalDaLinha = (l: LinhaDaVenda) => l.valorCents ?? l.item.precoCents * l.quantidade
 export const total = (linhas: LinhaDaVenda[]) => linhas.reduce((soma, l) => soma + totalDaLinha(l), 0)
 
-/** Teste gratuito é só para placa: com serviço na venda, a opção some. */
-export const soPlacas = (linhas: LinhaDaVenda[]) => linhas.length > 0 && linhas.every((l) => usaPlaca(l.item))
+/** Teste gratuito é de uma placa de avaliação no Google só: com outro item ou outro destino, a opção some. */
+export const cabeTeste = (linhas: LinhaDaVenda[]) => linhas.length === 1 && usaPlaca(linhas[0].item) && linhas[0].destino?.tipo === 'Google'
 
 export const temPlaca = (linhas: LinhaDaVenda[]) => linhas.some((l) => usaPlaca(l.item))
 

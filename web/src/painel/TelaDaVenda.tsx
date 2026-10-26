@@ -1,6 +1,8 @@
 import { ChevronLeft, MessageCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { copiar } from '@/lib/area'
+import { linkDoWhatsapp } from '@/lib/whatsapp'
+import { caminhoDaFichaDoCliente } from '@/clientes/caminho'
 import { Link, useParams } from 'react-router'
 import { mensagemDoErro } from '@/api/cliente'
 import { formatarData, formatarDataHora, formatarTelefone, telefoneMascarado, ROTULO_DA_ORDEM, ROTULO_DO_CANCELAMENTO, ROTULO_DO_LANCAMENTO, ROTULO_DO_MEIO, ROTULO_DO_PAGAMENTO, TOM_DA_ORDEM } from '@/api/rotulos'
@@ -80,12 +82,16 @@ export function TelaDaVenda() {
         <CardHeader><CardTitle>Cliente</CardTitle></CardHeader>
         <CardContent className="grid gap-3">
           <Dados itens={[
+            ['Nome', dono ? <Link key="ficha" className="underline underline-offset-4" to={caminhoDaFichaDoCliente(d.cliente.id)}>{d.cliente.nome}</Link> : d.cliente.nome],
             ['Responsável', d.cliente.responsavel],
             ['Telefone', formatarTelefone(d.cliente.telefone)],
-            ['CNPJ ou CPF', d.cliente.documento ?? '-'],
-            ['E-mail', d.cliente.email ?? '-'],
           ]} />
-          {dono && <Button asChild variant="outline" className="justify-self-start"><Link to="/painel/clientes">Abrir em Clientes</Link></Button>}
+          {dono && (!d.cliente.documento || !d.cliente.email) && (
+            <p className="text-sm">
+              Falta CNPJ ou CPF e e-mail para cobrar.{' '}
+              <Link className="underline underline-offset-4" to={caminhoDaFichaDoCliente(d.cliente.id)}>Completar na ficha</Link>
+            </p>
+          )}
         </CardContent>
       </Card>
 
@@ -174,8 +180,6 @@ export function TelaDaVenda() {
  * mandar pelo WhatsApp, já com o valor. O código é o mesmo da tela da venda.
  */
 function EnviarPix({ codigo, valorCents, cliente }: { codigo: string; valorCents: number; cliente: { nome: string; responsavel: string; telefone: string } }) {
-  const digitos = cliente.telefone.replace(/\D/g, '')
-  const numero = digitos.length <= 11 ? `55${digitos}` : digitos
   const texto = `Olá, ${cliente.responsavel}! Segue o Pix de ${formatarCentavos(valorCents)} da ${cliente.nome}. Copie o código abaixo e pague no app do seu banco:\n\n${codigo}`
   return (
     <div className="grid gap-2 border-t pt-4">
@@ -183,7 +187,7 @@ function EnviarPix({ codigo, valorCents, cliente }: { codigo: string; valorCents
       <div className="flex flex-wrap gap-2">
         <Button variant="outline" onClick={async () => (await copiar(codigo)) ? toast.success('Código Pix copiado.') : toast.error('Não deu para copiar. Selecione o código e copie.')}>Copiar código Pix</Button>
         {!telefoneMascarado(cliente.telefone) && (
-          <Button asChild variant="outline"><a href={`https://wa.me/${numero}?text=${encodeURIComponent(texto)}`} target="_blank" rel="noreferrer noopener"><MessageCircle aria-hidden />Enviar pelo WhatsApp</a></Button>
+          <Button asChild variant="outline"><a href={linkDoWhatsapp(cliente.telefone, texto)} target="_blank" rel="noreferrer noopener"><MessageCircle aria-hidden />Enviar pelo WhatsApp</a></Button>
         )}
       </div>
     </div>

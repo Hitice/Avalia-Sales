@@ -3,8 +3,9 @@ import { useState } from 'react'
 import { Link } from 'react-router'
 import { chamarApi, enviarJson, mensagemDoErro } from '@/api/cliente'
 import { formatarData } from '@/api/rotulos'
-import type { EstadoDoEncerramento, MinhaRevenda } from '@/api/tipos'
+import type { EstadoDoEncerramento } from '@/api/tipos'
 import { useSessao } from '@/acesso/sessao'
+import { useMinhaRevenda } from '@/painel/consultas'
 import { Erro } from '@/componentes/Tela'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -19,7 +20,7 @@ import { Textarea } from '@/components/ui/textarea'
 export function AvisoDeContaEncerrada() {
   const consultas = useQueryClient()
   const dono = useSessao((s) => s.perfil?.papel === 'Dono')
-  const revenda = useQuery({ queryKey: ['revenda'], queryFn: () => chamarApi<MinhaRevenda>('/revenda'), enabled: dono })
+  const revenda = useMinhaRevenda(dono)
   const encerrada = revenda.data?.revendedor.encerradaEm
   const estado = useQuery({
     queryKey: ['revenda', 'encerramento'],
@@ -47,7 +48,7 @@ export function AvisoDeContaEncerrada() {
           {estado.data?.exportacaoAte ? ` até ${formatarData(estado.data.exportacaoAte)}` : ''}.{' '}
           {pedida
             ? <>Reabertura pedida em {formatarData(pedida)}; o suporte responde pelo <Link to="/painel/suporte" className="font-medium underline underline-offset-4">chamado</Link>.</>
-            : <Link to="/conta/dados" className="font-medium underline underline-offset-4">Exportar dados</Link>}
+            : <Link to="/painel/configuracoes" className="font-medium underline underline-offset-4">Exportar dados</Link>}
         </p>
         {!pedida && <Button variant="outline" size="sm" onClick={() => setAberto(true)}>Pedir reabertura</Button>}
       </div>

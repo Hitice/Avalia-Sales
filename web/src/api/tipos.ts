@@ -94,3 +94,12 @@ export type ReceitaDaRevenda = Esquema['ReceitaDaRevenda']
 export type CategoriaDeDespesaDaOperadora = Esquema['CategoriaDeDespesaDaOperadora']
 export type DespesaDaOperadora = Esquema['DespesaDaOperadoraDto']
 export type CustoDoLote = Esquema['CustoDoLoteDto']
+
+export type Fornecedor = Esquema['FornecedorDto']
+export type FuncaoDoFornecedor = 'Grafica' | 'Acrilico' | 'Confeccao' | 'Logistica' | 'Outros'
+export type DestinoBloqueado = Esquema['DestinoBloqueadoDto']
+
+export type SaldoAAcertar = Esquema['SaldoAAcertarDto']
+export type Acerto = Esquema['AcertoDto']
+
+export type SituacaoDoLimite = Esquema['SituacaoDoLimite']

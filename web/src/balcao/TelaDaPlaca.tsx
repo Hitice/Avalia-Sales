@@ -1,8 +1,9 @@
+import { caminhoDaFichaDoCliente } from '@/clientes/caminho'
 import { useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { mensagemDoErro } from '@/api/cliente'
 import { useSessao } from '@/acesso/sessao'
-import { formatarData, formatarDataHora, formatarTelefone, ROTULO_DO_MEIO, ROTULO_DO_PAGAMENTO } from '@/api/rotulos'
+import { formatarData, formatarDataHora, ROTULO_DO_MEIO } from '@/api/rotulos'
 import type { DestinoInformado } from '@/api/tipos'
 import { Aviso, Cabecalho, CarregandoTela, Erro, EtiquetaDoEstado } from '@/componentes/Tela'
 import { Button } from '@/components/ui/button'
@@ -57,18 +58,13 @@ export function TelaDaPlaca() {
           <CardHeader><CardTitle>Venda</CardTitle></CardHeader>
           <CardContent>
             <Dados itens={[
-              ['Cliente', f.venda.cliente],
-              ['Responsável', f.venda.responsavel],
-              ['Telefone', formatarTelefone(f.venda.telefone)],
+              ['Cliente', dono && f.venda.clienteId ? <Link key="cliente" className="underline-offset-4 hover:underline" to={caminhoDaFichaDoCliente(f.venda.clienteId)}>{f.venda.cliente}</Link> : f.venda.cliente],
               ['Produto', f.venda.produto],
-              ['Valor', formatarCentavos(f.venda.valorCents)],
-              ['Pagamento', f.venda.pagamento ? ROTULO_DO_PAGAMENTO[f.venda.pagamento] : 'Sem cobrança'],
-              ['Vendedor', f.venda.vendedor],
-              ['Comissão', formatarCentavos(f.venda.comissaoCents)],
               ['Vendida em', formatarData(f.venda.vendidaEm)],
               ['Vence em', formatarData(f.venceEm)],
               ['Carência até', formatarData(f.fimDaCarencia)],
             ]} />
+            <Button asChild variant="outline" className="mt-3"><Link to={`${dono ? '/painel/vendas' : '/vendedor/vendas'}/${f.venda.id}`}>Ver a venda</Link></Button>
           </CardContent>
         </Card>
       )}

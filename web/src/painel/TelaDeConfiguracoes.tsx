@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Download, RefreshCw, Send } from 'lucide-react'
 import { useState } from 'react'
+import { useSearchParams } from 'react-router'
 import { chamarApi, enviarJson, mensagemDoErro } from '@/api/cliente'
 import type { MeuContrato } from '@/api/tipos'
 import { baixarArquivo } from '@/lib/arquivo'
@@ -12,6 +13,10 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field, FieldDescription, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useContaEncerrada } from '@/app/contaEncerrada'
+import { EncerramentoDaConta } from '@/conta/EncerramentoDaConta'
+import { PainelDaMarca } from '@/marca/PainelDaMarca'
 import { useComissaoPadrao, useMinhaRevenda } from './consultas'
 
 /** As regras de negócio da revenda: a comissão de quem não tem a própria e o preço da renovação. Vale para venda nova. */
@@ -19,7 +24,30 @@ export function TelaDeConfiguracoes() {
   const revenda = useMinhaRevenda()
   const r = revenda.data?.revendedor
   if (!r) return revenda.error ? <Erro erro={revenda.error} /> : <CarregandoTela />
-  return <Formulario key={`${r.comissaoPadraoBps}-${r.renovacaoBps}`} comissaoBps={r.comissaoPadraoBps} renovacaoBps={r.renovacaoBps} taxaBps={r.taxaAvaliaBps} />
+  return <Abas r={r} />
+}
+
+/** Geral (regras da venda, contrato e encerramento) e Marca; a aba abre pelo parâmetro `aba`. */
+function Abas({ r }: { r: { comissaoPadraoBps: number; renovacaoBps: number; taxaAvaliaBps: number } }) {
+  const encerrada = useContaEncerrada()
+  const [parametros, setParametros] = useSearchParams()
+  // A conta encerrada só consulta e exporta: sem a aba Marca.
+  const aba = parametros.get('aba') === 'marca' && !encerrada ? 'marca' : 'geral'
+  return (
+    <>
+      <Cabecalho titulo="Configurações" />
+      <Tabs value={aba} onValueChange={(nova) => setParametros({ aba: nova }, { replace: true })} className="gap-4">
+        <TabsList className="w-full sm:w-auto">
+          <TabsTrigger value="geral">Geral</TabsTrigger>
+          {!encerrada && <TabsTrigger value="marca">Marca</TabsTrigger>}
+        </TabsList>
+        <TabsContent value="geral">
+          <Formulario key={`${r.comissaoPadraoBps}-${r.renovacaoBps}`} comissaoBps={r.comissaoPadraoBps} renovacaoBps={r.renovacaoBps} taxaBps={r.taxaAvaliaBps} />
+        </TabsContent>
+        <TabsContent value="marca"><PainelDaMarca /></TabsContent>
+      </Tabs>
+    </>
+  )
 }
 
 const paraTexto = (bps: number) => String(bps / 100).replace('.', ',')
@@ -36,7 +64,6 @@ function Formulario({ comissaoBps, renovacaoBps, taxaBps }: { comissaoBps: numbe
 
   return (
     <div className="grid max-w-2xl gap-4">
-      <Cabecalho titulo="Configurações" />
       <Erro erro={erro ? mensagemDoErro(erro) : null} />
       <Card>
         <CardHeader><CardTitle>Vendas</CardTitle></CardHeader>
@@ -54,6 +81,7 @@ function Formulario({ comissaoBps, renovacaoBps, taxaBps }: { comissaoBps: numbe
         </CardContent>
       </Card>
       <ContratoDeRevenda />
+      <EncerramentoDaConta />
     </div>
   )
 }

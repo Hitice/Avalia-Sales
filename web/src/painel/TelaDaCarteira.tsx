@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
-import { formatarData, formatarTelefone, telefoneMascarado } from '@/api/rotulos'
+import { formatarData, telefoneMascarado } from '@/api/rotulos'
 import type { PlacaDaCarteira } from '@/api/tipos'
 import { useSessao } from '@/acesso/sessao'
+import { caminhoDaFichaDoCliente } from '@/clientes/caminho'
+import { linkDoWhatsapp } from '@/lib/whatsapp'
 import { AcoesDaLinha } from '@/componentes/AcoesDaLinha'
 import { ListaPaginada } from '@/componentes/ListaPaginada'
 import { Cabecalho, EtiquetaDoEstado, Rolagem } from '@/componentes/Tela'
@@ -13,13 +15,11 @@ import { useCarteira } from './consultas'
 
 type Filtro = 'todas' | 'vencendo' | 'vencidas'
 
-/** O link do WhatsApp com a mensagem da renovação pronta; o telefone sem o 55 ganha o código do Brasil. */
+/** O link do WhatsApp com a mensagem da renovação pronta. */
 function whatsapp(p: PlacaDaCarteira) {
-  const digitos = p.telefone.replace(/\D/g, '')
-  const numero = digitos.length <= 11 ? `55${digitos}` : digitos
   const quando = p.venceEm ? `vence em ${formatarData(p.venceEm)}` : 'está para vencer'
   const texto = `Olá, ${p.responsavel}! A placa ${p.codigo} da ${p.cliente} ${quando}. Teve ${p.leiturasEm30Dias} leituras nos últimos 30 dias. Quer renovar por mais um ano?`
-  return `https://wa.me/${numero}?text=${encodeURIComponent(texto)}`
+  return linkDoWhatsapp(p.telefone, texto)
 }
 
 /**
@@ -62,8 +62,11 @@ export function TelaDaCarteira() {
                     {placas.map((p) => (
                       <TableRow key={p.vendaId}>
                         <TableCell className="min-w-40 whitespace-normal">
-                          <p className="font-medium">{p.cliente}</p>
-                          <p className="text-xs font-normal text-muted-foreground">{p.responsavel}, {formatarTelefone(p.telefone)}</p>
+                          {/* Só o dono abre Clientes; o vendedor vê o nome. */}
+                          {dono
+                            ? <Link className="font-medium underline-offset-4 hover:underline" to={caminhoDaFichaDoCliente(p.clienteId)}>{p.cliente}</Link>
+                            : <p className="font-medium">{p.cliente}</p>}
+                          <p className="text-xs font-normal text-muted-foreground">{p.responsavel}</p>
                         </TableCell>
                         <TableCell><Link className="tabular-nums underline-offset-4 hover:underline" to={`/placa/${p.codigo}`}>{p.codigo}</Link></TableCell>
                         <TableCell><EtiquetaDoEstado estado={p.estado} /></TableCell>

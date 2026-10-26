@@ -1,8 +1,8 @@
 import { useIsFetching, useIsMutating } from '@tanstack/react-query'
 import {
-  type LucideIcon, BookOpen, CalendarClock, Boxes, ClipboardList, HandCoins, Headset, History, Home, Landmark, MapPin, Scale, Menu, Package,
-  ChevronDown, ChevronsUpDown, LogOut, Palette, Settings, PlusCircle, Receipt, Server, ShieldCheck, Store, TicketPercent, UserRound, Users,
-  UsersRound, Wrench,
+  type LucideIcon, BookOpen, CalendarClock, Boxes, ClipboardList, HandCoins, Headset, History, Home, MapPin, Scale, Menu, Package,
+  ChevronDown, ChevronsUpDown, LogOut, Settings, PlusCircle, Receipt, Server, ShieldCheck, Store, TicketPercent, UserRound, Users,
+  UsersRound, Wrench, Factory, ShieldBan,
 } from 'lucide-react'
 import { ChartPie } from 'lucide-react'
 import { useState } from 'react'
@@ -61,11 +61,13 @@ const MENU: Record<Papel, Grupo[]> = {
       { para: '/operadora/catalogo', rotulo: 'Catálogo', icone: BookOpen },
       { para: '/operadora/pacotes', rotulo: 'Pacotes', icone: Boxes },
       { para: '/operadora/cupons', rotulo: 'Cupons', icone: TicketPercent },
+      { para: '/operadora/fornecedores', rotulo: 'Fornecedores', icone: Factory },
     ] },
     { titulo: 'Revendas', itens: [
       { para: '/operadora/revendedores', rotulo: 'Revendedores', icone: Store },
       { para: '/operadora/financeiro', rotulo: 'Resultado do grupo', icone: Scale },
       { para: '/operadora/atendimento', rotulo: 'Atendimento', icone: Headset },
+      { para: '/operadora/destinos-bloqueados', rotulo: 'Destinos bloqueados', icone: ShieldBan },
       { para: '/operadora/erp', rotulo: 'ERP', icone: Server },
       { para: '/operadora/auditoria', rotulo: 'Auditoria', icone: History },
     ] },
@@ -92,11 +94,9 @@ const MENU: Record<Papel, Grupo[]> = {
       { para: '/painel/equipe', rotulo: 'Equipe', icone: UsersRound },
       { para: '/painel/comissoes', rotulo: 'Comissões', icone: HandCoins },
       { para: '/painel/financeiro', rotulo: 'Financeiro', icone: ChartPie },
-      { para: '/painel/razao', rotulo: 'Razão', icone: Landmark },
     ] },
     { titulo: 'Conta', itens: [
       { para: '/painel/configuracoes', rotulo: 'Configurações', icone: Settings },
-      { para: '/painel/marca', rotulo: 'Marca', icone: Palette },
       { para: '/painel/auditoria', rotulo: 'Auditoria', icone: History },
       { para: '/conta/seguranca', rotulo: 'Segurança', icone: ShieldCheck },
       { para: '/painel/suporte', rotulo: 'Suporte', icone: Headset },
@@ -112,6 +112,7 @@ const MENU: Record<Papel, Grupo[]> = {
       { para: '/catalogo', rotulo: 'Catálogo', icone: BookOpen },
       { para: '/links', rotulo: 'Serviços', icone: Wrench },
     ] },
+    { titulo: 'Conta', itens: [{ para: '/conta/seguranca', rotulo: 'Segurança', icone: ShieldCheck }] },
   ],
 }
 
@@ -329,7 +330,7 @@ function MenuDaConta({ aoSair, noRodape = false }: { aoSair: () => void; noRodap
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={() => navegar('/conta/dados')}><UserRound aria-hidden />Meus dados</DropdownMenuItem>
-        {perfil?.papel !== 'Vendedor' && <DropdownMenuItem onSelect={() => navegar('/conta/seguranca')}><ShieldCheck aria-hidden />Segurança</DropdownMenuItem>}
+        <DropdownMenuItem onSelect={() => navegar('/conta/seguranca')}><ShieldCheck aria-hidden />Segurança</DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={aoSair}><LogOut aria-hidden />Sair</DropdownMenuItem>
       </DropdownMenuContent>

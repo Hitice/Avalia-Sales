@@ -18,6 +18,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { formatarCentavos, paraCentavos } from '@/dinheiro/dinheiro'
 import { hoje } from '@/financeiro/fatias'
 import { reais, texto } from '@/lib/esquemas'
+import { SeletorDeFornecedor } from './SeletorDeFornecedor'
 import { useDespesasDaOperadora, useExcluirDespesaDaOperadora, useSalvarDespesaDaOperadora } from './consultasFinanceiras'
 
 const esquema = z.object({
@@ -33,6 +34,7 @@ const centavosEmTexto = (c: number) => (c / 100).toFixed(2).replace('.', ',')
 function FormularioDeDespesa({ despesa, aoFechar }: { despesa: DespesaDaOperadora | null; aoFechar: () => void }) {
   const salvar = useSalvarDespesaDaOperadora()
   const [categoria, setCategoria] = useState<CategoriaDeDespesaDaOperadora>(despesa?.categoria ?? 'GraficaEMaterial')
+  const [fornecedorId, setFornecedorId] = useState<string | null>(despesa?.fornecedorId ?? null)
   const formulario = useForm<Formulario>({
     resolver: zodResolver(esquema),
     mode: 'onChange',
@@ -41,7 +43,7 @@ function FormularioDeDespesa({ despesa, aoFechar }: { despesa: DespesaDaOperador
 
   async function enviar(dados: Formulario) {
     try {
-      await salvar.mutateAsync({ id: despesa?.id, data: dados.data, descricao: dados.descricao, categoria, valorCents: paraCentavos(dados.valor) ?? 0 })
+      await salvar.mutateAsync({ id: despesa?.id, data: dados.data, descricao: dados.descricao, categoria, valorCents: paraCentavos(dados.valor) ?? 0, fornecedorId })
       aoFechar()
     } catch {
       // O erro aparece pelo estado da gravação.
@@ -64,6 +66,7 @@ function FormularioDeDespesa({ despesa, aoFechar }: { despesa: DespesaDaOperador
               </SelectContent>
             </Select>
           </Field>
+          <SeletorDeFornecedor id="fornecedor-da-despesa" valor={fornecedorId} atual={despesa?.fornecedorId && despesa.fornecedor ? { id: despesa.fornecedorId, nome: despesa.fornecedor } : null} aoMudar={setFornecedorId} />
           <Campo formulario={formulario} nome="descricao" rotulo="Descrição" autoComplete="off" />
           <Campo formulario={formulario} nome="valor" rotulo="Valor (R$)" inputMode="decimal" placeholder="0,00" />
           <Button type="submit" disabled={salvar.isPending}>{despesa ? 'Salvar despesa' : 'Lançar despesa'}</Button>
@@ -104,7 +107,7 @@ export function PainelDeDespesasDaOperadora({ competencia }: { competencia: stri
                       <TableRow key={d.id}>
                         <TableCell className="min-w-40 whitespace-normal">
                           <p className="font-medium">{d.descricao}</p>
-                          <p className="text-xs text-muted-foreground">{ROTULO_DA_DESPESA_DA_OPERADORA[d.categoria]}</p>
+                          <p className="text-xs text-muted-foreground">{[ROTULO_DA_DESPESA_DA_OPERADORA[d.categoria], d.fornecedor].filter(Boolean).join(' - ')}</p>
                         </TableCell>
                         <TableCell>{formatarData(`${d.data}T12:00:00`)}</TableCell>
                         <TableCell>{formatarCentavos(d.valorCents)}</TableCell>

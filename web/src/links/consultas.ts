@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { chamarApi, enviarJson } from '@/api/cliente'
 import type { DestinoInformado, LinkCurto } from '@/api/tipos'
 import { useListaPaginada } from '@/lib/paginacao'
+import { useAtualizarLimiteDeDestinos } from '@/painel/consultasDoLimite'
 
 export type GravarLink = { titulo: string; destino: DestinoInformado }
 
@@ -12,7 +13,9 @@ export const useLinks = (soAtivos = false) => useListaPaginada<LinkCurto>([...ch
 
 function useGravar<T>(fazer: (dados: T) => Promise<unknown>) {
   const cliente = useQueryClient()
-  return useMutation({ mutationFn: fazer, meta: { sucesso: 'Alteração salva.' }, onSuccess: () => cliente.invalidateQueries({ queryKey: chave }) })
+  const atualizarLimite = useAtualizarLimiteDeDestinos()
+  // Criar e alterar link contam no limite diário de destinos; as outras gravações só pedem a contagem de novo, sem custo.
+  return useMutation({ mutationFn: fazer, meta: { sucesso: 'Alteração salva.' }, onSuccess: () => Promise.all([cliente.invalidateQueries({ queryKey: chave }), atualizarLimite()]) })
 }
 
 export const useCriarLink = () => useGravar((l: GravarLink) => chamarApi<LinkCurto>('/links', enviarJson('POST', l)))

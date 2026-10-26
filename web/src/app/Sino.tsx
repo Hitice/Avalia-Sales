@@ -3,8 +3,9 @@ import { Bell, TriangleAlert } from 'lucide-react'
 import { useNavigate } from 'react-router'
 import { chamarApi, enviarJson } from '@/api/cliente'
 import { formatarDataHora } from '@/api/rotulos'
-import type { CaixaDeNotificacoes, MinhaRevenda, SituacaoDoContrato } from '@/api/tipos'
+import type { CaixaDeNotificacoes, SituacaoDoContrato } from '@/api/tipos'
 import { useSessao } from '@/acesso/sessao'
+import { useMinhaRevenda } from '@/painel/consultas'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
@@ -22,12 +23,12 @@ type Pendencia = { texto: string; link: string | null }
 /** O que falta na revenda para operar: fica no topo do sino até resolver. */
 function usePendencias(): Pendencia[] {
   const dono = useSessao((s) => s.perfil?.papel === 'Dono')
-  const revenda = useQuery({ queryKey: ['revenda'], queryFn: () => chamarApi<MinhaRevenda>('/revenda'), enabled: dono })
+  const revenda = useMinhaRevenda(dono)
   const r = revenda.data?.revendedor
   if (!dono || !r) return []
   const lista: Pendencia[] = []
-  if (r.encerradaEm) return [{ texto: 'Conta encerrada. Exporte os dados em Meus dados.', link: '/conta/dados' }]
-  if (r.encerramentoPedidoEm) lista.push({ texto: 'Assine o distrato que chegou no seu e-mail.', link: '/conta/dados' })
+  if (r.encerradaEm) return [{ texto: 'Conta encerrada. Exporte os dados em Configurações.', link: '/painel/configuracoes' }]
+  if (r.encerramentoPedidoEm) lista.push({ texto: 'Assine o distrato que chegou no seu e-mail.', link: '/painel/configuracoes' })
   if (!r.contratoAssinadoEm) lista.push({ texto: CONTRATO[revenda.data?.contrato ?? 'Rascunho'] ?? CONTRATO.Rascunho!, link: null })
   if (!r.temEndereco) lista.push({ texto: 'Informe o endereço da empresa em Meus dados.', link: '/conta/dados' })
   if (!r.recebedorPagarme) lista.push({ texto: 'Conta de recebimento no Pagar.me pendente.', link: '/painel/suporte' })
