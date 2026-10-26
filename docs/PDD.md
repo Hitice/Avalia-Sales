@@ -763,6 +763,7 @@ porque está impresso nas placas vendidas.
 
 | Data | Mudança |
 | --- | --- |
+| 26/10/2026 | Página /now no celular e no tablet - o banner das telas fica entre a chamada e a descrição; no computador continua ao lado do texto. |
 | 26/10/2026 | A renovação da placa é anual e só do revendedor: o vendedor não a pede nem a registra por fora (a ficha e a carteira dele não oferecem Renovar, e a API recusa com 403). A renovação deixa de gastar a cota diária de recebido por fora do vendedor. |
 | 26/10/2026 | A busca das listas paginadas (vendas, clientes, carteira, lotes, pedidos, chamados, links, serviços, repasses, razão, despesas, retiradas, revendedores, ERP e auditoria) volta a achar sem acento: "otica" acha "Ótica", "sao" acha "São João". |
 | 25/10/2026 | Listas do painel abrem em páginas de 50 (no máximo 100), e a busca vale para a lista inteira, e não só para a página aberta. Antes, vendas, clientes, carteira, ERP e repasses cortavam em 200 ou 500 sem avisar. Os números do Início e das telas de vendas (vendas no mês, recebido, gráfico de 30 dias, comissão esperando) são calculados sobre todas as vendas, no mês de Brasília. A carteira ganha o filtro de vencimento, e o repasse só se desfaz no último de cada vendedor. Para o vendedor, a busca não olha telefone, documento nem e-mail de cliente. |

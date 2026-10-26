@@ -276,6 +276,19 @@ a:hover { color: var(--primaria-hover); }
   color: var(--texto-3);
 }
 
+/* Celular e tablet: o banner das telas fica entre a chamada e a descrição. O bloco de texto some da
+   grade (display: contents) para seus filhos poderem se ordenar em volta da figura. */
+@media (max-width: 1023.98px) {
+  .abertura { gap: 0; }
+  .abertura-texto { display: contents; }
+  .abertura h1 { order: 1; }
+  .abertura-sub { order: 2; }
+  .abertura-telas { order: 3; margin: 28px 0 8px; }
+  .abertura-lead { order: 4; }
+  .abertura-autor { order: 5; }
+  .abertura-estado { order: 6; }
+}
+
 @media (min-width: 1024px) {
   .abertura {
     grid-template-columns: minmax(0, 11fr) minmax(0, 13fr);
