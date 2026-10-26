@@ -13,7 +13,7 @@ import { Field, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { mascaraTelefone } from '@/lib/mascaras'
-import { useContratoAssinado, useDefinirRecebedor, useDefinirRenovacao, useReabertura, useRevendedores, useSuspensao } from './consultas'
+import { useContratoAssinado, useDefinirGrupo, useDefinirRecebedor, useDefinirRenovacao, useReabertura, useRevendedores, useSuspensao } from './consultas'
 
 const formatarCnpj = (c: string | null) => c ? c.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5') : '-'
 
@@ -32,9 +32,11 @@ export function TelaDeRevendedores() {
   const contrato = useContratoAssinado()
   const reabertura = useReabertura()
   const suspensao = useSuspensao()
+  const grupo = useDefinirGrupo()
+  const [grupoDe, setGrupoDe] = useState<Revendedor | null>(null)
   const [editando, setEditando] = useState<Revendedor | null>(null)
   const [suspendendo, setSuspendendo] = useState<Revendedor | null>(null)
-  const erro = contrato.error ?? reabertura.error ?? suspensao.error
+  const erro = contrato.error ?? reabertura.error ?? suspensao.error ?? (grupoDe ? null : grupo.error)
 
   return (
     <>
@@ -65,7 +67,12 @@ export function TelaDeRevendedores() {
                       const ativa = !r.encerradaEm
                       return (
                         <TableRow key={r.id}>
-                          <TableCell className="min-w-40 font-medium whitespace-normal">{r.nome}</TableCell>
+                          <TableCell className="min-w-40 font-medium whitespace-normal">
+                            <span className="flex flex-wrap items-center gap-1.5">
+                              {r.nome}
+                              {r.doGrupoDaOperadora && <Badge variant="info">Do grupo</Badge>}
+                            </span>
+                          </TableCell>
                           <TableCell>
                             <Badge variant={conta.tom}>{conta.rotulo}</Badge>
                             {conta.detalhe && <span className="text-xs text-muted-foreground max-md:ml-2">{conta.detalhe}</span>}
@@ -84,6 +91,7 @@ export function TelaDeRevendedores() {
                               ativa && !r.encerramentoPedidoEm && !r.contratoAssinadoEm && { rotulo: 'Registrar contrato assinado', desabilitada: contrato.isPending, aoClicar: () => contrato.mutate(r.id) },
                               !!r.encerradaEm && !!r.reaberturaPedidaEm && { rotulo: 'Aprovar reabertura', desabilitada: reabertura.isPending, aoClicar: () => reabertura.mutate({ id: r.id, aprovar: true }) },
                               !!r.encerradaEm && !!r.reaberturaPedidaEm && { rotulo: 'Recusar reabertura', destrutiva: true, desabilitada: reabertura.isPending, aoClicar: () => reabertura.mutate({ id: r.id, aprovar: false }) },
+                              ativa && { rotulo: r.doGrupoDaOperadora ? 'Tirar do grupo da operadora' : 'Marcar como do grupo da operadora', aoClicar: () => { grupo.reset(); setGrupoDe(r) } },
                               ativa && !!r.suspensaEm && { rotulo: 'Reativar', desabilitada: suspensao.isPending, aoClicar: () => suspensao.mutate({ id: r.id, suspender: false }) },
                               ativa && !r.suspensaEm && { rotulo: 'Suspender', destrutiva: true, aoClicar: () => { suspensao.reset(); setSuspendendo(r) } },
                             ]} />
@@ -98,6 +106,10 @@ export function TelaDeRevendedores() {
           </ListaPaginada>
         </CardContent>
       </Card>
+      {grupoDe && (
+        <MarcaDoGrupo revendedor={grupoDe} ocupado={grupo.isPending} erro={grupo.error} aoFechar={() => setGrupoDe(null)}
+          aoConfirmar={() => grupo.mutate({ id: grupoDe.id, doGrupo: !grupoDe.doGrupoDaOperadora }, { onSuccess: () => setGrupoDe(null) })} />
+      )}
       {editando && <EdicaoDoRevendedor key={editando.id} revendedor={editando} aoFechar={() => setEditando(null)} />}
       {suspendendo && (
         <Suspensao revendedor={suspendendo} ocupado={suspensao.isPending} erro={suspensao.error} aoFechar={() => setSuspendendo(null)}
@@ -183,6 +195,39 @@ function Suspensao({ revendedor, ocupado, erro, aoFechar, aoSuspender }: {
             <Button type="submit" variant="destructive" disabled={ocupado}>Suspender</Button>
           </DialogFooter>
         </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+/**
+ * Marcar a revenda como do grupo da operadora é decisão explícita (não sai do CNPJ nem do nome): a operadora passa a ler
+ * os números da revenda, só somados, no resultado do grupo. A marca vale para todos os meses e fica na trilha da operadora.
+ */
+function MarcaDoGrupo({ revendedor, ocupado, erro, aoFechar, aoConfirmar }: {
+  revendedor: Revendedor
+  ocupado: boolean
+  erro: unknown
+  aoFechar: () => void
+  aoConfirmar: () => void
+}) {
+  const tirar = revendedor.doGrupoDaOperadora
+  return (
+    <Dialog open onOpenChange={(aberto) => !aberto && aoFechar()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{tirar ? 'Tirar' : 'Marcar'} {revendedor.nome} {tirar ? 'do' : 'como do'} grupo da operadora</DialogTitle>
+          <DialogDescription>
+            {tirar
+              ? 'O resultado desta revenda sai do consolidado do grupo, em todos os meses.'
+              : 'Use só para a revenda da mesma empresa da operadora. O resultado dela entra no consolidado do grupo, em todos os meses, e a operadora passa a ler os números dela somados. A marca fica registrada com quem fez e quando.'}
+          </DialogDescription>
+        </DialogHeader>
+        <Erro erro={erro ? mensagemDoErro(erro) : null} />
+        <DialogFooter>
+          <Button type="button" variant="ghost" onClick={aoFechar}>Voltar</Button>
+          <Button type="button" disabled={ocupado} onClick={aoConfirmar}>{tirar ? 'Tirar do grupo' : 'Marcar como do grupo'}</Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

@@ -5,7 +5,7 @@ const TELAS_DO_DONO = ['/painel/inicio', '/painel/vendas', '/carteira', '/painel
   '/painel/comissoes', '/painel/financeiro', '/painel/razao', '/painel/mapa', '/catalogo', '/painel/configuracoes', '/painel/marca', '/painel/auditoria', '/painel/suporte']
 
 const TELAS_DA_OPERADORA = ['/operadora/pedidos', '/operadora/lotes', '/operadora/servicos', '/operadora/catalogo', '/operadora/pacotes',
-  '/operadora/cupons', '/operadora/revendedores', '/operadora/atendimento', '/operadora/erp', '/operadora/auditoria']
+  '/operadora/cupons', '/operadora/revendedores', '/operadora/atendimento', '/operadora/erp', '/operadora/auditoria', '/operadora/financeiro']
 
 for (const [quem, email, telas] of [['dono', undefined, TELAS_DO_DONO], ['operadora', OPERADOR, TELAS_DA_OPERADORA]] as const) {
 test(`telas da ${quem === 'dono' ? 'revenda' : 'operadora'} sem violação grave e sem rolagem para o lado`, async ({ page }) => {

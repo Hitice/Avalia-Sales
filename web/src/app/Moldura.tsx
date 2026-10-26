@@ -1,6 +1,6 @@
 import { useIsFetching, useIsMutating } from '@tanstack/react-query'
 import {
-  type LucideIcon, BookOpen, CalendarClock, Boxes, ClipboardList, HandCoins, Headset, History, Home, Landmark, MapPin, Menu, Package,
+  type LucideIcon, BookOpen, CalendarClock, Boxes, ClipboardList, HandCoins, Headset, History, Home, Landmark, MapPin, Scale, Menu, Package,
   ChevronDown, ChevronsUpDown, LogOut, Palette, Settings, PlusCircle, Receipt, Server, ShieldCheck, Store, TicketPercent, UserRound, Users,
   UsersRound, Wrench,
 } from 'lucide-react'
@@ -64,6 +64,7 @@ const MENU: Record<Papel, Grupo[]> = {
     ] },
     { titulo: 'Revendas', itens: [
       { para: '/operadora/revendedores', rotulo: 'Revendedores', icone: Store },
+      { para: '/operadora/financeiro', rotulo: 'Resultado do grupo', icone: Scale },
       { para: '/operadora/atendimento', rotulo: 'Atendimento', icone: Headset },
       { para: '/operadora/erp', rotulo: 'ERP', icone: Server },
       { para: '/operadora/auditoria', rotulo: 'Auditoria', icone: History },

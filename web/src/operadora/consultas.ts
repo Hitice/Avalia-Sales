@@ -42,6 +42,8 @@ export const useDefinirRenovacao = () => useGravar(({ id, renovacaoBps }: { id: 
 export const useDefinirRecebedor = () => useGravar(({ id, recebedor }: { id: string; recebedor: string }) => chamarApi(`/operadora/revendedores/${id}/recebedor`, enviarJson('PUT', { recebedor })))
 export const useSuspensao = () => useGravar(({ id, suspender, motivo }: { id: string; suspender: boolean; motivo?: string | null }) =>
   chamarApi(`/operadora/revendedores/${id}/suspensao`, suspender ? enviarJson('POST', { motivo: motivo ?? null }) : { method: 'DELETE' }))
+/** A marca de revenda do grupo da operadora: decisão explícita dela, que libera a leitura do DRE da revenda no resultado do grupo. */
+export const useDefinirGrupo = () => useGravar(({ id, doGrupo }: { id: string; doGrupo: boolean }) => chamarApi(`/operadora/revendedores/${id}/grupo`, enviarJson('PUT', { doGrupo })))
 export const useContratoAssinado = () => useGravar((id: string) => chamarApi(`/operadora/revendedores/${id}/contrato-assinado`, enviarJson('POST', {})))
 
 /** Aprova ou recusa a reabertura da revenda encerrada pelo distrato. */

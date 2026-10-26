@@ -1,4 +1,4 @@
-import type { AcaoAuditada, CategoriaDeDespesa, MeioDePagamento, TipoDeLancamento, CategoriaDoLote, EstadoDaPlaca, MotivoDaBaixa, MotivoDoCancelamento, Pedido, SituacaoDaCobranca, SituacaoDaOrdem, SituacaoDoContrato, SituacaoDoPedido, SituacaoDoProduto, NaturezaDaRetirada, TipoDeProduto } from './tipos'
+import type { AcaoAuditada, CategoriaDeDespesa, CategoriaDeDespesaDaOperadora, MeioDePagamento, TipoDeLancamento, CategoriaDoLote, EstadoDaPlaca, MotivoDaBaixa, MotivoDoCancelamento, Pedido, SituacaoDaCobranca, SituacaoDaOrdem, SituacaoDoContrato, SituacaoDoPedido, SituacaoDoProduto, NaturezaDaRetirada, TipoDeProduto } from './tipos'
 import { FUSO_DE_BRASILIA } from '@/lib/data'
 
 /** Os nomes que a tela mostra para cada situação da API. */
@@ -245,6 +245,15 @@ export const ROTULO_DA_DESPESA: Record<CategoriaDeDespesa, string> = {
   Taxas: 'Taxas',
   Outros: 'Outros',
   ServicoDePjComNota: 'Serviço de PJ com nota',
+}
+
+export const ROTULO_DA_DESPESA_DA_OPERADORA: Record<CategoriaDeDespesaDaOperadora, string> = {
+  GraficaEMaterial: 'Gráfica e material',
+  ExecucaoDeServico: 'Execução de serviço',
+  Frete: 'Frete',
+  SoftwareEFerramentas: 'Software e ferramentas',
+  Impostos: 'Impostos',
+  Outros: 'Outros',
 }
 
 export const ROTULO_DA_RETIRADA: Record<NaturezaDaRetirada, string> = {
