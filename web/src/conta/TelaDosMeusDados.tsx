@@ -16,8 +16,6 @@ import { doEnderecoInformado, paraEnderecoInformado } from '@/lib/endereco'
 import { ENDERECO_VAZIO, endereco } from '@/lib/esquemas'
 import { digitos, mascaraCnpj, mascaraTelefone } from '@/lib/mascaras'
 import { useSessao } from '@/acesso/sessao'
-import { EncerramentoDaConta } from './EncerramentoDaConta'
-import { TrocaDeSenha } from './TrocaDeSenha'
 
 type DadosDaConta = components['schemas']['DadosDaConta']
 
@@ -153,8 +151,6 @@ function Formularios({ dados }: { dados: DadosDaConta }) {
 
       <Button type="submit" className="justify-self-start" disabled={!nome.trim() || !celularValido || salvando}>{salvando ? 'Salvando...' : 'Salvar'}</Button>
     </form>
-    <TrocaDeSenha />
-    {dados.empresa && <EncerramentoDaConta />}
     </div>
   )
 }

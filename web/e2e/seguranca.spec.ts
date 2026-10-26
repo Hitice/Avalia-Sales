@@ -66,7 +66,7 @@ test('o dono liga o segundo fator, a entrada pede o código e ele desliga', asyn
 })
 
 // Vendedor novo, para não mexer na senha dos logins da demonstração.
-test('logado, o vendedor troca a senha em Meus dados e entra com a nova', async ({ page }) => {
+test('logado, o vendedor troca a senha em Segurança e entra com a nova', async ({ page }) => {
   const dono = await apiComo(CLIENTE_A)
   const email = `troca-${Date.now()}@revenda.dev`
   const criado = await (await dono.post('equipe', { data: { nome: 'Vendedor Troca', email } })).json() as { linkDoConvite: string }
@@ -75,7 +75,7 @@ test('logado, o vendedor troca a senha em Meus dados e entra com a nova', async 
   await dono.dispose()
 
   await entrar(page, email, 'senha-primeira-123')
-  await page.goto('/conta/dados')
+  await page.goto('/conta/seguranca')
   await page.getByRole('button', { name: 'Trocar senha' }).click()
   await page.getByLabel('Senha atual').fill('senha-errada-123')
   await page.getByLabel('Senha nova', { exact: true }).fill('senha-segunda-123')
@@ -88,7 +88,7 @@ test('logado, o vendedor troca a senha em Meus dados e entra com a nova', async 
   await semViolacaoGrave(page)
 
   await page.reload()
-  await expect(page.getByRole('heading', { name: 'Meus dados' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Segurança' })).toBeVisible()
   await page.context().clearCookies()
   await entrar(page, email, 'senha-segunda-123')
 })

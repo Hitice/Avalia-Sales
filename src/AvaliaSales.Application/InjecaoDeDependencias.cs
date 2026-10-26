@@ -31,6 +31,9 @@ public static class InjecaoDeDependencias
         servicos.AddSingleton<JanelaDeTentativas>();
         servicos.AddScoped<Cadastro>();
         servicos.AddScoped<Revendedores.Revendedores>();
+        servicos.AddScoped<Revendedores.LimiteDeDestinos>();
+        servicos.AddScoped<Links.DestinosBloqueados>();
+        servicos.AddScoped<Revendedores.AcoesSensiveisDaOperadora>();
         servicos.AddScoped<Pedidos.Cupons>();
         servicos.AddScoped<Comissoes>();
         servicos.AddScoped<RecebimentosPorFora>();
@@ -44,10 +47,14 @@ public static class InjecaoDeDependencias
         servicos.AddScoped<FechamentosDaOperadora>();
         servicos.AddScoped<DespesasDaOperadora>();
         servicos.AddScoped<CustosDeLote>();
+        servicos.AddScoped<Fornecedores>();
+        servicos.AddScoped<AcertosDeRevenda>();
         servicos.AddScoped<ResultadoDoGrupo>();
         servicos.AddScoped<CustoDasPlacas>();
         servicos.AddScoped<Renovacoes>();
         servicos.AddScoped<Vendas.TestesGratuitos>();
+        servicos.AddScoped<Avisos.ConfirmacoesDePagamento>();
+        servicos.AddScoped<Avisos.AvisosDeVencimento>();
         servicos.AddScoped<Pagamentos.EfeitosDaCobranca>();
         servicos.AddScoped<Erp.FilaDoErp>();
         servicos.AddScoped<Revendedores.Marca>();

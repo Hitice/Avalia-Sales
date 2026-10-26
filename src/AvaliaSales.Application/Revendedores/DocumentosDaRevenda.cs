@@ -39,7 +39,7 @@ public sealed class DocumentosDaRevenda(IBancoDeDados banco, IContas contas, IDo
         var agora = relogio.GetUtcNow();
         var dados = new DadosDoDistrato(ParteRevendedora.De(revendedor, dono.Nome, dono.Email), revendedor.ContratoAssinadoEm, agora,
             await ClientesAtivos(agora, ct), await banco.Placas.CountAsync(p => p.Situacao == SituacaoDaPlaca.EmEstoque, ct),
-            await LotesComEstoque(ct), await Conciliacao(ct));
+            await LotesComEstoque(ct), await Conciliacao(revendedor.Id, ct));
         var pdf = await documentos.Distrato(dados, ct);
         await contratos.Registrar(new CriarContrato(TipoDeContrato.Distrato, $"Distrato - {revendedor.Nome}", dono.Nome, dono.Email, pdf), ct);
         return true;
@@ -73,7 +73,7 @@ public sealed class DocumentosDaRevenda(IBancoDeDados banco, IContas contas, IDo
         return numeros.Select(Lote.Rotular).ToList();
     }
 
-    private async Task<Conciliacao> Conciliacao(CancellationToken ct)
+    private async Task<Conciliacao> Conciliacao(Guid revendedorId, CancellationToken ct)
     {
         var pagas = banco.Cobrancas.AsNoTracking()
             .Where(c => (c.Origem == OrigemDaCobranca.Venda || c.Origem == OrigemDaCobranca.Renovacao) && c.Situacao == SituacaoDaCobranca.Paga);
@@ -81,7 +81,8 @@ public sealed class DocumentosDaRevenda(IBancoDeDados banco, IContas contas, IDo
         return new Conciliacao(
             await pagas.CountAsync(ct),
             await pagas.SumAsync(c => c.ValorCents, ct),
-            await porFora.SumAsync(c => c.TaxaAvaliaCents, ct),
+            // O que a revenda já quitou com a Avalia (acertos da operadora) sai do saldo devido no distrato.
+            Math.Max(0, await porFora.SumAsync(c => c.TaxaAvaliaCents, ct) - (await banco.AcertosDeRevenda.AsNoTracking().Where(a => a.RevendedorId == revendedorId).SumAsync(a => (long?)a.ValorCents, ct) ?? 0)),
             await banco.Cobrancas.CountAsync(c => (c.Origem == OrigemDaCobranca.Venda || c.Origem == OrigemDaCobranca.Renovacao) && c.Situacao == SituacaoDaCobranca.Pendente, ct));
     }
 }

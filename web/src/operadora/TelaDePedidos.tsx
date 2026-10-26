@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { mensagemDoErro } from '@/api/cliente'
 import { formatarDataHora, rotuloDoPedido, TOM_DO_PEDIDO } from '@/api/rotulos'
 import type { Pedido } from '@/api/tipos'
 import { AcoesDaLinha } from '@/componentes/AcoesDaLinha'
@@ -9,18 +10,22 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Field, FieldLabel } from '@/components/ui/field'
+import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { formatarCentavos } from '@/dinheiro/dinheiro'
-import { useDespachar, useIniciarProducao, useLotesLivres, usePedidosDaOperadora, useRegistrarPagamento } from './consultas'
+import { useIniciarProducao, useLotesLivres, usePedidosDaOperadora, useRegistrarPagamento } from './consultas'
+import { useDespacharComEnvio, useEstornarPedido, useFornecedoresDeLogistica } from './consultasDeEntregaEAcerto'
 
 /** A fila da operadora: pedido pago ganha um lote livre da mesma quantidade. */
 export function TelaDePedidos() {
   const pedidos = usePedidosDaOperadora()
   const pagar = useRegistrarPagamento()
-  const despachar = useDespachar()
+  const despachar = useDespacharComEnvio()
+  const estornar = useEstornarPedido()
   const producao = useIniciarProducao()
   const [despachando, setDespachando] = useState<Pedido | null>(null)
+  const [estornando, setEstornando] = useState<Pedido | null>(null)
 
   return (
     <>
@@ -54,7 +59,11 @@ export function TelaDePedidos() {
                           <TableCell>{formatarCentavos(pedido.valorCents)}</TableCell>
                           <TableCell>{formatarDataHora(pedido.criadoEm)}</TableCell>
                           <TableCell><Badge variant={TOM_DO_PEDIDO[pedido.situacao]}>{rotuloDoPedido(pedido)}</Badge></TableCell>
-                          <TableCell>{pedido.lote ?? (semLote ? <span className="text-muted-foreground">Gere um lote de {pedido.quantidade}</span> : '-')}</TableCell>
+                          <TableCell>
+                            {pedido.lote ?? (semLote ? <span className="text-muted-foreground">Gere um lote de {pedido.quantidade}</span> : '-')}
+                            {pedido.transportadora && <span className="block text-xs text-muted-foreground">{pedido.transportadora}</span>}
+                            {pedido.codigoDeRastreio && <span className="block text-xs text-muted-foreground tabular-nums">Rastreio {pedido.codigoDeRastreio}</span>}
+                          </TableCell>
                           <TableCell>
                             <AcoesDaLinha
                               nome={`pedido de ${pedido.revendedor}`}
@@ -65,6 +74,7 @@ export function TelaDePedidos() {
                               }
                               outras={[
                                 pedido.situacao === 'Pago' && { rotulo: 'Iniciar produção', desabilitada: producao.isPending, aoClicar: () => producao.mutate(pedido.id) },
+                                aDespachar && { rotulo: 'Estornar pedido', destrutiva: true, aoClicar: () => { estornar.reset(); setEstornando(pedido) } },
                               ]}
                             />
                           </TableCell>
@@ -81,11 +91,17 @@ export function TelaDePedidos() {
       {despachando && (
         <Despacho pedido={despachando} ocupado={despachar.isPending} erro={despachar.error}
           aoFechar={() => setDespachando(null)}
-          aoDespachar={(lote, retirada) => despachar.mutate({ id: despachando.id, lote, retirada }, { onSuccess: () => setDespachando(null) })} />
+          aoDespachar={(dados) => despachar.mutate({ id: despachando.id, ...dados }, { onSuccess: () => setDespachando(null) })} />
+      )}
+      {estornando && (
+        <Estorno pedido={estornando} ocupado={estornar.isPending} erro={estornar.error} aoFechar={() => setEstornando(null)}
+          aoEstornar={(motivo) => estornar.mutate({ id: estornando.id, motivo }, { onSuccess: () => setEstornando(null) })} />
       )}
     </>
   )
 }
+
+const OUTRA = '__outra__'
 
 /** O lote livre da mesma quantidade vai para a revenda: enviado pelo correio ou pronto para ela retirar. */
 function Despacho({ pedido, ocupado, erro, aoFechar, aoDespachar }: {
@@ -93,13 +109,24 @@ function Despacho({ pedido, ocupado, erro, aoFechar, aoDespachar }: {
   ocupado: boolean
   erro: unknown
   aoFechar: () => void
-  aoDespachar: (lote: number, retirada: boolean) => void
+  aoDespachar: (dados: { lote: number; retirada: boolean; transportadora: string | null; codigoDeRastreio: string | null }) => void
 }) {
   const livres = useLotesLivres(pedido.quantidade)
   const lotes = livres.data?.itens ?? []
   const [escolhido, setLote] = useState('')
   // Com um lote só, ele já vem escolhido.
   const lote = escolhido || (lotes.length === 1 ? String(lotes[0].numero) : '')
+  const fornecedores = useFornecedoresDeLogistica()
+  const nomes = (fornecedores.data?.itens ?? []).map((f) => f.nome)
+  const [transportadora, setTransportadora] = useState('')
+  const [outra, setOutra] = useState(false)
+  const [rastreio, setRastreio] = useState('')
+  const enviar = (retirada: boolean) => aoDespachar({
+    lote: Number(lote),
+    retirada,
+    transportadora: retirada ? null : transportadora.trim() || null,
+    codigoDeRastreio: retirada ? null : rastreio.trim() || null,
+  })
   return (
     <Dialog open onOpenChange={(aberto) => !aberto && aoFechar()}>
       <DialogContent>
@@ -117,10 +144,60 @@ function Despacho({ pedido, ocupado, erro, aoFechar, aoDespachar }: {
             </SelectContent>
           </Select>
         </Field>
+        <Field>
+          <FieldLabel htmlFor="transportadora-do-despacho">Transportadora</FieldLabel>
+          {nomes.length > 0 && !outra ? (
+            <Select value={transportadora} onValueChange={(v) => (v === OUTRA ? (setOutra(true), setTransportadora('')) : setTransportadora(v))}>
+              <SelectTrigger id="transportadora-do-despacho" className="w-full"><SelectValue placeholder="Escolha" /></SelectTrigger>
+              <SelectContent>
+                {nomes.map((n) => <SelectItem key={n} value={n}>{n}</SelectItem>)}
+                <SelectItem value={OUTRA}>Outra</SelectItem>
+              </SelectContent>
+            </Select>
+          ) : (
+            <Input id="transportadora-do-despacho" maxLength={100} autoComplete="off" value={transportadora} onChange={(e) => setTransportadora(e.target.value)} />
+          )}
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="rastreio-do-despacho">Código de rastreio</FieldLabel>
+          <Input id="rastreio-do-despacho" maxLength={100} autoComplete="off" value={rastreio} onChange={(e) => setRastreio(e.target.value)} />
+        </Field>
         <DialogFooter>
-          <Button variant="outline" disabled={!lote || ocupado} onClick={() => aoDespachar(Number(lote), true)}>Pronto para retirada</Button>
-          <Button disabled={!lote || ocupado} onClick={() => aoDespachar(Number(lote), false)}>Despachar</Button>
+          <Button variant="outline" disabled={!lote || ocupado} onClick={() => enviar(true)}>Pronto para retirada</Button>
+          <Button disabled={!lote || ocupado} onClick={() => enviar(false)}>Despachar</Button>
         </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+/** O estorno muda a situação e avisa a revenda; o dinheiro volta por fora do sistema. */
+function Estorno({ pedido, ocupado, erro, aoFechar, aoEstornar }: {
+  pedido: Pedido
+  ocupado: boolean
+  erro: unknown
+  aoFechar: () => void
+  aoEstornar: (motivo: string | null) => void
+}) {
+  const [motivo, setMotivo] = useState('')
+  return (
+    <Dialog open onOpenChange={(aberto) => !aberto && aoFechar()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Estornar pedido</DialogTitle>
+          <DialogDescription>{pedido.revendedor}, {pedido.quantidade} placas. A devolução do dinheiro sai pelo painel do Pagar.me ou por fora.</DialogDescription>
+        </DialogHeader>
+        <form className="grid gap-4" onSubmit={(e) => { e.preventDefault(); aoEstornar(motivo.trim() || null) }}>
+          <Erro erro={erro ? mensagemDoErro(erro) : null} />
+          <Field>
+            <FieldLabel htmlFor="motivo-do-estorno">Motivo (opcional)</FieldLabel>
+            <Input id="motivo-do-estorno" maxLength={200} value={motivo} onChange={(e) => setMotivo(e.target.value)} />
+          </Field>
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={aoFechar}>Voltar</Button>
+            <Button type="submit" variant="destructive" disabled={ocupado}>Estornar pedido</Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   )

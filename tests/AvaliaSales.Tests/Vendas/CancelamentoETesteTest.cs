@@ -176,6 +176,34 @@ public sealed class CancelamentoETesteTest(ApiDeTeste api)
     }
 
     [Fact]
+    public async Task Teste_gratuito_e_um_por_cliente_e_so_da_placa_de_avaliacao_no_google()
+    {
+        var revenda = await api.RevendaComEstoque("Revenda do Teste Unico");
+        await revenda.Dono.Postar("/vendas", Cenarios.Venda(revenda.Codigos[0], revenda.ProdutoId, "11977770041", testeGratuito: true), HttpStatusCode.Created);
+
+        // Mesmo cliente (mesmo telefone), segunda placa: o teste não se repete.
+        var repetido = await revenda.Dono.Postar("/vendas", Cenarios.Venda(revenda.Codigos[1], revenda.ProdutoId, "11977770041", testeGratuito: true), HttpStatusCode.UnprocessableEntity);
+        Assert.Contains("já usou o teste", repetido.ToString());
+
+        // Destino que não é avaliação no Google não tem teste.
+        var comLink = new
+        {
+            codigo = revenda.Codigos[2],
+            produtoId = revenda.ProdutoId,
+            empresa = "Padaria Pão Quente",
+            responsavel = "Marta",
+            telefone = "11977770042",
+            documento = "11222333000181",
+            email = "marta@padaria.com.br",
+            destino = new { tipo = "Link", lugarNoGoogle = (string?)null, link = "https://padaria.example.com/promo" },
+            valorCents = (long?)null,
+            meio = "Pix",
+            testeGratuito = true,
+        };
+        await revenda.Dono.Postar("/vendas", comLink, HttpStatusCode.UnprocessableEntity);
+    }
+
+    [Fact]
     public async Task Dois_pedidos_de_cobranca_ao_mesmo_tempo_geram_uma_cobranca_so()
     {
         var revenda = await api.RevendaComEstoque("Revenda dos Dois Toques");

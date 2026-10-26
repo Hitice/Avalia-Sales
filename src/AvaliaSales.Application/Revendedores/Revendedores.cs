@@ -14,7 +14,7 @@ public sealed record MinhaRevenda(RevendedorDto Revendedor, SituacaoDoContrato? 
 
 /// <summary>O cadastro dos revendedores visto pela operadora, e a própria revenda vista pelo dono.</summary>
 public sealed class Revendedores(IBancoDeDados banco, IRevendedorAtual atual, IUsuarioAtual usuario, Equipe.IContas contas, Avisos.FilaDeEmails emails,
-    Notificacoes.Notificacoes notificacoes, IOptions<OpcoesDaPlataforma> plataforma, TimeProvider relogio)
+    Notificacoes.Notificacoes notificacoes, IOptions<OpcoesDaPlataforma> plataforma, TimeProvider relogio, AcoesSensiveisDaOperadora sensiveis)
 {
     /// <summary>Por nome; a busca vale para o nome e o CNPJ.</summary>
     public async Task<Pagina<RevendedorDto>> Listar(string? busca, PedidoDePagina pedido, CancellationToken ct)
@@ -76,9 +76,30 @@ public sealed class Revendedores(IBancoDeDados banco, IRevendedorAtual atual, IU
         await banco.SaveChangesAsync(ct);
     }
 
+    /// <summary>
+    /// Nome e CNPJ da revenda, pela operadora. O CNPJ é único na plataforma. O contrato já assinado segue com o
+    /// documento de antes: a operadora registra um contrato novo quando o documento muda de verdade.
+    /// </summary>
+    public async Task CorrigirCadastro(Guid id, string nome, string cnpj, CancellationToken ct)
+    {
+        await sensiveis.Exigir("Trocar o nome ou o CNPJ da revenda", ct);
+        var revendedor = await Achar(id, ct);
+        revendedor.CorrigirCadastro(nome, cnpj);
+        if (await banco.Revendedores.AnyAsync(r => r.Id != id && r.Cnpj == revendedor.Cnpj, ct))
+        {
+            throw new RegraDeNegocioException("Já existe uma revenda com este CNPJ.");
+        }
+
+        await banco.SaveChangesAsync(ct);
+    }
+
     public async Task DefinirRecebedor(Guid id, string recebedor, CancellationToken ct)
     {
-        (await Achar(id, ct)).DefinirRecebedorPagarme(recebedor);
+        await sensiveis.Exigir("Trocar o recebedor do Pagar.me", ct);
+        var revendedor = await Achar(id, ct);
+        revendedor.DefinirRecebedorPagarme(recebedor);
+        // O recebedor define para onde vai o dinheiro das vendas da revenda: o dono é avisado de toda troca, para estranhar a que não pediu.
+        await Avisar(revendedor, "Recebedor do Pagar.me alterado", "A Avalia trocou o recebedor da sua revenda no Pagar.me. Se você não esperava isso, abra um chamado no Suporte.", ct, "recebedor");
         await banco.SaveChangesAsync(ct);
     }
 
@@ -119,13 +140,13 @@ public sealed class Revendedores(IBancoDeDados banco, IRevendedorAtual atual, IU
     }
 
     /// <summary>No sino e por e-mail: dono de conta encerrada nem sempre entra para ver.</summary>
-    private async Task Avisar(Domain.Revendedores.Revendedor revendedor, string titulo, string texto, CancellationToken ct)
+    private async Task Avisar(Domain.Revendedores.Revendedor revendedor, string titulo, string texto, CancellationToken ct, string tipo = "reabertura")
     {
         notificacoes.ParaDono(revendedor.Id, titulo, texto, "/conta/dados");
         var vez = relogio.GetUtcNow().ToUnixTimeSeconds();
         foreach (var email in await contas.EmailsDosDonos(revendedor.Id, ct))
         {
-            emails.Enfileirar($"reabertura:{revendedor.Id:N}:{vez}:{email}", email, titulo,
+            emails.Enfileirar($"{tipo}:{revendedor.Id:N}:{vez}:{email}", email, titulo,
                 $"""
                 {titulo}.
 

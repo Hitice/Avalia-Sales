@@ -14,6 +14,7 @@ test('o dono pede o encerramento da conta, vê o distrato a caminho e desiste', 
   await page.getByRole('button', { name: 'Salvar' }).click()
   await expect(page.getByText('Dados salvos.').first()).toBeVisible()
 
+  await page.goto('/painel/configuracoes')
   await page.getByRole('button', { name: 'Encerrar conta' }).click()
   const confirmacao = page.getByRole('dialog')
   await expect(confirmacao.getByText(/o estoque tem baixa sem devolução/)).toBeVisible()

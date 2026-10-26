@@ -50,6 +50,7 @@ public static class RotasDaLeitura
         {
             null => Pagina(http, Aviso.LinkNaoEncontrado, normalizado, HttpStatusCode.NotFound),
             { Ativo: false } => Pagina(http, Aviso.LinkDesligado, normalizado, HttpStatusCode.OK),
+            _ when await escopo.ServiceProvider.GetRequiredService<DestinosBloqueados>().Bloqueado(lido.Destino, ct) => Pagina(http, Aviso.DestinoBloqueado, normalizado, HttpStatusCode.OK),
             _ => Redirecionar(http, lido.Destino!),
         };
     }
@@ -85,6 +86,8 @@ public static class RotasDaLeitura
         {
             // 302 e nunca 301: o 301 fica guardado no navegador de quem leu, e a
             // placa congelaria no primeiro destino mesmo depois de trocado.
+            ResultadoDaLeitura.Redirecionar when await escopo.ServiceProvider.GetRequiredService<DestinosBloqueados>().Bloqueado(leitura.Destino, ct) =>
+                Pagina(http, Aviso.DestinoBloqueado, normalizado, HttpStatusCode.OK),
             ResultadoDaLeitura.Redirecionar => Redirecionar(http, leitura.Destino!),
             ResultadoDaLeitura.Vender => Redirecionar(http, $"{plataforma.Value.UrlDoPainel.TrimEnd('/')}/vender?codigo={normalizado}"),
             ResultadoDaLeitura.Aviso => Pagina(http, leitura.Estado switch
@@ -127,6 +130,7 @@ public static class RotasDaLeitura
         Baixada,
         LinkNaoEncontrado,
         LinkDesligado,
+        DestinoBloqueado,
     }
 
     private static IResult Pagina(HttpContext http, Aviso aviso, string codigo, HttpStatusCode status)
@@ -140,6 +144,7 @@ public static class RotasDaLeitura
             Aviso.Baixada => ("Placa encerrada", "Esta placa foi encerrada e não leva mais a lugar nenhum."),
             Aviso.LinkNaoEncontrado => ("Link não encontrado", "Não achamos este link. Confira as letras e os números."),
             Aviso.LinkDesligado => ("Link fora do ar", "A loja pausou este link por enquanto."),
+            Aviso.DestinoBloqueado => ("Endereço bloqueado", "A Avalia bloqueou o endereço para onde este código leva, por segurança. Fale com a loja."),
             _ => ("Código não encontrado", "Não achamos este código. Confira as letras e os números impressos na placa."),
         };
         var html = $$"""

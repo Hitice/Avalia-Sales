@@ -61,6 +61,9 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
     public DbSet<FechamentoDoMes> Fechamentos => Set<FechamentoDoMes>();
     public DbSet<LancamentoDaOperadora> LancamentosDaOperadora => Set<LancamentoDaOperadora>();
     public DbSet<DespesaDaOperadora> DespesasDaOperadora => Set<DespesaDaOperadora>();
+    public DbSet<Fornecedor> Fornecedores => Set<Fornecedor>();
+    public DbSet<DestinoBloqueado> DestinosBloqueados => Set<DestinoBloqueado>();
+    public DbSet<AcertoDeRevenda> AcertosDeRevenda => Set<AcertoDeRevenda>();
     public DbSet<FechamentoDaOperadora> FechamentosDaOperadora => Set<FechamentoDaOperadora>();
     public DbSet<CustoDoLote> CustosDeLote => Set<CustoDoLote>();
     public DbSet<Renovacao> Renovacoes => Set<Renovacao>();
@@ -413,7 +416,35 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
             d.Property(x => x.Categoria).HasConversion<string>().HasMaxLength(30);
             d.Ignore(x => x.Competencia);
             d.HasOne<LancamentoDaOperadora>().WithMany().HasForeignKey(x => x.LancamentoId).OnDelete(DeleteBehavior.Restrict);
+            d.HasOne<Fornecedor>().WithMany().HasForeignKey(x => x.FornecedorId).OnDelete(DeleteBehavior.Restrict);
             d.HasIndex(x => new { x.Data, x.CriadaEm, x.Id });
+        });
+
+        modelo.Entity<AcertoDeRevenda>(a =>
+        {
+            a.ToTable("acertos_de_revenda");
+            a.Property(x => x.Observacao).HasMaxLength(AcertoDeRevenda.ObservacaoMaxima);
+            a.HasOne<Revendedor>().WithMany().HasForeignKey(x => x.RevendedorId).OnDelete(DeleteBehavior.Restrict);
+            a.HasIndex(x => new { x.RevendedorId, x.Data });
+        });
+
+        modelo.Entity<DestinoBloqueado>(d =>
+        {
+            d.ToTable("destinos_bloqueados");
+            d.Property(x => x.Dominio).HasMaxLength(DestinoBloqueado.DominioMaximo).IsRequired();
+            d.Property(x => x.Motivo).HasMaxLength(DestinoBloqueado.MotivoMaximo).IsRequired();
+            d.HasIndex(x => x.Dominio).IsUnique();
+        });
+
+        modelo.Entity<Fornecedor>(f =>
+        {
+            f.ToTable("fornecedores");
+            f.Property(x => x.Nome).HasMaxLength(Fornecedor.NomeMaximo).IsRequired();
+            f.Property(x => x.Documento).HasMaxLength(14);
+            f.Property(x => x.Contato).HasMaxLength(Fornecedor.ContatoMaximo);
+            f.Property(x => x.Observacao).HasMaxLength(Fornecedor.ObservacaoMaxima);
+            f.HasIndex(x => x.Documento).IsUnique();
+            f.HasIndex(x => x.Nome);
         });
 
         modelo.Entity<FechamentoDaOperadora>(f =>
@@ -431,6 +462,7 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
             c.Ignore(x => x.TotalCents);
             c.Ignore(x => x.PorPlacaCents);
             c.HasOne<Lote>().WithOne().HasForeignKey<CustoDoLote>(x => x.LoteId).OnDelete(DeleteBehavior.Cascade);
+            c.HasOne<Fornecedor>().WithMany().HasForeignKey(x => x.FornecedorId).OnDelete(DeleteBehavior.Restrict);
         });
     }
 

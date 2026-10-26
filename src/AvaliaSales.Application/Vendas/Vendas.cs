@@ -135,7 +135,9 @@ public sealed class Vendas(
     TimeProvider relogio,
     Financeiro.CustoDasPlacas custoDasPlacas,
     Clientes.PrivacidadeDoCliente privacidade,
-    Financeiro.RecebimentosPorFora porFora)
+    Financeiro.RecebimentosPorFora porFora,
+    Revendedores.LimiteDeDestinos limiteDeDestinos,
+    Links.DestinosBloqueados destinosBloqueados)
 {
     public const int ItensMaximos = 20;
 
@@ -166,6 +168,17 @@ public sealed class Vendas(
         if (pedido.Itens is not { Count: > 0 and <= ItensMaximos })
         {
             throw new RegraDeNegocioException($"A venda tem de 1 a {ItensMaximos} itens.");
+        }
+
+        if (pedido.TesteGratuito && (pedido.Itens.Count != 1 || pedido.Itens[0].Destino?.Tipo != TipoDeDestino.Google))
+        {
+            throw new RegraDeNegocioException("O teste gratuito é só para uma placa de avaliação no Google.");
+        }
+
+        // No fim dos 7 dias a cobrança sai do mesmo cadastro: sem documento e e-mail ela não teria como sair.
+        if (pedido.TesteGratuito && (string.IsNullOrWhiteSpace(pedido.Documento) || string.IsNullOrWhiteSpace(pedido.Email)))
+        {
+            throw new RegraDeNegocioException("No teste gratuito, informe o CNPJ ou CPF e o e-mail do cliente: a cobrança sai deles no fim dos 7 dias.");
         }
 
         var codigos = pedido.Itens.Select(i => CodigoDaPlaca.Normalizar(i.Codigo ?? "")).Where(c => c.Length > 0).ToList();
@@ -207,9 +220,21 @@ public sealed class Vendas(
             linhas.Add((item, produto, doCatalogo, destino));
         }
 
+        foreach (var destino in linhas.Select(l => l.Destino).OfType<string>())
+        {
+            await destinosBloqueados.ExigirPermitido(destino, ct);
+        }
+
+        // Cada placa vendida cadastra um destino novo: o limite do dia conta antes de travar qualquer placa.
+        await limiteDeDestinos.Exigir(linhas.Count(l => l.Destino is not null), ct);
         await using var transacao = await banco.Database.BeginTransactionAsync(ct);
         var lugar = pedido.Itens.Select(i => i.Destino?.LugarNoGoogle).FirstOrDefault(l => l is not null);
         var cliente = await EncontrarCliente(pedido.Empresa, pedido.Responsavel, pedido.Telefone, pedido.Documento, pedido.Email, lugar, agora, ct);
+        if (pedido.TesteGratuito && await banco.Vendas.AnyAsync(v => v.ClienteId == cliente.Id && v.TesteAte != null, ct))
+        {
+            throw new RegraDeNegocioException("Este cliente já usou o teste gratuito. Venda a placa com cobrança.");
+        }
+
         var feitas = new List<(Venda Venda, Placa? Placa, string? LinkCurto, string Descricao)>();
         foreach (var (item, produto, doCatalogo, destino) in linhas)
         {

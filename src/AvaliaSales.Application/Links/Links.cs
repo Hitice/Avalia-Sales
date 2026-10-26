@@ -21,7 +21,8 @@ public sealed record LeituraDoLink(string? Destino, bool Ativo);
 /// O encurtador do revendedor. A venda com destino no Google cria ou
 /// reaproveita o link do negócio; a tela Links cria o do negócio sem placa.
 /// </summary>
-public sealed class Links(IBancoDeDados banco, IRevendedorAtual atual, IUsuarioAtual usuario, Auditoria.Auditoria auditoria, IOptions<OpcoesDaPlataforma> plataforma, TimeProvider relogio)
+public sealed class Links(IBancoDeDados banco, IRevendedorAtual atual, IUsuarioAtual usuario, Auditoria.Auditoria auditoria, IOptions<OpcoesDaPlataforma> plataforma, TimeProvider relogio,
+    Revendedores.LimiteDeDestinos limiteDeDestinos, DestinosBloqueados destinosBloqueados)
 {
     /// <summary>Sorteios antes de desistir; com 32^6 códigos, chegar aqui é defeito, e não azar.</summary>
     private const int Sorteios = 20;
@@ -73,6 +74,8 @@ public sealed class Links(IBancoDeDados banco, IRevendedorAtual atual, IUsuarioA
                 : "Este destino já tem um link. Peça ao revendedor.");
         }
 
+        await destinosBloqueados.ExigirPermitido(destino, ct);
+        await limiteDeDestinos.Exigir(1, ct);
         var link = await Novo(comando.Titulo, destino, null, ct);
         auditoria.Registrar(AcaoAuditada.LinkCriado, $"Link {link.Codigo}", link.Codigo, null, destino);
         await banco.SaveChangesAsync(ct);
@@ -92,6 +95,12 @@ public sealed class Links(IBancoDeDados banco, IRevendedorAtual atual, IUsuarioA
         }
 
         var antes = link.Destino;
+        if (antes != destino)
+        {
+            await destinosBloqueados.ExigirPermitido(destino, ct);
+            await limiteDeDestinos.Exigir(1, ct);
+        }
+
         link.Alterar(comando.Titulo, destino);
         if (antes != destino)
         {

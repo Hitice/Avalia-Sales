@@ -12,8 +12,9 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Field, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { mascaraTelefone } from '@/lib/mascaras'
+import { digitos, mascaraCnpj, mascaraTelefone } from '@/lib/mascaras'
 import { useContratoAssinado, useDefinirGrupo, useDefinirRecebedor, useDefinirRenovacao, useReabertura, useRevendedores, useSuspensao } from './consultas'
+import { useCadastroDoRevendedor, useLiberarDestinos } from './consultasDeEntregaEAcerto'
 
 const formatarCnpj = (c: string | null) => c ? c.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5') : '-'
 
@@ -36,6 +37,7 @@ export function TelaDeRevendedores() {
   const [grupoDe, setGrupoDe] = useState<Revendedor | null>(null)
   const [editando, setEditando] = useState<Revendedor | null>(null)
   const [suspendendo, setSuspendendo] = useState<Revendedor | null>(null)
+  const [liberando, setLiberando] = useState<Revendedor | null>(null)
   const erro = contrato.error ?? reabertura.error ?? suspensao.error ?? (grupoDe ? null : grupo.error)
 
   return (
@@ -92,7 +94,8 @@ export function TelaDeRevendedores() {
                               !!r.encerradaEm && !!r.reaberturaPedidaEm && { rotulo: 'Aprovar reabertura', desabilitada: reabertura.isPending, aoClicar: () => reabertura.mutate({ id: r.id, aprovar: true }) },
                               !!r.encerradaEm && !!r.reaberturaPedidaEm && { rotulo: 'Recusar reabertura', destrutiva: true, desabilitada: reabertura.isPending, aoClicar: () => reabertura.mutate({ id: r.id, aprovar: false }) },
                               ativa && { rotulo: r.doGrupoDaOperadora ? 'Tirar do grupo da operadora' : 'Marcar como do grupo da operadora', aoClicar: () => { grupo.reset(); setGrupoDe(r) } },
-                              ativa && !!r.suspensaEm && { rotulo: 'Reativar', desabilitada: suspensao.isPending, aoClicar: () => suspensao.mutate({ id: r.id, suspender: false }) },
+                              ativa && { rotulo: 'Liberar cadastros', aoClicar: () => setLiberando(r) },
+              ativa && !!r.suspensaEm && { rotulo: 'Reativar', desabilitada: suspensao.isPending, aoClicar: () => suspensao.mutate({ id: r.id, suspender: false }) },
                               ativa && !r.suspensaEm && { rotulo: 'Suspender', destrutiva: true, aoClicar: () => { suspensao.reset(); setSuspendendo(r) } },
                             ]} />
                           </TableCell>
@@ -111,6 +114,7 @@ export function TelaDeRevendedores() {
           aoConfirmar={() => grupo.mutate({ id: grupoDe.id, doGrupo: !grupoDe.doGrupoDaOperadora }, { onSuccess: () => setGrupoDe(null) })} />
       )}
       {editando && <EdicaoDoRevendedor key={editando.id} revendedor={editando} aoFechar={() => setEditando(null)} />}
+      {liberando && <LiberacaoDeCadastros key={liberando.id} revendedor={liberando} aoFechar={() => setLiberando(null)} />}
       {suspendendo && (
         <Suspensao revendedor={suspendendo} ocupado={suspensao.isPending} erro={suspensao.error} aoFechar={() => setSuspendendo(null)}
           aoSuspender={(motivo) => suspensao.mutate({ id: suspendendo.id, suspender: true, motivo }, { onSuccess: () => setSuspendendo(null) })} />
@@ -119,20 +123,26 @@ export function TelaDeRevendedores() {
   )
 }
 
-/** A renovação (em % da venda) e a conta de recebimento no Pagar.me. Só o que mudou vai à API. */
+/** Nome, CNPJ, renovação (em % da venda) e a conta de recebimento no Pagar.me. Só o que mudou vai à API. */
 function EdicaoDoRevendedor({ revendedor, aoFechar }: { revendedor: Revendedor; aoFechar: () => void }) {
   const renovacao = useDefinirRenovacao()
   const recebedor = useDefinirRecebedor()
+  const cadastro = useCadastroDoRevendedor()
   const renovacaoAtual = String(revendedor.renovacaoBps / 100).replace('.', ',')
   const [percentual, setPercentual] = useState(renovacaoAtual)
   const [conta, setConta] = useState(revendedor.recebedorPagarme ?? '')
+  const [nome, setNome] = useState(revendedor.nome)
+  const [cnpj, setCnpj] = useState(mascaraCnpj(revendedor.cnpj ?? ''))
   const bps = paraBps(percentual)
+  const mudouCadastro = nome.trim() !== revendedor.nome || digitos(cnpj) !== (revendedor.cnpj ?? '')
+  const cadastroValido = nome.trim() !== '' && digitos(cnpj).length === 14
   const mudouRenovacao = percentual.trim() !== renovacaoAtual
   const mudouConta = conta.trim() !== (revendedor.recebedorPagarme ?? '') && conta.trim() !== ''
-  const erro = renovacao.error ?? recebedor.error
+  const erro = cadastro.error ?? renovacao.error ?? recebedor.error
 
   async function salvar() {
     try {
+      if (mudouCadastro) await cadastro.mutateAsync({ id: revendedor.id, nome: nome.trim(), cnpj: digitos(cnpj) })
       if (mudouRenovacao && bps !== null) await renovacao.mutateAsync({ id: revendedor.id, renovacaoBps: bps })
       if (mudouConta) await recebedor.mutateAsync({ id: revendedor.id, recebedor: conta.trim() })
       aoFechar()
@@ -151,6 +161,14 @@ function EdicaoDoRevendedor({ revendedor, aoFechar }: { revendedor: Revendedor; 
         <form className="grid gap-4" onSubmit={(e) => { e.preventDefault(); void salvar() }}>
           <Erro erro={erro ? mensagemDoErro(erro) : null} />
           <Field>
+            <FieldLabel htmlFor="nome-do-revendedor">Nome</FieldLabel>
+            <Input id="nome-do-revendedor" maxLength={120} autoComplete="off" value={nome} onChange={(e) => setNome(e.target.value)} />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="cnpj-do-revendedor">CNPJ</FieldLabel>
+            <Input id="cnpj-do-revendedor" inputMode="numeric" autoComplete="off" value={cnpj} aria-invalid={mudouCadastro && !cadastroValido} onChange={(e) => setCnpj(mascaraCnpj(e.target.value))} />
+          </Field>
+          <Field>
             <FieldLabel htmlFor="renovacao">Renovação (% da venda)</FieldLabel>
             <Input id="renovacao" inputMode="decimal" value={percentual} aria-invalid={mudouRenovacao && bps === null} onChange={(e) => setPercentual(e.target.value)} />
           </Field>
@@ -160,7 +178,7 @@ function EdicaoDoRevendedor({ revendedor, aoFechar }: { revendedor: Revendedor; 
           </Field>
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={aoFechar}>Cancelar</Button>
-            <Button type="submit" disabled={(!mudouRenovacao && !mudouConta) || (mudouRenovacao && bps === null) || renovacao.isPending || recebedor.isPending}>Salvar</Button>
+            <Button type="submit" disabled={(!mudouCadastro && !mudouRenovacao && !mudouConta) || (mudouCadastro && !cadastroValido) || (mudouRenovacao && bps === null) || cadastro.isPending || renovacao.isPending || recebedor.isPending}>Salvar</Button>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -228,6 +246,35 @@ function MarcaDoGrupo({ revendedor, ocupado, erro, aoFechar, aoConfirmar }: {
           <Button type="button" variant="ghost" onClick={aoFechar}>Voltar</Button>
           <Button type="button" disabled={ocupado} onClick={aoConfirmar}>{tirar ? 'Tirar do grupo' : 'Marcar como do grupo'}</Button>
         </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+/** Libera mais cadastros de destino de QR e de links só para hoje; o limite diário da revenda volta amanhã. */
+function LiberacaoDeCadastros({ revendedor, aoFechar }: { revendedor: Revendedor; aoFechar: () => void }) {
+  const liberar = useLiberarDestinos()
+  const [quantidade, setQuantidade] = useState('10')
+  const n = Number(quantidade)
+  const valida = /^\d+$/.test(quantidade) && n >= 1 && n <= 500
+  return (
+    <Dialog open onOpenChange={(aberto) => !aberto && aoFechar()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Liberar cadastros de {revendedor.nome}</DialogTitle>
+          <DialogDescription>Cadastros de destino de QR e de links a mais, só para hoje.</DialogDescription>
+        </DialogHeader>
+        <form className="grid gap-4" onSubmit={(e) => { e.preventDefault(); if (valida) liberar.mutate({ id: revendedor.id, quantidade: n }, { onSuccess: aoFechar }) }}>
+          <Erro erro={liberar.error ? mensagemDoErro(liberar.error) : null} />
+          <Field>
+            <FieldLabel htmlFor="quantidade-liberada">Quantidade (1 a 500)</FieldLabel>
+            <Input id="quantidade-liberada" inputMode="numeric" autoComplete="off" value={quantidade} aria-invalid={!valida} onChange={(e) => setQuantidade(e.target.value)} />
+          </Field>
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={aoFechar}>Cancelar</Button>
+            <Button type="submit" disabled={!valida || liberar.isPending}>Liberar</Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   )

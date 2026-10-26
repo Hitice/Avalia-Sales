@@ -24,6 +24,7 @@ public sealed class FluxoDoLoteTest(ApiDeTeste api)
         Assert.Equal(1, await dono_.Contar($"select count(*) from emails where chave = 'pedido:{pedidoId:N}:operadora'"));
 
         await operadora.Postar($"/operadora/pedidos/{pedidoId}/pagamento", new { }, HttpStatusCode.NoContent);
+        Assert.Equal(1, await dono_.Contar($"select count(*) from emails where chave like 'pagamento:pedido:{pedidoId:N}:%'"));
         await operadora.Postar($"/operadora/pedidos/{pedidoId}/despacho", new { lote = lote.GetProperty("numero").GetInt32() }, HttpStatusCode.NoContent);
         var ativado = await dono.Postar("/lotes/ativacao", new { numero = lote.GetProperty("rotulo").GetString()!.ToLowerInvariant() });
 

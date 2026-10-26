@@ -13,7 +13,6 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Field, FieldDescription, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { formatarCentavos, paraCentavos } from '@/dinheiro/dinheiro'
-import { PacotesParaPedir } from '@/painel/PacotesParaPedir'
 import { useAjustarProduto, useAtivarProduto, useCatalogo } from './produtos'
 
 /**
@@ -26,14 +25,13 @@ export function Catalogo() {
   const dono = useSessao((s) => s.perfil?.papel === 'Dono')
   const catalogo = useCatalogo()
   const [ajustando, setAjustando] = useState<ItemDoCatalogo | null>(null)
-  const [pedindo, setPedindo] = useState(false)
   const navegar = useNavigate()
 
   return (
     <div className="grid gap-4">
       {dono && (
         <div className="flex justify-end">
-          <Button variant="outline" onClick={() => setPedindo(true)}>Pedir placas</Button>
+          <Button asChild variant="outline"><Link to="/painel/pedidos">Pedir placas</Link></Button>
         </div>
       )}
       {catalogo.isPending && <Carregando linhas={3} />}
@@ -69,15 +67,6 @@ export function Catalogo() {
         ))}
       </div>
       {ajustando && <AjustarPreco produto={ajustando} aoFechar={() => setAjustando(null)} />}
-      <Dialog open={pedindo} onOpenChange={setPedindo}>
-        <DialogContent className="sm:max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Pedir placas</DialogTitle>
-            <DialogDescription>O pedido fica em <Link to="/painel/pedidos" className="underline underline-offset-4">Pedidos</Link> para pagar e acompanhar.</DialogDescription>
-          </DialogHeader>
-          <PacotesParaPedir aoPedir={() => { setPedindo(false); navegar('/painel/pedidos') }} />
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

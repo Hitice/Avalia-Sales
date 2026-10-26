@@ -228,6 +228,25 @@
         }
       }
     },
+    "/limite-de-destinos": {
+      "get": {
+        "tags": [
+          "Revenda"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SituacaoDoLimite"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/marca": {
       "get": {
         "tags": [
@@ -1703,6 +1722,265 @@
         }
       }
     },
+    "/operadora/destinos-bloqueados": {
+      "get": {
+        "tags": [
+          "Operadora"
+        ],
+        "parameters": [
+          {
+            "name": "busca",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Pagina",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "Tamanho",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginaOfDestinoBloqueadoDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Operadora"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BloquearDestino"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/operadora/destinos-bloqueados/{id}": {
+      "delete": {
+        "tags": [
+          "Operadora"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/operadora/fornecedores": {
+      "get": {
+        "tags": [
+          "Operadora"
+        ],
+        "parameters": [
+          {
+            "name": "busca",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "funcao",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/FuncaoDoFornecedor"
+            }
+          },
+          {
+            "name": "ativos",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "Pagina",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "Tamanho",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginaOfFornecedorDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Operadora"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GravarFornecedor"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/operadora/fornecedores/{id}": {
+      "put": {
+        "tags": [
+          "Operadora"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GravarFornecedor"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FornecedorDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Operadora"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/operadora/fornecedores/{id}/ativo": {
+      "put": {
+        "tags": [
+          "Operadora"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlterarAtivo"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/operadora/lotes": {
       "get": {
         "tags": [
@@ -2034,6 +2312,39 @@
         }
       }
     },
+    "/operadora/pedidos/{id}/estorno": {
+      "post": {
+        "tags": [
+          "Operadora"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EstornarPedido"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/operadora/pedidos/{id}/producao": {
       "post": {
         "tags": [
@@ -2222,6 +2533,72 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/DefinirRecebedor"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/operadora/revendedores/{id}/liberacao-de-destinos": {
+      "post": {
+        "tags": [
+          "Operadora"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LiberarDestinos"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/operadora/revendedores/{id}/cadastro": {
+      "put": {
+        "tags": [
+          "Operadora"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CorrigirCadastro"
               }
             }
           },
@@ -2517,6 +2894,133 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/operadora/financeiro/a-acertar": {
+      "get": {
+        "tags": [
+          "Operadora"
+        ],
+        "parameters": [
+          {
+            "name": "busca",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "soComSaldo",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "Pagina",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "Tamanho",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginaOfSaldoAAcertarDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/operadora/financeiro/acertos": {
+      "get": {
+        "tags": [
+          "Operadora"
+        ],
+        "parameters": [
+          {
+            "name": "revendedorId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AcertoDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Operadora"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NovoAcerto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/operadora/financeiro/acertos/{id}": {
+      "delete": {
+        "tags": [
+          "Operadora"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
           }
         }
       }
@@ -2890,6 +3394,28 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/DefinirComissao"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/revenda/limite-de-destinos/solicitacao": {
+      "post": {
+        "tags": [
+          "Revenda"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SolicitarLiberacao"
               }
             }
           },
@@ -6115,6 +6641,45 @@
           "LimiteDePorForaDefinido"
         ]
       },
+      "AcertoDto": {
+        "required": [
+          "id",
+          "revendedorId",
+          "valorCents",
+          "data",
+          "observacao",
+          "criadoEm"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "revendedorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "valorCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "data": {
+            "type": "string",
+            "format": "date"
+          },
+          "observacao": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "criadoEm": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "AindaNaoReconhecido": {
         "required": [
           "totalCents",
@@ -6409,6 +6974,24 @@
         "properties": {
           "motivo": {
             "$ref": "#/components/schemas/MotivoDaBaixa"
+          }
+        }
+      },
+      "BloquearDestino": {
+        "required": [
+          "dominio",
+          "motivo"
+        ],
+        "type": "object",
+        "properties": {
+          "dominio": {
+            "type": "string"
+          },
+          "motivo": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -6995,6 +7578,21 @@
           }
         }
       },
+      "CorrigirCadastro": {
+        "required": [
+          "nome",
+          "cnpj"
+        ],
+        "type": "object",
+        "properties": {
+          "nome": {
+            "type": "string"
+          },
+          "cnpj": {
+            "type": "string"
+          }
+        }
+      },
       "CorrigirVenda": {
         "type": "object",
         "properties": {
@@ -7140,6 +7738,19 @@
           "porPlacaCents": {
             "type": "integer",
             "format": "int64"
+          },
+          "fornecedorId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "fornecedor": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         },
         "description": "Um lote e o custo real de produ\u00E7\u00E3o dele. Sem custo informado, o lote despachado a um pedido \u00E9\npend\u00EAncia: o resultado do grupo n\u00E3o tem como levar o custo das placas vendidas."
@@ -7405,9 +8016,20 @@
           "retirada": {
             "type": "boolean",
             "default": false
+          },
+          "transportadora": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "codigoDeRastreio": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
-        },
-        "description": "Retirada: a revenda busca a caixa na Avalia, sem envio."
+        }
       },
       "DespesaDaCategoria": {
         "required": [
@@ -7452,6 +8074,19 @@
           "valorCents": {
             "type": "integer",
             "format": "int64"
+          },
+          "fornecedorId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "fornecedor": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -7482,6 +8117,31 @@
           "valorCents": {
             "type": "integer",
             "format": "int64"
+          }
+        }
+      },
+      "DestinoBloqueadoDto": {
+        "required": [
+          "id",
+          "dominio",
+          "motivo",
+          "criadoEm"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "dominio": {
+            "type": "string"
+          },
+          "motivo": {
+            "type": "string"
+          },
+          "criadoEm": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
@@ -7925,6 +8585,21 @@
           }
         }
       },
+      "EstornarPedido": {
+        "required": [
+          "motivo"
+        ],
+        "type": "object",
+        "properties": {
+          "motivo": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Retirada: a revenda busca a caixa na Avalia, sem envio."
+      },
       "FecharMes": {
         "required": [
           "competencia"
@@ -8115,6 +8790,63 @@
           null
         ]
       },
+      "FornecedorDto": {
+        "required": [
+          "id",
+          "nome",
+          "documento",
+          "contato",
+          "funcoes",
+          "observacao",
+          "ativo",
+          "usos"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nome": {
+            "type": "string"
+          },
+          "documento": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "contato": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "funcoes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FuncaoDoFornecedor"
+            }
+          },
+          "observacao": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "ativo": {
+            "type": "boolean"
+          },
+          "usos": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "FuncaoDoFornecedor": {
+        "type": "string",
+        "description": "O que o fornecedor faz para a operadora. Um mesmo fornecedor pode ter mais de uma fun\u00E7\u00E3o."
+      },
       "GerarLote": {
         "required": [
           "quantidade"
@@ -8193,6 +8925,52 @@
           "acrilicoCents": {
             "type": "integer",
             "format": "int64"
+          },
+          "fornecedorId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        }
+      },
+      "GravarFornecedor": {
+        "required": [
+          "nome",
+          "documento",
+          "contato",
+          "funcoes",
+          "observacao"
+        ],
+        "type": "object",
+        "properties": {
+          "nome": {
+            "type": "string"
+          },
+          "documento": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "contato": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "funcoes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FuncaoDoFornecedor"
+            }
+          },
+          "observacao": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -8541,6 +9319,18 @@
             "format": "date"
           },
           "total": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "LiberarDestinos": {
+        "required": [
+          "quantidade"
+        ],
+        "type": "object",
+        "properties": {
+          "quantidade": {
             "type": "integer",
             "format": "int32"
           }
@@ -9254,6 +10044,13 @@
           "valorCents": {
             "type": "integer",
             "format": "int64"
+          },
+          "fornecedorId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         }
       },
@@ -9465,6 +10262,35 @@
         },
         "description": "V\u00E1rias linhas para o mesmo cliente, numa cobran\u00E7a s\u00F3."
       },
+      "NovoAcerto": {
+        "required": [
+          "revendedorId",
+          "valorCents",
+          "data",
+          "observacao"
+        ],
+        "type": "object",
+        "properties": {
+          "revendedorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "valorCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "data": {
+            "type": "string",
+            "format": "date"
+          },
+          "observacao": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "NovoCadastro": {
         "required": [
           "empresa",
@@ -9544,6 +10370,13 @@
           "acrilicoCents": {
             "type": "integer",
             "format": "int64"
+          },
+          "fornecedorId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         }
       },
@@ -10084,6 +10917,34 @@
         },
         "description": "Resposta de toda listagem que cresce com o uso. Total \u00E9 o que o filtro pega (n\u00E3o s\u00F3 a\np\u00E1gina); Proxima \u00E9 o n\u00FAmero da pr\u00F3xima p\u00E1gina, ou nulo na \u00FAltima."
       },
+      "PaginaOfDestinoBloqueadoDto": {
+        "required": [
+          "itens",
+          "total",
+          "proxima"
+        ],
+        "type": "object",
+        "properties": {
+          "itens": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DestinoBloqueadoDto"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "proxima": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        },
+        "description": "Resposta de toda listagem que cresce com o uso. Total \u00E9 o que o filtro pega (n\u00E3o s\u00F3 a\np\u00E1gina); Proxima \u00E9 o n\u00FAmero da pr\u00F3xima p\u00E1gina, ou nulo na \u00FAltima."
+      },
       "PaginaOfEnvioDto": {
         "required": [
           "itens",
@@ -10096,6 +10957,34 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/EnvioDto"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "proxima": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        },
+        "description": "Resposta de toda listagem que cresce com o uso. Total \u00E9 o que o filtro pega (n\u00E3o s\u00F3 a\np\u00E1gina); Proxima \u00E9 o n\u00FAmero da pr\u00F3xima p\u00E1gina, ou nulo na \u00FAltima."
+      },
+      "PaginaOfFornecedorDto": {
+        "required": [
+          "itens",
+          "total",
+          "proxima"
+        ],
+        "type": "object",
+        "properties": {
+          "itens": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FornecedorDto"
             }
           },
           "total": {
@@ -10448,6 +11337,34 @@
         },
         "description": "Resposta de toda listagem que cresce com o uso. Total \u00E9 o que o filtro pega (n\u00E3o s\u00F3 a\np\u00E1gina); Proxima \u00E9 o n\u00FAmero da pr\u00F3xima p\u00E1gina, ou nulo na \u00FAltima."
       },
+      "PaginaOfSaldoAAcertarDto": {
+        "required": [
+          "itens",
+          "total",
+          "proxima"
+        ],
+        "type": "object",
+        "properties": {
+          "itens": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SaldoAAcertarDto"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "proxima": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        },
+        "description": "Resposta de toda listagem que cresce com o uso. Total \u00E9 o que o filtro pega (n\u00E3o s\u00F3 a\np\u00E1gina); Proxima \u00E9 o n\u00FAmero da pr\u00F3xima p\u00E1gina, ou nulo na \u00FAltima."
+      },
       "PaginaOfVendaDaLista": {
         "required": [
           "itens",
@@ -10677,6 +11594,18 @@
           "haLoteLivre": {
             "type": "boolean",
             "default": false
+          },
+          "transportadora": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "codigoDeRastreio": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -11732,6 +12661,38 @@
           }
         }
       },
+      "SaldoAAcertarDto": {
+        "required": [
+          "revendedorId",
+          "revendedor",
+          "devidoCents",
+          "acertadoCents",
+          "saldoCents"
+        ],
+        "type": "object",
+        "properties": {
+          "revendedorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "revendedor": {
+            "type": "string"
+          },
+          "devidoCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "acertadoCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "saldoCents": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "description": "Uma revenda com o que deve \u00E0 Avalia por venda recebida por fora, o que j\u00E1 quitou e o que falta."
+      },
       "SaldoDeComissao": {
         "required": [
           "vendedorId",
@@ -11839,6 +12800,27 @@
           "Parado"
         ]
       },
+      "SituacaoDoLimite": {
+        "required": [
+          "usados",
+          "limite",
+          "esgotado"
+        ],
+        "type": "object",
+        "properties": {
+          "usados": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "limite": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "esgotado": {
+            "type": "boolean"
+          }
+        }
+      },
       "SituacaoDoPedido": {
         "enum": [
           "AguardandoPagamento",
@@ -11907,6 +12889,20 @@
           "retiradas": {
             "type": "integer",
             "format": "int32"
+          }
+        }
+      },
+      "SolicitarLiberacao": {
+        "required": [
+          "motivo"
+        ],
+        "type": "object",
+        "properties": {
+          "motivo": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -12077,6 +13073,13 @@
           "vendidaEm": {
             "type": "string",
             "format": "date-time"
+          },
+          "clienteId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         }
       },
@@ -12540,6 +13543,9 @@
       "name": "Servi\u00E7os"
     },
     {
+      "name": "Revenda"
+    },
+    {
       "name": "Marca"
     },
     {
@@ -12556,9 +13562,6 @@
     },
     {
       "name": "Operadora"
-    },
-    {
-      "name": "Revenda"
     },
     {
       "name": "Balc\u00E3o"

@@ -37,7 +37,36 @@ public sealed class PedidoDePlacas : IAtendidoPelaOperadora
 
     /// <summary>A revenda busca a caixa na Avalia, em vez de receber pelo envio.</summary>
     public bool Retirada { get; private set; }
+
+    public const int TransportadoraMaxima = 80;
+    public const int RastreioMaximo = 40;
+
+    /// <summary>Quem entrega o lote, quando não é retirada. O nome vem do cadastro de fornecedores e fica gravado no pedido.</summary>
+    public string? Transportadora { get; private set; }
+
+    /// <summary>O código para a revenda acompanhar a entrega.</summary>
+    public string? CodigoDeRastreio { get; private set; }
     public DateTimeOffset? AtivadoEm { get; private set; }
+
+    /// <summary>Despachado e nunca ativado: a receita da operadora só entra na ativação, então o pedido parado é cobrado da revenda.</summary>
+    public const int DiasEntreLembretesDeAtivacao = 7;
+
+    public const int LembretesDeAtivacaoMaximos = 3;
+    public const int DiasParaAvisarAOperadora = 30;
+
+    public int LembretesDeAtivacao { get; private set; }
+    public DateTimeOffset? OperadoraAvisadaDaAtivacaoEm { get; private set; }
+
+    public bool PrecisaLembrarDaAtivacao(DateTimeOffset agora) =>
+        Situacao == SituacaoDoPedido.Despachado && DespachadoEm is { } quando && LembretesDeAtivacao < LembretesDeAtivacaoMaximos
+        && agora >= quando.AddDays(DiasEntreLembretesDeAtivacao * (LembretesDeAtivacao + 1));
+
+    public void LembrouDaAtivacao() => LembretesDeAtivacao++;
+
+    public bool PrecisaAvisarAOperadoraDaAtivacao(DateTimeOffset agora) =>
+        Situacao == SituacaoDoPedido.Despachado && OperadoraAvisadaDaAtivacaoEm is null && DespachadoEm is { } quando && agora >= quando.AddDays(DiasParaAvisarAOperadora);
+
+    public void AvisouAOperadoraDaAtivacao(DateTimeOffset agora) => OperadoraAvisadaDaAtivacaoEm = agora;
 
     private PedidoDePlacas()
     {
@@ -79,17 +108,31 @@ public sealed class PedidoDePlacas : IAtendidoPelaOperadora
         ProducaoEm = agora;
     }
 
-    public void Despachar(Guid loteId, DateTimeOffset agora, bool retirada = false)
+    public void Despachar(Guid loteId, DateTimeOffset agora, bool retirada = false, string? transportadora = null, string? codigoDeRastreio = null)
     {
         if (Situacao is not (SituacaoDoPedido.Pago or SituacaoDoPedido.EmProducao))
         {
             throw new RegraDeNegocioException("Só pedido pago é despachado.");
         }
 
+        transportadora = string.IsNullOrWhiteSpace(transportadora) ? null : transportadora.Trim();
+        codigoDeRastreio = string.IsNullOrWhiteSpace(codigoDeRastreio) ? null : codigoDeRastreio.Trim();
+        if (retirada && (transportadora is not null || codigoDeRastreio is not null))
+        {
+            throw new RegraDeNegocioException("Retirada na Avalia não tem transportadora nem código de rastreio.");
+        }
+
+        if (transportadora?.Length > TransportadoraMaxima || codigoDeRastreio?.Length > RastreioMaximo)
+        {
+            throw new RegraDeNegocioException($"A transportadora tem até {TransportadoraMaxima} caracteres e o código de rastreio, até {RastreioMaximo}.");
+        }
+
         Situacao = SituacaoDoPedido.Despachado;
         LoteId = loteId;
         DespachadoEm = agora;
         Retirada = retirada;
+        Transportadora = transportadora;
+        CodigoDeRastreio = codigoDeRastreio;
     }
 
     public void Ativar(DateTimeOffset agora)
@@ -97,6 +140,20 @@ public sealed class PedidoDePlacas : IAtendidoPelaOperadora
         Exigir(SituacaoDoPedido.Despachado, "Só pedido despachado é ativado.");
         Situacao = SituacaoDoPedido.Ativado;
         AtivadoEm = agora;
+    }
+
+    /// <summary>
+    /// A operadora desfaz o pedido pago que ainda não foi despachado: o dinheiro volta ao revendedor. Depois do despacho o lote
+    /// está com ele, e a conversa é outra.
+    /// </summary>
+    public void EstornarPago()
+    {
+        if (Situacao is not (SituacaoDoPedido.Pago or SituacaoDoPedido.EmProducao))
+        {
+            throw new RegraDeNegocioException("Só pedido pago e ainda não despachado é estornado. Depois do despacho, combine a devolução com a revenda.");
+        }
+
+        Situacao = SituacaoDoPedido.Cancelado;
     }
 
     public void Cancelar()

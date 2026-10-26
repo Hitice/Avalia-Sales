@@ -61,7 +61,11 @@ export function TelaDePedidosDePlacas() {
                             {p.cupom && <span className="block text-xs text-muted-foreground">cupom {p.cupom}, menos {formatarCentavos(p.descontoCents)}</span>}
                           </TableCell>
                           <TableCell><Badge variant={TOM_DO_PEDIDO[p.situacao]}>{rotuloDoPedido(p)}</Badge></TableCell>
-                          <TableCell>{p.lote ?? '-'}</TableCell>
+                          <TableCell>
+                            {p.lote ?? '-'}
+                            {p.transportadora && <span className="block text-xs text-muted-foreground">{p.transportadora}</span>}
+                            {p.codigoDeRastreio && <span className="block text-xs text-muted-foreground tabular-nums">Rastreio {p.codigoDeRastreio}</span>}
+                          </TableCell>
                           <TableCell>
                             {p.situacao === 'AguardandoPagamento' && (
                               <AcoesDaLinha nome={`pedido de ${p.quantidade} placas`}

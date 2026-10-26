@@ -5,7 +5,7 @@ import { paraQuery, useListaPaginada } from '@/lib/paginacao'
 
 export type FiltroDePlacas = { estado?: EstadoDaPlaca; consignadaA?: string; codigo?: string; pagina?: number; tamanho?: number }
 
-export const useMinhaRevenda = () => useQuery({ queryKey: ['revenda'], queryFn: () => chamarApi<MinhaRevenda>('/revenda') })
+export const useMinhaRevenda = (ativa = true) => useQuery({ queryKey: ['revenda'], queryFn: () => chamarApi<MinhaRevenda>('/revenda'), enabled: ativa })
 export const usePacotes = () => useQuery({ queryKey: ['pacotes'], queryFn: () => chamarApi<Pacote[]>('/pacotes') })
 export const usePedidos = () => useListaPaginada<Pedido>(['pedidos'], '/pedidos')
 export const useEquipe = () => useQuery({ queryKey: ['equipe'], queryFn: () => chamarApi<Vendedor[]>('/equipe') })
@@ -79,7 +79,7 @@ export const useSaldosDeComissao = () => useQuery({ queryKey: ['comissoes'], que
 export const usePendentesDeConferencia = () => useQuery({ queryKey: ['comissoes', 'conferencia'], queryFn: () => chamarApi<PendenteDeConferencia[]>('/comissoes/conferencia') })
 /** Sem lista, o dono confere todos os pendentes. */
 export const useConferirRecebimentos = () =>
-  useGravar((cobrancaIds: string[] | null) => chamarApi<{ conferidos: number }>('/comissoes/conferencia', enviarJson('POST', { cobrancaIds })), ['comissoes', 'auditoria'], 'Recebimentos conferidos.')
+  useGravar((cobrancaIds: string[] | null) => chamarApi<{ conferidos: number }>('/comissoes/conferencia', enviarJson('POST', { cobrancaIds })), ['comissoes', 'auditoria'], 'Dinheiro confirmado.')
 export const useDefinirLimitesPorFora = () =>
   useGravar(({ id, ...limites }: LimitesDePorFora & { id: string }) => chamarApi(`/equipe/${id}/limites-por-fora`, enviarJson('PUT', limites)), ['equipe', 'auditoria'], 'Limites salvos.')
 export const useRepasses = () => useListaPaginada<Repasse>(['repasses'], '/repasses')

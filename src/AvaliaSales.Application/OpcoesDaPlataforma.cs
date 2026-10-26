@@ -23,12 +23,18 @@ public sealed class OpcoesDaPlataforma
     /// CNPJ da revenda da Avalia, que recebe os clientes ativos de quem encerra a
     /// conta (distrato, cláusula 2). Sem ela cadastrada, o encerramento não transfere.
     /// </summary>
-    public string CnpjDaRevendaDaAvalia { get; set; } = "68715987000164";
+    public string CnpjDaRevendaDaAvalia { get; set; } = "39914870000101";
 
     /// <summary>Quem assina pela Avalia: o nome sai impresso no contrato e no distrato, já aceitos na emissão.</summary>
     public string? RepresentanteDaAvalia { get; set; }
 
     public string? CargoDoRepresentante { get; set; }
+
+    /// <summary>
+    /// Troca de recebedor, de CNPJ, pagamento por fora, estorno de pedido e acerto só com o segundo fator ligado na conta da operadora.
+    /// Ligado por padrão; só o desenvolvimento local e os testes desligam.
+    /// </summary>
+    public bool ExigirSegundoFatorDaOperadora { get; set; } = true;
 
     public string HostPublico => new Uri(UrlPublica).Host;
 

@@ -11,7 +11,7 @@ namespace AvaliaSales.Tests.Revendedores;
 [Collection(ColecaoDaApi.Nome)]
 public sealed class EncerramentoTest(ApiDeTeste api)
 {
-    private const string CnpjDaAvalia = "68715987000164";
+    private const string CnpjDaAvalia = "39914870000101";
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 

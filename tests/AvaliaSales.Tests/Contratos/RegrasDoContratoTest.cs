@@ -22,19 +22,19 @@ public sealed class RegrasDoContratoTest
     [Fact]
     public void Arquivo_que_nao_e_pdf_e_recusado() =>
         Assert.Throws<RegraDeNegocioException>(() =>
-            new Contrato(TipoDeContrato.TermoDoCliente, "Termo", "Ana", "ana@revenda.com.br", "<html>nao e pdf</html>"u8.ToArray()));
+            new Contrato(TipoDeContrato.ContratoDoRevendedor, "Contrato", "Ana", "ana@revenda.com.br", "<html>nao e pdf</html>"u8.ToArray()));
 
     [Theory]
     [InlineData("sem-arroba")]
     [InlineData("a@b")]
     [InlineData("com espaco@revenda.com.br")]
     public void Email_invalido_de_quem_assina_e_recusado(string email) =>
-        Assert.Throws<RegraDeNegocioException>(() => new Contrato(TipoDeContrato.TermoDoCliente, "Termo", "Ana", email, Pdf.Minimo()));
+        Assert.Throws<RegraDeNegocioException>(() => new Contrato(TipoDeContrato.ContratoDoRevendedor, "Contrato", "Ana", email, Pdf.Minimo()));
 
     [Fact]
     public void Envio_nao_pula_passo()
     {
-        var contrato = new Contrato(TipoDeContrato.TermoDoCliente, "Termo", "Ana", "ana@revenda.com.br", Pdf.Minimo());
+        var contrato = new Contrato(TipoDeContrato.ContratoDoRevendedor, "Contrato", "Ana", "ana@revenda.com.br", Pdf.Minimo());
         contrato.RegistrarNoCofre("doc-1");
 
         Assert.Throws<InvalidOperationException>(() => contrato.Avancar(EtapaDoEnvio.Enviado));

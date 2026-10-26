@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { formatarDataHora, ROTULO_DO_LANCAMENTO as ROTULO } from '@/api/rotulos'
 import { ListaPaginada } from '@/componentes/ListaPaginada'
-import { Cabecalho, Rolagem } from '@/componentes/Tela'
+import { Rolagem } from '@/componentes/Tela'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { formatarCentavos } from '@/dinheiro/dinheiro'
-import { useMesesDoRazao, useRazao } from './consultas'
+import { useMesesDoRazao, useRazao } from '@/painel/consultas'
 import { Indicador, Indicadores } from '@/componentes/Indicador'
 
 const nomeDoMes = (competencia: string) => {
@@ -15,8 +15,8 @@ const nomeDoMes = (competencia: string) => {
   return new Date(ano, mes - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
 }
 
-/** O razão do mês: receita, taxa da plataforma, comissão e o líquido. Estorno é linha nova, nunca apagada. */
-export function TelaDoRazao() {
+/** A aba Lançamentos do Financeiro, o razão do mês: receita, taxa da plataforma, comissão e o líquido. Estorno é linha nova, nunca apagada. */
+export function PainelDoRazao() {
   const meses = useMesesDoRazao()
   const [competencia, setCompetencia] = useState<string | undefined>()
   const razao = useRazao(competencia)
@@ -31,14 +31,12 @@ export function TelaDoRazao() {
 
   return (
     <>
-      <Cabecalho titulo="Razão">
-        <Select value={competencia ?? r?.competencia ?? ''} onValueChange={setCompetencia}>
-          <SelectTrigger aria-label="Mês" className="w-48"><SelectValue placeholder="Mês" /></SelectTrigger>
-          <SelectContent>
-            {(meses.data?.length ? meses.data : r ? [r.competencia] : []).map((m) => <SelectItem key={m} value={m}>{nomeDoMes(m)}</SelectItem>)}
-          </SelectContent>
-        </Select>
-      </Cabecalho>
+      <Select value={competencia ?? r?.competencia ?? ''} onValueChange={setCompetencia}>
+        <SelectTrigger aria-label="Mês dos lançamentos" className="mb-3 w-48"><SelectValue placeholder="Mês" /></SelectTrigger>
+        <SelectContent>
+          {(meses.data?.length ? meses.data : r ? [r.competencia] : []).map((m) => <SelectItem key={m} value={m}>{nomeDoMes(m)}</SelectItem>)}
+        </SelectContent>
+      </Select>
       <Indicadores>
         {totais.map((t) => <Indicador key={t.rotulo} rotulo={t.rotulo} valor={formatarCentavos(t.valor)} />)}
       </Indicadores>

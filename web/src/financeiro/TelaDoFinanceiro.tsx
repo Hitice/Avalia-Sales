@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useSearchParams } from 'react-router'
 import { mensagemDoErro } from '@/api/cliente'
 import { ROTULO_DA_DESPESA, ROTULO_DA_RETIRADA, formatarData } from '@/api/rotulos'
 import type { DreDoMes } from '@/api/tipos'
@@ -20,6 +21,9 @@ import { mesCorrente, nomeDoMes } from './fatias'
 import { Historico, Rosca } from './Graficos'
 import { PainelDeDespesas } from './PainelDeDespesas'
 import { PainelDeSocios } from './PainelDeSocios'
+import { PainelDoRazao } from './PainelDoRazao'
+
+const ABAS = ['resultado', 'despesas', 'socios', 'lancamentos'] as const
 
 /** Uma linha da DRE: rótulo e valor; a saída vem com o sinal de menos, e o recuo marca o detalhe. */
 function Linha({ rotulo, cents, saida = false, detalhe = false, total = false }: { rotulo: string; cents: number; saida?: boolean; detalhe?: boolean; total?: boolean }) {
@@ -115,6 +119,9 @@ export function TelaDoFinanceiro() {
   const dre = useDre(competencia)
   const historico = useHistorico(competencia)
   const d = dre.data
+  const [parametros, setParametros] = useSearchParams()
+  const pedida = parametros.get('aba')
+  const aba = ABAS.find((a) => a === pedida) ?? 'resultado'
   const mes = competencia ?? d?.competencia
   const ondeFoi = d ? [
     { nome: 'Taxa da plataforma', valorCents: d.taxaCents },
@@ -127,23 +134,24 @@ export function TelaDoFinanceiro() {
   return (
     <>
       <Cabecalho titulo="Financeiro">
-        <Select value={mes ?? ''} onValueChange={setCompetencia}>
+        {aba !== 'lancamentos' && <Select value={mes ?? ''} onValueChange={setCompetencia}>
           <SelectTrigger aria-label="Mês" className="w-48"><SelectValue placeholder="Mês" /></SelectTrigger>
           <SelectContent>
             {(meses.data ?? (d ? [{ competencia: d.competencia, fechado: d.fechado }] : [])).map((m) => (
               <SelectItem key={m.competencia} value={m.competencia}>{nomeDoMes(m.competencia)}{m.fechado ? ' (fechado)' : ''}</SelectItem>
             ))}
           </SelectContent>
-        </Select>
-        {d && <Fechamento competencia={d.competencia} fechado={d.fechado} />}
+        </Select>}
+        {d && aba !== 'lancamentos' && <Fechamento competencia={d.competencia} fechado={d.fechado} />}
       </Cabecalho>
-      {d?.fechado && <p className="mb-3 text-sm text-muted-foreground"><Badge variant="neutro">Fechado</Badge> em {formatarData(d.fechadoEm)}</p>}
+      {d?.fechado && aba !== 'lancamentos' && <p className="mb-3 text-sm text-muted-foreground"><Badge variant="neutro">Fechado</Badge> em {formatarData(d.fechadoEm)}</p>}
       <Erro erro={dre.error} />
-      <Tabs defaultValue="resultado">
+      <Tabs value={aba} onValueChange={(nova) => setParametros({ aba: nova }, { replace: true })}>
         <TabsList className="mb-3 w-full sm:w-auto">
           <TabsTrigger value="resultado">Resultado</TabsTrigger>
           <TabsTrigger value="despesas">Despesas</TabsTrigger>
           <TabsTrigger value="socios">Sócios</TabsTrigger>
+          <TabsTrigger value="lancamentos">Lançamentos</TabsTrigger>
         </TabsList>
         <TabsContent value="resultado">
           {!d ? <Carregando linhas={3} /> : (
@@ -170,6 +178,7 @@ export function TelaDoFinanceiro() {
         </TabsContent>
         <TabsContent value="despesas"><PainelDeDespesas competencia={mes} /></TabsContent>
         <TabsContent value="socios"><PainelDeSocios competencia={mes} /></TabsContent>
+        <TabsContent value="lancamentos"><PainelDoRazao /></TabsContent>
       </Tabs>
     </>
   )

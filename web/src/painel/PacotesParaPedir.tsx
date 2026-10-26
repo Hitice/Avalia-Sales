@@ -7,7 +7,7 @@ import { formatarCentavos } from '@/dinheiro/dinheiro'
 import { usePacotes, usePedir } from './consultas'
 
 /** Os pacotes de placas à venda, com o preço por placa e o cupom. Pedir cria o pedido, que se paga em Pedidos. */
-export function PacotesParaPedir({ aoPedir }: { aoPedir?: () => void }) {
+export function PacotesParaPedir() {
   const pacotes = usePacotes()
   const pedir = usePedir()
   const [cupom, setCupom] = useState('')
@@ -28,7 +28,7 @@ export function PacotesParaPedir({ aoPedir }: { aoPedir?: () => void }) {
               <span className="tabular-nums">{formatarCentavos(p.custoPorPlacaCents)} por placa</span>
               <span className="text-xs text-muted-foreground tabular-nums sm:text-sm">{formatarCentavos(p.precoCents)} no total</span>
             </span>
-            <Button variant="outline" disabled={pedir.isPending} onClick={() => pedir.mutate({ pacoteId: p.id, cupom: cupom.trim() || null }, { onSuccess: () => { setCupom(''); aoPedir?.() } })}>Pedir</Button>
+            <Button variant="outline" disabled={pedir.isPending} onClick={() => pedir.mutate({ pacoteId: p.id, cupom: cupom.trim() || null }, { onSuccess: () => setCupom('') })}>Pedir</Button>
           </li>
         ))}
       </ul>

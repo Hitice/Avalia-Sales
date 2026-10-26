@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ItemDoCatalogo } from '@/api/tipos'
-import { ITENS_MAXIMOS, adicionar, comQuantidade, comValor, itensParaVender, linhaDePlaca, linhaDeServico, nomeDaLinha, paraItens, remover, soPlacas, total } from './itens'
+import { ITENS_MAXIMOS, adicionar, comQuantidade, comValor, itensParaVender, linhaDePlaca, linhaDeServico, nomeDaLinha, paraItens, remover, cabeTeste, total } from './itens'
 
 const item = (parte: Partial<ItemDoCatalogo>): ItemDoCatalogo => ({
   id: parte.id ?? 'p1', chave: 'placa', nome: 'Placa de avaliação', descricao: '', tipo: 'Placa', situacao: 'Disponivel', fotoUrl: null,
@@ -49,11 +49,13 @@ describe('itens da venda', () => {
     expect(comQuantidade(linhas, linhas[1].id, 11)[1].valorCents).toBeNull()
   })
 
-  it('teste gratuito só quando tudo é placa', () => {
-    const soPlaca = [linhaDePlaca(placa, 'K7M2PX', destino, null)]
-    expect(soPlacas(soPlaca)).toBe(true)
-    expect(soPlacas([...soPlaca, linhaDeServico(kitMesa)])).toBe(false)
-    expect(soPlacas([])).toBe(false)
+  it('teste gratuito só para uma placa com avaliação no Google', () => {
+    const doGoogle = [linhaDePlaca(placa, 'K7M2PX', { tipo: 'Google', lugarNoGoogle: 'ChIJ0123456789abc', link: null }, null)]
+    expect(cabeTeste(doGoogle)).toBe(true)
+    expect(cabeTeste([...doGoogle, linhaDeServico(kitMesa)])).toBe(false)
+    expect(cabeTeste([...doGoogle, linhaDePlaca(placa, 'K7M2PY', { tipo: 'Google', lugarNoGoogle: 'ChIJ0123456789abd', link: null }, null)])).toBe(false)
+    expect(cabeTeste([linhaDePlaca(placa, 'K7M2PX', destino, null)])).toBe(false)
+    expect(cabeTeste([])).toBe(false)
   })
 
   it('monta os itens da API e o nome de cada linha', () => {

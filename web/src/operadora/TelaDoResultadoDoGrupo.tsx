@@ -17,6 +17,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { formatarCentavos } from '@/dinheiro/dinheiro'
 import { mesCorrente, nomeDoMes } from '@/financeiro/fatias'
 import { cn } from '@/lib/utils'
+import { PainelDeAcertos } from './PainelDeAcertos'
 import { PainelDeCustosDeLote } from './PainelDeCustosDeLote'
 import { PainelDeDespesasDaOperadora } from './PainelDeDespesasDaOperadora'
 import { useFecharMesDaOperadora, useMesesDaOperadora, useReabrirMesDaOperadora, useReceitaPorRevenda, useResultadoDoGrupo } from './consultasFinanceiras'
@@ -275,11 +276,13 @@ export function TelaDoResultadoDoGrupo() {
           <TabsTrigger value="revendas">Por revenda</TabsTrigger>
           <TabsTrigger value="despesas">Despesas</TabsTrigger>
           <TabsTrigger value="custos">Custo dos lotes</TabsTrigger>
+          <TabsTrigger value="acertar">A acertar</TabsTrigger>
         </TabsList>
         <TabsContent value="resultado"><Resultado competencia={competencia} /></TabsContent>
         <TabsContent value="revendas"><PorRevenda competencia={mes} /></TabsContent>
         <TabsContent value="despesas"><PainelDeDespesasDaOperadora competencia={mes} /></TabsContent>
         <TabsContent value="custos"><PainelDeCustosDeLote /></TabsContent>
+        <TabsContent value="acertar"><PainelDeAcertos /></TabsContent>
       </Tabs>
     </>
   )

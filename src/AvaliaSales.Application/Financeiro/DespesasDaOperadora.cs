@@ -4,16 +4,16 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AvaliaSales.Application.Financeiro;
 
-public sealed record DespesaDaOperadoraDto(Guid Id, DateOnly Data, string Descricao, CategoriaDeDespesaDaOperadora Categoria, long ValorCents);
+public sealed record DespesaDaOperadoraDto(Guid Id, DateOnly Data, string Descricao, CategoriaDeDespesaDaOperadora Categoria, long ValorCents, Guid? FornecedorId = null, string? Fornecedor = null);
 
-public sealed record NovaDespesaDaOperadora(DateOnly Data, string Descricao, CategoriaDeDespesaDaOperadora Categoria, long ValorCents);
+public sealed record NovaDespesaDaOperadora(DateOnly Data, string Descricao, CategoriaDeDespesaDaOperadora Categoria, long ValorCents, Guid? FornecedorId = null);
 
 /// <summary>
 /// As despesas da operadora, com criar, editar e excluir, como as da revenda. O registro muda; o
 /// livro só recebe linha: editar estorna a linha em vigor e lança a nova, e excluir só estorna.
 /// A linha nova tem origem própria (a versão), para o livro aceitar mais de uma versão da mesma despesa.
 /// </summary>
-public sealed class DespesasDaOperadora(IBancoDeDados banco, FechamentosDaOperadora fechamentos, TimeProvider relogio)
+public sealed class DespesasDaOperadora(IBancoDeDados banco, FechamentosDaOperadora fechamentos, Fornecedores fornecedores, TimeProvider relogio)
 {
     /// <summary>As do mês, da data mais recente para trás; a busca vale para a descrição e a categoria.</summary>
     public async Task<Pagina<DespesaDaOperadoraDto>> Listar(string? competencia, string? busca, PedidoDePagina pedido, CancellationToken ct)
@@ -27,14 +27,18 @@ public sealed class DespesasDaOperadora(IBancoDeDados banco, FechamentosDaOperad
             consulta = consulta.Where(d => Busca.Normalizar(d.Descricao).Contains(Busca.Normalizar(termo)) || categorias.Contains(d.Categoria));
         }
 
-        return await consulta.OrderByDescending(d => d.Data).ThenByDescending(d => d.CriadaEm).ThenByDescending(d => d.Id)
-            .Select(d => new DespesaDaOperadoraDto(d.Id, d.Data, d.Descricao, d.Categoria, d.ValorCents)).PaginarAsync(pedido, ct);
+        var pagina = await consulta.OrderByDescending(d => d.Data).ThenByDescending(d => d.CriadaEm).ThenByDescending(d => d.Id)
+            .Select(d => new DespesaDaOperadoraDto(d.Id, d.Data, d.Descricao, d.Categoria, d.ValorCents, d.FornecedorId, null)).PaginarAsync(pedido, ct);
+        var nomes = await fornecedores.Nomes(pagina.Itens.Where(d => d.FornecedorId != null).Select(d => d.FornecedorId!.Value), ct);
+        return pagina.Mapear(d => d.FornecedorId is { } f ? d with { Fornecedor = nomes.GetValueOrDefault(f) } : d);
     }
 
     public async Task<DespesaDaOperadoraDto> Criar(NovaDespesaDaOperadora pedido, CancellationToken ct)
     {
         var agora = relogio.GetUtcNow();
         var despesa = new DespesaDaOperadora(pedido.Data, pedido.Descricao, pedido.Categoria, pedido.ValorCents, Lancamento.DiaDe(agora), agora);
+        await fornecedores.ExigirAtivo(pedido.FornecedorId, ct);
+        despesa.DefinirFornecedor(pedido.FornecedorId);
         await fechamentos.ExigirAberto(despesa.Competencia, ct);
         banco.DespesasDaOperadora.Add(despesa);
         Lancar(despesa, despesa.Competencia, agora);
@@ -49,8 +53,16 @@ public sealed class DespesasDaOperadora(IBancoDeDados banco, FechamentosDaOperad
         var antes = (despesa.Data, despesa.Descricao, despesa.Categoria, despesa.ValorCents);
         var agora = relogio.GetUtcNow();
         despesa.Alterar(pedido.Data, pedido.Descricao, pedido.Categoria, pedido.ValorCents, Lancamento.DiaDe(agora));
+        // Trocar só o fornecedor não mexe no livro: o valor, a data e a categoria seguem os mesmos.
+        if (despesa.FornecedorId != pedido.FornecedorId)
+        {
+            await fornecedores.ExigirAtivo(pedido.FornecedorId, ct);
+            despesa.DefinirFornecedor(pedido.FornecedorId);
+        }
+
         if (antes == (despesa.Data, despesa.Descricao, despesa.Categoria, despesa.ValorCents))
         {
+            await banco.SaveChangesAsync(ct);
             return ParaDto(despesa);
         }
 
@@ -102,5 +114,5 @@ public sealed class DespesasDaOperadora(IBancoDeDados banco, FechamentosDaOperad
         _ => "Outros",
     };
 
-    private static DespesaDaOperadoraDto ParaDto(DespesaDaOperadora d) => new(d.Id, d.Data, d.Descricao, d.Categoria, d.ValorCents);
+    private static DespesaDaOperadoraDto ParaDto(DespesaDaOperadora d) => new(d.Id, d.Data, d.Descricao, d.Categoria, d.ValorCents, d.FornecedorId);
 }

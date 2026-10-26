@@ -14,12 +14,26 @@ import { Input } from '@/components/ui/input'
 import { useEspera } from '@/lib/espera'
 import { copiar } from '@/lib/area'
 import { toast } from 'sonner'
+import { useSessao } from '@/acesso/sessao'
+import { TrocaDeSenha } from './TrocaDeSenha'
 
 type Chave = components['schemas']['ChaveDoAutenticador']
 type Situacao = components['schemas']['SituacaoDoSegundoFator']
 
-/** Segundo fator por app autenticador ou por código no e-mail, para o dono e a operadora. Os códigos de recuperação aparecem uma vez só. */
+/** Segurança da conta: senha, para todo papel, e o segundo fator, para o dono e a operadora. */
 export function TelaDeSeguranca() {
+  const comSegundoFator = useSessao((s) => s.perfil?.papel !== 'Vendedor')
+  return (
+    <div className="grid max-w-lg gap-4">
+      <Cabecalho titulo="Segurança" />
+      <TrocaDeSenha />
+      {comSegundoFator && <SegundoFator />}
+    </div>
+  )
+}
+
+/** Segundo fator por app autenticador ou por código no e-mail. Os códigos de recuperação aparecem uma vez só. */
+function SegundoFator() {
   const cliente = useQueryClient()
   const situacao = useQuery({ queryKey: ['segundo-fator'], queryFn: () => chamarApi<Situacao>('/conta/segundo-fator') })
   const preparar = useMutation({ mutationFn: () => chamarApi<Chave>('/conta/segundo-fator/chave', enviarJson('POST')) })
@@ -52,8 +66,7 @@ export function TelaDeSeguranca() {
 
   return (
     <>
-      <Cabecalho titulo="Segurança" />
-      <Card className="max-w-lg">
+      <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             Autenticação de dois fatores

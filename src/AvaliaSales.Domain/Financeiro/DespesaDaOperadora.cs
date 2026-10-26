@@ -25,6 +25,11 @@ public sealed class DespesaDaOperadora
     public CategoriaDeDespesaDaOperadora Categoria { get; private set; }
     public long ValorCents { get; private set; }
 
+    /// <summary>A quem se pagou. Opcional: nem toda despesa tem fornecedor cadastrado.</summary>
+    public Guid? FornecedorId { get; private set; }
+
+    public void DefinirFornecedor(Guid? fornecedorId) => FornecedorId = fornecedorId;
+
     /// <summary>A linha do livro da versão em vigor.</summary>
     public Guid LancamentoId { get; private set; }
 

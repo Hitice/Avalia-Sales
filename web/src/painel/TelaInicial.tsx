@@ -9,8 +9,6 @@ import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/componen
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { formatarCentavos } from '@/dinheiro/dinheiro'
 import { useContaEncerrada } from '@/app/contaEncerrada'
-import { useDre } from '@/financeiro/consultas'
-import { Rosca } from '@/financeiro/Graficos'
 import { usePlacas, useResumoDasVendas, useVendasRecentes } from './consultas'
 import { porDiaDe, VendasEm30Dias } from './VendasEm30Dias'
 import { nomeDoProduto, rotuloDaVenda, tomDaVenda } from './situacaoDaVenda'
@@ -35,12 +33,10 @@ export function TelaInicial() {
   const placas = usePlacas({ pagina: 1, tamanho: 1 })
   const recentes = useVendasRecentes()
   const resumo = useResumoDasVendas()
-  const dre = useDre(undefined)
   // Fixado na abertura da tela: o relógio não muda entre uma renderização e outra.
   const [agora] = useState(() => Date.now())
   const dados = useMemo(() => montar(recentes.data?.itens ?? [], resumo.data, agora), [recentes.data, resumo.data, agora])
   const porEstado = placas.data?.porEstado ?? {}
-  const d = dre.data
   // No celular a Nova venda já está no título da tela: o vazio não repete o botão.
   const novaVenda = !encerrada && <Button asChild variant="outline" className="max-lg:hidden"><Link to="/vender">Nova venda</Link></Button>
 
@@ -61,28 +57,10 @@ export function TelaInicial() {
       <Indicadores>{numeros.map((n) => <Indicador key={n.rotulo} rotulo={n.rotulo} valor={n.valor} />)}</Indicadores>
       <div className="mt-3 grid gap-3 md:mt-4 md:gap-4 lg:grid-cols-12">
         <VendasEm30Dias className="lg:col-span-7" porDia={dados.porDia} carregando={resumo.isPending} />
-        {d
-          ? (
-              <Rosca
-                className="lg:col-span-5"
-                titulo="Para onde foi o dinheiro do mês"
-                vazio="Nenhuma entrada no mês."
-                primeira={{ nome: 'Resultado', valorCents: d.resultadoCents }}
-                itens={[
-                  { nome: 'Custo das placas', valorCents: d.custoDasPlacasCents },
-                  { nome: 'Comissões', valorCents: d.comissoesCents },
-                  { nome: 'Taxas', valorCents: d.taxaCents },
-                  { nome: 'Perdas de placa', valorCents: d.perdasCents },
-                  { nome: 'Despesas', valorCents: d.despesasCents },
-                ]}
-              />
-            )
-          : (
-              <Card className="lg:col-span-5">
-                <CardHeader><CardTitle>Para onde foi o dinheiro do mês</CardTitle></CardHeader>
-                <CardContent>{dre.error ? <Erro erro={dre.error} /> : <Carregando linhas={3} />}</CardContent>
-              </Card>
-            )}
+        <Card className="lg:col-span-5">
+          <CardHeader><CardTitle>Financeiro</CardTitle></CardHeader>
+          <CardContent><Button asChild variant="outline"><Link to="/painel/financeiro">Ver o financeiro</Link></Button></CardContent>
+        </Card>
         <Card className="lg:col-span-12">
           <CardHeader>
             <CardTitle>Vendas de hoje</CardTitle>

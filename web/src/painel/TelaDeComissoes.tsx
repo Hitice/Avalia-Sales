@@ -31,7 +31,7 @@ export function TelaDeComissoes() {
   const [escolhido, setEscolhido] = useState<SaldoDeComissao | null>(null)
   const [ate, setAte] = useState('')
   const [comprovante, setComprovante] = useState('')
-  // O recebido por fora que o dono ainda não conferiu fica fora do repasse.
+  // O dinheiro recebido pelo vendedor que o dono ainda não confirmou fica fora do repasse.
   const liberada = (s: SaldoDeComissao) => s.abertaCents - (s.aguardandoConferenciaCents ?? 0)
   const aPagar = (saldos.data ?? []).filter((s) => liberada(s) > 0)
   const pendentes = usePendentesDeConferencia()
@@ -46,13 +46,12 @@ export function TelaDeComissoes() {
         {pendentes.data && pendentes.data.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle>Recebido por fora, ainda não conferido</CardTitle>
-              <p className="text-sm text-muted-foreground">O vendedor registrou o dinheiro ou o Pix recebido no balcão. A comissão só entra em repasse depois que você confere.</p>
+              <CardTitle>Dinheiro recebido pelo vendedor, a confirmar</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-3">
               <Erro erro={conferir.error ? mensagemDoErro(conferir.error) : null} />
               <div>
-                <Button disabled={conferir.isPending} onClick={() => conferir.mutate(null)}>Conferir todos ({pendentes.data.length})</Button>
+                <Button disabled={conferir.isPending} onClick={() => conferir.mutate(null)}>Confirmar todos ({pendentes.data.length})</Button>
               </div>
               <Rolagem>
                 <Table>
@@ -77,7 +76,7 @@ export function TelaDeComissoes() {
                         <TableCell>{formatarCentavos(p.valorCents)}</TableCell>
                         <TableCell>{formatarCentavos(p.comissaoCents)}</TableCell>
                         <TableCell>
-                          <AcoesDaLinha nome={`recebimento de ${p.cliente}`} principal={{ rotulo: 'Conferir', desabilitada: conferir.isPending, aoClicar: () => conferir.mutate([p.cobrancaId]) }}
+                          <AcoesDaLinha nome={`recebimento de ${p.cliente}`} principal={{ rotulo: 'Confirmei o dinheiro', desabilitada: conferir.isPending, aoClicar: () => conferir.mutate([p.cobrancaId]) }}
                             outras={[{ rotulo: 'Ver venda', para: `/painel/vendas/${p.vendaId}` }]} />
                         </TableCell>
                       </TableRow>
@@ -113,7 +112,7 @@ export function TelaDeComissoes() {
                         <TableCell>{formatarCentavos(s.repassadaCents)}</TableCell>
                         <TableCell className={`font-medium ${s.abertaCents < 0 ? 'text-destructive' : ''}`}>
                           {formatarCentavos(s.abertaCents)}
-                          {(s.aguardandoConferenciaCents ?? 0) > 0 && <span className="block text-xs font-normal text-muted-foreground">{formatarCentavos(s.aguardandoConferenciaCents ?? 0)} aguardam conferência</span>}
+                          {(s.aguardandoConferenciaCents ?? 0) > 0 && <span className="block text-xs font-normal text-muted-foreground">{formatarCentavos(s.aguardandoConferenciaCents ?? 0)} aguardam confirmação</span>}
                         </TableCell>
                         <TableCell>{formatarData(s.ultimoRepasse)}</TableCell>
                         <TableCell>

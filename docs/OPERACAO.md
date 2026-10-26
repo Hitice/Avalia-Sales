@@ -556,3 +556,12 @@ registra só o id; o usuário pede o link ou o código de novo. Conferir:
 ```sql
 select count(*) from emails where ultimo_erro like 'Conteúdo cifrado%';
 ```
+
+## Ações das mudanças de 26/10/2026
+
+- CNPJ da revenda Avalia - a operadora corrige o nome e o CNPJ em Revendedores (editar a revenda). No ambiente de produção, `Plataforma__CnpjDaRevendaDaAvalia=39914870000101` leva o mesmo valor; sem ele igual ao CNPJ da revenda, o encerramento de outra revenda não transfere os clientes. O contrato já assinado da revenda Avalia segue com o documento de antes: registre um contrato novo se o documento mudou de verdade.
+- Segundo fator da operadora - ligue em Segurança antes de trocar recebedor, CNPJ, registrar pagamento por fora, estornar pedido ou lançar acerto. A exigência vem ligada (`Plataforma__ExigirSegundoFatorDaOperadora`, padrão `true`); desligar só no desenvolvimento local.
+- Recebedor próprio da revenda Avalia - falta criar no painel do Pagar.me e informar em Revendedores (decisão de 26/10).
+- Migrations novas (`LimiteDeDestinos`, `FornecedoresEEntrega`, `AcertosDeRevenda`, `AvisoDeVencimentoDaPlaca`, `EstornoELembretesDoPedido`, `DestinosBloqueados`) são só aditivas; a publicação roda `--migrar` como de costume.
+- Destinos bloqueados - Destinos bloqueados no menu da operadora. Bloquear vale na hora para as placas e links que já apontam para o domínio. Desbloquear devolve o redirecionamento.
+- Avisos de vencimento e lembretes de ativação - saem pelo Worker, sem configuração. Os e-mails ao cliente usam o remetente da revenda e só saem se o cliente tem e-mail.

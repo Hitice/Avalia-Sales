@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { formatarCentavos, paraCentavos } from '@/dinheiro/dinheiro'
 import { reais } from '@/lib/esquemas'
+import { SeletorDeFornecedor } from './SeletorDeFornecedor'
 import { useCustosDeLote, useExcluirCustoDoLote, useSalvarCustoDoLote } from './consultasFinanceiras'
 
 const esquema = z.object({ grafica: reais, acrilico: reais })
@@ -25,6 +26,7 @@ const centavosEmTexto = (c: number) => (c / 100).toFixed(2).replace('.', ',')
 /** O custo real do lote: o que a gráfica cobrou e o que o acrílico custou. O custo por placa sai do total. */
 function FormularioDeCusto({ lote, aoFechar }: { lote: CustoDoLote; aoFechar: () => void }) {
   const salvar = useSalvarCustoDoLote()
+  const [fornecedorId, setFornecedorId] = useState<string | null>(lote.fornecedorId ?? null)
   const formulario = useForm<Formulario>({
     resolver: zodResolver(esquema),
     mode: 'onChange',
@@ -33,7 +35,7 @@ function FormularioDeCusto({ lote, aoFechar }: { lote: CustoDoLote; aoFechar: ()
 
   async function enviar(dados: Formulario) {
     try {
-      await salvar.mutateAsync({ loteId: lote.loteId, informado: lote.informado, graficaCents: paraCentavos(dados.grafica) ?? 0, acrilicoCents: paraCentavos(dados.acrilico) ?? 0 })
+      await salvar.mutateAsync({ loteId: lote.loteId, informado: lote.informado, graficaCents: paraCentavos(dados.grafica) ?? 0, acrilicoCents: paraCentavos(dados.acrilico) ?? 0, fornecedorId })
       aoFechar()
     } catch {
       // O erro aparece pelo estado da gravação.
@@ -51,6 +53,7 @@ function FormularioDeCusto({ lote, aoFechar }: { lote: CustoDoLote; aoFechar: ()
           <Erro erro={salvar.error ? mensagemDoErro(salvar.error) : null} />
           <Campo formulario={formulario} nome="grafica" rotulo="Gráfica (R$)" inputMode="decimal" placeholder="0,00" />
           <Campo formulario={formulario} nome="acrilico" rotulo="Acrílico (R$)" inputMode="decimal" placeholder="0,00" />
+          <SeletorDeFornecedor id="fornecedor-do-custo" valor={fornecedorId} funcoes={['Grafica', 'Acrilico', 'Confeccao']} atual={lote.fornecedorId && lote.fornecedor ? { id: lote.fornecedorId, nome: lote.fornecedor } : null} aoMudar={setFornecedorId} />
           <Button type="submit" disabled={salvar.isPending}>Salvar custo</Button>
         </form>
       </DialogContent>
@@ -95,7 +98,7 @@ export function PainelDeCustosDeLote() {
                       <TableRow key={l.loteId}>
                         <TableCell className="min-w-40 whitespace-normal">
                           <p className="font-medium tabular-nums">{l.rotulo}</p>
-                          <p className="text-xs text-muted-foreground">{[l.titulo, l.revendedor].filter(Boolean).join(' - ') || 'Sem pedido'}</p>
+                          <p className="text-xs text-muted-foreground">{[l.titulo, l.revendedor, l.fornecedor].filter(Boolean).join(' - ') || 'Sem pedido'}</p>
                         </TableCell>
                         <TableCell><Badge variant={l.informado ? 'sucesso' : l.pendente ? 'atencao' : 'neutro'}>{l.informado ? 'Informado' : l.pendente ? 'Pendente' : 'Sem custo'}</Badge></TableCell>
                         <TableCell>{l.quantidade}</TableCell>

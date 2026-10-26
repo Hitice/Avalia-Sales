@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
+import { useSearchParams } from 'react-router'
 import { chamarApi, enviarJson, mensagemDoErro } from '@/api/cliente'
 import { formatarData, formatarTelefone } from '@/api/rotulos'
 import type { ClienteDaLista } from '@/api/tipos'
@@ -21,7 +22,10 @@ import { FichaDoCliente } from './FichaDoCliente'
  * duplicados, exporta e anonimiza; o cliente novo pode entrar antes da venda.
  */
 export function TelaDeClientes() {
-  const [aberto, setAberto] = useState<string | null>(null)
+  // A ficha abre pelo parâmetro `cliente`, para as outras telas levarem até ela.
+  const [parametros, setParametros] = useSearchParams()
+  const aberto = parametros.get('cliente')
+  const setAberto = (id: string | null) => setParametros(id ? { cliente: id } : {}, { replace: true })
   const [cadastrando, setCadastrando] = useState(false)
   const clientes = useListaPaginada<ClienteDaLista>(['clientes', 'lista'], '/clientes')
 

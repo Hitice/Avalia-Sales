@@ -22,13 +22,13 @@ function useGravar<T>(fazer: (dados: T) => Promise<unknown>) {
   return useMutation({ mutationFn: fazer, meta: { sucesso: 'Alteração salva.' }, onSuccess: () => cliente.invalidateQueries({ queryKey: ['operadora'] }) })
 }
 
-export type GravarDespesaDaOperadora = { data: string; descricao: string; categoria: CategoriaDeDespesaDaOperadora; valorCents: number }
+export type GravarDespesaDaOperadora = { data: string; descricao: string; categoria: CategoriaDeDespesaDaOperadora; valorCents: number; fornecedorId: string | null }
 export const useSalvarDespesaDaOperadora = () =>
   useGravar(({ id, ...d }: GravarDespesaDaOperadora & { id?: string }) =>
     chamarApi<DespesaDaOperadora>(id ? `/operadora/financeiro/despesas/${id}` : '/operadora/financeiro/despesas', enviarJson(id ? 'PUT' : 'POST', d)))
 export const useExcluirDespesaDaOperadora = () => useGravar((id: string) => chamarApi(`/operadora/financeiro/despesas/${id}`, { method: 'DELETE' }))
 
-export type GravarCusto = { graficaCents: number; acrilicoCents: number }
+export type GravarCusto = { graficaCents: number; acrilicoCents: number; fornecedorId: string | null }
 /** Sem custo ainda, cria; com custo, edita: a API recusa o contrário. */
 export const useSalvarCustoDoLote = () =>
   useGravar(({ loteId, informado, ...c }: GravarCusto & { loteId: string; informado: boolean }) =>

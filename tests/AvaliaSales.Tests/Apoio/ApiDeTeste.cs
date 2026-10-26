@@ -51,6 +51,7 @@ public sealed class ApiDeTeste : IAsyncLifetime
         ["Plataforma:UrlPublica"] = UrlPublica,
         ["Plataforma:UrlDoPainel"] = "https://painel.exemplo.com.br",
         ["Plataforma:EmailDaOperadora"] = "operadora@exemplo.com.br",
+        ["Plataforma:ExigirSegundoFatorDaOperadora"] = "false",
         ["Resend:ChaveApi"] = "",
         ["Google:ChaveDoServidor"] = "",
         ["Limites:EntradasPorMinuto"] = "100000",

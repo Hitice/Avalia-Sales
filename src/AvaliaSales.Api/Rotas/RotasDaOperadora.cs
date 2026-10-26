@@ -1,6 +1,7 @@
 using AvaliaSales.Api.Autenticacao;
 using AvaliaSales.Application;
 using AvaliaSales.Application.Financeiro;
+using AvaliaSales.Application.Links;
 using AvaliaSales.Application.Pedidos;
 using AvaliaSales.Application.Placas;
 using AvaliaSales.Application.Revendedores;
@@ -14,7 +15,9 @@ public sealed record ArquivarLote(bool Arquivado);
 public sealed record SuspenderRevenda(string? Motivo);
 
 /// <summary>Retirada: a revenda busca a caixa na Avalia, sem envio.</summary>
-public sealed record DespacharPedido(int Lote, bool Retirada = false);
+public sealed record EstornarPedido(string? Motivo);
+
+public sealed record DespacharPedido(int Lote, bool Retirada = false, string? Transportadora = null, string? CodigoDeRastreio = null);
 
 public sealed record DefinirRecebedor(string Recebedor);
 
@@ -59,6 +62,31 @@ public static class RotasDaOperadora
             return Results.NoContent();
         });
 
+        operadora.MapGet("/destinos-bloqueados", (string? busca, [AsParameters] PedidoDePagina pagina, DestinosBloqueados bloqueados, CancellationToken ct) => bloqueados.Listar(busca, pagina, ct));
+        operadora.MapPost("/destinos-bloqueados", async (BloquearDestino pedido, DestinosBloqueados bloqueados, CancellationToken ct) =>
+            Results.Created("/operadora/destinos-bloqueados", await bloqueados.Bloquear(pedido, ct)));
+        operadora.MapDelete("/destinos-bloqueados/{id:guid}", async (Guid id, DestinosBloqueados bloqueados, CancellationToken ct) =>
+        {
+            await bloqueados.Desbloquear(id, ct);
+            return Results.NoContent();
+        });
+
+        operadora.MapGet("/fornecedores", (string? busca, Domain.Financeiro.FuncaoDoFornecedor? funcao, bool? ativos, [AsParameters] PedidoDePagina pagina, Fornecedores fornecedores, CancellationToken ct) =>
+            fornecedores.Listar(busca, funcao, ativos ?? false, pagina, ct));
+        operadora.MapPost("/fornecedores", async (GravarFornecedor pedido, Fornecedores fornecedores, CancellationToken ct) =>
+            Results.Created("/operadora/fornecedores", await fornecedores.Criar(pedido, ct)));
+        operadora.MapPut("/fornecedores/{id:guid}", (Guid id, GravarFornecedor pedido, Fornecedores fornecedores, CancellationToken ct) => fornecedores.Alterar(id, pedido, ct));
+        operadora.MapPut("/fornecedores/{id:guid}/ativo", async (Guid id, AlterarAtivo pedido, Fornecedores fornecedores, CancellationToken ct) =>
+        {
+            await fornecedores.DefinirAtivo(id, pedido.Ativo, ct);
+            return Results.NoContent();
+        });
+        operadora.MapDelete("/fornecedores/{id:guid}", async (Guid id, Fornecedores fornecedores, CancellationToken ct) =>
+        {
+            await fornecedores.Excluir(id, ct);
+            return Results.NoContent();
+        });
+
         operadora.MapGet("/lotes", (bool? arquivados, bool? livres, int? quantidade, string? busca, [AsParameters] PedidoDePagina pagina, Lotes lotes, CancellationToken ct) =>
             lotes.Listar(new FiltroDeLotes(arquivados ?? false, livres ?? false, quantidade, busca), pagina, ct));
         operadora.MapPost("/lotes", async (GerarLote pedido, Lotes lotes, CancellationToken ct) =>
@@ -98,6 +126,11 @@ public static class RotasDaOperadora
             await pedidos.RegistrarPagamento(id, ct);
             return Results.NoContent();
         });
+        operadora.MapPost("/pedidos/{id:guid}/estorno", async (Guid id, EstornarPedido pedido, PedidosDePlacas pedidos, CancellationToken ct) =>
+        {
+            await pedidos.Estornar(id, pedido.Motivo, ct);
+            return Results.NoContent();
+        });
         operadora.MapPost("/pedidos/{id:guid}/producao", async (Guid id, PedidosDePlacas pedidos, CancellationToken ct) =>
         {
             await pedidos.IniciarProducao(id, ct);
@@ -105,7 +138,7 @@ public static class RotasDaOperadora
         });
         operadora.MapPost("/pedidos/{id:guid}/despacho", async (Guid id, DespacharPedido pedido, PedidosDePlacas pedidos, CancellationToken ct) =>
         {
-            await pedidos.Despachar(id, pedido.Lote, pedido.Retirada, ct);
+            await pedidos.Despachar(id, pedido.Lote, pedido.Retirada, pedido.Transportadora, pedido.CodigoDeRastreio, ct);
             return Results.NoContent();
         });
 
@@ -120,6 +153,18 @@ public static class RotasDaOperadora
         operadora.MapPut("/revendedores/{id:guid}/recebedor", async (Guid id, DefinirRecebedor pedido, Revendedores revendedores, CancellationToken ct) =>
         {
             await revendedores.DefinirRecebedor(id, pedido.Recebedor, ct);
+            return Results.NoContent();
+        });
+        // Libera mais cadastros de destino na revenda, só para hoje; entra na trilha da operadora.
+        operadora.MapPost("/revendedores/{id:guid}/liberacao-de-destinos", async (Guid id, LiberarDestinos pedido, LimiteDeDestinos limite, CancellationToken ct) =>
+        {
+            await limite.Liberar(id, pedido.Quantidade, ct);
+            return Results.NoContent();
+        });
+        // Só a operadora muda o CNPJ de uma revenda: para o dono ele é a parte do contrato.
+        operadora.MapPut("/revendedores/{id:guid}/cadastro", async (Guid id, CorrigirCadastro pedido, Revendedores revendedores, CancellationToken ct) =>
+        {
+            await revendedores.CorrigirCadastro(id, pedido.Nome, pedido.Cnpj, ct);
             return Results.NoContent();
         });
         // A renovação é preço da operadora: a revenda vê o percentual, não muda.
@@ -176,6 +221,18 @@ public static class RotasDaOperadora
         financeiro.MapGet("/resultado", (string? competencia, ResultadoDoGrupo resultado, CancellationToken ct) => resultado.DoMes(competencia, ct));
         financeiro.MapGet("/receita-por-revenda", (string? competencia, string? busca, [AsParameters] PedidoDePagina pagina, ResultadoDoGrupo resultado, CancellationToken ct) =>
             resultado.PorRevenda(competencia, busca, pagina, ct));
+
+        // O "a acertar" das vendas recebidas por fora: o que cada revenda deve à Avalia e o que já quitou.
+        financeiro.MapGet("/a-acertar", (string? busca, bool? soComSaldo, [AsParameters] PedidoDePagina pagina, AcertosDeRevenda acertos, CancellationToken ct) =>
+            acertos.Saldos(busca, soComSaldo ?? false, pagina, ct));
+        financeiro.MapGet("/acertos", (Guid revendedorId, AcertosDeRevenda acertos, CancellationToken ct) => acertos.DaRevenda(revendedorId, ct));
+        financeiro.MapPost("/acertos", async (NovoAcerto pedido, AcertosDeRevenda acertos, CancellationToken ct) =>
+            Results.Created("/operadora/financeiro/acertos", await acertos.Registrar(pedido, ct)));
+        financeiro.MapDelete("/acertos/{id:guid}", async (Guid id, AcertosDeRevenda acertos, CancellationToken ct) =>
+        {
+            await acertos.Excluir(id, ct);
+            return Results.NoContent();
+        });
 
         financeiro.MapGet("/meses", (FechamentosDaOperadora fechamentos, CancellationToken ct) => fechamentos.Meses(ct));
         financeiro.MapPost("/fechamentos", async (FecharMes pedido, FechamentosDaOperadora fechamentos, CancellationToken ct) =>

@@ -10,6 +10,9 @@ namespace AvaliaSales.Infrastructure.Identidade;
 /// <summary>Os logins pelo UserManager, no mesmo contexto do banco: entram na transação de quem chama.</summary>
 public sealed class Contas(UserManager<Usuario> usuarios, BancoDeDados banco, GestorDeSenhas senhas, TimeProvider relogio) : IContas
 {
+    public async Task<bool> TemSegundoFator(Guid usuarioId, CancellationToken ct) =>
+        await usuarios.FindByIdAsync(usuarioId.ToString()) is { TwoFactorEnabled: true };
+
     public async Task<Guid> Criar(string nome, string email, string? senha, Papel papel, Guid? revendedorId, CancellationToken ct, bool emailConfirmado = false)
     {
         var normalizado = Emails.Normalizar(email) ?? throw new RegraDeNegocioException("Informe o e-mail.");

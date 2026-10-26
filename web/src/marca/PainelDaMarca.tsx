@@ -3,7 +3,7 @@ import { Home, ImageUp, Receipt } from 'lucide-react'
 import { type CSSProperties, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { chamarApi, chamarResposta, enviarJson, mensagemDoErro } from '@/api/cliente'
-import { Cabecalho, CarregandoTela, Erro } from '@/componentes/Tela'
+import { CarregandoTela, Erro } from '@/componentes/Tela'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field, FieldLabel } from '@/components/ui/field'
@@ -21,7 +21,7 @@ const PADRAO = { primaria: '#120C2B', destaque: '#D1006F' }
  * mostra o botão e o foco com as cores escolhidas, e a conta de contraste é a
  * mesma que a API refaz antes de gravar.
  */
-export function TelaDaMarca() {
+export function PainelDaMarca() {
   const marca = useMarca()
   if (!marca) return <CarregandoTela />
 
@@ -102,7 +102,6 @@ function FormularioDaMarca({ marca }: { marca: Marca }) {
   return (
     <div className="grid gap-4 lg:lateral-e-lista-80">
       <div className="grid gap-4 self-start">
-        <Cabecalho titulo="Marca" />
         <Card>
           <CardContent className="grid gap-4 pt-6">
             <Erro erro={erro ? (typeof erro === 'string' ? erro : mensagemDoErro(erro)) : null} />

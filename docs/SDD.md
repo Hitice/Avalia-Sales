@@ -214,7 +214,7 @@ do `Up`.
 
 | Tabela | Guarda | Regra |
 | --- | --- | --- |
-| `revendedores` | A revenda - nome, CNPJ, celular (só dígitos, com DDD), endereço (`endereco_logradouro`, `_numero`, `_complemento`, `_bairro`, `_cidade`, `_uf`, `_cep`), recebedor no Pagar.me (`recebedor_pagarme`), taxa da Avalia (`taxa_avalia_bps`, padrão 0), comissão padrão (`comissao_padrao_bps`, 2000 = 20%), renovação (`renovacao_bps`, 6000 = 60%), marca (`nome_exibido`, `cor_primaria`, `cor_destaque`, `cabecalho_na_cor`, `marca_alterada_em`), `contrato_assinado_em`, encerramento (`encerramento_pedido_em`, `encerrada_em`, `reabertura_pedida_em`, `reaberta_em`), suspensão (`suspensa_em`, `motivo_da_suspensao`) e a marca de revenda do grupo da operadora (`do_grupo_da_operadora`, `grupo_definido_em`, `grupo_definido_por`) | Sem RLS; CNPJ único |
+| `revendedores` | A revenda - nome, CNPJ, celular (só dígitos, com DDD), endereço (`endereco_logradouro`, `_numero`, `_complemento`, `_bairro`, `_cidade`, `_uf`, `_cep`), recebedor no Pagar.me (`recebedor_pagarme`), taxa da Avalia (`taxa_avalia_bps`, padrão 0), comissão padrão (`comissao_padrao_bps`, 2000 = 20%), renovação (`renovacao_bps`, 6000 = 60%), marca (`nome_exibido`, `cor_primaria`, `cor_destaque`, `cabecalho_na_cor`, `marca_alterada_em`), `contrato_assinado_em`, encerramento (`encerramento_pedido_em`, `encerrada_em`, `reabertura_pedida_em`, `reaberta_em`), suspensão (`suspensa_em`, `motivo_da_suspensao`), liberação de destinos do dia (`destinos_liberados`, `destinos_liberados_em`) e a marca de revenda do grupo da operadora (`do_grupo_da_operadora`, `grupo_definido_em`, `grupo_definido_por`) | Sem RLS; CNPJ único |
 | `usuarios`, `papeis` e demais do Identity | Login, `papel` (Operadora, Dono, Vendedor), `ativo`, revenda e `segundo_fator_por_email` | Sem RLS; e-mail único na plataforma; check: operadora sem revenda, os outros com |
 | `sessoes` | Refresh token pelo hash SHA-256, família do login, validade de 14 dias | Sem RLS; hash único |
 | `links_de_senha` | Convite, redefinição e confirmação de e-mail: hash do token, finalidade, validade, `hash_do_codigo` e `erros_do_codigo` | Sem RLS |
@@ -224,11 +224,11 @@ do `Up`.
 | `produtos` | Preço da revenda para um produto do catálogo (`produto_da_plataforma_id`, único por revenda) e comissão do produto (`comissao_bps`). O produto sem catálogo é o de antes dele, só para as vendas antigas | RLS |
 | `pacotes` | Quantidade e preço oferecidos pela operadora | Sem RLS; quantidade única |
 | `cupons` | Código, desconto (pontos base ou centavos), validade, limite e usos | Sem RLS; código único; travado na hora do uso |
-| `pedidos_placas` | Pacote copiado (quantidade, `preco_do_pacote_cents`), cupom, desconto, valor, situação, pagamento, `producao_em`, despacho (envio ou `retirada`), lote e ativação | RLS com a operadora |
+| `pedidos_placas` | Pacote copiado (quantidade, `preco_do_pacote_cents`), cupom, desconto, valor, situação, pagamento, `producao_em`, despacho (envio ou `retirada`, com `transportadora` e `codigo_de_rastreio`), lote, ativação e os lembretes de ativação (`lembretes_de_ativacao`, `operadora_avisada_da_ativacao_em`) | RLS com a operadora |
 | `lotes` | Número, quantidade, título, categoria, pedido e revenda do despacho, ativação, `arquivado_em` e `baixado_em` (primeiro download) | Sem RLS; número e pedido únicos |
 | `placas_emitidas` | Código (chave), sequência da plataforma, lote, revenda depois da ativação | Sem RLS; só identificadores (ADR 0007) |
 | `codigos_reservados` | Código que existe fora da plataforma e a origem | Sem RLS; o sorteio pula |
-| `placas` | Placa no estoque da revenda: custo congelado, situação, consignação, destino, venda, vencimento, leituras, baixa (`motivo_da_baixa`, `baixada_em`) e a transferência no encerramento (`transferida_em`, `cliente_da_transferencia_id`, `valor_da_venda_cents`) | RLS; código único; políticas `transferencia_no_encerramento` (UPDATE) e `_leitura` (SELECT), também em `clientes` e `links` |
+| `placas` | Placa no estoque da revenda: custo congelado, situação, consignação, destino, venda, vencimento, leituras, aviso do vencimento (`vencimento_avisado`, `janela_avisada`), baixa (`motivo_da_baixa`, `baixada_em`) e a transferência no encerramento (`transferida_em`, `cliente_da_transferencia_id`, `valor_da_venda_cents`) | RLS; código único; políticas `transferencia_no_encerramento` (UPDATE) e `_leitura` (SELECT), também em `clientes` e `links` |
 | `leituras` | Leituras por placa e dia | RLS; chave (placa, dia), soma por `on conflict` |
 | `clientes` | Negócio que comprou: nome, responsável, documento, telefone, e-mail, lugar no Google (só o id), `anonimizado_em` | RLS; documento único por revenda |
 | `vendas` | Placa (nula na venda de serviço), cliente, produto, vendedor, quantidade, grupo (`grupo_id`), valor, tabela, custo, parte da Avalia (`parte_da_avalia_cents`), comissão, cortesia, repasse que pagou a comissão, cancelamento (`motivo_do_cancelamento`, `observacao_do_cancelamento`, `cancelada_em`), teste gratuito (`teste_ate`, `teste_avisado_em`, `teste_expirado_em`, `teste_convertido_em`) e `do_sistema_anterior` | RLS; uma venda registrada por placa (o índice único de `placa_id` só vale para venda registrada, e a placa da venda cancelada vende de novo); índice parcial nos testes em curso |
@@ -236,15 +236,18 @@ do `Up`.
 | `renovacoes` | Placa, venda, valor, situação, de, até, paga em | RLS; uma aberta por placa |
 | `lancamentos` | Razão da revenda: tipo (`Receita`, `TaxaAvalia`, `ComissaoDevida`, `ComissaoPaga`, `CustoDaPlaca`, `Perda`, `Despesa`, `RetiradaDeSocio`, `AporteDeSocio`, `SaldoInicialDoCaixa`), origem, venda, vendedor, valor com sinal, competência, `categoria` (da despesa ou natureza da retirada), `placa_id` e a linha estornada (`estorna_id`) | RLS; só inserção, com `REVOKE UPDATE, DELETE` do papel da aplicação (ADR 0011); único (origem, tipo, venda, vendedor), com nulos iguais, na linha original e único `estorna_id` no estorno; gatilho `lancamento_em_mes_aberto` passa ao mês corrente a linha de mês fechado (ADR 0020). Despesa, retirada e perda usam origem nova por versão, para o índice aceitar a correção |
 | `lancamentos_da_operadora` | Livro da operadora: tipo (`TaxaDaPlataforma`, `ParteDaAvaliaNosServicos`, `PedidoDePlacas`, `Despesa`), revenda de origem (`revendedor_origem_id`, nula na despesa), origem (cobrança, pedido ou versão da despesa), venda, valor com sinal, competência, `por_fora`, `categoria` e a linha estornada (`estorna_id`). O Id da taxa é o da linha `TaxaAvalia` do razão que ela espelha | RLS só da operadora, com inserção também da revenda de origem; só inserção (`REVOKE UPDATE, DELETE`); único (origem, tipo, venda), com nulos iguais, na linha original e único `estorna_id` no estorno; gatilho `lancamento_da_operadora_em_mes_aberto` (ADR 0025) |
-| `despesas_da_operadora` | Data, descrição, categoria (`GraficaEMaterial`, `ExecucaoDeServico`, `Frete`, `SoftwareEFerramentas`, `Impostos`, `Outros`, `TarifaDoGateway`), valor e a linha do livro em vigor | RLS só da operadora |
+| `despesas_da_operadora` | Data, descrição, categoria (`GraficaEMaterial`, `ExecucaoDeServico`, `Frete`, `SoftwareEFerramentas`, `Impostos`, `Outros`, `TarifaDoGateway`), valor, fornecedor (`fornecedor_id`, opcional) e a linha do livro em vigor | RLS só da operadora |
+| `fornecedores` | Nome, documento (CNPJ ou CPF, único), contato, funções (bits: Gráfica 1, Acrílico 2, Confecção 4, Logística 8, Outros 16), observação, ativo | RLS só da operadora; despesa e custo de lote apontam para ele (`Restrict`) |
+| `acertos_de_revenda` | Quitação do a acertar: revenda, valor, data e observação (ADR 0028) | RLS: a operadora lê e escreve; a revenda só lê os dela |
+| `destinos_bloqueados` | Domínio bloqueado como destino de QR e de link curto, motivo, quem e quando (ADR 0026) | Leitura aberta, escrita só da operadora; domínio único |
 | `fechamentos_da_operadora` | Mês do livro fechado: competência, fechado em e por, reaberto em e por, motivo | Leitura aberta, escrita só da operadora; um em vigor por mês |
-| `custos_de_lote` | Custo real de produção do lote: gráfica, acrílico e quantidade; o custo por placa é o total pela quantidade | RLS só da operadora; chave é o lote, apagada com ele |
+| `custos_de_lote` | Custo real de produção do lote: gráfica, acrílico, quantidade e fornecedor (opcional); o custo por placa é o total pela quantidade | RLS só da operadora; chave é o lote, apagada com ele |
 | `repasses` | Comissão paga ao vendedor: valor, vendas, data de corte, comprovante, `desfeito_em` | RLS; vendedor travado na gravação |
 | `despesas` | Data, descrição, categoria, valor e a linha do razão em vigor (`lancamento_id`) | RLS |
 | `socios` | Sócio do contrato social: nome e CPF opcional | RLS; não se exclui com retirada |
 | `retiradas` | Sócio, data, natureza, valor, observação e a linha do razão em vigor | RLS |
 | `fechamentos` | Mês fechado: competência, fechado em e por, reaberto em e por, motivo | RLS; um em vigor por mês (índice único com `reaberto_em is null`) |
-| `contratos` | Tipo (`ContratoDoRevendedor`, `TermoDoCliente`, `Distrato`), PDF, hash SHA-256, signatário, documento na D4Sign, etapa do envio, tentativas, situação, `conferido_em`, `reenviado_em` | RLS; `documento_na_assinatura` único |
+| `contratos` | Tipo (`ContratoDoRevendedor`, `Distrato`), PDF, hash SHA-256, signatário, documento na D4Sign, etapa do envio, tentativas, situação, `conferido_em`, `reenviado_em` | RLS; `documento_na_assinatura` único |
 | `vinculos_externos` | Código no Pagar.me ou documento na D4Sign, e a revenda dona | Sem RLS; chave (origem, id_externo); só identificadores |
 | `eventos_externos` | Webhook cru, chave do vínculo, tentativas, último erro, processado em | Sem RLS; único (origem, id_externo) |
 | `emails` | Fila de e-mails com chave única, nome do remetente, resposta, cor da marca, tentativas, próxima tentativa e id no Resend; no e-mail `sensivel`, o assunto vira `(conteúdo protegido)` e o texto guarda assunto e texto cifrados (ver ADR 0024) | Sem RLS |
@@ -386,8 +389,11 @@ testes, sem validade jurídica.
   no Compose). `Plataforma:RepresentanteDaAvalia` e
   `Plataforma:CargoDoRepresentante` saem no bloco de assinatura da Avalia e
   vêm das variáveis do ambiente `producao` do GitHub.
-  `Plataforma:CnpjDaRevendaDaAvalia` (padrão 68715987000164) diz para qual
-  revenda vão os clientes de quem encerra.
+  `Plataforma:CnpjDaRevendaDaAvalia` (padrão 39914870000101) diz para qual
+  revenda vão os clientes de quem encerra; ao mudar o CNPJ da revenda em
+  Revendedores, a variável leva o mesmo valor.
+  `Plataforma:ExigirSegundoFatorDaOperadora` (padrão ligado) exige o segundo
+  fator da conta da operadora nas ações de dinheiro (ADR 0027).
 
 ### BrasilAPI
 
@@ -545,6 +551,14 @@ Revenda por revenda, a cada volta:
   contrato e distrato a gerar; reconsulta de assinatura.
 - Teste gratuito (`TestesGratuitos.Processar`) - avisa dois dias antes do fim
   e tira do ar a placa do teste vencido sem pagamento.
+- Aviso do vencimento (`AvisosDeVencimento.Processar`) - placa ativa, com venda
+  de pé e fora de teste, a 30 e a 7 dias do vencimento: sino do dono e do
+  vendedor que vendeu, e e-mail ao cliente em nome da revenda. A placa guarda o
+  vencimento avisado e a menor janela já avisada; renovar muda o vencimento e
+  recomeça a série.
+- Lembrete de ativação (`PedidosDePlacas.LembrarDaAtivacao`) - pedido
+  despachado e não ativado: lembrete ao dono a cada 7 dias, até 3, e aviso à
+  operadora aos 30 dias.
 - Fim do prazo de exportação - passados 30 dias do encerramento, desliga o
   login do revendedor.
 
@@ -653,6 +667,8 @@ Revenda por revenda, a cada volta:
 | Aviso por e-mail quando a conta entra de um aparelho novo (`aparelhos_conhecidos`, cookie `avalia_aparelho` de 2 anos, só o hash; o primeiro entra calado) | Em produção |
 | Revendedor só opera com e-mail confirmado (claim `email_confirmado` nas políticas); sem ele, só `/conta` | Em produção |
 | Segundo fator (app TOTP ou código por e-mail) opcional para revendedor e operadora: entrada em dois passos com desafio de 5 minutos, 10 códigos de recuperação, erro de código conta para o bloqueio, link de senha não pula o fator (ADR 0017) | Em produção |
+| Operadora - trocar nome, CNPJ e recebedor de revenda, registrar pagamento por fora, estornar pedido e registrar acerto exigem o segundo fator ligado (`AcoesSensiveisDaOperadora`); a troca de recebedor avisa o dono no sino e por e-mail (ADR 0027) | Em produção |
+| Destino de QR e de link - até 10 cadastros novos por dia por revenda (contados na auditoria) e lista de domínios bloqueados, consultada ao cadastrar e a cada leitura e clique (ADR 0026) | Em produção |
 | LGPD - exportação dos dados do cliente (`GET /clientes/{id}/dados`) e anonimização (`POST /clientes/{id}/anonimizacao`, recusada com cobrança em aberto), só pelo papel `Dono` e dentro da revenda; os valores ficam no razão. Logs e Sentry sem corpo, cookie nem IP | Em produção; depois do distrato, exportação por 30 dias e guarda do que a lei exige (PDD, seção 8) |
 
 Revisão pela skill `seguranca` (OWASP ASVS 5.0).
@@ -811,6 +827,9 @@ As mudanças de 21 a 24/10/2026 estão em [historico/sdd-ate-24-10.md](historico
 
 | Data | Mudança |
 | --- | --- |
+| 26/10/2026 | `Fornecedores` e `fornecedores`, `fornecedor_id` na despesa e no custo de lote, `transportadora` e `codigo_de_rastreio` no pedido (`FornecedoresEEntrega`); `PedidosDePlacas.Estornar` e `LembrarDaAtivacao` (`EstornoELembretesDoPedido`); `AcertosDeRevenda` e `acertos_de_revenda` (`AcertosDeRevenda`, ADR 0028); `AvisosDeVencimento` e colunas de aviso na placa (`AvisoDeVencimentoDaPlaca`); `ConfirmacoesDePagamento` (e-mail ao dono a cada pagamento); distrato desconta o acerto. |
+| 26/10/2026 | `LimiteDeDestinos` e `DestinosBloqueados` (`LimiteDeDestinos`, `DestinosBloqueados`, ADR 0026): `GET /limite-de-destinos`, `POST /revenda/limite-de-destinos/solicitacao`, `POST /operadora/revendedores/{id}/liberacao-de-destinos` e `/operadora/destinos-bloqueados`; a leitura do QR e do link consulta a lista. `AcoesSensiveisDaOperadora` e `Plataforma:ExigirSegundoFatorDaOperadora` (ADR 0027). `PUT /operadora/revendedores/{id}/cadastro` corrige nome e CNPJ. |
+| 26/10/2026 | Teste gratuito só para uma placa de avaliação no Google, uma vez por cliente, com documento e e-mail. Sai `TipoDeContrato.TermoDoCliente` e o modelo `termo-do-cliente.html`. `Plataforma:CnpjDaRevendaDaAvalia` passa a 39914870000101. |
 | 26/10/2026 | Dependências - pacotes .NET na 10.0.14 (EF Core, ASP.NET Core, Hosting), Sentry 6.12.1, Swashbuckle 10.3.1, QRCoder 1.8.1; no front, Sentry 11.9.0, react-hook-form 7.91.0, zustand 5.0.16, barcode-detector 3.2.3, zxing-wasm 3.1.6. Fora desta rodada, por serem versão maior: TypeScript 7, `@hookform/resolvers` 6 e `@types/node` 26. Registro de mudanças de 21 a 24/10 movido para `docs/historico/`. |
 | 26/10/2026 | Página pública `/privacidade` (`web/src/legal`), com o texto em `politica-de-privacidade.md` lido por `?raw` e desenhado por `Markdown.tsx` sobre o `Table` do design system. Modelo `Impressao/Modelos/termo-do-cliente.html` embutido no assembly, sem uso pela venda ainda. `CategoriaDeDespesaDaOperadora.TarifaDoGateway = 7`. |
 | 26/10/2026 | `Vendas.Resumo` e `PainelDoVendedor.Resumo` tratam como paga a venda `DoSistemaAnterior` com uma linha `Receita` não estornada cuja origem é a própria venda (`PagaNoAnterior`). `HistoricoNoPainelTest`. |

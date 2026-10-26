@@ -75,6 +75,10 @@ public sealed partial class Retomadas(IServiceScopeFactory escopos, BancoDeDados
                 .ToListAsync(ct);
             // O teste gratuito que venceu sai do ar; o que está acabando gera o aviso.
             retomados += await escopo.ServiceProvider.GetRequiredService<Application.Vendas.TestesGratuitos>().Processar(ct);
+            // A renovação anual é a receita que se repete: 30 e 7 dias antes do vencimento, a revenda e o cliente são avisados.
+            retomados += await escopo.ServiceProvider.GetRequiredService<Application.Avisos.AvisosDeVencimento>().Processar(ct);
+            // Lote despachado e nunca ativado segura a receita da operadora: lembra a revenda e, passado um mês, a própria operadora.
+            retomados += await escopo.ServiceProvider.GetRequiredService<Application.Pedidos.PedidosDePlacas>().LembrarDaAtivacao(ct);
 
             var servicoDeCobranca = escopo.ServiceProvider.GetRequiredService<Cobrancas>();
             foreach (var id in cobrancas)
@@ -155,7 +159,7 @@ public sealed partial class Retomadas(IServiceScopeFactory escopos, BancoDeDados
                 // Distrato de quem já desistiu não sai, mesmo que tenha sido gerado na mesma hora.
                 .Where(c => c.Etapa < EtapaDoEnvio.Enviado && c.Situacao == SituacaoDoContrato.Rascunho && (c.Tipo != TipoDeContrato.Distrato || pedido != null)
                     && c.TentativasDeEnvio < Contratos.TentativasMaximas
-                    && (c.CriadoEm < agora - Carencia || c.Tipo != TipoDeContrato.TermoDoCliente && c.Etapa == EtapaDoEnvio.Criado && c.TentativasDeEnvio == 0))
+                    && (c.CriadoEm < agora - Carencia || c.Etapa == EtapaDoEnvio.Criado && c.TentativasDeEnvio == 0))
                 .OrderBy(c => c.CriadoEm)
                 .Select(c => c.Id)
                 .Take(contratosRestantes)

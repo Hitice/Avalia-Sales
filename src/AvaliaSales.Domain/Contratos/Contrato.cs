@@ -5,7 +5,6 @@ namespace AvaliaSales.Domain.Contratos;
 public enum TipoDeContrato
 {
     ContratoDoRevendedor = 1,
-    TermoDoCliente = 2,
 
     /// <summary>Encerra o contrato de revenda; assinado, encerra a conta.</summary>
     Distrato = 3,

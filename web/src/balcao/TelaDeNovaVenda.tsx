@@ -1,13 +1,15 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { CircleCheck, ChevronLeft } from 'lucide-react'
-import { ViewTransition, startTransition, useEffect, useState } from 'react'
-import { type UseFormReturn, useForm } from 'react-hook-form'
+import { ViewTransition, startTransition, useEffect, useRef, useState } from 'react'
+import { type Resolver, type UseFormReturn, useForm, useWatch } from 'react-hook-form'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import { useSessao } from '@/acesso/sessao'
 import { mensagemDoErro } from '@/api/cliente'
 import { ROTULO_DO_PAGAMENTO, formatarData } from '@/api/rotulos'
 import type { ItemDoCatalogo, VendasRegistradas } from '@/api/tipos'
 import { useCatalogo, usaPlaca } from '@/catalogo/produtos'
+import { useAtualizarLimiteDeDestinos } from '@/painel/consultasDoLimite'
+import { AvisoDoLimiteDeDestinos } from '@/componentes/AvisoDoLimiteDeDestinos'
 import { Campo } from '@/componentes/Campo'
 import { PixNaTela } from '@/componentes/PixNaTela'
 import { Aviso, Carregando, Erro } from '@/componentes/Tela'
@@ -24,7 +26,7 @@ import { cn } from '@/lib/utils'
 import { z } from 'zod'
 import { CopiarLink, GravarNfc } from './BotoesDeNfc'
 import { Carrinho } from './Carrinho'
-import { type LinhaDaVenda, adicionar, comQuantidade, comValor, itensParaVender, linhaDeServico, nomeDaLinha, paraItens, remover, soPlacas, total, totalDaLinha, codigosNaVenda } from './itens'
+import { type LinhaDaVenda, adicionar, comQuantidade, comValor, itensParaVender, linhaDeServico, nomeDaLinha, paraItens, remover, cabeTeste, total, totalDaLinha, codigosNaVenda } from './itens'
 import { extrairCodigo } from './codigo'
 import { useConfiguracaoDoCartao, usePagamentoDaVenda, useVenderItens } from './consultas'
 import { ListaDeItens } from './ListaDeItens'
@@ -45,6 +47,12 @@ const esquemaDoCliente = z.object({
   email: emailOpcional,
 })
 type Cliente = z.infer<typeof esquemaDoCliente>
+/** No teste a cobrança sai do cliente no fim dos 7 dias: documento e e-mail passam a ser obrigatórios. */
+const MENSAGEM_DO_TESTE = 'No teste, informe CNPJ ou CPF e e-mail'
+const esquemaDoClienteNoTeste = esquemaDoCliente.extend({
+  documento: z.string().trim().min(1, MENSAGEM_DO_TESTE).pipe(documentoOpcional),
+  email: z.string().trim().min(1, MENSAGEM_DO_TESTE).pipe(emailOpcional),
+})
 const esquemaDoCartao = z.object({
   numero: z.string().refine(cartaoValido, 'Número do cartão não confere.'),
   nome: texto('o nome impresso no cartão'),
@@ -84,11 +92,16 @@ export function TelaDeNovaVenda() {
   const [passo, setPasso] = useState<Passo>('itens')
   const [linhas, setLinhas] = useState<LinhaDaVenda[]>([])
   const [modal, setModal] = useState<{ item: ItemDoCatalogo; codigo?: string } | null>(null)
-  const formularioDoCliente = useForm<Cliente>({ resolver: zodResolver(esquemaDoCliente), mode: 'onChange', defaultValues: CLIENTE_VAZIO })
+  // O esquema do cliente depende da forma de pagamento: a ref a entrega ao resolver sem recriar o formulário.
+  const meioDoResolver = useRef<MeioNaTela>('Pix')
+  const resolverDoCliente: Resolver<Cliente> = (valores, contexto, opcoes) =>
+    zodResolver(meioDoResolver.current === 'Teste' ? esquemaDoClienteNoTeste : esquemaDoCliente)(valores, contexto, opcoes)
+  const formularioDoCliente = useForm<Cliente>({ resolver: resolverDoCliente, mode: 'onChange', defaultValues: CLIENTE_VAZIO })
   const [vendidas, setVendidas] = useState<{ registro: VendasRegistradas; linhas: LinhaDaVenda[] } | null>(null)
   const vender = useVenderItens()
   const configDoCartao = useConfiguracaoDoCartao()
   const [meio, setMeio] = useState<MeioNaTela>('Pix')
+  const atualizarLimite = useAtualizarLimiteDeDestinos()
   const formularioDoCartao = useForm<Cartao>({ resolver: zodResolver(esquemaDoCartao), mode: 'onChange', defaultValues: CARTAO_VAZIO })
   const [tokenizando, setTokenizando] = useState(false)
   const [recusaDoCartao, setRecusaDoCartao] = useState<string | null>(null)
@@ -106,7 +119,15 @@ export function TelaDeNovaVenda() {
 
   const indice = PASSOS.findIndex((p) => p.id === passo)
   const totalCents = total(linhas)
-  const testeCabe = soPlacas(linhas)
+  const testeCabe = cabeTeste(linhas)
+  const dadosDoCliente = useWatch({ control: formularioDoCliente.control })
+
+  function trocarMeio(m: MeioNaTela) {
+    meioDoResolver.current = m
+    setMeio(m)
+    // Confere o cliente de novo: com o teste, documento e e-mail deixam de ser opcionais.
+    void formularioDoCliente.trigger()
+  }
 
   /** Trocar de passo apaga a recusa da última tentativa: ela fala do dado de antes. */
   function irPara(proximo: Passo) {
@@ -117,7 +138,7 @@ export function TelaDeNovaVenda() {
       const lugar = linhas.find((l) => l.lugar)?.lugar
       if (lugar && !formularioDoCliente.getValues('empresa').trim()) formularioDoCliente.setValue('empresa', lugar.nome, { shouldDirty: true, shouldValidate: true })
     }
-    if (proximo === 'cobranca' && meio === 'Teste' && !testeCabe) setMeio('Pix')
+    if (proximo === 'cobranca' && meio === 'Teste' && !testeCabe) trocarMeio('Pix')
     // A troca de etapa é uma transição: o <ViewTransition> da etapa desliza 8 px em 150 a 180 ms (index.css).
     startTransition(() => setPasso(proximo))
   }
@@ -133,6 +154,7 @@ export function TelaDeNovaVenda() {
     irPara('itens')
     setLinhas([])
     formularioDoCliente.reset(CLIENTE_VAZIO)
+    meioDoResolver.current = 'Pix'
     setMeio('Pix')
     formularioDoCartao.reset(CARTAO_VAZIO)
     setVendidas(null)
@@ -174,6 +196,7 @@ export function TelaDeNovaVenda() {
     }, {
       onSuccess: (registro) => {
         formularioDoCartao.reset(CARTAO_VAZIO)
+        void atualizarLimite()
         setVendidas({ registro, linhas: enviadas })
       },
     })
@@ -181,7 +204,8 @@ export function TelaDeNovaVenda() {
 
   if (vendidas) return <Resultado registro={vendidas.registro} linhas={vendidas.linhas} papel={papel} aoRecomecar={recomecar} />
 
-  const clientePronto = formularioDoCliente.formState.isValid
+  const faltaDadoDoTeste = meio === 'Teste' && (!digitos(dadosDoCliente.documento ?? '') || !(dadosDoCliente.email ?? '').trim())
+  const clientePronto = formularioDoCliente.formState.isValid && !faltaDadoDoTeste
   const naVenda = linhas.reduce<Record<string, number>>((mapa, l) => ({ ...mapa, [l.item.id]: (mapa[l.item.id] ?? 0) + l.quantidade }), {})
 
   return (
@@ -213,6 +237,7 @@ export function TelaDeNovaVenda() {
       <div className="min-w-0">
       {passo === 'itens' && (
         <div className="grid gap-4 md:lista-e-lateral-80 md:items-start">
+          <div className="md:col-span-full empty:hidden"><AvisoDoLimiteDeDestinos /></div>
           <Card>
             <CardHeader><CardTitle>Catálogo</CardTitle></CardHeader>
             <CardContent className="grid gap-3">
@@ -249,7 +274,7 @@ export function TelaDeNovaVenda() {
       )}
 
       {passo === 'cobranca' && (
-        <PassoDaCobranca linhas={linhas} erro={recusaDoCartao ?? vender.error} meio={meio} aoMudarMeio={setMeio} testeCabe={testeCabe}
+        <PassoDaCobranca linhas={linhas} erro={recusaDoCartao ?? vender.error} meio={meio} aoMudarMeio={trocarMeio} testeCabe={testeCabe} faltaDadoDoTeste={faltaDadoDoTeste}
           cartao={configDoCartao.data ?? null} formularioDoCartao={formularioDoCartao} />
       )}
       </div>
@@ -297,13 +322,15 @@ export function TelaDeNovaVenda() {
   )
 }
 
-function PassoDaCobranca({ linhas, erro, meio, aoMudarMeio, testeCabe, cartao, formularioDoCartao }: {
+function PassoDaCobranca({ linhas, erro, meio, aoMudarMeio, testeCabe, faltaDadoDoTeste, cartao, formularioDoCartao }: {
   linhas: LinhaDaVenda[]
   erro: unknown
   meio: MeioNaTela
   aoMudarMeio: (m: MeioNaTela) => void
-  /** Teste gratuito só quando tudo na venda é placa. */
+  /** Teste gratuito só para uma placa de avaliação no Google. */
   testeCabe: boolean
+  /** Teste sem CNPJ ou CPF, ou sem e-mail, do cliente. */
+  faltaDadoDoTeste: boolean
   cartao: ConfiguracaoDoCartao | null
   formularioDoCartao: UseFormReturn<Cartao>
 }) {
@@ -343,6 +370,7 @@ function PassoDaCobranca({ linhas, erro, meio, aoMudarMeio, testeCabe, cartao, f
           </ToggleGroup>
         )}
         {meio === 'Teste' && <p className="text-sm text-muted-foreground">Sem cobrança agora. Sem pagamento em 7 dias, a placa sai do ar.</p>}
+        {faltaDadoDoTeste && <Aviso>{MENSAGEM_DO_TESTE}</Aviso>}
         {meio === 'Cartao' && cartao && (
           <div className="grid gap-4">
             <Campo formulario={formularioDoCartao} nome="numero" rotulo="Número do cartão" inputMode="numeric" autoComplete="cc-number" />

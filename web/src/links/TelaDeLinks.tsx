@@ -11,6 +11,7 @@ import { useSessao } from '@/acesso/sessao'
 import { CopiarLink, GravarNfc } from '@/balcao/BotoesDeNfc'
 import { destinoPronto, linkDoGoogleValido } from '@/balcao/destino'
 import { BuscaNoGoogle } from '@/balcao/EscolhaDeDestino'
+import { AvisoDoLimiteDeDestinos } from '@/componentes/AvisoDoLimiteDeDestinos'
 import { Campo } from '@/componentes/Campo'
 import { texto } from '@/lib/esquemas'
 import { ListaPaginada } from '@/componentes/ListaPaginada'
@@ -79,6 +80,7 @@ export function TelaDeLinks() {
         </TabsList>
 
         <TabsContent value="link" className="grid grid-cols-1 gap-4 lg:lateral-e-lista-88">
+          <div className="lg:col-span-full empty:hidden"><AvisoDoLimiteDeDestinos /></div>
           <FormularioDeLink key={editando?.id ?? 'novo'} editando={editando} aoTerminar={() => setEditando(null)} />
           <ListaDeLinks aoEditar={setEditando} />
         </TabsContent>
@@ -86,6 +88,7 @@ export function TelaDeLinks() {
         <TabsContent value="nfc" className="lg:max-w-2xl"><GravarNasTags /></TabsContent>
 
         <TabsContent value="maps" className="grid grid-cols-1 gap-4 lg:lateral-e-lista-88">
+          <div className="lg:col-span-full empty:hidden"><AvisoDoLimiteDeDestinos /></div>
           <LinkDoGoogle />
           <ListaDeLinks aoEditar={(l) => { setEditando(l); irPara('link') }} />
         </TabsContent>

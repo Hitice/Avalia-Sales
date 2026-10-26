@@ -73,6 +73,16 @@ export async function apiComo(email: string): Promise<APIRequestContext> {
   return request.newContext({ baseURL: API, extraHTTPHeaders: { Authorization: `Bearer ${token}` } })
 }
 
+/** O pacote de 10 placas dos testes: não existe no produto, então o teste o cria quando falta. */
+export async function pacoteDeDez(operador: APIRequestContext): Promise<string> {
+  const pacotes = (await (await operador.get('operadora/pacotes')).json()) as { id: string; quantidade: number }[]
+  const existente = pacotes.find((p) => p.quantidade === 10)
+  if (existente) return existente.id
+  const criado = await operador.post('operadora/pacotes', { data: { quantidade: 10, precoCents: 15_000 } })
+  expect(criado.ok(), 'pacote de 10 do teste').toBeTruthy()
+  return ((await criado.json()) as { id: string }).id
+}
+
 /**
  * Um código de placa no estoque da revenda A. Com pouco estoque, reabastece
  * pelo caminho de verdade: a operadora gera o lote, a revenda pede, a
@@ -84,9 +94,9 @@ export async function placaLivre(): Promise<string> {
     .itens.filter((p) => p.consignadaA === null)
   if ((await livres()).length < 2) {
     const operador = await apiComo(OPERADOR)
-    const pacote = ((await (await operador.get('operadora/pacotes')).json()) as { id: string; quantidade: number }[]).find((p) => p.quantidade === 10)!
+    const pacoteId = await pacoteDeDez(operador)
     const lote = (await (await operador.post('operadora/lotes', { data: { quantidade: 10 } })).json()) as { numero: number; rotulo: string }
-    const pedido = (await (await dono.post('pedidos', { data: { pacoteId: pacote.id } })).json()) as { id: string }
+    const pedido = (await (await dono.post('pedidos', { data: { pacoteId } })).json()) as { id: string }
     expect((await operador.post(`operadora/pedidos/${pedido.id}/pagamento`, { data: {} })).ok()).toBeTruthy()
     expect((await operador.post(`operadora/pedidos/${pedido.id}/despacho`, { data: { lote: lote.numero } })).ok()).toBeTruthy()
     expect((await dono.post('lotes/ativacao', { data: { numero: lote.rotulo } })).ok()).toBeTruthy()

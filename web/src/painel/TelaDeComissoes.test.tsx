@@ -6,11 +6,13 @@ import { TelaDeComissoes } from './TelaDeComissoes'
 
 const saldo = { vendedorId: 'v1', vendedor: 'Ju Gomes', chavePix: null, devidaCents: 30_000, repassadaCents: 0, abertaCents: 30_000, ultimoRepasse: null }
 
+const pendente = { cobrancaId: 'c1', vendaId: 'x1', vendedorId: 'v1', vendedor: 'Ju Gomes', cliente: 'Padaria Sol', meio: 'Dinheiro', valorCents: 10_000, comissaoCents: 2_000, recebidoEm: '2026-10-20T15:00:00Z' }
+
 afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-function abrir() {
+function abrir(pendentes: unknown[] = []) {
   const envios: unknown[] = []
   vi.stubGlobal('fetch', vi.fn(async (url: string, opcoes?: RequestInit) => {
     if (opcoes?.method === 'POST') {
@@ -18,7 +20,7 @@ function abrir() {
       return new Response('{}', { status: 200 })
     }
     const vazia = { itens: [], total: 0, proxima: null }
-    return new Response(JSON.stringify(url.endsWith('/comissoes') ? [saldo] : url.includes('/repasses') ? vazia : []), { status: 200 })
+    return new Response(JSON.stringify(url.endsWith('/comissoes') ? [saldo] : url.includes('/comissoes/conferencia') ? pendentes : url.includes('/repasses') ? vazia : []), { status: 200 })
   }))
   render(<MemoryRouter><QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><TelaDeComissoes /></QueryClientProvider></MemoryRouter>)
   return envios
@@ -49,5 +51,22 @@ describe('TelaDeComissoes', () => {
 
     await waitFor(() => expect(envios).toHaveLength(1))
     expect(envios[0]).toMatchObject({ vendedorId: 'v1', ate: '2026-10-16T02:59:59.000Z' })
+  })
+
+  it('o dinheiro recebido pelo vendedor é confirmado por linha ou todo de uma vez', async () => {
+    const envios = abrir([pendente])
+    expect(await screen.findByText('Dinheiro recebido pelo vendedor, a confirmar')).toBeInTheDocument()
+    expect(screen.getByText('Dinheiro')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar todos (1)' }))
+    await waitFor(() => expect(envios).toHaveLength(1))
+    expect(envios[0]).toEqual({ cobrancaIds: null })
+  })
+
+  it('a ação da linha confirma só aquele recebimento', async () => {
+    const envios = abrir([pendente])
+    fireEvent.click(await screen.findByRole('button', { name: /Confirmei o dinheiro/ }))
+    await waitFor(() => expect(envios).toHaveLength(1))
+    expect(envios[0]).toEqual({ cobrancaIds: ['c1'] })
   })
 })
