@@ -107,7 +107,7 @@ function NovoCliente({ aoFechar, aoCadastrar }: { aoFechar: () => void; aoCadast
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Cadastrar cliente</DialogTitle>
-          <DialogDescription>Para vender depois. CPF ou CNPJ e e-mail servem para a cobrança.</DialogDescription>
+          <DialogDescription>CPF ou CNPJ e e-mail, para a cobrança.</DialogDescription>
         </DialogHeader>
         <form className="grid gap-3" onSubmit={(e) => { e.preventDefault(); cadastrar.mutate() }}>
           <Erro erro={cadastrar.error ? mensagemDoErro(cadastrar.error) : null} />

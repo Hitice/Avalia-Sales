@@ -447,7 +447,7 @@ function Resultado({ registro, linhas, papel, aoRecomecar }: { registro: VendasR
           {registro.vendas.length > 1 && (
             <p className="flex justify-between border-t pt-3 font-semibold"><span>Total</span><span className="tabular-nums">{formatarCentavos(registro.totalCents)}</span></p>
           )}
-          {temServico && <p className="text-sm text-muted-foreground">Com o pagamento, a Avalia recebe a ordem do serviço e você acompanha em Serviços.</p>}
+          {temServico && <p className="text-sm text-muted-foreground">Acompanhe o serviço em Serviços.</p>}
           {registro.semCobranca && <Aviso>{registro.semCobranca}</Aviso>}
           <ViewTransition name="pix">
             <div className="grid min-w-0 gap-4 empty:hidden">

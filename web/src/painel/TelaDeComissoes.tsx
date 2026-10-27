@@ -173,7 +173,7 @@ export function TelaDeComissoes() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Registrar repasse</DialogTitle>
-            <DialogDescription>O Pix feito ao vendedor, pelas vendas pagas até a data.</DialogDescription>
+            <DialogDescription>Pix ao vendedor, por vendas pagas até a data.</DialogDescription>
           </DialogHeader>
           {escolhido && (
             <form

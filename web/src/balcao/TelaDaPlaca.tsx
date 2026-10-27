@@ -130,7 +130,7 @@ export function TelaDaPlaca() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Renovação recebida {porFora === 'Dinheiro' ? 'em dinheiro' : 'por outro Pix'}</DialogTitle>
-            <DialogDescription>A placa ganha mais 12 meses e o valor entra no razão.</DialogDescription>
+            <DialogDescription>Mais 12 meses de placa; o valor entra no razão.</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setPorFora(null)}>Cancelar</Button>
@@ -142,7 +142,7 @@ export function TelaDaPlaca() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Desfazer a renovação</DialogTitle>
-            <DialogDescription>A placa volta ao vencimento de antes e o valor sai do razão por estorno.</DialogDescription>
+            <DialogDescription>Volta ao vencimento anterior e estorna o valor.</DialogDescription>
           </DialogHeader>
           <Erro erro={desfazer.error ? mensagemDoErro(desfazer.error) : null} />
           <DialogFooter>

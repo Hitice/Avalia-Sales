@@ -106,7 +106,7 @@ function SegundoFator() {
           )}
           {!ligado && chave && !ligar.data && (
             <form className="grid gap-4" onSubmit={(e) => { e.preventDefault(); ligar.mutate(codigo, { onSuccess: () => setCodigo('') }) }}>
-              <p className="text-sm">Leia o QR no app autenticador (Google Authenticator, Microsoft Authenticator, 1Password) ou digite a chave.</p>
+              <p className="text-sm">Leia o QR no app autenticador ou digite a chave.</p>
               {qr && <img src={qr} alt="QR da chave da autenticação de dois fatores" className="size-56 self-center rounded-lg border bg-card p-2" />}
               <code className="rounded-md bg-muted p-2 text-center text-sm break-all">{chave.chave}</code>
               <Field>
@@ -124,7 +124,7 @@ function SegundoFator() {
               <Field>
                 <FieldLabel htmlFor="codigo-desligar">Código enviado para o seu e-mail</FieldLabel>
                 <Input id="codigo-desligar" autoComplete="one-time-code" value={codigo} onChange={(e) => setCodigo(e.target.value)} />
-                <FieldDescription>Também vale o código do app ou um de recuperação.</FieldDescription>
+                <FieldDescription>Vale também o código do app ou de recuperação.</FieldDescription>
               </Field>
               <Button type="submit" variant="outline" disabled={codigo.trim().length < 6 || desligar.isPending}>Confirmar desativação</Button>
               <Button type="button" variant="ghost" disabled={espera.esperando || codigoParaDesligar.isPending} onClick={() => codigoParaDesligar.mutate()}>

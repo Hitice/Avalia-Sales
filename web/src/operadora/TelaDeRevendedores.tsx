@@ -238,8 +238,8 @@ function MarcaDoGrupo({ revendedor, ocupado, erro, aoFechar, aoConfirmar }: {
           <DialogTitle>{tirar ? 'Tirar' : 'Marcar'} {revendedor.nome} {tirar ? 'do' : 'como do'} grupo da operadora</DialogTitle>
           <DialogDescription>
             {tirar
-              ? 'O resultado desta revenda sai do consolidado do grupo, em todos os meses.'
-              : 'Use só para a revenda da mesma empresa da operadora. O resultado dela entra no consolidado do grupo, em todos os meses, e a operadora passa a ler os números dela somados. A marca fica registrada com quem fez e quando.'}
+              ? 'Sai do consolidado do grupo, em todos os meses.'
+              : 'Só para revenda da mesma empresa da operadora. Entra no consolidado do grupo, em todos os meses.'}
           </DialogDescription>
         </DialogHeader>
         <Erro erro={erro ? mensagemDoErro(erro) : null} />

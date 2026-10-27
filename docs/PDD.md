@@ -870,6 +870,7 @@ As mudanças de 21 a 24/10/2026 estão em [historico/pdd-ate-24-10.md](historico
 
 | Data | Mudança |
 | --- | --- |
+| 27/10/2026 | Textos de tela sem explicação genérica: grupo da operadora, marca, clientes, caixa, repasse, configurações, segurança, placa e Nova venda ficam com o rótulo e o fato. |
 | 26/10/2026 | Revendedores da operadora: a data de assinatura do contrato ganha coluna própria; textos da tela de Segurança mais curtos. |
 | 26/10/2026 | Aviso por e-mail ao dono quando o segundo fator é ligado ou desligado; o item de menu da operadora passa a se chamar Bloqueados. |
 | 26/10/2026 | Cada tela com uma responsabilidade, sem dado repetido: o cliente tem a casa dele em Clientes (Venda, Ficha da placa e Carteira só o apontam); a venda, no Detalhe da venda (a Ficha da placa leva a ele); o razão virou a aba Lançamentos do Financeiro; a marca virou a aba Marca de Configurações, com o encerramento da conta; a senha foi para Segurança, que abre para todos os papéis; Pedir placas só em Pedidos; o Início deixou de repetir o gráfico do Financeiro. Em Comissões, o que era "conferir" passou a "confirmar o dinheiro" que o vendedor recebeu. |

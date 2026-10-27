@@ -115,7 +115,7 @@ function MetaDoMes({ metaCents, vendidoCents, className }: { metaCents: number |
                 <p className="text-xs text-muted-foreground">{vendidoCents >= metaCents ? 'Meta batida.' : `Faltam ${formatarCentavos(metaCents - vendidoCents)} em vendas pagas.`}</p>
               </>
             )
-          : <p className="text-sm text-muted-foreground">Sem meta definida para este mês. Vendido e pago: <span className="font-medium text-foreground tabular-nums">{formatarCentavos(vendidoCents)}</span>.</p>}
+          : <p className="text-sm text-muted-foreground">Sem meta neste mês. Vendido e pago: <span className="font-medium text-foreground tabular-nums">{formatarCentavos(vendidoCents)}</span>.</p>}
       </CardContent>
     </Card>
   )

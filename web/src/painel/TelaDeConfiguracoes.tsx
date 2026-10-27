@@ -72,9 +72,9 @@ function Formulario({ comissaoBps, renovacaoBps, taxaBps }: { comissaoBps: numbe
             <Field>
               <FieldLabel htmlFor="comissao">Comissão padrão (%)</FieldLabel>
               <Input id="comissao" inputMode="decimal" className="max-w-40" value={textoDaComissao} onChange={(e) => setTextoDaComissao(e.target.value)} />
-              <FieldDescription>Para o vendedor e o produto sem comissão própria.</FieldDescription>
+              <FieldDescription>Vendedor e produto sem comissão própria.</FieldDescription>
             </Field>
-            <p className="text-sm">Renovação: <span className="font-medium tabular-nums">{formatarBps(renovacaoBps)}</span> da venda por mais um ano da placa, definida pela operadora. Renovação não paga comissão.</p>
+            <p className="text-sm">Renovação: <span className="font-medium tabular-nums">{formatarBps(renovacaoBps)}</span> da venda, por mais um ano da placa. Não paga comissão.</p>
             {taxaBps > 0 && <p className="text-sm text-muted-foreground">Taxa da plataforma por venda paga: {formatarBps(taxaBps)}.</p>}
             <Button type="submit" className="justify-self-start" disabled={novaComissao === null || comissao.isPending}>Salvar</Button>
           </form>

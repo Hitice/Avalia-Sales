@@ -65,7 +65,7 @@ describe('TelaDoResultadoDoGrupo', () => {
   it('avisa quando nenhuma revenda foi marcada como do grupo', async () => {
     abrir((url) => new Response(JSON.stringify(url.includes('/meses') ? [] : { ...resultado, revendasDoGrupo: 0 }), { status: 200 }))
 
-    expect(await screen.findByText(/Nenhuma revenda está marcada como do grupo/)).toBeInTheDocument()
+    expect(await screen.findByText(/Nenhuma revenda do grupo/)).toBeInTheDocument()
   })
 
   it('mostra o erro da API no lugar do demonstrativo', async () => {

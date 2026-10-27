@@ -63,7 +63,7 @@ function FormularioDoSaldoInicial({ caixa, aoFechar }: { caixa: Caixa; aoFechar:
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Saldo inicial do caixa</DialogTitle>
-          <DialogDescription>O dinheiro da revenda no primeiro dia do mês.</DialogDescription>
+          <DialogDescription>Caixa no primeiro dia do mês.</DialogDescription>
         </DialogHeader>
         <form className="grid gap-4" onSubmit={formulario.handleSubmit(enviar)} noValidate>
           <Erro erro={erro ? mensagemDoErro(erro) : null} />

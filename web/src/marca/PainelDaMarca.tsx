@@ -130,7 +130,6 @@ function FormularioDaMarca({ marca }: { marca: Marca }) {
                 </Button>
                 {marca.temLogo && <Button type="button" variant="ghost" className="text-destructive" onClick={() => chamarApi('/revenda/marca/logo', { method: 'DELETE' }).then(refazer).catch(setErro)}>Remover</Button>}
               </div>
-              <p className="text-xs text-muted-foreground">O logo grava ao confirmar o recorte; cores, nome e cabeçalho, no Salvar.</p>
             </Field>
             <RecorteDoLogo arquivo={paraRecortar} enviando={enviando} aoCancelar={() => setParaRecortar(null)} aoConfirmar={enviarLogo} />
             <div className="flex gap-2 border-t pt-4">

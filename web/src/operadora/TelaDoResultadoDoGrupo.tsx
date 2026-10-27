@@ -117,7 +117,7 @@ function Resultado({ competencia }: { competencia: string | undefined }) {
   return (
     <div className="grid gap-4">
       {r.revendasDoGrupo === 0 && (
-        <Aviso>Nenhuma revenda está marcada como do grupo. Marque em Revendedores; sem isso o consolidado mostra só a operadora.</Aviso>
+        <Aviso>Nenhuma revenda do grupo. Marque em Revendedores.</Aviso>
       )}
       <Indicadores>
         <Indicador rotulo="Resultado consolidado" valor={formatarCentavos(consolidado)} />
@@ -146,7 +146,7 @@ function Resultado({ competencia }: { competencia: string | undefined }) {
             {r.aindaNaoReconhecido.daRevendaDoGrupoCents > 0 && (
               <p className="text-muted-foreground">Da revenda do grupo, eliminado no consolidado: {formatarCentavos(r.aindaNaoReconhecido.daRevendaDoGrupoCents)}.</p>
             )}
-            <p className="text-muted-foreground">O pedido vira receita da operadora quando a revenda ativa o lote, e não no pagamento.</p>
+            <p className="text-muted-foreground">Vira receita quando a revenda ativa o lote.</p>
           </CardContent>
         </Card>
       </div>
