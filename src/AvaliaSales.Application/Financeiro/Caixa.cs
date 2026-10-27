@@ -14,7 +14,7 @@ public sealed record NovoSaldoInicial(string Competencia, long ValorCents);
 /// <summary>
 /// O caixa da revenda: o saldo do primeiro dia de um mês, informado pelo
 /// revendedor, mais o que entrou e saiu das competências seguintes. Entra o
-/// recebido das vendas e renovações e o aporte de sócio; sai a taxa da Avalia,
+/// recebido das vendas e renovações e o aporte de sócio; sai a parte da Avalia,
 /// a comissão repassada, a despesa, a retirada e o pedido de placas pago. A
 /// tarifa do Pagar.me não passa pelo razão e fica de fora. O que veio antes do
 /// saldo inicial continua no razão e no DRE dos meses dele, fora do caixa.
@@ -53,12 +53,12 @@ public sealed class Caixa(IBancoDeDados banco, Fechamentos fechamentos, Auditori
         var mes = Competencias.Conferir(pedido.Competencia);
         if (string.CompareOrdinal(mes, Competencias.Somar(fechamentos.MesCorrente(), 1)) > 0)
         {
-            throw new RegraDeNegocioException("O caixa começa no mês corrente, no seguinte ou num mês que já passou.");
+            throw new RegraDeNegocioException("Mês inválido para o início do caixa. Use até o mês seguinte ao atual.");
         }
 
         if (pedido.ValorCents is < 0 or > 100_000_000_00)
         {
-            throw new RegraDeNegocioException("Informe o saldo inicial em reais, sem valor negativo.");
+            throw new RegraDeNegocioException("Saldo inicial de zero a R$ 100.000.000,00.");
         }
 
         await fechamentos.ExigirAberto(mes, ct);
@@ -84,7 +84,7 @@ public sealed class Caixa(IBancoDeDados banco, Fechamentos fechamentos, Auditori
 
     public async Task ExcluirSaldoInicial(CancellationToken ct)
     {
-        var anterior = await SaldoInicial(ct) ?? throw new RegraDeNegocioException("O caixa não tem saldo inicial.");
+        var anterior = await SaldoInicial(ct) ?? throw new RegraDeNegocioException("Caixa sem saldo inicial.");
         banco.Lancamentos.Add(anterior.Estorno("saldo inicial excluído", relogio.GetUtcNow(), await fechamentos.DestinoDaCorrecao(anterior.Competencia, ct)));
         auditoria.Registrar(AcaoAuditada.SaldoInicialDoCaixaExcluido, "Saldo inicial do caixa", anterior.Competencia, Resumo(anterior.Competencia, anterior.ValorCents), null);
         await banco.SaveChangesAsync(ct);

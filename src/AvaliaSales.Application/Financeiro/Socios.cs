@@ -52,7 +52,7 @@ public sealed class Socios(IBancoDeDados banco, Fechamentos fechamentos, Auditor
         var socio = await AcharSocio(id, ct);
         if (await banco.Retiradas.AnyAsync(r => r.SocioId == id, ct))
         {
-            throw new RegraDeNegocioException("Sócio com retirada não se exclui. Exclua as retiradas dele antes.");
+            throw new RegraDeNegocioException("Sócio com retirada não se exclui. Exclua as retiradas antes.");
         }
 
         banco.Socios.Remove(socio);
@@ -141,7 +141,7 @@ public sealed class Socios(IBancoDeDados banco, Fechamentos fechamentos, Auditor
     /// <summary>Só quem está cadastrado como sócio do contrato recebe retirada; o filtro do revendedor faz o resto.</summary>
     private async Task<Socio> SocioDoContrato(Guid id, CancellationToken ct) =>
         await banco.Socios.AsNoTracking().SingleOrDefaultAsync(s => s.Id == id, ct)
-        ?? throw new RegraDeNegocioException("Só sócio do contrato recebe retirada. Cadastre o sócio antes.");
+        ?? throw new RegraDeNegocioException("Sócio não cadastrado. Cadastre o sócio antes da retirada.");
 
     private async Task<Socio> AcharSocio(Guid id, CancellationToken ct) =>
         await banco.Socios.SingleOrDefaultAsync(s => s.Id == id, ct) ?? throw new RegraDeNegocioException("Sócio não encontrado.");

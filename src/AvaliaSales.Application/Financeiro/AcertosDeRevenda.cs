@@ -12,7 +12,7 @@ public sealed record AcertoDto(Guid Id, Guid RevendedorId, long ValorCents, Date
 public sealed record NovoAcerto(Guid RevendedorId, long ValorCents, DateOnly Data, string? Observacao);
 
 /// <summary>
-/// O fechamento do "a acertar" (ADR 0025): a taxa e a parte da Avalia nos serviços que o split não repassou porque a venda
+/// O fechamento do "a acertar" (ADR 0028): a parte da Avalia nos serviços que o split não repassou porque a venda
 /// foi recebida por fora. O devido sai do livro da operadora (linhas marcadas por fora, já líquidas de estorno); a revenda
 /// quita pagando à Avalia fora da plataforma, e a operadora registra aqui. Registrar não mexe no resultado: é caixa.
 /// </summary>
@@ -48,29 +48,36 @@ public sealed class AcertosDeRevenda(IBancoDeDados banco, TimeProvider relogio, 
             .OrderByDescending(a => a.Data).ThenByDescending(a => a.CriadoEm).ThenByDescending(a => a.Id)
             .Select(a => new AcertoDto(a.Id, a.RevendedorId, a.ValorCents, a.Data, a.Observacao, a.CriadoEm)).ToListAsync(ct);
 
-    /// <summary>Quitação não passa do que a revenda deve: o excedente seria dinheiro sem origem no livro.</summary>
+    /// <summary>
+    /// Quitação não passa do que a revenda deve: o excedente seria dinheiro sem origem no livro. A trava da revenda,
+    /// até o fim da transação, faz dois registros juntos lerem o saldo um depois do outro.
+    /// </summary>
     public async Task<AcertoDto> Registrar(NovoAcerto pedido, CancellationToken ct)
     {
         await sensiveis.Exigir("Registrar um acerto", ct);
+        await using var transacao = await banco.Database.BeginTransactionAsync(ct);
+        await banco.TravarAcertosDaRevenda(pedido.RevendedorId, ct);
         var revendedor = await banco.Revendedores.AsNoTracking().SingleOrDefaultAsync(r => r.Id == pedido.RevendedorId, ct)
-            ?? throw new RegraDeNegocioException("Revendedor não encontrado.");
+            ?? throw new RegraDeNegocioException("Revenda não encontrada.");
         var agora = relogio.GetUtcNow();
         var acerto = new AcertoDeRevenda(revendedor.Id, pedido.ValorCents, pedido.Data, pedido.Observacao, Lancamento.DiaDe(agora), agora);
         var devido = await banco.LancamentosDaOperadora.Where(l => l.RevendedorOrigemId == revendedor.Id && l.PorFora).SumAsync(l => (long?)l.ValorCents, ct) ?? 0;
         var acertado = await banco.AcertosDeRevenda.Where(a => a.RevendedorId == revendedor.Id).SumAsync(a => (long?)a.ValorCents, ct) ?? 0;
         if (acerto.ValorCents > devido - acertado)
         {
-            throw new RegraDeNegocioException($"{revendedor.Nome} deve {Reais(devido - acertado)}. O acerto não pode passar disso.");
+            throw new RegraDeNegocioException($"{revendedor.Nome} deve {Reais(devido - acertado)}. Acerte até esse valor.");
         }
 
         banco.AcertosDeRevenda.Add(acerto);
         await banco.SaveChangesAsync(ct);
+        await transacao.CommitAsync(ct);
         return new AcertoDto(acerto.Id, acerto.RevendedorId, acerto.ValorCents, acerto.Data, acerto.Observacao, acerto.CriadoEm);
     }
 
     /// <summary>Acerto lançado por engano: volta ao saldo devido.</summary>
     public async Task Excluir(Guid id, CancellationToken ct)
     {
+        await sensiveis.Exigir("Excluir acerto", ct);
         var acerto = await banco.AcertosDeRevenda.SingleOrDefaultAsync(a => a.Id == id, ct) ?? throw new RegraDeNegocioException("Acerto não encontrado.");
         banco.AcertosDeRevenda.Remove(acerto);
         await banco.SaveChangesAsync(ct);

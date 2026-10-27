@@ -40,7 +40,7 @@ public sealed partial class Cadastro(IBancoDeDados banco, IContas contas, Janela
         var nome = (comando.Nome ?? string.Empty).Trim();
         if (nome.Length is 0 or > 120)
         {
-            throw new RegraDeNegocioException("O nome precisa ter de 1 a 120 caracteres.");
+            throw new RegraDeNegocioException("Nome de 1 a 120 caracteres.");
         }
 
         var revendedor = new Revendedor(comando.Empresa, comando.Cnpj);

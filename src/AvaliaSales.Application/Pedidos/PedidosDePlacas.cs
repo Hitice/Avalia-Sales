@@ -92,7 +92,7 @@ public sealed class PedidosDePlacas(
         var revendedor = await banco.Revendedores.SingleAsync(r => r.Id == atual.RevendedorId, ct);
         if (revendedor.ContratoAssinadoEm is null)
         {
-            throw new RegraDeNegocioException("Assine o contrato de revenda antes do primeiro pedido.");
+            throw new RegraDeNegocioException("Contrato de revenda não assinado. Assine antes de pedir.");
         }
 
         var pacote = await banco.Pacotes.SingleOrDefaultAsync(p => p.Id == pacoteId, ct)
@@ -141,7 +141,7 @@ public sealed class PedidosDePlacas(
         var pedido = await Achar(id, ct);
         if (pedido.Situacao != SituacaoDoPedido.AguardandoPagamento)
         {
-            throw new RegraDeNegocioException("Este pedido não está aguardando pagamento.");
+            throw new RegraDeNegocioException("Pedido não aguarda pagamento.");
         }
 
         var aberto = await banco.Cobrancas.AsNoTracking()
@@ -160,14 +160,17 @@ public sealed class PedidosDePlacas(
     {
         var pedido = await Achar(id, ct);
 
-        // Link em aberto ainda pode ser pago: cancelar agora deixaria o dinheiro sem pedido.
-        if (await banco.Cobrancas.AnyAsync(c => c.Origem == Domain.Pagamentos.OrigemDaCobranca.PedidoDePlacas && c.OrigemId == id
-                && c.Situacao == Domain.Pagamentos.SituacaoDaCobranca.Pendente && c.UrlDoLink != null, ct))
+        // O link em aberto é cancelado junto. Se um Pix gerado antes ainda for pago, a
+        // conferência acha a cobrança cancelada paga e avisa a operadora (Cobrancas.Aplicar).
+        pedido.Cancelar();
+        var abertas = await banco.Cobrancas
+            .Where(c => c.Origem == Domain.Pagamentos.OrigemDaCobranca.PedidoDePlacas && c.OrigemId == id && c.Situacao == Domain.Pagamentos.SituacaoDaCobranca.Pendente)
+            .ToListAsync(ct);
+        foreach (var cobranca in abertas)
         {
-            throw new RegraDeNegocioException("Pedido com link de pagamento em aberto.");
+            await cobrancas.Cancelar(cobranca, ct);
         }
 
-        pedido.Cancelar();
         if (pedido.Cupom is { } codigo && await banco.Cupons.SingleOrDefaultAsync(c => c.Codigo == codigo, ct) is { } cupom)
         {
             cupom.Devolver();
@@ -191,7 +194,7 @@ public sealed class PedidosDePlacas(
     /// </summary>
     public async Task Estornar(Guid id, string? motivo, CancellationToken ct)
     {
-        await sensiveis.Exigir("Estornar um pedido", ct);
+        await sensiveis.Exigir("Estornar pedido", ct);
         var pedido = await Achar(id, ct);
         var valor = pedido.ValorCents;
         pedido.EstornarPago();
@@ -265,7 +268,7 @@ public sealed class PedidosDePlacas(
     /// <summary>Operadora: pagamento recebido por fora, até o checkout do Pagar.me entrar.</summary>
     public async Task RegistrarPagamento(Guid id, CancellationToken ct)
     {
-        await sensiveis.Exigir("Registrar um pagamento por fora", ct);
+        await sensiveis.Exigir("Registrar pagamento por fora", ct);
         var pedido = await Achar(id, ct);
         pedido.RegistrarPagamento(relogio.GetUtcNow());
         banco.AvisarAoVivo("pedido", pedido.RevendedorId, operadora: true);
@@ -293,7 +296,7 @@ public sealed class PedidosDePlacas(
     {
         var pedido = await Achar(id, ct);
         var lote = await banco.Lotes.SingleOrDefaultAsync(l => l.Numero == numeroDoLote, ct)
-            ?? throw new RegraDeNegocioException($"O lote {Lote.Rotular(numeroDoLote)} não existe.");
+            ?? throw new RegraDeNegocioException($"Lote {Lote.Rotular(numeroDoLote)} não encontrado.");
         var agora = relogio.GetUtcNow();
 
         await using var transacao = await banco.Database.BeginTransactionAsync(ct);
@@ -329,7 +332,7 @@ public sealed class PedidosDePlacas(
     public async Task<AtivacaoDto> Ativar(string numeroDigitado, CancellationToken ct)
     {
         var revendedorId = atual.RevendedorId ?? throw new InvalidOperationException("Ativação sem revendedor.");
-        var numero = Lote.LerNumero(numeroDigitado) ?? throw new RegraDeNegocioException("Digite o número do lote, como LT-0001.");
+        var numero = Lote.LerNumero(numeroDigitado) ?? throw new RegraDeNegocioException("Número do lote inválido. Use o formato LT-0001.");
         var agora = relogio.GetUtcNow();
 
         await using var transacao = await banco.Database.BeginTransactionAsync(ct);

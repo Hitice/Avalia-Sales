@@ -28,9 +28,9 @@ public sealed class ParteDaAvaliaTest
         Assert.Throws<RegraDeNegocioException>(() => Produto(TipoDeProduto.Servico, 10_000, descontoBps));
 
     [Fact]
-    public void Cobranca_soma_a_taxa_e_a_parte_e_nao_passa_do_valor()
+    public void Cobranca_guarda_so_a_parte_e_nao_passa_do_valor()
     {
-        Assert.Equal(298 + 8_000, new Cobranca(OrigemDaCobranca.Venda, null, MeioDePagamento.Pix, 14_990, 199, 8_000).TaxaAvaliaCents);
-        Assert.Throws<RegraDeNegocioException>(() => new Cobranca(OrigemDaCobranca.Venda, null, MeioDePagamento.Pix, 10_000, 0, 10_001));
+        Assert.Equal(8_000, new Cobranca(OrigemDaCobranca.Venda, null, MeioDePagamento.Pix, 14_990, 8_000).ParteDaAvaliaCents);
+        Assert.Throws<RegraDeNegocioException>(() => new Cobranca(OrigemDaCobranca.Venda, null, MeioDePagamento.Pix, 10_000, 10_001));
     }
 }

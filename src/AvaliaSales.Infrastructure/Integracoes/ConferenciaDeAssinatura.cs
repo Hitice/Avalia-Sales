@@ -26,7 +26,7 @@ public sealed class ConferenciaDeAssinatura(BancoDeDados banco, IAssinaturaEletr
         Domain.Contratos.SituacaoDoContrato? lida;
         try
         {
-            lida = await assinatura.LerSituacao(antes.DocumentoNaAssinatura ?? throw new Domain.RegraDeNegocioException("O documento ainda não foi para assinatura."), ct);
+            lida = await assinatura.LerSituacao(antes.DocumentoNaAssinatura ?? throw new Domain.RegraDeNegocioException("Documento não enviado para assinatura."), ct);
         }
         catch (IntegracaoException)
         {

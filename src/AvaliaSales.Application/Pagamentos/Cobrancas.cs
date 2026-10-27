@@ -21,7 +21,7 @@ public sealed record CobrancaDto(
     Guid Id,
     SituacaoDaCobranca Situacao,
     long ValorCents,
-    long TaxaAvaliaCents,
+    long ParteDaAvaliaCents,
     string? PixCopiaECola,
     string? PixQrCodeUrl,
     DateTimeOffset? PixExpiraEm,
@@ -33,9 +33,6 @@ public sealed class Cobrancas(IBancoDeDados banco, IGatewayDePagamento gateway, 
 
     /// <summary>O link do pedido de placas vale três dias; depois disso, sem pagamento, a cobrança é cancelada e outra pode sair.</summary>
     public static readonly TimeSpan ValidadeDoLink = TimeSpan.FromDays(3);
-
-    /// <summary>Todo o valor do pedido de placas é da Avalia: 100% em pontos base.</summary>
-    private const int TudoParaAvalia = 10_000;
 
     /// <summary>
     /// Grava a cobrança e o vínculo antes de chamar o Pagar.me. Se a chamada
@@ -50,7 +47,7 @@ public sealed class Cobrancas(IBancoDeDados banco, IGatewayDePagamento gateway, 
 
         if (revendedor.RecebedorPagarme is null)
         {
-            throw new RegraDeNegocioException("O revendedor ainda não tem conta de recebimento no Pagar.me.");
+            throw new RegraDeNegocioException("Revenda sem recebedor do Pagar.me. Fale com o suporte.");
         }
 
         if (comando.Meio is MeioDePagamento.Dinheiro or MeioDePagamento.OutroPix)
@@ -65,13 +62,13 @@ public sealed class Cobrancas(IBancoDeDados banco, IGatewayDePagamento gateway, 
 
         if (comando.Parcelas is < 1 or > ParcelasMaximas)
         {
-            throw new RegraDeNegocioException($"O parcelamento vai de 1 a {ParcelasMaximas} vezes.");
+            throw new RegraDeNegocioException($"Parcelamento de 1 a {ParcelasMaximas} vezes.");
         }
 
         // Parcelado, o cliente paga o custo do cartão; no Pix e à vista, a Avalia paga a fatia dela no custo.
         var total = Parcelamento.Total(comando.ValorCents, comando.Meio, comando.Parcelas);
         var parte = Parcelamento.ParteLiquida(comando.ParteDaAvaliaCents, comando.Meio, comando.Parcelas);
-        var cobranca = new Cobranca(comando.Origem, comando.OrigemId, comando.Meio, total, revendedor.TaxaAvaliaBps, parte);
+        var cobranca = new Cobranca(comando.Origem, comando.OrigemId, comando.Meio, total, parte);
         await using (var transacao = await banco.Database.BeginTransactionAsync(ct))
         {
             // Dois toques ou duas abas cobrando a mesma venda ao mesmo tempo: a trava
@@ -82,7 +79,7 @@ public sealed class Cobrancas(IBancoDeDados banco, IGatewayDePagamento gateway, 
                 if (await banco.Cobrancas.AnyAsync(c => c.Origem == comando.Origem && c.OrigemId == origem
                         && (c.Situacao == SituacaoDaCobranca.Pendente || c.Situacao == SituacaoDaCobranca.Paga), ct))
                 {
-                    throw new RegraDeNegocioException("Já existe cobrança em aberto ou paga para esta venda.");
+                    throw new RegraDeNegocioException("Venda com cobrança aberta ou paga.");
                 }
             }
 
@@ -131,10 +128,11 @@ public sealed class Cobrancas(IBancoDeDados banco, IGatewayDePagamento gateway, 
         {
             return aberta.UrlDoLink is not null && aberta.Situacao == SituacaoDaCobranca.Pendente
                 ? ParaDto(aberta)
-                : throw new RegraDeNegocioException("Já existe cobrança em aberto ou paga para este pedido.");
+                : throw new RegraDeNegocioException("Pedido com cobrança aberta ou paga.");
         }
 
-        var cobranca = new Cobranca(origem, origemId, MeioDePagamento.Link, valorCents, TudoParaAvalia);
+        // Todo o valor do pedido de placas é da Avalia.
+        var cobranca = new Cobranca(origem, origemId, MeioDePagamento.Link, valorCents, parteDaAvaliaCents: valorCents);
         banco.Cobrancas.Add(cobranca);
         banco.Vinculos.Add(new VinculoExterno(VinculoExterno.Pagarme, cobranca.Codigo, revendedorId));
         await banco.SaveChangesAsync(ct);
@@ -203,6 +201,12 @@ public sealed class Cobrancas(IBancoDeDados banco, IGatewayDePagamento gateway, 
     {
         var ligou = cobranca.PedidoNoGateway is null;
         cobranca.RegistrarPedido(pedido.Id, pedido.PixCopiaECola, pedido.PixQrCodeUrl, pedido.PixExpiraEm);
+        if (cobranca.Situacao == SituacaoDaCobranca.Cancelada && pedido.Situacao == SituacaoDaCobranca.Paga)
+        {
+            // Pix gerado antes do cancelamento continua pagável: o dinheiro entrou sem pedido, e a operadora devolve.
+            efeitos.PagaDepoisDeCancelada(cobranca, pedido.Id);
+        }
+
         var mudou = cobranca.Atualizar(pedido.Situacao, pedido.PagoEm);
         if (mudou)
         {
@@ -218,9 +222,12 @@ public sealed class Cobrancas(IBancoDeDados banco, IGatewayDePagamento gateway, 
     /// </summary>
     public async Task<Cobranca> RegistrarPorFora(OrigemDaCobranca origem, Guid origemId, MeioDePagamento meio, long valorCents, CancellationToken ct, long parteDaAvaliaCents = 0)
     {
-        var revendedorId = atual.RevendedorId ?? throw new InvalidOperationException("Cobrança sem revendedor na requisição.");
-        var taxa = await banco.Revendedores.Where(r => r.Id == revendedorId).Select(r => r.TaxaAvaliaBps).SingleAsync(ct);
-        var cobranca = Cobranca.RecebidaPorFora(origem, origemId, meio, valorCents, taxa, relogio.GetUtcNow(), parteDaAvaliaCents);
+        if (atual.RevendedorId is null)
+        {
+            throw new InvalidOperationException("Cobrança sem revendedor na requisição.");
+        }
+
+        var cobranca = Cobranca.RecebidaPorFora(origem, origemId, meio, valorCents, relogio.GetUtcNow(), parteDaAvaliaCents);
         banco.Cobrancas.Add(cobranca);
         await efeitos.Aplicar(cobranca, relogio.GetUtcNow(), ct);
         return cobranca;
@@ -253,16 +260,21 @@ public sealed class Cobrancas(IBancoDeDados banco, IGatewayDePagamento gateway, 
 
         // Pedido que caiu no meio da criação ainda pode existir lá, pelo código: cancela também.
         var pedido = cobranca.PedidoNoGateway ?? (await gateway.BuscarPorCodigo(cobranca.Codigo, ct))?.Id;
-        if (pedido is not null)
+        try
         {
-            try
+            if (pedido is not null)
             {
                 await gateway.CancelarPedido(pedido, ct);
             }
-            catch (IntegracaoException recusa) when (recusa.Status is >= 400 and < 500)
+            else if (cobranca.LinkNoGateway is not null)
             {
-                throw Recusa(recusa);
+                // Link ainda sem pagamento: não há pedido lá; o que deixa de valer é o link.
+                await gateway.CancelarLink(cobranca.LinkNoGateway, ct);
             }
+        }
+        catch (IntegracaoException recusa) when (recusa.Status is >= 400 and < 500)
+        {
+            throw Recusa(recusa);
         }
 
         var lida = cobranca.Situacao == SituacaoDaCobranca.Paga ? SituacaoDaCobranca.Estornada : SituacaoDaCobranca.Cancelada;
@@ -289,7 +301,7 @@ public sealed class Cobrancas(IBancoDeDados banco, IGatewayDePagamento gateway, 
         {
             if (!cobranca.PorFora)
             {
-                var pedido = cobranca.PedidoNoGateway ?? throw new RegraDeNegocioException("Esta cobrança não tem pedido no Pagar.me. Confira no painel do Pagar.me.");
+                var pedido = cobranca.PedidoNoGateway ?? throw new RegraDeNegocioException("Cobrança sem pedido no Pagar.me. Confira no painel do Pagar.me.");
 
                 // A regra confere antes de o dinheiro sair: o que passa do pago não chega ao Pagar.me.
                 cobranca.ConferirEstorno(devolver);
@@ -315,7 +327,7 @@ public sealed class Cobrancas(IBancoDeDados banco, IGatewayDePagamento gateway, 
                 {
                     var estorno = linha.Estorno(cobranca.PorFora ? "venda do grupo desfeita, devolvida por fora" : "venda do grupo estornada no Pagar.me", agora);
                     banco.Lancamentos.Add(estorno);
-                    livro.TaxaEstornada(linha, estorno, cobranca.RevendedorId, cobranca.PorFora);
+                    livro.ParteDaAvaliaEstornada(linha, estorno, cobranca.RevendedorId, cobranca.PorFora);
                 }
             }
         }
@@ -326,9 +338,9 @@ public sealed class Cobrancas(IBancoDeDados banco, IGatewayDePagamento gateway, 
     /// <summary>Recusa do Pagar.me é resposta para quem cancela, não falha do sistema: nada foi gravado, a venda segue paga.</summary>
     private static RegraDeNegocioException Recusa(IntegracaoException recusa) =>
         new(recusa.Message.Contains("Saldo insuficiente", StringComparison.OrdinalIgnoreCase)
-            ? "O Pagar.me não estornou por falta de saldo. Estorne pelo painel do Pagar.me, que devolve a taxa junto, e cancele a venda aqui de novo."
-            : "O Pagar.me recusou o cancelamento desta cobrança. Confira no painel do Pagar.me.");
+            ? "Pagar.me sem saldo para o estorno. Estorne pelo painel do Pagar.me e cancele a venda."
+            : "Pagar.me recusou o cancelamento. Confira no painel do Pagar.me.");
 
     public static CobrancaDto ParaDto(Cobranca c) =>
-        new(c.Id, c.Situacao, c.ValorCents, c.TaxaAvaliaCents, c.PixCopiaECola, c.PixQrCodeUrl, c.PixExpiraEm, c.UrlDoLink);
+        new(c.Id, c.Situacao, c.ValorCents, c.ParteDaAvaliaCents, c.PixCopiaECola, c.PixQrCodeUrl, c.PixExpiraEm, c.UrlDoLink);
 }

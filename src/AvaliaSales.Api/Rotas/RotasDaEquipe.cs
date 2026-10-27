@@ -68,7 +68,7 @@ public static class RotasDaEquipe
         {
             if (!lugares.Configurado)
             {
-                throw new RegraDeNegocioException("A busca no Google não está ligada. Cole o link de avaliação do Perfil da Empresa.");
+                throw new RegraDeNegocioException("Busca no Google desligada. Cole o link de avaliação.");
             }
 
             return (texto ?? string.Empty).Trim() is { Length: >= BuscaMinima } busca

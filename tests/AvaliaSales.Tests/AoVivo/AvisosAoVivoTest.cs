@@ -1,8 +1,14 @@
 using System.Net;
 using System.Net.Http.Json;
+using AvaliaSales.Api.Autenticacao;
+using AvaliaSales.Infrastructure.Identidade;
 using AvaliaSales.Tests.Apoio;
 using Microsoft.AspNetCore.Http.Connections;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Time.Testing;
 
 namespace AvaliaSales.Tests.AoVivo;
 
@@ -78,6 +84,45 @@ public sealed class AvisosAoVivoTest(ApiDeTeste api)
 
         var erro = await Assert.ThrowsAsync<HttpRequestException>(() => conexao.StartAsync(Ct));
         Assert.Equal(HttpStatusCode.Unauthorized, erro.StatusCode);
+    }
+
+    /// <summary>
+    /// A conexão ao vivo cai quando o token vence (ADR 0006). O token sai pelo emissor da API com o relógio recuado, para vencer em
+    /// poucos segundos; o relógio do servidor é o real, então o teste espera esses segundos.
+    /// </summary>
+    [Fact]
+    public async Task Conexao_ao_vivo_cai_quando_o_token_vence()
+    {
+        var (_, email) = await api.CriarRevendedor("Revenda do Token Vencido");
+        var opcoes = api.Fabrica.Services.GetRequiredService<IOptions<OpcoesJwt>>();
+        string token;
+        using (var escopo = api.Fabrica.Services.CreateScope())
+        {
+            var usuario = (await escopo.ServiceProvider.GetRequiredService<UserManager<Usuario>>().FindByEmailAsync(email))!;
+            var recuado = new FakeTimeProvider(DateTimeOffset.UtcNow.AddMinutes(-opcoes.Value.MinutosDeValidade).AddSeconds(3));
+            token = new EmissorDeToken(opcoes, recuado).Emitir(usuario, null).Token;
+        }
+
+        var caiu = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var conexao = new HubConnectionBuilder()
+            .WithUrl(new Uri(api.Fabrica.Server.BaseAddress, "hubs/avisos"), o =>
+            {
+                o.HttpMessageHandlerFactory = _ => api.Fabrica.Server.CreateHandler();
+                o.Transports = HttpTransportType.LongPolling;
+                o.AccessTokenProvider = () => Task.FromResult<string?>(token);
+            })
+            .Build();
+        conexao.Closed += _ =>
+        {
+            caiu.TrySetResult();
+            return Task.CompletedTask;
+        };
+        await conexao.StartAsync(Ct);
+
+        var primeiro = await Task.WhenAny(caiu.Task, Task.Delay(TimeSpan.FromSeconds(20), Ct));
+
+        Assert.Same(caiu.Task, primeiro);
+        await conexao.DisposeAsync();
     }
 
     private async Task<string> DonoDe(Guid revendedorId)

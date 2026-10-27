@@ -42,7 +42,7 @@ public sealed class Chamado : IAtendidoPelaOperadora
         assunto = (assunto ?? string.Empty).Trim();
         Assunto = assunto.Length is > 0 and <= AssuntoMaximo
             ? assunto
-            : throw new RegraDeNegocioException($"O assunto tem de 1 a {AssuntoMaximo} caracteres.");
+            : throw new RegraDeNegocioException($"Assunto de 1 a {AssuntoMaximo} caracteres.");
         AbertoPor = abertoPor;
         AbertoEm = agora;
         UltimaMensagemEm = agora;
@@ -72,7 +72,7 @@ public sealed class Chamado : IAtendidoPelaOperadora
     {
         if (Situacao == SituacaoDoChamado.Resolvido)
         {
-            throw new RegraDeNegocioException("O chamado já está resolvido.");
+            throw new RegraDeNegocioException("Chamado já resolvido.");
         }
 
         Situacao = SituacaoDoChamado.Resolvido;

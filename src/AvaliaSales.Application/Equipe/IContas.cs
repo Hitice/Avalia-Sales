@@ -12,9 +12,6 @@ public interface IContas
     /// </summary>
     Task<Guid> Criar(string nome, string email, string? senha, Papel papel, Guid? revendedorId, CancellationToken ct, bool emailConfirmado = false);
 
-    /// <summary>Põe na fila o link de confirmação do e-mail.</summary>
-    Task PedirConfirmacao(Guid usuarioId, CancellationToken ct);
-
     /// <summary>Põe o e-mail do convite na fila e devolve o link, que o dono também pode mandar pelo WhatsApp.</summary>
     Task<string> Convidar(Guid usuarioId, Avisos.RemetenteDoEmail revenda, CancellationToken ct);
 

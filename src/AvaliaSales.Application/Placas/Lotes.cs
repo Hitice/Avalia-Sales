@@ -110,7 +110,7 @@ public sealed class Lotes(IBancoDeDados banco, TimeProvider relogio)
         var lote = await Achar(loteId, ct);
         if (lote.RevendedorId is not null)
         {
-            throw new RegraDeNegocioException($"O lote {lote.Rotulo} já está com a revenda: quem arquiva é o revendedor, pelo estoque.");
+            throw new RegraDeNegocioException($"Lote {lote.Rotulo} já entregue à revenda. Só o revendedor arquiva, pelo estoque.");
         }
 
         if (arquivar)
@@ -135,7 +135,7 @@ public sealed class Lotes(IBancoDeDados banco, TimeProvider relogio)
         var lote = await Achar(loteId, ct);
         if (!lote.PodeExcluir)
         {
-            throw new RegraDeNegocioException($"O lote {lote.Rotulo} já teve o arquivo baixado ou foi despachado. Arquive em vez de excluir.");
+            throw new RegraDeNegocioException($"Lote {lote.Rotulo} com arquivo baixado ou despachado. Arquive em vez de excluir.");
         }
 
         var emitidas = await banco.PlacasEmitidas.Where(p => p.LoteId == loteId).ToListAsync(ct);

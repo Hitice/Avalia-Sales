@@ -49,16 +49,19 @@ public sealed class GestorDeSegundoFator(BancoDeDados banco, UserManager<Usuario
         return new ChaveDoAutenticador(chave, $"otpauth://totp/{conta}?secret={chave}&issuer={Uri.EscapeDataString(Emissor)}&digits=6");
     }
 
-    /// <summary>Liga com o primeiro código do app e devolve os códigos de recuperação, mostrados uma vez só.</summary>
-    public async Task<IReadOnlyList<string>> Ligar(Guid usuarioId, string? codigo)
+    /// <summary>
+    /// Liga com o primeiro código do app e devolve os códigos de recuperação, mostrados uma vez só.
+    /// <paramref name="sessaoAtual"/> é o refresh token de quem liga: só essa sessão continua aberta.
+    /// </summary>
+    public async Task<IReadOnlyList<string>> Ligar(Guid usuarioId, string? codigo, string? sessaoAtual)
     {
         var usuario = await AcharDesligado(usuarioId);
         if (!await CodigoDoApp(usuario, codigo))
         {
-            throw new RegraDeNegocioException("Código não confere. Confira o horário do celular e tente o código novo.");
+            throw new RegraDeNegocioException("Código não confere. Confira o horário do celular.");
         }
 
-        return await Ativar(usuario, porEmail: false);
+        return await Ativar(usuario, porEmail: false, sessaoAtual);
     }
 
     /// <summary>
@@ -70,26 +73,26 @@ public sealed class GestorDeSegundoFator(BancoDeDados banco, UserManager<Usuario
         var usuario = await Achar(usuarioId);
         if (usuario.TwoFactorEnabled && !usuario.SegundoFatorPorEmail)
         {
-            throw new RegraDeNegocioException("O segundo fator já está ligado pelo app.");
+            throw new RegraDeNegocioException("Segundo fator já ligado pelo app.");
         }
 
         if (!usuario.EmailConfirmed)
         {
-            throw new RegraDeNegocioException("Confirme o e-mail antes de usar o código por e-mail.");
+            throw new RegraDeNegocioException("E-mail não confirmado. Confirme o e-mail.");
         }
 
         await MandarCodigo(usuario, $"ligar:{Guid.CreateVersion7():N}", ct);
     }
 
-    public async Task<IReadOnlyList<string>> LigarPorEmail(Guid usuarioId, string? codigo)
+    public async Task<IReadOnlyList<string>> LigarPorEmail(Guid usuarioId, string? codigo, string? sessaoAtual)
     {
         var usuario = await AcharDesligado(usuarioId);
         if (!usuario.EmailConfirmed || !await CodigoDoEmail(usuario, codigo))
         {
-            throw new RegraDeNegocioException("Código não confere. Peça outro e use o mais recente.");
+            throw new RegraDeNegocioException("Código não confere. Use o código mais recente.");
         }
 
-        return await Ativar(usuario, porEmail: true);
+        return await Ativar(usuario, porEmail: true, sessaoAtual);
     }
 
     /// <summary>
@@ -102,12 +105,12 @@ public sealed class GestorDeSegundoFator(BancoDeDados banco, UserManager<Usuario
         var usuario = await Achar(usuarioId);
         if (!usuario.TwoFactorEnabled)
         {
-            throw new RegraDeNegocioException("A autenticação de dois fatores já está desativada.");
+            throw new RegraDeNegocioException("Segundo fator já desligado.");
         }
 
         if (!usuario.EmailConfirmed || usuario.Email is null)
         {
-            throw new RegraDeNegocioException("Confirme o e-mail para receber o código.");
+            throw new RegraDeNegocioException("E-mail não confirmado. Confirme o e-mail.");
         }
 
         await MandarCodigo(usuario, $"desligar:{Guid.CreateVersion7():N}", ct);
@@ -194,11 +197,23 @@ public sealed class GestorDeSegundoFator(BancoDeDados banco, UserManager<Usuario
         return usuario is { Ativo: true } ? (link!, usuario) : throw new RegraDeNegocioException("Entre de novo com a senha.");
     }
 
-    private async Task<IReadOnlyList<string>> Ativar(Usuario usuario, bool porEmail)
+    /// <summary>
+    /// Liga e encerra as outras sessões do login: quem entrou antes só com a senha (talvez roubada) não segue
+    /// renovando o acesso. A sessão de quem ligou fica, como na troca de senha logada, em que este aparelho segue
+    /// dentro. O <see cref="UserManager{TUser}.SetTwoFactorEnabledAsync"/> já troca o carimbo de segurança.
+    /// </summary>
+    private async Task<IReadOnlyList<string>> Ativar(Usuario usuario, bool porEmail, string? sessaoAtual)
     {
         usuario.SegundoFatorPorEmail = porEmail;
         await usuarios.UpdateAsync(usuario);
         await usuarios.SetTwoFactorEnabledAsync(usuario, true);
+        var agora = relogio.GetUtcNow();
+        var hash = Sessao.Hash(sessaoAtual ?? string.Empty);
+        var manter = string.IsNullOrEmpty(sessaoAtual)
+            ? null
+            : await banco.Sessoes.AsNoTracking().Where(s => s.UsuarioId == usuario.Id && s.HashDoToken == hash).Select(s => (Guid?)s.Familia).SingleOrDefaultAsync();
+        await banco.Sessoes.Where(s => s.UsuarioId == usuario.Id && s.EncerradaEm == null && (manter == null || s.Familia != manter))
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.EncerradaEm, agora));
         Auditar(usuario, AcaoAuditada.SegundoFatorLigado, porEmail ? "e-mail" : "app autenticador");
         Avisar(usuario, "ligado", $"O segundo fator da sua conta na Avalia Sales foi ligado, por {(porEmail ? "código no e-mail" : "app autenticador")}.");
         await banco.SaveChangesAsync();
@@ -269,24 +284,36 @@ public sealed class GestorDeSegundoFator(BancoDeDados banco, UserManager<Usuario
         return arroba <= 1 ? email : email[0] + new string('*', Math.Min(arroba - 1, 5)) + email[arroba..];
     }
 
-    /// <summary>A operadora não tem revendedor, e a auditoria é por revendedor: fica só para o dono.</summary>
+    /// <summary>O dono vai à auditoria da revenda; a operadora, que não tem revendedor, à trilha da operadora.</summary>
     private void Auditar(Usuario usuario, AcaoAuditada acao, string? depois = null)
     {
         if (usuario.RevendedorId is not null)
         {
             auditoria.Registrar(acao, $"Login {usuario.Nome}", usuario.Id.ToString(), null, depois);
+            return;
         }
+
+        banco.AuditoriaDaOperadora.Add(new RegistroDaOperadora(usuario.Id, NaTrilhaDaOperadora(acao), usuario.Id.ToString(),
+            depois is null ? null : System.Text.Json.JsonSerializer.Serialize(new { meio = depois }), relogio.GetUtcNow()));
     }
+
+    /// <summary>O nome da ação na trilha da operadora, que mostra o texto como está quando não é uma rota.</summary>
+    public static string NaTrilhaDaOperadora(AcaoAuditada acao) => acao switch
+    {
+        AcaoAuditada.SegundoFatorLigado => "Segundo fator ligado",
+        AcaoAuditada.SegundoFatorDesligado => "Segundo fator desligado",
+        _ => acao.ToString(),
+    };
 
     private async Task<Usuario> AcharDesligado(Guid id)
     {
         var usuario = await Achar(id);
-        return usuario.TwoFactorEnabled ? throw new RegraDeNegocioException("O segundo fator já está ligado.") : usuario;
+        return usuario.TwoFactorEnabled ? throw new RegraDeNegocioException("Segundo fator já ligado.") : usuario;
     }
 
     private async Task<Usuario> Achar(Guid id)
     {
         var usuario = await usuarios.FindByIdAsync(id.ToString()) ?? throw new RegraDeNegocioException("Login não encontrado.");
-        return Pode(usuario) ? usuario : throw new RegraDeNegocioException("O segundo fator é para o revendedor e a operadora.");
+        return Pode(usuario) ? usuario : throw new RegraDeNegocioException("Segundo fator só para revendedor e operadora.");
     }
 }

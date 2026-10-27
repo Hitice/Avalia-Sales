@@ -81,12 +81,12 @@ public sealed partial class IdempotenciaDaRequisicao(RequestDelegate proximo, IL
         {
             case DesfechoDaReserva.CorpoDiferente:
                 await Problema(http, StatusCodes.Status422UnprocessableEntity, "Idempotency-Key já usada",
-                    "Esta chave já foi usada com outro pedido. Cada pedido novo precisa de uma chave nova.");
+                    "Chave já usada com outro pedido. Use uma chave nova.");
                 return;
             case DesfechoDaReserva.EmExecucao:
                 http.Response.Headers.RetryAfter = "2";
                 await Problema(http, StatusCodes.Status409Conflict, "Pedido em andamento",
-                    "O mesmo pedido ainda está sendo processado. Tente de novo em instantes.");
+                    "Pedido em processamento. Aguarde alguns instantes.");
                 return;
             case DesfechoDaReserva.Repetir:
                 await Repetir(http, reserva.Gravada!);

@@ -2,6 +2,7 @@ using AvaliaSales.Application.Contratos;
 using AvaliaSales.Application.Equipe;
 using AvaliaSales.Domain.Acesso;
 using AvaliaSales.Application;
+using AvaliaSales.Domain;
 using AvaliaSales.Application.Revendedores;
 using AvaliaSales.Application.Pagamentos;
 using AvaliaSales.Domain.Contratos;
@@ -189,6 +190,14 @@ public sealed partial class Retomadas(IServiceScopeFactory escopos, BancoDeDados
                 catch (IntegracaoException erro)
                 {
                     LogConferencia(log, id, erro.Message);
+                }
+                catch (RegraDeNegocioException erro)
+                {
+                    // Distrato assinado sem receptora marcada: este contrato espera a operadora e volta no
+                    // próximo intervalo, sem parar a rodada das outras revendas.
+                    LogConferencia(log, id, erro.Message);
+                    doRevendedor.ChangeTracker.Clear();
+                    await doRevendedor.Contratos.Where(c => c.Id == id).ExecuteUpdateAsync(s => s.SetProperty(c => c.ConferidoEm, agora), ct);
                 }
 
                 contratosRestantes--;

@@ -22,8 +22,8 @@ public sealed class Pacote
     {
         Quantidade = quantidade is >= 1 and <= Placas.Lote.QuantidadeMaxima
             ? quantidade
-            : throw new RegraDeNegocioException($"O pacote tem de 1 a {Placas.Lote.QuantidadeMaxima} placas.");
-        PrecoCents = precoCents > 0 ? precoCents : throw new RegraDeNegocioException("O preço do pacote precisa ser maior que zero.");
+            : throw new RegraDeNegocioException($"Pacote de 1 a {Placas.Lote.QuantidadeMaxima} placas.");
+        PrecoCents = precoCents > 0 ? precoCents : throw new RegraDeNegocioException("Preço do pacote precisa ser maior que zero.");
     }
 
     public void DefinirAtivo(bool ativo) => Ativo = ativo;

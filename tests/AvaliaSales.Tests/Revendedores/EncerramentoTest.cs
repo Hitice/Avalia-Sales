@@ -1,5 +1,7 @@
+using Microsoft.Extensions.Time.Testing;
 using System.Net;
 using System.Net.Http.Json;
+using AvaliaSales.Application.Revendedores;
 using AvaliaSales.Domain.Contratos;
 using AvaliaSales.Infrastructure.Integracoes;
 using AvaliaSales.Infrastructure.Integracoes.D4Sign;
@@ -11,8 +13,6 @@ namespace AvaliaSales.Tests.Revendedores;
 [Collection(ColecaoDaApi.Nome)]
 public sealed class EncerramentoTest(ApiDeTeste api)
 {
-    private const string CnpjDaAvalia = "39914870000101";
-
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     [Fact]
@@ -36,13 +36,14 @@ public sealed class EncerramentoTest(ApiDeTeste api)
 
         var recusa = await dono.Postar("/revenda/encerramento", new { }, HttpStatusCode.UnprocessableEntity);
 
-        Assert.Contains("endereço", recusa.GetProperty("detail").GetString(), StringComparison.Ordinal);
+        Assert.Contains("Endereço", recusa.GetProperty("detail").GetString(), StringComparison.Ordinal);
     }
 
     /// <summary>Sem contrato assinado não há o que distratar: a conta encerra na hora e só consulta e exporta.</summary>
     [Fact]
     public async Task Revenda_sem_contrato_assinado_encerra_na_hora_e_fica_so_de_leitura()
     {
+        await api.GarantirReceptora();
         var (_, email) = await api.CriarRevendedor("Revenda Sem Contrato Encerra", contratoAssinado: false);
         var dono = await api.ClienteLogado(email);
         await DefinirEndereco(dono, "Revenda Sem Contrato Encerra");
@@ -60,13 +61,13 @@ public sealed class EncerramentoTest(ApiDeTeste api)
 
     /// <summary>
     /// O caminho inteiro: o Worker gera o distrato e manda à D4Sign; assinado, o estoque
-    /// tem baixa, a equipe sai e a placa no ar passa para a revenda da Avalia, que
+    /// tem baixa, a equipe sai e a placa no ar passa para a revenda receptora, que
     /// continua lendo o QR e renova pelo valor da venda antiga.
     /// </summary>
     [Fact]
-    public async Task Distrato_assinado_encerra_baixa_o_estoque_e_passa_os_clientes_para_a_avalia()
+    public async Task Distrato_assinado_encerra_baixa_o_estoque_e_passa_os_clientes_para_a_receptora()
     {
-        var avalia = await RevendaDaAvalia();
+        var avalia = await Receptora("Revenda Receptora do Distrato");
         var revenda = await api.RevendaComEstoque("Revenda Que Encerra");
         await DefinirCnpj(revenda.Id);
         await DefinirEndereco(revenda.Dono, "Revenda Que Encerra");
@@ -123,9 +124,69 @@ public sealed class EncerramentoTest(ApiDeTeste api)
         await revenda.Dono.Postar("/notificacoes/lidas", new { }, HttpStatusCode.NoContent);
     }
 
+    /// <summary>
+    /// Sem revenda receptora, o dono não pede o encerramento; e o distrato assinado depois de a marca sair
+    /// não encerra em silêncio: o evento volta para a fila com o motivo e encerra quando a operadora marca uma.
+    /// </summary>
+    [Fact]
+    public async Task Sem_receptora_o_pedido_e_recusado_e_o_distrato_assinado_espera_a_marca()
+    {
+        var revenda = await api.RevendaComEstoque("Revenda Sem Receptora");
+        await DefinirCnpj(revenda.Id);
+        await DefinirEndereco(revenda.Dono, "Revenda Sem Receptora");
+        var vendida = revenda.Codigos[0];
+        await revenda.Dono.Postar("/vendas", Cenarios.Venda(vendida, revenda.ProdutoId, "11977770011", valor: 20_000), HttpStatusCode.Created);
+        await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
+        await banco.Texto("update revendedores set receptora_no_encerramento = false where receptora_no_encerramento returning 1");
+
+        var recusa = await revenda.Dono.Postar("/revenda/encerramento", new { }, HttpStatusCode.UnprocessableEntity);
+
+        Assert.Equal("Encerramento indisponível no momento. Abra um chamado no Suporte.", recusa.GetProperty("detail").GetString());
+        Assert.Equal(0, await banco.Contar($"select count(*) from revendedores where id = '{revenda.Id}' and encerramento_pedido_em is not null"));
+
+        var receptora = await Receptora("Revenda Receptora Que Sai");
+        await revenda.Dono.Postar("/revenda/encerramento", new { });
+        var d4sign = new AssinaturaFalsa();
+        await using var worker = api.AmbienteDoWorker(new GatewayFalso(), d4sign);
+        using (var escopo = worker.CreateScope())
+        {
+            await escopo.ServiceProvider.GetRequiredService<Retomadas>().Executar(contratosPorRodada: 100_000, Ct);
+        }
+
+        // A rota recusa tirar a marca com encerramento em andamento; o teste tira por fora para provar a trava do Worker.
+        await banco.Texto($"update revendedores set receptora_no_encerramento = false where id = '{receptora.Id}' returning 1");
+        var uuid = await banco.Texto($"select documento_na_assinatura from contratos where revendedor_id = '{revenda.Id}' and tipo = 'Distrato'");
+        d4sign.Situacoes[uuid] = SituacaoDoContrato.Assinado;
+        await Webhook(uuid);
+        async Task Processar()
+        {
+            using var escopo = worker.CreateScope();
+            await escopo.ServiceProvider.GetRequiredService<ProcessadorDeEventos>().ProcessarPendentes(100_000, Ct);
+        }
+
+        await Processar();
+        Assert.Equal(System.Text.Json.JsonValueKind.Null, (await revenda.Dono.Pegar("/revenda/encerramento")).GetProperty("encerradaEm").ValueKind);
+        Assert.Equal(1, await banco.Contar($"select count(*) from eventos_externos where chave = '{uuid}' and processado_em is null and tentativas = 1 and ultimo_erro = '{EfeitosDoEncerramento.SemReceptora}'"));
+        Assert.Equal(revenda.Id.ToString(), await banco.Texto($"select revendedor_id::text from placas where codigo = '{vendida}'"));
+
+        // A conferência periódica acha o distrato assinado sem receptora: registra e segue, sem derrubar a rodada das outras revendas.
+        await using (var adiante = api.AmbienteDoWorker(new GatewayFalso(), d4sign, new FakeTimeProvider(DateTimeOffset.UtcNow.AddHours(1))))
+        {
+            using var escopo = adiante.CreateScope();
+            Assert.Null(await Record.ExceptionAsync(() => escopo.ServiceProvider.GetRequiredService<Retomadas>().Executar(contratosPorRodada: 100_000, Ct)));
+        }
+
+        await api.MarcarReceptora(receptora.Id);
+        await Processar();
+
+        Assert.NotEqual(System.Text.Json.JsonValueKind.Null, (await revenda.Dono.Pegar("/revenda/encerramento")).GetProperty("encerradaEm").ValueKind);
+        Assert.Equal(receptora.Id.ToString(), await banco.Texto($"select revendedor_id::text from placas where codigo = '{vendida}'"));
+    }
+
     [Fact]
     public async Task Dono_desiste_antes_de_assinar_e_o_distrato_e_cancelado_na_d4sign()
     {
+        await api.GarantirReceptora();
         var revenda = await api.RevendaComEstoque("Revenda Que Desiste");
         await DefinirCnpj(revenda.Id);
         await DefinirEndereco(revenda.Dono, "Revenda Que Desiste");
@@ -154,6 +215,7 @@ public sealed class EncerramentoTest(ApiDeTeste api)
     [Fact]
     public async Task Conta_encerrada_pede_reabertura_pelo_suporte_e_a_operadora_aprova()
     {
+        await api.GarantirReceptora();
         var (revendedor, email) = await api.CriarRevendedor("Revenda Que Volta", contratoAssinado: false);
         var dono = await api.ClienteLogado(email);
         await DefinirEndereco(dono, "Revenda Que Volta");
@@ -182,6 +244,7 @@ public sealed class EncerramentoTest(ApiDeTeste api)
     [Fact]
     public async Task Operadora_recusa_a_reabertura_e_a_conta_segue_encerrada()
     {
+        await api.GarantirReceptora();
         var (revendedor, email) = await api.CriarRevendedor("Revenda Que Não Volta", contratoAssinado: false);
         var dono = await api.ClienteLogado(email);
         await DefinirEndereco(dono, "Revenda Que Não Volta");
@@ -198,21 +261,13 @@ public sealed class EncerramentoTest(ApiDeTeste api)
         Assert.Equal(HttpStatusCode.Conflict, (await dono.PutAsJsonAsync("/revenda/comissao", new { comissaoBps = 2000 }, Ct)).StatusCode);
     }
 
-    /// <summary>A revenda da Avalia do banco de teste, criada uma vez com o CNPJ da Avalia.</summary>
-    private async Task<Revenda> RevendaDaAvalia()
+    /// <summary>Revenda com estoque marcada pela operadora como receptora, no lugar da que estava.</summary>
+    private async Task<Revenda> Receptora(string nome)
     {
-        await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
-        if (await banco.Contar($"select count(*) from revendedores where cnpj = '{CnpjDaAvalia}'") == 0)
-        {
-            var nova = await api.RevendaComEstoque("Avalia One");
-            await banco.Texto($"update revendedores set cnpj = '{CnpjDaAvalia}' where id = '{nova.Id}' returning 1");
-            _avalia = nova;
-        }
-
-        return _avalia ?? throw new InvalidOperationException("A revenda da Avalia foi criada por outro teste.");
+        var receptora = await api.RevendaComEstoque(nome);
+        await api.MarcarReceptora(receptora.Id);
+        return receptora;
     }
-
-    private static Revenda? _avalia;
 
     private async Task DefinirCnpj(Guid revendedor)
     {

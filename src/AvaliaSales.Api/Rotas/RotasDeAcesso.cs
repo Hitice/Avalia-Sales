@@ -88,14 +88,16 @@ public static class RotasDeAcesso
                 ? new SituacaoDoSegundoFator(u.TwoFactorEnabled, u.TwoFactorEnabled ? GestorDeSegundoFator.Meio(u) : null, u.EmailConfirmed)
                 : new SituacaoDoSegundoFator(false, null, false));
         fator.MapPost("/chave", (IUsuarioAtual atual, GestorDeSegundoFator fatores) => fatores.Preparar(Guid.Parse(Atual(atual))));
-        fator.MapPost("/", (CodigoDoAutenticador pedido, IUsuarioAtual atual, GestorDeSegundoFator fatores) => fatores.Ligar(Guid.Parse(Atual(atual)), pedido.Codigo));
+        // Ligar encerra as outras sessões do login; a deste aparelho, pelo cookie, continua.
+        fator.MapPost("/", (CodigoDoAutenticador pedido, HttpContext http, IUsuarioAtual atual, GestorDeSegundoFator fatores) =>
+            fatores.Ligar(Guid.Parse(Atual(atual)), pedido.Codigo, http.Request.Cookies[Cookie]));
         fator.MapPost("/email/codigo", async (IUsuarioAtual atual, GestorDeSegundoFator fatores, CancellationToken ct) =>
         {
             await fatores.PrepararEmail(Guid.Parse(Atual(atual)), ct);
             return Results.NoContent();
         });
-        fator.MapPost("/email", (CodigoDoAutenticador pedido, IUsuarioAtual atual, GestorDeSegundoFator fatores) =>
-            fatores.LigarPorEmail(Guid.Parse(Atual(atual)), pedido.Codigo));
+        fator.MapPost("/email", (CodigoDoAutenticador pedido, HttpContext http, IUsuarioAtual atual, GestorDeSegundoFator fatores) =>
+            fatores.LigarPorEmail(Guid.Parse(Atual(atual)), pedido.Codigo, http.Request.Cookies[Cookie]));
         fator.MapPost("/desligar/codigo", async (IUsuarioAtual atual, GestorDeSegundoFator fatores, CancellationToken ct) =>
         {
             await fatores.PrepararDesligamento(Guid.Parse(Atual(atual)), ct);
@@ -262,20 +264,20 @@ public static class RotasDeAcesso
         switch (await captcha.Verificar(pedido.TokenDoCaptcha, http.Connection.RemoteIpAddress?.ToString(), ct))
         {
             case ResultadoDoCaptcha.Reprovado:
-                throw new RegraDeNegocioException("Confirme que você não é um robô e tente de novo.");
+                throw new RegraDeNegocioException("Verificação contra robô falhou. Confirme de novo.");
             case ResultadoDoCaptcha.Indisponivel:
-                return Indisponivel("A verificação de segurança está fora do ar. Tente de novo em instantes.");
+                return Indisponivel("Verificação de segurança fora do ar. Volte em instantes.");
         }
 
         return await cadastro.Criar(pedido, ct) == ResultadoDoCadastro.Saturado
-            ? Indisponivel("Recebemos muitos cadastros agora. Tente de novo mais tarde.")
+            ? Indisponivel("Muitos cadastros no momento. Volte mais tarde.")
             : Results.Accepted(value: new RespostaDoCadastro("Enviamos um e-mail para continuar."));
     }
 
     /// <summary>Resposta igual com e sem cadastro pendente. Sem captcha: só reenvia a quem já passou por ele, com espera e limite por endereço.</summary>
     private static async Task<IResult> ReenviarCadastro(PedidoDeReenvioDoCadastro pedido, Cadastro cadastro, CancellationToken ct) =>
         await cadastro.Reenviar(pedido.Email, ct) == ResultadoDoCadastro.Saturado
-            ? Indisponivel("Recebemos muitos cadastros agora. Tente de novo mais tarde.")
+            ? Indisponivel("Muitos cadastros no momento. Volte mais tarde.")
             : Results.NoContent();
 
     private static IResult Indisponivel(string mensagem) =>

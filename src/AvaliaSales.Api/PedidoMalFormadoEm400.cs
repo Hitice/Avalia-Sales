@@ -25,7 +25,7 @@ public sealed class PedidoMalFormadoEm400(IProblemDetailsService problemas) : IE
             {
                 Status = pedido.StatusCode,
                 Title = "Pedido inválido",
-                Detail = "O corpo do pedido está ausente ou fora do formato esperado.",
+                Detail = "Corpo do pedido ausente ou fora do formato.",
             },
         });
     }

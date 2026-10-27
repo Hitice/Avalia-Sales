@@ -54,7 +54,7 @@ public sealed class Equipe(IBancoDeDados banco, IContas contas, Financeiro.Receb
         var vendedor = await Achar(id, ct);
         if (!vendedor.Ativo)
         {
-            throw new RegraDeNegocioException("Reative o vendedor antes de convidar.");
+            throw new RegraDeNegocioException("Vendedor desativado. Reative antes de convidar.");
         }
 
         var link = await contas.Convidar(id, await Remetente(ct), ct);
@@ -95,7 +95,7 @@ public sealed class Equipe(IBancoDeDados banco, IContas contas, Financeiro.Receb
         var vendedor = await Achar(id, ct);
         if (await banco.Vendas.AnyAsync(v => v.VendedorId == id, ct))
         {
-            throw new RegraDeNegocioException("Vendedor com venda é desativado, e não excluído.");
+            throw new RegraDeNegocioException("Vendedor com venda não se exclui. Desative.");
         }
 
         await using var transacao = await banco.Database.BeginTransactionAsync(ct);

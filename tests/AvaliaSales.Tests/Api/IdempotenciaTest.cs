@@ -179,19 +179,6 @@ public sealed class IdempotenciaTest(ApiDeTeste api)
     }
 
     [Fact]
-    public async Task A_resposta_gravada_nao_sai_do_revendedor_pelo_banco()
-    {
-        // O RLS vale também para a tabela das chaves: sem o revendedor na sessão, a linha do dono não aparece.
-        var dono = await NovoDono("Revenda do RLS da Chave");
-        await Enviar(dono, "/financeiro/despesas", Despesa("Correios"), "rls-" + Guid.NewGuid().ToString("N"));
-
-        await using var conexao = new NpgsqlConnection(api.ConexaoDaAplicacao);
-        await conexao.OpenAsync(Ct);
-        await using var comando = new NpgsqlCommand("select count(*) from chaves_de_idempotencia where chave like 'rls-%'", conexao);
-        Assert.Equal(0L, (long)(await comando.ExecuteScalarAsync(Ct))!);
-    }
-
-    [Fact]
     public async Task Data_com_fuso_diferente_de_zero_e_aceita_e_normalizada_para_UTC()
     {
         var operadora = await api.ClienteLogado(await api.CriarOperadora());

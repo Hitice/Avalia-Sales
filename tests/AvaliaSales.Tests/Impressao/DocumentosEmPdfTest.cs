@@ -38,7 +38,7 @@ public sealed class DocumentosEmPdfTest
     }
 
     [Fact]
-    public async Task Distrato_lista_os_clientes_ativos_o_estoque_e_o_saldo_da_taxa_por_fora()
+    public async Task Distrato_lista_os_clientes_ativos_o_estoque_e_o_saldo_da_parte_da_Avalia_por_fora()
     {
         var conversor = new Capturador();
         var documentos = new DocumentosEmPdf(conversor, Options.Create(new OpcoesDaPlataforma()));

@@ -9,7 +9,7 @@ namespace AvaliaSales.Tests.Acesso;
 
 /// <summary>
 /// Duas abas (ou uma retentativa) com o mesmo refresh token em até 10 segundos
-/// recebem sessão válida; o reuso fora da janela continua encerrando a família.
+/// recebem sessão válida; o reuso fora da janela continua encerrando a família (SessaoTest prova pelo HTTP).
 /// </summary>
 [Collection(ColecaoDaApi.Nome)]
 public sealed class ToleranciaDoRefreshTest(ApiDeTeste api)
@@ -45,20 +45,6 @@ public sealed class ToleranciaDoRefreshTest(ApiDeTeste api)
         }
     }
 
-    [Fact]
-    public async Task Reenvio_dentro_da_janela_nao_derruba_o_cookie_novo()
-    {
-        var (_, email) = await api.CriarRevendedor("Revenda do Reenvio");
-        var cliente = Cliente();
-        var primeiro = Cookie(await cliente.PostAsJsonAsync("/auth/entrar", new { email, senha = ApiDeTeste.Senha }, Ct));
-        var segundo = Cookie(await cliente.SendAsync(Renovar(primeiro), Ct));
-
-        var reenvio = await cliente.SendAsync(Renovar(primeiro), Ct);
-
-        Assert.Equal(HttpStatusCode.OK, reenvio.StatusCode);
-        Assert.Equal(HttpStatusCode.OK, (await cliente.SendAsync(Renovar(segundo), Ct)).StatusCode);
-    }
-
     private async Task<Ambiente> Gestor(string nome)
     {
         var (_, email) = await api.CriarRevendedor(nome);
@@ -88,21 +74,6 @@ public sealed class ToleranciaDoRefreshTest(ApiDeTeste api)
         }
 
         public ValueTask DisposeAsync() => Worker.DisposeAsync();
-    }
-
-    [Fact]
-    public async Task Reuso_depois_da_janela_encerra_a_familia_inteira()
-    {
-        await using var ambiente = await Gestor("Revenda do Reuso Tardio");
-        var a = await ambiente.Abrir();
-        var b = (await ambiente.Renovar(a))!.Value.Token;
-
-        ambiente.Relogio.Advance(GestorDeSessoes.JanelaDeTolerancia + TimeSpan.FromSeconds(1));
-        var reuso = await ambiente.Renovar(a);
-        var legitimo = await ambiente.Renovar(b);
-
-        Assert.Null(reuso);
-        Assert.Null(legitimo);
     }
 
     [Fact]

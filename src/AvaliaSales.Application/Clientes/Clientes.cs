@@ -122,12 +122,12 @@ public sealed class Clientes(IBancoDeDados banco, IRevendedorAtual atual, Audito
         cliente.Completar(null, pedido.Email, pedido.LugarNoGoogle);
         if (cliente.Documento is { } documento && await banco.Clientes.AnyAsync(c => c.Documento == documento, ct))
         {
-            throw new RegraDeNegocioException("Já existe cliente com este CPF ou CNPJ. Abra a ficha dele.");
+            throw new RegraDeNegocioException("CPF ou CNPJ já cadastrado. Abra a ficha do cliente.");
         }
 
         if (await banco.Clientes.AnyAsync(c => c.Telefone == cliente.Telefone, ct))
         {
-            throw new RegraDeNegocioException("Já existe cliente com este telefone. Abra a ficha dele.");
+            throw new RegraDeNegocioException("Telefone já cadastrado. Abra a ficha do cliente.");
         }
 
         banco.Clientes.Add(cliente);
@@ -144,7 +144,7 @@ public sealed class Clientes(IBancoDeDados banco, IRevendedorAtual atual, Audito
         cliente.Alterar(pedido.Nome, pedido.Responsavel, pedido.Telefone, pedido.Documento, pedido.Email, pedido.LugarNoGoogle);
         if (cliente.Documento is { } documento && await banco.Clientes.AnyAsync(c => c.Id != id && c.Documento == documento, ct))
         {
-            throw new RegraDeNegocioException("Já existe outro cliente com este CPF ou CNPJ. Junte os dois.");
+            throw new RegraDeNegocioException("CPF ou CNPJ de outro cliente. Junte os dois.");
         }
 
         auditoria.Registrar(AcaoAuditada.ClienteAlterado, $"Cliente {cliente.Nome}", cliente.Id.ToString(), antes,

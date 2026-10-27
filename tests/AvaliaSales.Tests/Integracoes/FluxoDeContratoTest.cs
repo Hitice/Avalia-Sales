@@ -135,16 +135,24 @@ public sealed class FluxoDeContratoTest(ApiDeTeste api)
     [Fact]
     public async Task Contrato_de_um_revendedor_nao_aparece_para_outro()
     {
-        var (revendedorA, _) = await api.CriarRevendedor("Revenda Contrato A");
-        var (revendedorB, _) = await api.CriarRevendedor("Revenda Contrato B");
+        var (revendedorA, emailA) = await api.CriarRevendedor("Revenda Contrato A");
+        var (revendedorB, emailB) = await api.CriarRevendedor("Revenda Contrato B");
         await using var worker = api.AmbienteDoWorker(new GatewayFalso(), new AssinaturaFalsa());
         await Criar(worker, revendedorA);
 
+        // Pela rota: A lê o contrato dela, B não tem nenhum.
+        var deA = await (await api.ClienteLogado(emailA)).GetAsync("/revenda/contrato", Ct);
+        var deB = await (await api.ClienteLogado(emailB)).GetAsync("/revenda/contrato", Ct);
+        Assert.Equal(HttpStatusCode.OK, deA.StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, deB.StatusCode);
+
+        // Contratos pelo filtro global, sem filtro escrito à mão.
         using var escopo = worker.CreateScope();
         escopo.ServiceProvider.GetRequiredService<RevendedorDaExecucao>().RevendedorId = revendedorB;
         var banco = escopo.ServiceProvider.GetRequiredService<BancoDeDados>();
 
         Assert.Empty(await banco.Contratos.ToListAsync(Ct));
+        // vinculos_externos é de todos por desenho (o webhook chega sem revendedor e acha o dono por ela): o filtro aqui é a pergunta.
         Assert.Empty(await banco.Vinculos.Where(v => v.Origem == VinculoExterno.D4Sign && v.RevendedorId == revendedorB).ToListAsync(Ct));
     }
 }

@@ -2401,6 +2401,25 @@
         }
       }
     },
+    "/operadora/erp/integracao": {
+      "get": {
+        "tags": [
+          "Operadora"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntegracaoDoErp"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/operadora/erp": {
       "get": {
         "tags": [
@@ -2688,6 +2707,39 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/DefinirGrupo"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/operadora/revendedores/{id}/receptora": {
+      "put": {
+        "tags": [
+          "Operadora"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DefinirReceptora"
               }
             }
           },
@@ -7395,7 +7447,7 @@
           "id",
           "situacao",
           "valorCents",
-          "taxaAvaliaCents",
+          "parteDaAvaliaCents",
           "pixCopiaECola",
           "pixQrCodeUrl",
           "pixExpiraEm"
@@ -7413,7 +7465,7 @@
             "type": "integer",
             "format": "int64"
           },
-          "taxaAvaliaCents": {
+          "parteDaAvaliaCents": {
             "type": "integer",
             "format": "int64"
           },
@@ -7939,6 +7991,17 @@
           }
         }
       },
+      "DefinirReceptora": {
+        "required": [
+          "receptora"
+        ],
+        "type": "object",
+        "properties": {
+          "receptora": {
+            "type": "boolean"
+          }
+        }
+      },
       "DefinirRenovacao": {
         "required": [
           "renovacaoBps"
@@ -8268,7 +8331,7 @@
           "recebidoCents",
           "receitaReconhecidaCents",
           "aReconhecerCents",
-          "taxaCents",
+          "parteDaAvaliaCents",
           "comissoesCents",
           "custoDasPlacasCents",
           "perdasCents",
@@ -8313,7 +8376,7 @@
             "type": "integer",
             "format": "int64"
           },
-          "taxaCents": {
+          "parteDaAvaliaCents": {
             "type": "integer",
             "format": "int64"
           },
@@ -8354,7 +8417,7 @@
             }
           }
         },
-        "description": "O resultado do m\u00EAs. Vendido \u00E9 o valor das vendas registradas no m\u00EAs que\nseguem de p\u00E9; recebido \u00E9 o caixa (pagamentos menos estornos); receita\nreconhecida \u00E9 a parte do m\u00EAs. Taxa, comiss\u00E3o, custo, perda e despesa v\u00EAm\nem positivo e saem da receita reconhecida; retirada de s\u00F3cio fica abaixo\ndo resultado, porque n\u00E3o \u00E9 despesa."
+        "description": "O resultado do m\u00EAs. Vendido \u00E9 o valor das vendas registradas no m\u00EAs que\nseguem de p\u00E9; recebido \u00E9 o caixa (pagamentos menos estornos); receita\nreconhecida \u00E9 a parte do m\u00EAs. Parte da Avalia nos servi\u00E7os, comiss\u00E3o,\ncusto, perda e despesa v\u00EAm\nem positivo e saem da receita reconhecida; retirada de s\u00F3cio fica abaixo\ndo resultado, porque n\u00E3o \u00E9 despesa."
       },
       "EmpresaConsultada": {
         "required": [
@@ -9083,6 +9146,17 @@
           }
         },
         "description": "Sem desconto ou pedido m\u00EDnimo informado, o produto novo nasce com o padr\u00E3o e o que existe mant\u00E9m o dele."
+      },
+      "IntegracaoDoErp": {
+        "required": [
+          "ligada"
+        ],
+        "type": "object",
+        "properties": {
+          "ligada": {
+            "type": "boolean"
+          }
+        }
       },
       "ItemDaVenda": {
         "required": [
@@ -12025,7 +12099,6 @@
           "revendedorId",
           "revendedor",
           "doGrupo",
-          "taxaDaPlataformaCents",
           "parteDaAvaliaCents",
           "pedidosDePlacasCents",
           "totalCents"
@@ -12041,10 +12114,6 @@
           },
           "doGrupo": {
             "type": "boolean"
-          },
-          "taxaDaPlataformaCents": {
-            "type": "integer",
-            "format": "int64"
           },
           "parteDaAvaliaCents": {
             "type": "integer",
@@ -12429,7 +12498,7 @@
         "required": [
           "competencia",
           "receitaCents",
-          "taxaAvaliaCents",
+          "parteDaAvaliaCents",
           "comissaoCents",
           "liquidoCents",
           "lancamentos"
@@ -12443,7 +12512,7 @@
             "type": "integer",
             "format": "int64"
           },
-          "taxaAvaliaCents": {
+          "parteDaAvaliaCents": {
             "type": "integer",
             "format": "int64"
           },
@@ -12556,7 +12625,6 @@
           "id",
           "nome",
           "cnpj",
-          "taxaAvaliaBps",
           "comissaoPadraoBps",
           "recebedorPagarme",
           "contratoAssinadoEm",
@@ -12582,10 +12650,6 @@
               "null",
               "string"
             ]
-          },
-          "taxaAvaliaBps": {
-            "type": "integer",
-            "format": "int32"
           },
           "comissaoPadraoBps": {
             "type": "integer",
@@ -12656,6 +12720,10 @@
             ]
           },
           "doGrupoDaOperadora": {
+            "type": "boolean",
+            "default": false
+          },
+          "receptoraNoEncerramento": {
             "type": "boolean",
             "default": false
           }

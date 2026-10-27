@@ -7,7 +7,6 @@ using AvaliaSales.Domain.Contratos;
 using AvaliaSales.Domain.Placas;
 using AvaliaSales.Domain.Revendedores;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 
 namespace AvaliaSales.Application.Revendedores;
 
@@ -46,6 +45,12 @@ public sealed class Encerramento(IBancoDeDados banco, IRevendedorAtual atual, Co
         var revendedor = await Revendedor(ct);
         var agora = relogio.GetUtcNow();
         revendedor.PedirEncerramento(agora);
+        // Sem receptora, o distrato não teria para onde levar os clientes: recusa no pedido, antes de gerar documento.
+        if (await efeitos.Receptora(revendedor.Id, ct) is null)
+        {
+            throw new RegraDeNegocioException("Encerramento indisponível no momento. Abra um chamado no Suporte.");
+        }
+
         auditoria.Registrar(AcaoAuditada.EncerramentoPedido, "Conta", revendedor.Id.ToString());
         if (revendedor.ContratoAssinadoEm is null)
         {
@@ -69,7 +74,7 @@ public sealed class Encerramento(IBancoDeDados banco, IRevendedorAtual atual, Co
         var revendedor = await Revendedor(ct);
         if (revendedor.EncerramentoPedidoEm is null)
         {
-            throw new RegraDeNegocioException("Não há encerramento pedido.");
+            throw new RegraDeNegocioException("Sem pedido de encerramento.");
         }
 
         var distrato = await banco.Contratos
@@ -115,12 +120,18 @@ public sealed class Encerramento(IBancoDeDados banco, IRevendedorAtual atual, Co
 /// O que o distrato assinado faz, na transação de quem chama: data efetiva,
 /// baixa do estoque (comprada é da revenda, sem devolução), equipe desligada e
 /// os clientes ativos, com as placas no ar e os links curtos deles, para a
-/// revenda da Avalia. O dono continua entrando para consultar e exportar até
+/// revenda receptora (ADR 0029). O dono continua entrando para consultar e exportar até
 /// <see cref="Revendedor.ExportacaoAte"/>.
 /// </summary>
-public sealed class EfeitosDoEncerramento(IBancoDeDados banco, IContas contas, ITransferenciaDeClientes transferencia, Notificacoes.Notificacoes notificacoes,
-    IOptions<OpcoesDaPlataforma> opcoes)
+public sealed class EfeitosDoEncerramento(IBancoDeDados banco, IContas contas, ITransferenciaDeClientes transferencia, Notificacoes.Notificacoes notificacoes)
 {
+    public const string SemReceptora = "Nenhuma revenda receptora. Marque uma em Revendedores.";
+
+    /// <summary>A revenda marcada pela operadora para receber os clientes, se ativa (nem encerrada nem suspensa) e diferente da que encerra.</summary>
+    public Task<Guid?> Receptora(Guid origem, CancellationToken ct) =>
+        banco.Revendedores.AsNoTracking().Where(r => r.ReceptoraNoEncerramento && r.Id != origem && r.EncerradaEm == null && r.SuspensaEm == null)
+            .Select(r => (Guid?)r.Id).SingleOrDefaultAsync(ct);
+
     public async Task Aplicar(Revendedor revendedor, DateTimeOffset quando, CancellationToken ct)
     {
         if (revendedor.EncerradaEm is not null)
@@ -128,6 +139,8 @@ public sealed class EfeitosDoEncerramento(IBancoDeDados banco, IContas contas, I
             return;
         }
 
+        // Antes de qualquer efeito: sem receptora, a transação volta e o distrato assinado é aplicado de novo na próxima conferência.
+        var destino = await Receptora(revendedor.Id, ct) ?? throw new RegraDeNegocioException(SemReceptora);
         revendedor.Encerrar(quando);
         var baixadas = await banco.Placas.Where(p => p.RevendedorId == revendedor.Id && p.Situacao == SituacaoDaPlaca.EmEstoque)
             .ExecuteUpdateAsync(s => s.SetProperty(p => p.Situacao, SituacaoDaPlaca.Baixada).SetProperty(p => p.ConsignadaA, (Guid?)null)
@@ -135,18 +148,8 @@ public sealed class EfeitosDoEncerramento(IBancoDeDados banco, IContas contas, I
         await banco.Vendedores.Where(v => v.RevendedorId == revendedor.Id).ExecuteUpdateAsync(s => s.SetProperty(v => v.Ativo, false), ct);
         await contas.DesativarLogins(revendedor.Id, Papel.Vendedor, ct);
 
-        var cnpj = opcoes.Value.CnpjDaRevendaDaAvalia;
-        var destino = await banco.Revendedores.AsNoTracking().Where(r => r.Cnpj == cnpj && r.Id != revendedor.Id && r.EncerradaEm == null)
-            .Select(r => (Guid?)r.Id).SingleOrDefaultAsync(ct);
-        var transferidas = 0;
-        if (destino is { } avalia)
-        {
-            transferidas = await transferencia.Transferir(revendedor.Id, avalia, quando, ct);
-        }
-
-        var clientes = destino is null
-            ? "Sem a revenda da Avalia cadastrada, os clientes ativos ficaram na revenda encerrada."
-            : $"{transferidas} {(transferidas == 1 ? "placa no ar passou" : "placas no ar passaram")} para a revenda da Avalia.";
+        var transferidas = await transferencia.Transferir(revendedor.Id, destino, quando, ct);
+        var clientes = $"{transferidas} {(transferidas == 1 ? "placa no ar passou" : "placas no ar passaram")} para a revenda receptora.";
         notificacoes.ParaOperadora(revendedor.Id, "Conta encerrada",
             $"{revendedor.Nome} encerrou a conta. {clientes} {baixadas} {(baixadas == 1 ? "placa em estoque teve" : "placas em estoque tiveram")} baixa.",
             "/operadora/revendedores");

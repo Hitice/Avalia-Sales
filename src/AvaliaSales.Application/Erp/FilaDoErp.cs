@@ -6,12 +6,24 @@ namespace AvaliaSales.Application.Erp;
 
 public sealed record EnvioDto(Guid PedidoId, string Cliente, int Quantidade, long ValorCents, SituacaoDoEnvio Situacao, string? NumeroNoErp, int Tentativas, string? UltimoErro, DateTimeOffset CriadoEm);
 
-/// <summary>Põe o pedido pago na fila do ERP, na mesma transação do pagamento, e mostra a fila à operadora.</summary>
-public sealed class FilaDoErp(IBancoDeDados banco, TimeProvider relogio)
+public sealed record IntegracaoDoErp(bool Ligada);
+
+/// <summary>
+/// Põe o pedido pago na fila do ERP, na mesma transação do pagamento, e mostra a fila à operadora. Sem o endereço do
+/// Protheus a integração está desligada e nada entra na fila: não há para onde o envio ir (ADR 0014).
+/// </summary>
+public sealed class FilaDoErp(IBancoDeDados banco, IErp erp, TimeProvider relogio)
 {
+    public IntegracaoDoErp Integracao() => new(erp.Configurado);
+
     /// <summary>O revendedor vem à parte: pedido recém-criado só ganha o dele no SaveChanges.</summary>
     public async Task Enfileirar(PedidoDePlacas pedido, Guid revendedorId, CancellationToken ct)
     {
+        if (!erp.Configurado)
+        {
+            return;
+        }
+
         if (await banco.EnviosAoErp.AnyAsync(e => e.PedidoId == pedido.Id, ct) || banco.EnviosAoErp.Local.Any(e => e.PedidoId == pedido.Id))
         {
             return;
@@ -40,7 +52,7 @@ public sealed class FilaDoErp(IBancoDeDados banco, TimeProvider relogio)
     public async Task Reenviar(Guid pedidoId, CancellationToken ct)
     {
         var envio = await banco.EnviosAoErp.SingleOrDefaultAsync(e => e.PedidoId == pedidoId, ct)
-            ?? throw new Domain.RegraDeNegocioException("Este pedido não está na fila do ERP.");
+            ?? throw new Domain.RegraDeNegocioException("Pedido fora da fila do ERP.");
         envio.Reenviar();
         await banco.SaveChangesAsync(ct);
     }

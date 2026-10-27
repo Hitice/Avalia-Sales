@@ -41,7 +41,7 @@ public sealed class LimiteDeDestinos(IBancoDeDados banco, IRevendedorAtual atual
         if (situacao.Usados + novos > situacao.Limite)
         {
             throw new RegraDeNegocioException(
-                $"Limite de {situacao.Limite} cadastros de destino por dia atingido ({situacao.Usados} hoje). O revendedor pede mais à Avalia pelo botão Solicitar liberação.");
+                $"Limite de {situacao.Limite} destinos por dia atingido. O revendedor pede mais em Solicitar liberação.");
         }
     }
 
@@ -60,7 +60,7 @@ public sealed class LimiteDeDestinos(IBancoDeDados banco, IRevendedorAtual atual
     /// <summary>Pela operadora: soma <paramref name="quantidade"/> ao limite de hoje da revenda e avisa o dono.</summary>
     public async Task Liberar(Guid revendedorId, int quantidade, CancellationToken ct)
     {
-        var revendedor = await banco.Revendedores.SingleOrDefaultAsync(r => r.Id == revendedorId, ct) ?? throw new RegraDeNegocioException("Revendedor não encontrado.");
+        var revendedor = await banco.Revendedores.SingleOrDefaultAsync(r => r.Id == revendedorId, ct) ?? throw new RegraDeNegocioException("Revenda não encontrada.");
         revendedor.LiberarDestinos(quantidade, Hoje(relogio));
         notificacoes.ParaDono(revendedor.Id, "Cadastros liberados", $"A Avalia liberou mais {quantidade} cadastros de destino para hoje.", "/vender");
         await banco.SaveChangesAsync(ct);

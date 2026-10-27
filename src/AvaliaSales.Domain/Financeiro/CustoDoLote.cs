@@ -42,7 +42,7 @@ public sealed class CustoDoLote
     {
         if (graficaCents < 0 || acrilicoCents < 0 || graficaCents > Registros.ValorMaximoCents || acrilicoCents > Registros.ValorMaximoCents)
         {
-            throw new RegraDeNegocioException("Digite valores de zero a R$ 10 milhões.");
+            throw new RegraDeNegocioException("Valores de zero a R$ 10.000.000,00.");
         }
 
         if (graficaCents + acrilicoCents <= 0)
@@ -50,7 +50,7 @@ public sealed class CustoDoLote
             throw new RegraDeNegocioException("Informe o custo da gráfica ou do acrílico.");
         }
 
-        Quantidade = quantidadeDoLote > 0 ? quantidadeDoLote : throw new RegraDeNegocioException("O lote não tem placas.");
+        Quantidade = quantidadeDoLote > 0 ? quantidadeDoLote : throw new RegraDeNegocioException("Lote sem placas.");
         GraficaCents = graficaCents;
         AcrilicoCents = acrilicoCents;
         AtualizadoEm = agora;

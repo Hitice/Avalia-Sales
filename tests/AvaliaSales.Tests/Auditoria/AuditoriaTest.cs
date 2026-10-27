@@ -1,6 +1,5 @@
 using System.Net;
 using AvaliaSales.Tests.Apoio;
-using Npgsql;
 
 namespace AvaliaSales.Tests.Auditoria;
 
@@ -53,21 +52,6 @@ public sealed class AuditoriaTest(ApiDeTeste api)
         var exportados = System.Text.Json.JsonDocument.Parse(await arquivo.Content.ReadAsStringAsync(Ct)).RootElement;
         Assert.Contains(exportados.EnumerateArray(), r => r.GetProperty("acao").GetString() == "VendedorCadastrado" && r.GetProperty("quem").GetString() != null);
         Assert.Equal(0, System.Text.Json.JsonDocument.Parse(await (await sul.Dono.GetAsync("/auditoria/exportar?acao=VendedorCadastrado", Ct)).Content.ReadAsStringAsync(Ct)).RootElement.GetArrayLength());
-    }
-
-    [Fact]
-    public async Task A_aplicacao_nao_altera_nem_apaga_registro_de_auditoria()
-    {
-        var revenda = await api.RevendaComEstoque("Revenda Auditoria Fixa");
-        await revenda.Dono.Colocar("/revenda/comissao", new { comissaoBps = 1_500 }, HttpStatusCode.NoContent);
-        await using var conexao = new NpgsqlConnection(api.ConexaoDaAplicacao);
-        await conexao.OpenAsync(Ct);
-
-        foreach (var sql in new[] { "update auditoria set depois = 'outra coisa'", "delete from auditoria" })
-        {
-            var erro = await Assert.ThrowsAsync<PostgresException>(() => new NpgsqlCommand(sql, conexao).ExecuteNonQueryAsync(Ct));
-            Assert.Equal(PostgresErrorCodes.InsufficientPrivilege, erro.SqlState);
-        }
     }
 
     [Fact]

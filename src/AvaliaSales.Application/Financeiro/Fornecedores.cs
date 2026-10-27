@@ -108,7 +108,7 @@ public sealed class Fornecedores(IBancoDeDados banco, TimeProvider relogio)
     {
         if (fornecedor.Documento is { } documento && await banco.Fornecedores.AnyAsync(f => f.Id != fornecedor.Id && f.Documento == documento, ct))
         {
-            throw new RegraDeNegocioException("Já existe um fornecedor com este CNPJ ou CPF.");
+            throw new RegraDeNegocioException("Fornecedor com este CNPJ ou CPF já cadastrado.");
         }
     }
 

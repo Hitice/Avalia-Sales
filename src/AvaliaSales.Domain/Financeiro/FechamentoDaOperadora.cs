@@ -22,7 +22,7 @@ public sealed class FechamentoDaOperadora
         Competencia = Competencias.Conferir(competencia);
         if (Competencias.Entre(Competencia, Lancamento.CompetenciaDe(agora)) <= 0)
         {
-            throw new RegraDeNegocioException("Só mês que já acabou pode ser fechado.");
+            throw new RegraDeNegocioException("Mês em curso não se fecha.");
         }
 
         FechadoPor = usuarioId;
@@ -33,7 +33,7 @@ public sealed class FechamentoDaOperadora
     {
         if (ReabertoEm is not null)
         {
-            throw new RegraDeNegocioException("Este mês já foi reaberto.");
+            throw new RegraDeNegocioException("Mês já reaberto.");
         }
 
         MotivoDaReabertura = Registros.Texto(motivo, FechamentoDoMes.MotivoMaximo, "Diga por que reabrir o mês");

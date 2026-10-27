@@ -29,7 +29,7 @@ public sealed class Mensagem : IAtendidoPelaOperadora
         texto = (texto ?? string.Empty).Trim();
         Texto = texto.Length is > 0 and <= TextoMaximo
             ? texto
-            : throw new RegraDeNegocioException($"A mensagem tem de 1 a {TextoMaximo} caracteres.");
+            : throw new RegraDeNegocioException($"Mensagem de 1 a {TextoMaximo} caracteres.");
         AutorId = autorId;
         DaOperadora = daOperadora;
         EnviadaEm = agora;

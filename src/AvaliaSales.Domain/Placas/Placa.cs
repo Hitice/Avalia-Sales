@@ -167,7 +167,7 @@ public sealed class Placa : IDoRevendedor
     {
         if (Situacao != SituacaoDaPlaca.EmEstoque)
         {
-            throw new RegraDeNegocioException($"A placa {Codigo} já foi vendida e não pode ser consignada.");
+            throw new RegraDeNegocioException($"Placa {Codigo} já vendida. Consigne outra.");
         }
 
         ConsignadaA = vendedorId;
@@ -190,8 +190,8 @@ public sealed class Placa : IDoRevendedor
         if (Situacao != SituacaoDaPlaca.EmEstoque || VendaId is not null)
         {
             throw new RegraDeNegocioException(Situacao == SituacaoDaPlaca.Baixada
-                ? $"A placa {Codigo} foi encerrada e não volta a circular."
-                : $"A placa {Codigo} já foi vendida. Para trocar o destino, use a ficha da placa.");
+                ? $"Placa {Codigo} encerrada."
+                : $"Placa {Codigo} já vendida. Troque o destino na ficha da placa.");
         }
 
         VendaId = vendaId;
@@ -207,12 +207,12 @@ public sealed class Placa : IDoRevendedor
     {
         if (VendaId is null)
         {
-            throw new RegraDeNegocioException("Placa sem venda não vai ao ar. Registre a venda primeiro.");
+            throw new RegraDeNegocioException("Placa sem venda não vai ao ar. Registre a venda.");
         }
 
         if (Situacao == SituacaoDaPlaca.Baixada)
         {
-            throw new RegraDeNegocioException($"A placa {Codigo} foi encerrada e não volta a circular.");
+            throw new RegraDeNegocioException($"Placa {Codigo} encerrada.");
         }
 
         if (destino == Destino)
@@ -254,7 +254,7 @@ public sealed class Placa : IDoRevendedor
     /// <summary>Mais um ano a partir do vencimento atual; devolve de quando a quando.</summary>
     public (DateTimeOffset De, DateTimeOffset Ate) Renovar()
     {
-        var de = VenceEm ?? throw new RegraDeNegocioException("Placa sem venda não tem o que renovar.");
+        var de = VenceEm ?? throw new RegraDeNegocioException("Placa sem venda não renova.");
         VenceEm = de.AddMonths(ValidadeMeses);
         return (de, VenceEm.Value);
     }
@@ -264,7 +264,7 @@ public sealed class Placa : IDoRevendedor
     {
         if (VenceEm != ate)
         {
-            throw new RegraDeNegocioException($"O vencimento da placa {Codigo} mudou depois da renovação.");
+            throw new RegraDeNegocioException($"Vencimento da placa {Codigo} mudou depois da renovação.");
         }
 
         VenceEm = de;
@@ -275,7 +275,7 @@ public sealed class Placa : IDoRevendedor
     {
         if (Situacao == SituacaoDaPlaca.Baixada)
         {
-            throw new RegraDeNegocioException($"A placa {Codigo} foi encerrada.");
+            throw new RegraDeNegocioException($"Placa {Codigo} encerrada.");
         }
 
         Situacao = SituacaoDaPlaca.EmEstoque;
@@ -299,12 +299,12 @@ public sealed class Placa : IDoRevendedor
 
         if (Situacao != SituacaoDaPlaca.EmEstoque || VendaId is not null)
         {
-            throw new RegraDeNegocioException($"A placa {Codigo} não está livre no estoque.");
+            throw new RegraDeNegocioException($"Placa {Codigo} indisponível no estoque.");
         }
 
         if (antiga.VendaId is null || antiga.Situacao == SituacaoDaPlaca.Baixada)
         {
-            throw new RegraDeNegocioException($"A placa {antiga.Codigo} não tem venda para passar.");
+            throw new RegraDeNegocioException($"Placa {antiga.Codigo} sem venda para passar.");
         }
 
         VendaId = antiga.VendaId;
@@ -327,7 +327,7 @@ public sealed class Placa : IDoRevendedor
     {
         if (Situacao != SituacaoDaPlaca.EmEstoque || VendaId is not null)
         {
-            throw new RegraDeNegocioException($"A placa {Codigo} não está livre no estoque.");
+            throw new RegraDeNegocioException($"Placa {Codigo} indisponível no estoque.");
         }
 
         if (motivo is Placas.MotivoDaBaixa.Troca or Placas.MotivoDaBaixa.Encerramento || !Enum.IsDefined(motivo))
@@ -346,7 +346,7 @@ public sealed class Placa : IDoRevendedor
     {
         if (Situacao != SituacaoDaPlaca.Baixada || VendaId is not null || MotivoDaBaixa is null or Placas.MotivoDaBaixa.Troca or Placas.MotivoDaBaixa.Encerramento)
         {
-            throw new RegraDeNegocioException($"A baixa da placa {Codigo} não pode ser desfeita.");
+            throw new RegraDeNegocioException($"Baixa da placa {Codigo} não se desfaz.");
         }
 
         Situacao = SituacaoDaPlaca.EmEstoque;
@@ -364,6 +364,6 @@ public sealed class Placa : IDoRevendedor
     {
         SituacaoDaPlaca.Ativa => SituacaoDaPlaca.Suspensa,
         SituacaoDaPlaca.Suspensa => SituacaoDaPlaca.Ativa,
-        _ => throw new RegraDeNegocioException("Só placa vendida pode ser ligada e desligada."),
+        _ => throw new RegraDeNegocioException("Só placa vendida se liga e desliga."),
     };
 }

@@ -20,7 +20,7 @@ public sealed class Repasse : IDoRevendedor
     public DateTimeOffset? DesfeitoEm { get; private set; }
 
     public void Desfazer(DateTimeOffset agora) =>
-        DesfeitoEm = DesfeitoEm is null ? agora : throw new RegraDeNegocioException("Este repasse já foi desfeito.");
+        DesfeitoEm = DesfeitoEm is null ? agora : throw new RegraDeNegocioException("Repasse já desfeito.");
 
     private Repasse()
     {
@@ -30,7 +30,7 @@ public sealed class Repasse : IDoRevendedor
     {
         if (valorCents <= 0)
         {
-            throw new RegraDeNegocioException("Não há comissão a repassar até essa data.");
+            throw new RegraDeNegocioException("Sem comissão a repassar até essa data.");
         }
 
         VendedorId = vendedorId;

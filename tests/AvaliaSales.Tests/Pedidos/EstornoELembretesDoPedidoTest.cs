@@ -24,7 +24,7 @@ public sealed class EstornoELembretesDoPedidoTest(ApiDeTeste api)
         var operadora = await api.ClienteLogado(await api.CriarOperadora());
         var (_, email) = await api.CriarRevendedor(nome);
         var dono = await api.ClienteLogado(email);
-        var quantidade = Random.Shared.Next(610, 690);
+        var quantidade = Cenarios.QuantidadeNova();
         var pacote = await Cenarios.PacoteDaQuantidade(operadora, quantidade, quantidade * 1_400L);
         var lote = await operadora.Postar("/operadora/lotes", new { quantidade }, HttpStatusCode.Created);
         var pedido = (await dono.Postar("/pedidos", new { pacoteId = pacote }, HttpStatusCode.Created)).GetProperty("id").GetGuid();
@@ -35,7 +35,7 @@ public sealed class EstornoELembretesDoPedidoTest(ApiDeTeste api)
     [Fact]
     public async Task Pedido_pago_e_estornado_antes_do_despacho_avisa_os_dois_lados_e_depois_do_despacho_e_recusado()
     {
-        var (operadora, dono, pedido, lote) = await PedidoPago("Revenda do Estorno de Pedido");
+        var (operadora, dono, pedido, _) = await PedidoPago("Revenda do Estorno de Pedido");
 
         await operadora.Postar($"/operadora/pedidos/{pedido}/estorno", new { motivo = "Revenda desistiu" }, HttpStatusCode.NoContent);
 
@@ -52,7 +52,6 @@ public sealed class EstornoELembretesDoPedidoTest(ApiDeTeste api)
         var (operadora2, _, pedido2, lote2) = await PedidoPago("Revenda do Estorno Recusado");
         await operadora2.Postar($"/operadora/pedidos/{pedido2}/despacho", new { lote = lote2.GetProperty("numero").GetInt32() }, HttpStatusCode.NoContent);
         await operadora2.Postar($"/operadora/pedidos/{pedido2}/estorno", new { }, HttpStatusCode.UnprocessableEntity);
-        Assert.NotEqual(0, lote.GetProperty("numero").GetInt32());
     }
 
     [Fact]

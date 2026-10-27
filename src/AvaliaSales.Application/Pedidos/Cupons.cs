@@ -28,7 +28,7 @@ public sealed class Cupons(IBancoDeDados banco)
         var cupom = new Cupom(comando.Codigo, comando.DescontoBps, comando.DescontoCents, comando.ValidoAte, comando.UsosMaximos);
         if (await banco.Cupons.AnyAsync(c => c.Codigo == cupom.Codigo, ct))
         {
-            throw new RegraDeNegocioException($"Já existe o cupom {cupom.Codigo}.");
+            throw new RegraDeNegocioException($"Cupom {cupom.Codigo} já cadastrado.");
         }
 
         banco.Cupons.Add(cupom);

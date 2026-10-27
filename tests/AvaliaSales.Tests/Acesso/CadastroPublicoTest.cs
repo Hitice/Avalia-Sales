@@ -57,16 +57,24 @@ public sealed partial class CadastroPublicoTest(ApiDeTeste api)
     public async Task Cadastro_cria_pendente_sem_token_e_so_entra_depois_do_link()
     {
         var email = $"novo-{Guid.NewGuid():N}@teste.com.br";
-        var cliente = api.Fabrica.CreateClient();
+        var cliente = api.Fabrica.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions { HandleCookies = false });
 
-        var (status, _) = await Cadastrar(cliente, Corpo(email, Cnpj()));
+        var resposta = await cliente.PostAsJsonAsync("/cadastro", Corpo(email, Cenarios.Cnpj()), Ct);
+        var semCelular = await cliente.PostAsJsonAsync("/cadastro",
+            new { empresa = "Sem Celular", cnpj = Cenarios.Cnpj(), endereco = ApiDeTeste.Endereco, nome = "Outra", email = "y" + email }, Ct);
+        var semEndereco = await cliente.PostAsJsonAsync("/cadastro",
+            new { empresa = "Sem Endereço", cnpj = Cenarios.Cnpj(), celular = "(11) 98765-4321", nome = "Outra", email = "z" + email }, Ct);
 
-        Assert.Equal(HttpStatusCode.Accepted, status);
+        Assert.Equal(HttpStatusCode.Accepted, resposta.StatusCode);
+        Assert.False(resposta.Headers.Contains("Set-Cookie"));
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, semCelular.StatusCode);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, semEndereco.StatusCode);
         var token = Token(await UltimoEmail(email));
         await cliente.Postar("/auth/entrar", new { email, senha = ApiDeTeste.Senha }, HttpStatusCode.Unauthorized);
 
         var entrou = await cliente.Postar("/auth/senha", new { token, senha = "senha-escolhida-123" });
         Assert.True(entrou.GetProperty("perfil").GetProperty("emailConfirmado").GetBoolean());
+        Assert.Equal("Revenda Publica", entrou.GetProperty("perfil").GetProperty("revendedor").GetString());
         await cliente.Postar("/auth/senha", new { token, senha = "outra-senha-escolhida" }, HttpStatusCode.UnprocessableEntity);
         await cliente.Postar("/auth/entrar", new { email, senha = "senha-escolhida-123" });
     }
@@ -76,12 +84,12 @@ public sealed partial class CadastroPublicoTest(ApiDeTeste api)
     {
         var (_, emailExistente) = await api.CriarRevendedor("Ja Existe");
         var cliente = api.Fabrica.CreateClient();
-        var cnpjNovo = Cnpj();
+        var cnpjNovo = Cenarios.Cnpj();
         var novo = await Cadastrar(cliente, Corpo($"novo-{Guid.NewGuid():N}@teste.com.br", cnpjNovo));
-        var emailRepetido = await Cadastrar(cliente, Corpo(emailExistente, Cnpj()));
+        var emailRepetido = await Cadastrar(cliente, Corpo(emailExistente, Cenarios.Cnpj()));
 
         await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
-        var cnpjDeQuemJaTem = Cnpj();
+        var cnpjDeQuemJaTem = Cenarios.Cnpj();
         await banco.Texto($"update revendedores set cnpj = '{cnpjDeQuemJaTem}' where id = (select revendedor_id from usuarios where email = '{emailExistente}') returning 1");
         var cnpjRepetido = await Cadastrar(cliente, Corpo($"outro-{Guid.NewGuid():N}@teste.com.br", cnpjDeQuemJaTem));
 
@@ -97,7 +105,7 @@ public sealed partial class CadastroPublicoTest(ApiDeTeste api)
         var (_, email) = await api.CriarRevendedor("Aviso De Conta");
         var antes = await Emails(email);
 
-        var (status, _) = await Cadastrar(api.Fabrica.CreateClient(), Corpo(email, Cnpj()));
+        var (status, _) = await Cadastrar(api.Fabrica.CreateClient(), Corpo(email, Cenarios.Cnpj()));
 
         Assert.Equal(HttpStatusCode.Accepted, status);
         Assert.Equal(antes + 1, await Emails(email));
@@ -113,8 +121,8 @@ public sealed partial class CadastroPublicoTest(ApiDeTeste api)
         var (_, existente) = await api.CriarRevendedor("Campo Igual");
         var cliente = api.Fabrica.CreateClient();
 
-        var comConta = await Cadastrar(cliente, Corpo(existente, Cnpj(), celular: "123"));
-        var semConta = await Cadastrar(cliente, Corpo($"novo-{Guid.NewGuid():N}@teste.com.br", Cnpj(), celular: "123"));
+        var comConta = await Cadastrar(cliente, Corpo(existente, Cenarios.Cnpj(), celular: "123"));
+        var semConta = await Cadastrar(cliente, Corpo($"novo-{Guid.NewGuid():N}@teste.com.br", Cenarios.Cnpj(), celular: "123"));
 
         Assert.Equal(HttpStatusCode.UnprocessableEntity, comConta.Status);
         Assert.Equal(semConta, comConta);
@@ -125,7 +133,7 @@ public sealed partial class CadastroPublicoTest(ApiDeTeste api)
     {
         var email = $"pendente-{Guid.NewGuid():N}@teste.com.br";
         var cliente = api.Fabrica.CreateClient();
-        var cnpj = Cnpj();
+        var cnpj = Cenarios.Cnpj();
         await Cadastrar(cliente, Corpo(email, cnpj));
         var primeiro = Token(await UltimoEmail(email));
 
@@ -150,7 +158,7 @@ public sealed partial class CadastroPublicoTest(ApiDeTeste api)
     {
         var email = $"reenvio-{Guid.NewGuid():N}@teste.com.br";
         var cliente = api.Fabrica.CreateClient();
-        await Cadastrar(cliente, Corpo(email, Cnpj()));
+        await Cadastrar(cliente, Corpo(email, Cenarios.Cnpj()));
 
         await cliente.Postar("/cadastro/reenvio", new { email }, HttpStatusCode.NoContent);
         Assert.Equal(1, await Emails(email));
@@ -171,7 +179,7 @@ public sealed partial class CadastroPublicoTest(ApiDeTeste api)
         for (var i = 0; i < 4; i++)
         {
             await Envelhecer(email, "2 minutes");
-            var (status, _) = await Cadastrar(cliente, Corpo(email, Cnpj()));
+            var (status, _) = await Cadastrar(cliente, Corpo(email, Cenarios.Cnpj()));
             Assert.Equal(HttpStatusCode.Accepted, status);
         }
 
@@ -186,8 +194,8 @@ public sealed partial class CadastroPublicoTest(ApiDeTeste api)
         await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
         await banco.Texto("update emails set criado_em = criado_em - interval '3 days' where chave like 'cadastro:%' returning 1");
 
-        var primeiro = await Cadastrar(cliente, Corpo($"teto-{Guid.NewGuid():N}@teste.com.br", Cnpj()));
-        var cnpj = Cnpj();
+        var primeiro = await Cadastrar(cliente, Corpo($"teto-{Guid.NewGuid():N}@teste.com.br", Cenarios.Cnpj()));
+        var cnpj = Cenarios.Cnpj();
         var email = $"teto-{Guid.NewGuid():N}@teste.com.br";
         var segundo = await Cadastrar(cliente, Corpo(email, cnpj));
 
@@ -205,7 +213,7 @@ public sealed partial class CadastroPublicoTest(ApiDeTeste api)
         var respostas = new List<HttpStatusCode>();
         for (var i = 0; i < 3; i++)
         {
-            respostas.Add((await Cadastrar(cliente, Corpo($"ip-{Guid.NewGuid():N}@teste.com.br", Cnpj()))).Status);
+            respostas.Add((await Cadastrar(cliente, Corpo($"ip-{Guid.NewGuid():N}@teste.com.br", Cenarios.Cnpj()))).Status);
         }
 
         Assert.Equal([HttpStatusCode.Accepted, HttpStatusCode.Accepted, HttpStatusCode.TooManyRequests], respostas);
@@ -216,7 +224,7 @@ public sealed partial class CadastroPublicoTest(ApiDeTeste api)
     {
         var email = $"trava-{Guid.NewGuid():N}@teste.com.br";
         var cliente = api.Fabrica.CreateClient();
-        await Cadastrar(cliente, Corpo(email, Cnpj()));
+        await Cadastrar(cliente, Corpo(email, Cenarios.Cnpj()));
         await cliente.Postar("/auth/senha/link", new { email }, HttpStatusCode.NoContent);
         Assert.Equal(1, await Emails(email));
 
@@ -247,7 +255,7 @@ public sealed partial class CadastroPublicoTest(ApiDeTeste api)
     {
         using var fabrica = api.Fabrica.WithWebHostBuilder(w => w.UseSetting("Cadastro:TentativasPorCnpjPorHora", "1"));
         var cliente = fabrica.CreateClient();
-        var cnpj = Cnpj();
+        var cnpj = Cenarios.Cnpj();
         var primeiro = await Cadastrar(cliente, Corpo($"cnpj-{Guid.NewGuid():N}@teste.com.br", cnpj));
         var outro = $"cnpj-{Guid.NewGuid():N}@teste.com.br";
         var segundo = await Cadastrar(cliente, Corpo(outro, cnpj));
@@ -262,9 +270,9 @@ public sealed partial class CadastroPublicoTest(ApiDeTeste api)
         var email = $"vencido-{Guid.NewGuid():N}@teste.com.br";
         var recente = $"recente-{Guid.NewGuid():N}@teste.com.br";
         var cliente = api.Fabrica.CreateClient();
-        var cnpj = Cnpj();
+        var cnpj = Cenarios.Cnpj();
         await Cadastrar(cliente, Corpo(email, cnpj));
-        await Cadastrar(cliente, Corpo(recente, Cnpj()));
+        await Cadastrar(cliente, Corpo(recente, Cenarios.Cnpj()));
         var (_, confirmado) = await api.CriarRevendedor("Conta De Verdade");
         var legado = await api.CriarDonoSemConfirmar("Conta Legada");
         await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
@@ -285,17 +293,5 @@ public sealed partial class CadastroPublicoTest(ApiDeTeste api)
         Assert.Equal(HttpStatusCode.Accepted, status);
         Assert.Equal(1, await banco.Contar($"select count(*) from usuarios where email = '{email}'"));
         Assert.Contains("confirmar-cadastro", await UltimoEmail(email), StringComparison.Ordinal);
-    }
-
-    private static string Cnpj()
-    {
-        var d = Enumerable.Range(0, 12).Select(_ => Random.Shared.Next(10)).ToList();
-        foreach (var pesos in new[] { new[] { 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2 }, new[] { 6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2 } })
-        {
-            var resto = d.Select((n, i) => n * pesos[i]).Sum() % 11;
-            d.Add(resto < 2 ? 0 : 11 - resto);
-        }
-
-        return string.Concat(d);
     }
 }

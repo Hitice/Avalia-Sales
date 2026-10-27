@@ -57,5 +57,5 @@ public sealed class ContratoDaRevenda(IBancoDeDados banco, IAssinaturaEletronica
         banco.Contratos.Where(c => c.Tipo == tipo).OrderByDescending(c => c.CriadoEm).FirstOrDefaultAsync(ct);
 
     private static string Nenhum(TipoDeContrato tipo) =>
-        tipo == TipoDeContrato.Distrato ? "Ainda não há distrato." : "Ainda não há contrato de revenda.";
+        tipo == TipoDeContrato.Distrato ? "Sem distrato." : "Sem contrato de revenda.";
 }

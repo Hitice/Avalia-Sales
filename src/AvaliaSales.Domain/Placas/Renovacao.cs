@@ -64,7 +64,7 @@ public sealed class Renovacao : IDoRevendedor
     {
         if (Situacao != SituacaoDaRenovacao.Paga || De is not { } de || Ate is not { } ate)
         {
-            throw new RegraDeNegocioException("Esta renovação não está paga.");
+            throw new RegraDeNegocioException("Renovação não paga.");
         }
 
         placa.DesfazerRenovacao(de, ate);

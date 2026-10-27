@@ -3,6 +3,7 @@ using AvaliaSales.Application.Financeiro;
 using AvaliaSales.Domain;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Npgsql;
 
 namespace AvaliaSales.Infrastructure.Banco;
 
@@ -11,6 +12,8 @@ namespace AvaliaSales.Infrastructure.Banco;
 /// operadora e só para a revenda que ela marcou como do grupo: a marca é conferida a cada
 /// leitura, no banco, e a revenda não marcada é recusada mesmo com o id certo. O contexto novo
 /// leva a revenda na sessão do Postgres, então o filtro do EF e o RLS valem como para o dono.
+/// A sessão é somente leitura: o escopo só serve à leitura do grupo, e um engano no código da
+/// leitura não grava na revenda.
 /// </summary>
 public sealed class EscopoDeRevenda(BancoDeDados doOperador, IRevendedorAtual atual, IConfiguration configuracao) : IEscopoDeRevenda
 {
@@ -23,13 +26,16 @@ public sealed class EscopoDeRevenda(BancoDeDados doOperador, IRevendedorAtual at
 
         if (!await doOperador.Revendedores.AsNoTracking().AnyAsync(r => r.Id == revendedorId && r.DoGrupoDaOperadora, ct))
         {
-            throw new RegraDeNegocioException("Esta revenda não pertence ao grupo da operadora.");
+            throw new RegraDeNegocioException("Revenda fora do grupo da operadora.");
         }
 
         var fixo = new RevendedorFixo(revendedorId);
-        var conexao = configuracao.GetConnectionString("Banco") ?? throw new InvalidOperationException("Falta ConnectionStrings:Banco.");
+        var conexao = new NpgsqlConnectionStringBuilder(configuracao.GetConnectionString("Banco") ?? throw new InvalidOperationException("Falta ConnectionStrings:Banco."));
+        // Parâmetro de partida da conexão: toda transação dela nasce somente leitura. A string muda, então o pool é
+        // outro, e as conexões dos outros usos (API, Worker, leitura do QR) nunca herdam o modo.
+        conexao.Options = $"{conexao.Options} -c default_transaction_read_only=on".Trim();
         var opcoes = new DbContextOptionsBuilder<BancoDeDados>()
-            .UseNpgsql(conexao)
+            .UseNpgsql(conexao.ConnectionString)
             .UseSnakeCaseNamingConvention()
             .AddInterceptors(new RevendedorNaConexao(fixo))
             .Options;

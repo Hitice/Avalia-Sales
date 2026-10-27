@@ -24,7 +24,7 @@ public sealed class FechamentosDaOperadora(IBancoDeDados banco, IUsuarioAtual us
     {
         if (await Fechado(competencia, ct))
         {
-            throw new RegraDeNegocioException($"O mês {Fechamentos.Nome(competencia)} está fechado. Use uma data de mês aberto ou reabra o mês.");
+            throw new RegraDeNegocioException($"Mês {Fechamentos.Nome(competencia)} fechado. Use outra data ou reabra o mês.");
         }
     }
 
@@ -42,7 +42,7 @@ public sealed class FechamentosDaOperadora(IBancoDeDados banco, IUsuarioAtual us
         var fechamento = new FechamentoDaOperadora(competencia, usuario.UsuarioId, relogio.GetUtcNow());
         if (await Fechado(fechamento.Competencia, ct))
         {
-            throw new RegraDeNegocioException($"O mês {Fechamentos.Nome(fechamento.Competencia)} já está fechado.");
+            throw new RegraDeNegocioException($"Mês {Fechamentos.Nome(fechamento.Competencia)} já fechado.");
         }
 
         banco.FechamentosDaOperadora.Add(fechamento);
@@ -53,7 +53,7 @@ public sealed class FechamentosDaOperadora(IBancoDeDados banco, IUsuarioAtual us
     {
         var mes = Competencias.Conferir(competencia);
         var fechamento = await banco.FechamentosDaOperadora.SingleOrDefaultAsync(f => f.Competencia == mes && f.ReabertoEm == null, ct)
-            ?? throw new RegraDeNegocioException($"O mês {Fechamentos.Nome(mes)} não está fechado.");
+            ?? throw new RegraDeNegocioException($"Mês {Fechamentos.Nome(mes)} não fechado.");
         fechamento.Reabrir(pedido.Motivo, usuario.UsuarioId, relogio.GetUtcNow());
         await banco.SaveChangesAsync(ct);
     }

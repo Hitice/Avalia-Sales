@@ -40,7 +40,7 @@ public sealed record RecebedorDoGateway(string Id, string Nome, string Situacao)
 
 public interface IGatewayDePagamento
 {
-    /// <summary>Recebedor da Avalia, que fica com a taxa de cada venda.</summary>
+    /// <summary>Recebedor da Avalia, que fica com a parte dela nos serviços e com o pedido de placas.</summary>
     string RecebedorDaAvalia { get; }
 
     Task<PedidoDoGateway> CriarPedido(PedidoNoGateway pedido, CancellationToken ct);
@@ -58,6 +58,9 @@ public interface IGatewayDePagamento
     /// paga é estornada inteira ao cliente, pelo split de quando foi paga.
     /// </summary>
     Task CancelarPedido(string pedido, CancellationToken ct);
+
+    /// <summary>Cancela o link de pagamento ainda não pago: o pedido no Pagar.me só nasce com o pagamento, então é o link que deixa de valer.</summary>
+    Task CancelarLink(string link, CancellationToken ct);
 
     /// <summary>
     /// Devolve só uma parte do pedido pago: a venda do grupo desfeita sozinha.

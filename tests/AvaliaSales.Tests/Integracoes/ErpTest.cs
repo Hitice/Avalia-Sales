@@ -61,13 +61,35 @@ public sealed class ContratoDoProtheusTest
 [Collection(ColecaoDaApi.Nome)]
 public sealed class FluxoDoErpTest(ApiDeTeste api)
 {
+    /// <summary>
+    /// A API de teste sobe com Protheus:UrlBase; esta tira o endereço, como a produção sem o serviço do Protheus.
+    /// </summary>
+    [Fact]
+    public async Task Sem_endereco_do_Protheus_a_integracao_esta_desligada_e_o_pedido_pago_nao_entra_na_fila()
+    {
+        using var fabrica = api.Fabrica.WithWebHostBuilder(w => w.UseSetting("Protheus:UrlBase", string.Empty));
+        var operadora = await api.ClienteLogado(await api.CriarOperadora(), fabrica);
+        var (_, email) = await api.CriarRevendedor("Revenda Sem ERP");
+        var dono = await api.ClienteLogado(email, fabrica);
+        var pacote = await Cenarios.PacoteDaQuantidade(operadora, Random.Shared.Next(750, 800), 75_000L);
+        var pedido = (await dono.Postar("/pedidos", new { pacoteId = pacote }, HttpStatusCode.Created)).GetProperty("id").GetGuid();
+
+        await operadora.Postar($"/operadora/pedidos/{pedido}/pagamento", new { }, HttpStatusCode.NoContent);
+
+        Assert.False((await operadora.Pegar("/operadora/erp/integracao")).GetProperty("ligada").GetBoolean());
+        await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
+        Assert.Equal(1, await banco.Contar($"select count(*) from pedidos_placas where id = '{pedido}' and pago_em is not null"));
+        Assert.Equal(0, await banco.Contar($"select count(*) from envios_ao_erp where pedido_id = '{pedido}'"));
+    }
+
     [Fact]
     public async Task Pedido_pago_vai_ao_ERP_uma_vez_e_a_falha_volta_para_a_fila()
     {
         var operadora = await api.ClienteLogado(await api.CriarOperadora());
+        Assert.True((await operadora.Pegar("/operadora/erp/integracao")).GetProperty("ligada").GetBoolean());
         var (_, email) = await api.CriarRevendedor("Revenda do ERP");
         var dono = await api.ClienteLogado(email);
-        var pacote = await Cenarios.PacoteDaQuantidade(operadora, Random.Shared.Next(700, 750), 70_000L);
+        var pacote = await Cenarios.PacoteDaQuantidade(operadora, Cenarios.QuantidadeNova(), 70_000L);
         var pedido = (await dono.Postar("/pedidos", new { pacoteId = pacote }, HttpStatusCode.Created)).GetProperty("id").GetGuid();
         await operadora.Postar($"/operadora/pedidos/{pedido}/pagamento", new { }, HttpStatusCode.NoContent);
         var erp = new ErpFalso { Falhar = true };

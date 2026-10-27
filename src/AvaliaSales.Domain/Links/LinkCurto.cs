@@ -54,7 +54,7 @@ public sealed class LinkCurto : IDoRevendedor
     {
         titulo = (titulo ?? string.Empty).Trim();
         return titulo.Length is 0 or > TituloMaximo
-            ? throw new RegraDeNegocioException($"O título precisa ter de 1 a {TituloMaximo} caracteres.")
+            ? throw new RegraDeNegocioException($"Título de 1 a {TituloMaximo} caracteres.")
             : titulo;
     }
 }

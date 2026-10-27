@@ -38,35 +38,35 @@ public static partial class Destino
 
         if (destino.Length > TamanhoMaximo)
         {
-            throw new RegraDeNegocioException("O endereço é longo demais para uma placa.");
+            throw new RegraDeNegocioException("Endereço longo demais para a placa.");
         }
 
         // Quebra de linha e afins não entram no cabeçalho Location: o Kestrel recusa, e a placa impressa passaria a responder 500.
         if (destino.Any(char.IsControl))
         {
-            throw new RegraDeNegocioException("O endereço tem quebra de linha ou tabulação. Cole o link de novo.");
+            throw new RegraDeNegocioException("Endereço com quebra de linha ou tabulação. Cole o link de novo.");
         }
 
         // javascript:, data: e afins: o navegador de quem lê executaria o que estivesse ali.
         if (!Uri.TryCreate(destino, UriKind.Absolute, out var uri) || (uri.Scheme != Uri.UriSchemeHttps && uri.Scheme != Uri.UriSchemeHttp))
         {
-            throw new RegraDeNegocioException("O destino precisa começar com http:// ou https://.");
+            throw new RegraDeNegocioException("Destino sem http:// ou https://.");
         }
 
         if (!uri.Host.Contains('.', StringComparison.Ordinal))
         {
-            throw new RegraDeNegocioException("O endereço não tem um domínio válido.");
+            throw new RegraDeNegocioException("Endereço sem domínio válido.");
         }
 
         if (string.Equals(uri.Host, hostDaPlataforma, StringComparison.OrdinalIgnoreCase)
             && (uri.AbsolutePath.StartsWith("/q/", StringComparison.OrdinalIgnoreCase) || uri.AbsolutePath.StartsWith("/l/", StringComparison.OrdinalIgnoreCase)))
         {
-            throw new RegraDeNegocioException("O destino não pode ser o endereço de outra placa ou de outro link.");
+            throw new RegraDeNegocioException("Destino aponta para outra placa ou outro link. Use outro.");
         }
 
-        var gravavel = ParaCabecalho(destino) ?? throw new RegraDeNegocioException("O endereço tem caractere que a placa não aceita. Confira o link.");
+        var gravavel = ParaCabecalho(destino) ?? throw new RegraDeNegocioException("Endereço com caractere que a placa não aceita. Confira o link.");
         // A coluna tem o mesmo limite, e o %XX do acento engorda o endereço.
-        return gravavel.Length <= TamanhoMaximo ? gravavel : throw new RegraDeNegocioException("O endereço é longo demais para uma placa.");
+        return gravavel.Length <= TamanhoMaximo ? gravavel : throw new RegraDeNegocioException("Endereço longo demais para a placa.");
     }
 
     /// <summary>

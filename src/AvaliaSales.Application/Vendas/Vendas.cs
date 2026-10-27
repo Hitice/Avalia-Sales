@@ -167,24 +167,24 @@ public sealed class Vendas(
 
         if (pedido.Itens is not { Count: > 0 and <= ItensMaximos })
         {
-            throw new RegraDeNegocioException($"A venda tem de 1 a {ItensMaximos} itens.");
+            throw new RegraDeNegocioException($"Venda de 1 a {ItensMaximos} itens.");
         }
 
         if (pedido.TesteGratuito && (pedido.Itens.Count != 1 || pedido.Itens[0].Destino?.Tipo != TipoDeDestino.Google))
         {
-            throw new RegraDeNegocioException("O teste gratuito é só para uma placa de avaliação no Google.");
+            throw new RegraDeNegocioException("Teste gratuito só para uma placa de avaliação no Google.");
         }
 
         // No fim dos 7 dias a cobrança sai do mesmo cadastro: sem documento e e-mail ela não teria como sair.
         if (pedido.TesteGratuito && (string.IsNullOrWhiteSpace(pedido.Documento) || string.IsNullOrWhiteSpace(pedido.Email)))
         {
-            throw new RegraDeNegocioException("No teste gratuito, informe o CNPJ ou CPF e o e-mail do cliente: a cobrança sai deles no fim dos 7 dias.");
+            throw new RegraDeNegocioException("Teste gratuito exige CNPJ ou CPF e e-mail do cliente.");
         }
 
         var codigos = pedido.Itens.Select(i => CodigoDaPlaca.Normalizar(i.Codigo ?? "")).Where(c => c.Length > 0).ToList();
         if (codigos.Count != codigos.Distinct().Count())
         {
-            throw new RegraDeNegocioException("A mesma placa está duas vezes na venda.");
+            throw new RegraDeNegocioException("Placa repetida na venda.");
         }
 
         (await banco.Revendedores.SingleAsync(r => r.Id == atual.RevendedorId, ct)).ExigirAtiva();
@@ -199,7 +199,7 @@ public sealed class Vendas(
             {
                 if (pedido.TesteGratuito)
                 {
-                    throw new RegraDeNegocioException("Teste gratuito é só para placa.");
+                    throw new RegraDeNegocioException("Teste gratuito só para placa.");
                 }
 
                 if (item.Quantidade < doCatalogo.QuantidadeMinima)
@@ -213,7 +213,7 @@ public sealed class Vendas(
 
             if (item.Quantidade != 1)
             {
-                throw new RegraDeNegocioException("Placa sai uma por código: leia cada QR.");
+                throw new RegraDeNegocioException("Placa vende uma por código. Leia cada QR.");
             }
 
             var destino = (item.Destino ?? throw new RegraDeNegocioException("Informe para onde a placa leva.")).Resolver(plataforma.Value.HostPublico);
@@ -232,7 +232,7 @@ public sealed class Vendas(
         var cliente = await EncontrarCliente(pedido.Empresa, pedido.Responsavel, pedido.Telefone, pedido.Documento, pedido.Email, lugar, agora, ct);
         if (pedido.TesteGratuito && await banco.Vendas.AnyAsync(v => v.ClienteId == cliente.Id && v.TesteAte != null, ct))
         {
-            throw new RegraDeNegocioException("Este cliente já usou o teste gratuito. Venda a placa com cobrança.");
+            throw new RegraDeNegocioException("Cliente já usou o teste gratuito. Venda com cobrança.");
         }
 
         var feitas = new List<(Venda Venda, Placa? Placa, string? LinkCurto, string Descricao)>();
@@ -253,7 +253,7 @@ public sealed class Vendas(
 
             // Código de outro revendedor responde como inexistente: o código está impresso e qualquer um lê.
             var placa = (codigo.Length == 0 ? null : await banco.TravarPlaca(codigo, ct))
-                ?? throw new RegraDeNegocioException("Código não encontrado, verifique novamente.");
+                ?? throw new RegraDeNegocioException("Código não encontrado.");
             var venda = new Venda(placa.Id, cliente.Id, produto.Id, produto.PrecoCents, vendedorId, item.ValorCents,
                 placa.CustoCents, comissaoBps, pedido.Meio, agora, doCatalogo?.ParteDaAvaliaCents ?? 0);
             placa.Vender(venda.Id, destino, agora);
@@ -307,12 +307,12 @@ public sealed class Vendas(
         var doCatalogo = catalogoId is { } c ? await banco.ProdutosDaPlataforma.AsNoTracking().SingleOrDefaultAsync(p => p.Id == c, ct) : null;
         if (daRevenda is null && doCatalogo is null)
         {
-            throw new RegraDeNegocioException("Este produto não está no catálogo.");
+            throw new RegraDeNegocioException("Produto fora do catálogo.");
         }
 
         if (doCatalogo is { AVenda: false })
         {
-            throw new RegraDeNegocioException($"{doCatalogo.Nome} não está à venda agora.");
+            throw new RegraDeNegocioException($"{doCatalogo.Nome} fora de venda.");
         }
 
         if (daRevenda is null)
@@ -325,7 +325,7 @@ public sealed class Vendas(
             }
             else if (!daRevenda.Ativo)
             {
-                throw new RegraDeNegocioException("Este produto está desligado na sua tabela.");
+                throw new RegraDeNegocioException("Produto desligado na tabela da revenda.");
             }
         }
 
@@ -340,7 +340,7 @@ public sealed class Vendas(
     {
         var venda = await AcharVenda(vendaId, ct);
         ExigirDaPlataforma(venda);
-        await ExigirSemCobrancaViva(venda, "Esta venda já tem cobrança em aberto ou paga.", ct);
+        await ExigirSemCobrancaViva(venda, "Venda com cobrança aberta ou paga.", ct);
         if (venda.Situacao == SituacaoDaVenda.Cancelada || venda.Cortesia)
         {
             throw new RegraDeNegocioException("Venda cancelada ou cortesia não se cobra.");
@@ -382,13 +382,13 @@ public sealed class Vendas(
         ExigirDaPlataforma(venda);
         if (venda.Situacao == SituacaoDaVenda.Cancelada || venda.Cortesia || venda.ValorCents == 0)
         {
-            throw new RegraDeNegocioException("Esta venda não tem valor a receber.");
+            throw new RegraDeNegocioException("Venda sem valor a receber.");
         }
 
         // O vendedor travado: dois cliques seguidos não passam juntos pelo limite do dia.
         await using var transacao = await banco.Database.BeginTransactionAsync(ct);
         await banco.TravarVendedor(venda.VendedorId, ct);
-        await ExigirSemCobrancaViva(venda, "Venda com Pix em aberto ou já paga.", ct);
+        await ExigirSemCobrancaViva(venda, "Venda com Pix aberto ou já paga.", ct);
         var grupo = await DoGrupo(venda, ct);
         var total = grupo.Sum(v => v.ValorCents);
         await porFora.ExigirDentroDoLimite(venda.VendedorId, total, ct);
@@ -407,10 +407,10 @@ public sealed class Vendas(
         var venda = await AcharVenda(vendaId, ct);
         var cobranca = await banco.Cobrancas
             .Where(c => c.Origem == OrigemDaCobranca.Venda && c.OrigemId == venda.CobradaPor && c.Situacao == SituacaoDaCobranca.Paga)
-            .SingleOrDefaultAsync(ct) ?? throw new RegraDeNegocioException("Esta venda não está paga.");
+            .SingleOrDefaultAsync(ct) ?? throw new RegraDeNegocioException("Venda não paga.");
         if (venda.RepasseId is not null || (venda.GrupoId is { } grupo && await banco.Vendas.AnyAsync(v => v.GrupoId == grupo && v.RepasseId != null, ct)))
         {
-            throw new RegraDeNegocioException("A comissão desta venda já foi repassada ao vendedor.");
+            throw new RegraDeNegocioException("Comissão da venda já repassada ao vendedor.");
         }
 
         await cobrancas.DesfazerPorFora(cobranca, ct);
@@ -444,14 +444,14 @@ public sealed class Vendas(
 
         if (venda.RepasseId is not null)
         {
-            throw new RegraDeNegocioException("A comissão desta venda já foi repassada ao vendedor.");
+            throw new RegraDeNegocioException("Comissão da venda já repassada ao vendedor.");
         }
 
         var agora = relogio.GetUtcNow();
         var antes = $"{venda.ValorCents} centavos, vendedor {venda.VendedorId}";
         if (pedido.ValorCents is { } valor && valor != venda.ValorCents)
         {
-            await ExigirSemCobrancaViva(venda, "Venda com cobrança em aberto ou paga: o valor fica como foi cobrado.", ct);
+            await ExigirSemCobrancaViva(venda, "Venda com cobrança aberta ou paga. Valor fica como cobrado.", ct);
             venda.CorrigirValor(valor);
         }
 
@@ -482,7 +482,7 @@ public sealed class Vendas(
             if (paga is { } jaPaga && await banco.Lancamentos.AnyAsync(l => l.OrigemId == jaPaga && l.VendaId == venda.Id && l.Tipo == TipoDeLancamento.ComissaoDevida
                     && l.EstornaId == null && l.VendedorId == novo, ct))
             {
-                throw new RegraDeNegocioException("A comissão desta venda paga já foi deste vendedor. Para devolver a ele, cancele a venda e registre de novo.");
+                throw new RegraDeNegocioException("Comissão já foi deste vendedor. Cancele a venda e registre de novo.");
             }
 
             var estornadas = banco.Lancamentos.Where(l => l.EstornaId != null).Select(l => l.EstornaId);
@@ -524,7 +524,7 @@ public sealed class Vendas(
         ExigirDaPlataforma(venda);
         if (venda.Situacao == SituacaoDaVenda.Cancelada)
         {
-            throw new RegraDeNegocioException("Esta venda já foi cancelada.");
+            throw new RegraDeNegocioException("Venda já cancelada.");
         }
 
         if (venda.PlacaId is { } daVenda)
@@ -595,7 +595,7 @@ public sealed class Vendas(
     {
         var venda = await AcharVenda(vendaId, ct);
         ExigirDaPlataforma(venda);
-        await ExigirSemCobrancaViva(venda, "Venda com cobrança em aberto ou paga.", ct);
+        await ExigirSemCobrancaViva(venda, "Venda com cobrança aberta ou paga.", ct);
         var valorAntes = venda.ValorCents;
         venda.TornarCortesia();
         custoDasPlacas.Cortesia(venda, relogio.GetUtcNow());
@@ -617,17 +617,17 @@ public sealed class Vendas(
         await using var transacao = await banco.Database.BeginTransactionAsync(ct);
         var placaDaVenda = venda.PlacaId ?? throw new RegraDeNegocioException("Venda de serviço não tem placa.");
         var nova = (codigo.Length == 0 ? null : await banco.TravarPlaca(codigo, ct))
-            ?? throw new RegraDeNegocioException("Código não encontrado, verifique novamente.");
+            ?? throw new RegraDeNegocioException("Código não encontrado.");
         await ExigirSemRenovacaoAberta(placaDaVenda, ct);
         var antiga = await banco.Placas.SingleAsync(p => p.Id == placaDaVenda, ct);
         if (nova.Id == antiga.Id)
         {
-            throw new RegraDeNegocioException("A placa nova é a mesma da venda.");
+            throw new RegraDeNegocioException("Placa nova igual à da venda.");
         }
 
         if (usuario.Papel == Papel.Vendedor && nova.ConsignadaA != usuario.UsuarioId)
         {
-            throw new RegraDeNegocioException("Troque por uma placa que está com você.");
+            throw new RegraDeNegocioException("Placa nova fora da consignação do vendedor. Troque por outra.");
         }
 
         nova.ReceberVendaDe(antiga, motivo, relogio.GetUtcNow());
@@ -862,7 +862,7 @@ public sealed class Vendas(
         }
 
         var vendedor = await banco.Vendedores.AsNoTracking().SingleOrDefaultAsync(v => v.Id == id && v.Ativo, ct)
-            ?? throw new RegraDeNegocioException("Seu cadastro de vendedor está desativado.");
+            ?? throw new RegraDeNegocioException("Cadastro de vendedor desativado.");
         var padrao = await banco.Revendedores.Where(r => r.Id == atual.RevendedorId).Select(r => r.ComissaoPadraoBps).SingleAsync(ct);
         return (id, vendedor.ComissaoBps ?? doProduto ?? padrao);
     }

@@ -75,6 +75,23 @@ public sealed class ContratoHttpTest
         Assert.Equal(SituacaoDaCobranca.Pendente, criado.Situacao);
     }
 
+    /// <summary>A criação no Pagar.me leva o código da cobrança no Idempotency-key: o reenvio da mesma criação não gera outro pedido.</summary>
+    [Fact]
+    public async Task Criar_pedido_e_link_leva_o_codigo_da_cobranca_no_cabecalho_de_idempotencia()
+    {
+        var http = new HttpFalso((HttpStatusCode.OK, PedidoPixCriado), (HttpStatusCode.OK, """{"id":"pl_abc","url":"https://link.pagar.me/pl_abc"}"""));
+        await using var servicos = Servicos(http);
+        var gateway = servicos.GetRequiredService<IGatewayDePagamento>();
+
+        await gateway.CriarPedido(Pedido(MeioDePagamento.Pix), Ct);
+        await gateway.CriarLink(new LinkNoGateway("0199f0c2a3b44c5d8e9f00112233aaaa", "Pedido de 50 placas", 70_000, 4_320), Ct);
+
+        Assert.Equal(2, http.Cabecalhos.Count);
+        Assert.Equal("0199f0c2a3b44c5d8e9f001122334455", http.Cabecalhos[0].GetValueOrDefault("Idempotency-Key"));
+        Assert.Equal("https://api.pagar.me/core/v5/paymentlinks", http.Pedidos[1].Uri.ToString());
+        Assert.Equal("0199f0c2a3b44c5d8e9f00112233aaaa", http.Cabecalhos[1].GetValueOrDefault("Idempotency-Key"));
+    }
+
     [Fact]
     public async Task Pedido_com_cartao_leva_o_token_e_nunca_o_numero_do_cartao()
     {
@@ -139,6 +156,17 @@ public sealed class ContratoHttpTest
         Assert.Equal(2, http.Pedidos.Count);
         Assert.Equal("https://api.pagar.me/core/v5/orders/or_1", http.Pedidos[0].Uri.ToString());
         Assert.Equal((HttpMethod.Delete, "https://api.pagar.me/core/v5/charges/ch_paga"), (http.Pedidos[1].Metodo, http.Pedidos[1].Uri.ToString()));
+    }
+
+    [Fact]
+    public async Task Cancelar_link_e_um_patch_sem_corpo_no_cancel_do_link()
+    {
+        var http = new HttpFalso((HttpStatusCode.NoContent, ""));
+        await using var servicos = Servicos(http);
+
+        await servicos.GetRequiredService<IGatewayDePagamento>().CancelarLink("pl_abc", Ct);
+
+        Assert.Equal((HttpMethod.Patch, "https://api.pagar.me/core/v5/paymentlinks/pl_abc/cancel"), (http.Pedidos.Single().Metodo, http.Pedidos.Single().Uri.ToString()));
     }
 
     [Fact]

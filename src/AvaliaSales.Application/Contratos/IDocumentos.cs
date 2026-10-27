@@ -7,8 +7,8 @@ public sealed record ParteRevendedora(string Nome, string Cnpj, Endereco Enderec
 {
     public static ParteRevendedora De(Revendedor revendedor, string representante, string email) =>
         new(revendedor.Nome,
-            revendedor.Cnpj ?? throw new Domain.RegraDeNegocioException("A revenda está sem CNPJ."),
-            revendedor.Endereco ?? throw new Domain.RegraDeNegocioException("Complete o endereço da empresa em Meus dados."),
+            revendedor.Cnpj ?? throw new Domain.RegraDeNegocioException("Revenda sem CNPJ."),
+            revendedor.Endereco ?? throw new Domain.RegraDeNegocioException("Endereço da empresa incompleto. Complete em Meus dados."),
             email, representante);
 }
 
@@ -19,9 +19,10 @@ public sealed record ClienteAtivo(string Cliente, string Placa, DateTimeOffset V
 
 /// <summary>
 /// Anexo II, na posição da emissão. Com o split, o Pagar.me paga a revenda
-/// direto; o que ela deve à Avalia é a taxa das vendas recebidas por fora.
+/// direto; o que ela deve à Avalia é a parte da Avalia nos serviços que
+/// recebeu por fora, menos o que já acertou.
 /// </summary>
-public sealed record Conciliacao(int Transacoes, long RecebidoCents, long TaxaPorForaCents, int CobrancasPendentes);
+public sealed record Conciliacao(int Transacoes, long RecebidoCents, long DevidoPorForaCents, int CobrancasPendentes);
 
 public sealed record DadosDoDistrato(
     ParteRevendedora Revendedora,

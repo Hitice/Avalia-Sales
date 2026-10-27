@@ -76,7 +76,7 @@ public sealed class PedidoDePlacas : IAtendidoPelaOperadora
     {
         if (!pacote.Ativo)
         {
-            throw new RegraDeNegocioException("Este pacote não está à venda.");
+            throw new RegraDeNegocioException("Pacote desativado.");
         }
 
         Quantidade = pacote.Quantidade;
@@ -95,7 +95,7 @@ public sealed class PedidoDePlacas : IAtendidoPelaOperadora
 
     public void RegistrarPagamento(DateTimeOffset agora)
     {
-        Exigir(SituacaoDoPedido.AguardandoPagamento, "Só pedido aguardando pagamento pode ser pago.");
+        Exigir(SituacaoDoPedido.AguardandoPagamento, "Pedido não aguarda pagamento.");
         Situacao = SituacaoDoPedido.Pago;
         PagoEm = agora;
     }
@@ -119,12 +119,12 @@ public sealed class PedidoDePlacas : IAtendidoPelaOperadora
         codigoDeRastreio = string.IsNullOrWhiteSpace(codigoDeRastreio) ? null : codigoDeRastreio.Trim();
         if (retirada && (transportadora is not null || codigoDeRastreio is not null))
         {
-            throw new RegraDeNegocioException("Retirada na Avalia não tem transportadora nem código de rastreio.");
+            throw new RegraDeNegocioException("Retirada na Avalia não tem transportadora nem rastreio.");
         }
 
         if (transportadora?.Length > TransportadoraMaxima || codigoDeRastreio?.Length > RastreioMaximo)
         {
-            throw new RegraDeNegocioException($"A transportadora tem até {TransportadoraMaxima} caracteres e o código de rastreio, até {RastreioMaximo}.");
+            throw new RegraDeNegocioException($"Transportadora com até {TransportadoraMaxima} caracteres e rastreio com até {RastreioMaximo}.");
         }
 
         Situacao = SituacaoDoPedido.Despachado;
@@ -150,7 +150,7 @@ public sealed class PedidoDePlacas : IAtendidoPelaOperadora
     {
         if (Situacao is not (SituacaoDoPedido.Pago or SituacaoDoPedido.EmProducao))
         {
-            throw new RegraDeNegocioException("Só pedido pago e ainda não despachado é estornado. Depois do despacho, combine a devolução com a revenda.");
+            throw new RegraDeNegocioException("Só pedido pago e não despachado se estorna. Após o despacho, combine com a revenda.");
         }
 
         Situacao = SituacaoDoPedido.Cancelado;
@@ -158,7 +158,7 @@ public sealed class PedidoDePlacas : IAtendidoPelaOperadora
 
     public void Cancelar()
     {
-        Exigir(SituacaoDoPedido.AguardandoPagamento, "Pedido pago não é cancelado aqui: fale com a Avalia.");
+        Exigir(SituacaoDoPedido.AguardandoPagamento, "Pedido pago não se cancela. Fale com o suporte.");
         Situacao = SituacaoDoPedido.Cancelado;
     }
 

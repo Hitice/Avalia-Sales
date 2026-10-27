@@ -22,8 +22,8 @@ public sealed class LinksTest(ApiDeTeste api)
         // Cabe na menor tag NFC (NTAG213, 144 bytes) com folga.
         Assert.True(System.Text.Encoding.UTF8.GetByteCount(link) <= 40);
         var lista = (await revenda.Dono.PegarItens("/links")).EnumerateArray().ToList();
-        Assert.Single(lista);
-        Assert.Equal("Avaliação no Google - Padaria Pão Quente", lista[0].GetProperty("titulo").GetString());
+        var unico = Assert.Single(lista);
+        Assert.Equal("Avaliação no Google - Padaria Pão Quente", unico.GetProperty("titulo").GetString());
     }
 
     [Fact]

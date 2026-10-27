@@ -19,12 +19,12 @@ public sealed class Contas(UserManager<Usuario> usuarios, BancoDeDados banco, Ge
         nome = (nome ?? string.Empty).Trim();
         if (nome.Length is 0 or > Usuario.NomeMaximo)
         {
-            throw new RegraDeNegocioException($"O nome precisa ter de 1 a {Usuario.NomeMaximo} caracteres.");
+            throw new RegraDeNegocioException($"Nome de 1 a {Usuario.NomeMaximo} caracteres.");
         }
 
         if (await usuarios.FindByEmailAsync(normalizado) is not null)
         {
-            throw new RegraDeNegocioException("Este e-mail já tem cadastro na plataforma.");
+            throw new RegraDeNegocioException("E-mail já cadastrado.");
         }
 
         var usuario = new Usuario { RevendedorId = revendedorId, Papel = papel, Nome = nome, UserName = normalizado, Email = normalizado, EmailConfirmed = emailConfirmado };
@@ -36,7 +36,6 @@ public sealed class Contas(UserManager<Usuario> usuarios, BancoDeDados banco, Ge
 
     public Task<string> Convidar(Guid usuarioId, Application.Avisos.RemetenteDoEmail revenda, CancellationToken ct) => senhas.Convidar(usuarioId, revenda, ct);
 
-    public Task PedirConfirmacao(Guid usuarioId, CancellationToken ct) => senhas.PedirConfirmacao(usuarioId, ct);
 
     public async Task<IReadOnlySet<Guid>> SemSenha(IEnumerable<Guid> ids, CancellationToken ct)
     {
@@ -108,7 +107,7 @@ public sealed class Contas(UserManager<Usuario> usuarios, BancoDeDados banco, Ge
         nome = (nome ?? string.Empty).Trim();
         if (nome.Length is 0 or > Usuario.NomeMaximo)
         {
-            throw new RegraDeNegocioException($"O nome precisa ter de 1 a {Usuario.NomeMaximo} caracteres.");
+            throw new RegraDeNegocioException($"Nome de 1 a {Usuario.NomeMaximo} caracteres.");
         }
 
         var usuario = await banco.Users.SingleAsync(u => u.Id == usuarioId, ct);
@@ -210,8 +209,8 @@ public sealed class Contas(UserManager<Usuario> usuarios, BancoDeDados banco, Ge
     /// <summary>As recusas do Identity que a regra de senha e de e-mail produzem, em português.</summary>
     internal static string Traduzir(IdentityError erro) => erro.Code switch
     {
-        nameof(IdentityErrorDescriber.PasswordTooShort) => "A senha precisa ter 10 caracteres ou mais.",
-        nameof(IdentityErrorDescriber.DuplicateEmail) or nameof(IdentityErrorDescriber.DuplicateUserName) => "Este e-mail já tem cadastro na plataforma.",
+        nameof(IdentityErrorDescriber.PasswordTooShort) => "Senha curta. Use 10 caracteres ou mais.",
+        nameof(IdentityErrorDescriber.DuplicateEmail) or nameof(IdentityErrorDescriber.DuplicateUserName) => "E-mail já cadastrado.",
         nameof(IdentityErrorDescriber.InvalidEmail) or nameof(IdentityErrorDescriber.InvalidUserName) => "E-mail inválido.",
         _ => erro.Description,
     };

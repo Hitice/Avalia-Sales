@@ -47,18 +47,18 @@ public sealed class Produto : IDoRevendedor
     /// <summary>
     /// O revendedor define o preço livremente, sem ficar abaixo do custo dele:
     /// na placa, o que pagou por ela no pacote; no serviço, nada além de ser
-    /// maior que zero (a Avalia fica com a taxa de cada venda).
+    /// maior que zero (o piso da parte da Avalia vem do catálogo).
     /// </summary>
     public void AjustarPreco(string nome, long precoCents, int? comissaoBps, long pisoCents)
     {
         if (precoCents <= 0)
         {
-            throw new RegraDeNegocioException("O preço precisa ser maior que zero.");
+            throw new RegraDeNegocioException("Preço precisa ser maior que zero.");
         }
 
         if (precoCents < pisoCents)
         {
-            throw new RegraDeNegocioException($"O preço não pode ficar abaixo do seu custo, R$ {pisoCents / 100}," + $"{pisoCents % 100:00}.");
+            throw new RegraDeNegocioException($"Preço abaixo do custo, R$ {pisoCents / 100}," + $"{pisoCents % 100:00}.");
         }
 
         Alterar(nome, precoCents, comissaoBps);
@@ -69,12 +69,12 @@ public sealed class Produto : IDoRevendedor
         nome = (nome ?? string.Empty).Trim();
         if (nome.Length is 0 or > NomeMaximo)
         {
-            throw new RegraDeNegocioException($"O nome do produto precisa ter de 1 a {NomeMaximo} caracteres.");
+            throw new RegraDeNegocioException($"Nome do produto de 1 a {NomeMaximo} caracteres.");
         }
 
         return nome;
     }
 
     private static long ValidarPreco(long precoCents) =>
-        precoCents >= 0 ? precoCents : throw new RegraDeNegocioException("O preço não pode ser negativo.");
+        precoCents >= 0 ? precoCents : throw new RegraDeNegocioException("Preço não pode ser negativo.");
 }

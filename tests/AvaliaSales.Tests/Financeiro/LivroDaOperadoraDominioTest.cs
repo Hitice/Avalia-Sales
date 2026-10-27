@@ -1,5 +1,8 @@
+using AvaliaSales.Application.Financeiro;
 using AvaliaSales.Domain;
 using AvaliaSales.Domain.Financeiro;
+using AvaliaSales.Infrastructure.Banco;
+using Microsoft.EntityFrameworkCore;
 
 namespace AvaliaSales.Tests.Financeiro;
 
@@ -12,7 +15,7 @@ public sealed class LivroDaOperadoraDominioTest
     {
         var revenda = Guid.NewGuid();
         var venda = Guid.NewGuid();
-        var linha = new LancamentoDaOperadora(TipoDeLancamentoDaOperadora.TaxaDaPlataforma, Guid.NewGuid(), 298, "Taxa da plataforma a acertar", Agora,
+        var linha = new LancamentoDaOperadora(TipoDeLancamentoDaOperadora.ParteDaAvaliaNosServicos, Guid.NewGuid(), 298, "Parte da Avalia a acertar", Agora,
             revendedorOrigemId: revenda, vendaId: venda, porFora: true);
 
         var estorno = linha.Estorno("recebimento por fora desfeito", Agora.AddDays(40));
@@ -65,9 +68,41 @@ public sealed class LivroDaOperadoraDominioTest
     }
 
     [Fact]
-    public void Parte_da_Avalia_e_reconhecida_pelo_inicio_da_descricao()
+    public void So_a_linha_antiga_da_taxa_da_plataforma_e_reconhecida_como_taxa()
     {
-        Assert.True(Lancamento.EParteDaAvalia("Parte da Avalia a acertar, venda de serviço recebida por fora"));
-        Assert.False(Lancamento.EParteDaAvalia("Taxa da plataforma, placa K7M2PX"));
+        Assert.True(Lancamento.DaTaxaDaPlataforma(new Lancamento(TipoDeLancamento.TaxaAvalia, Guid.NewGuid(), -298, "Taxa da plataforma, placa K7M2PX", Agora)));
+        Assert.False(Lancamento.DaTaxaDaPlataforma(new Lancamento(TipoDeLancamento.TaxaAvalia, Guid.NewGuid(), -298, "Parte da Avalia a acertar, serviço recebido por fora", Agora)));
+        Assert.False(Lancamento.DaTaxaDaPlataforma(new Lancamento(TipoDeLancamento.Despesa, Guid.NewGuid(), -298, "Taxa da plataforma de outro sistema", Agora)));
+    }
+
+    /// <summary>
+    /// A linha do livro é da parte da Avalia porque é o que o pagamento lança, e não porque a descrição começa com "Parte da Avalia":
+    /// texto novo na descrição não muda o tipo, nem no lançamento nem no estorno. Só a taxa antiga é estornada como taxa.
+    /// </summary>
+    [Fact]
+    public void Tipo_da_linha_do_livro_nao_depende_da_descricao_da_linha_do_razao()
+    {
+        var revenda = Guid.NewGuid();
+        var opcoes = new DbContextOptionsBuilder<BancoDeDados>().UseNpgsql("Host=nao.usado").UseSnakeCaseNamingConvention().Options;
+        using var banco = new BancoDeDados(opcoes, new RevendedorFixo(revenda));
+        var livro = new LivroDaOperadora(banco);
+        var parte = new Lancamento(TipoDeLancamento.TaxaAvalia, Guid.NewGuid(), -4_970, "Serviço da Avalia, Cardápio Digital", Agora, Guid.NewGuid());
+        var antiga = new Lancamento(TipoDeLancamento.TaxaAvalia, Guid.NewGuid(), -298, "Taxa da plataforma, placa K7M2PX", Agora, Guid.NewGuid());
+
+        livro.ParteDaAvalia(parte, revenda, porFora: false);
+        livro.ParteDaAvaliaEstornada(parte, parte.Estorno("venda desfeita", Agora), revenda, porFora: false);
+        livro.ParteDaAvaliaEstornada(antiga, antiga.Estorno("venda desfeita", Agora), revenda, porFora: false);
+
+        var linhas = banco.ChangeTracker.Entries<LancamentoDaOperadora>().Select(e => e.Entity).ToList();
+        Assert.Equal(TipoDeLancamentoDaOperadora.ParteDaAvaliaNosServicos, linhas.Single(l => l.Id == parte.Id).Tipo);
+        Assert.Equal(TipoDeLancamentoDaOperadora.ParteDaAvaliaNosServicos, linhas.Single(l => l.EstornaId == parte.Id).Tipo);
+        Assert.Equal(TipoDeLancamentoDaOperadora.TaxaDaPlataforma, linhas.Single(l => l.EstornaId == antiga.Id).Tipo);
+    }
+
+    private sealed class RevendedorFixo(Guid id) : AvaliaSales.Application.IRevendedorAtual
+    {
+        public Guid? RevendedorId => id;
+
+        public bool Operadora => false;
     }
 }

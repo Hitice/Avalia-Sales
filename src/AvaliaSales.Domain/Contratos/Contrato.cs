@@ -74,8 +74,8 @@ public sealed class Contrato : IDoRevendedor
     public Contrato(TipoDeContrato tipo, string titulo, string signatarioNome, string signatarioEmail, byte[] pdf)
     {
         Tipo = tipo;
-        Titulo = Obrigatorio(titulo, "O título do contrato");
-        SignatarioNome = Obrigatorio(signatarioNome, "O nome de quem assina");
+        Titulo = Obrigatorio(titulo, "Título do contrato");
+        SignatarioNome = Obrigatorio(signatarioNome, "Nome de quem assina");
         SignatarioEmail = ValidarEmail(signatarioEmail);
         Pdf = ValidarPdf(pdf);
         HashSha256 = Convert.ToHexStringLower(SHA256.HashData(pdf));
@@ -142,12 +142,12 @@ public sealed class Contrato : IDoRevendedor
     {
         if (Situacao != SituacaoDoContrato.AguardandoAssinatura || DocumentoNaAssinatura is null)
         {
-            throw new RegraDeNegocioException("O documento não está esperando assinatura.");
+            throw new RegraDeNegocioException("Documento não aguarda assinatura.");
         }
 
         if (ConferidoEm is { } ultima && agora - ultima < TimeSpan.FromMinutes(1))
         {
-            throw new RegraDeNegocioException("Aguarde 1 minuto para conferir de novo.");
+            throw new RegraDeNegocioException("Conferência há menos de 1 minuto. Aguarde.");
         }
     }
 
@@ -158,7 +158,7 @@ public sealed class Contrato : IDoRevendedor
         valor = (valor ?? string.Empty).Trim();
         return valor.Length is > 0 and <= TituloMaximo
             ? valor
-            : throw new RegraDeNegocioException($"{campo} precisa ter de 1 a {TituloMaximo} caracteres.");
+            : throw new RegraDeNegocioException($"{campo} de 1 a {TituloMaximo} caracteres.");
     }
 
     private static string ValidarEmail(string email)
@@ -167,19 +167,19 @@ public sealed class Contrato : IDoRevendedor
         var arroba = email.IndexOf('@', StringComparison.Ordinal);
         return arroba > 0 && arroba < email.Length - 3 && email.Length <= 254 && !email.Contains(' ', StringComparison.Ordinal)
             ? email
-            : throw new RegraDeNegocioException("O e-mail de quem assina não é válido.");
+            : throw new RegraDeNegocioException("E-mail de quem assina inválido.");
     }
 
     private static byte[] ValidarPdf(byte[] pdf)
     {
         if (pdf is null || pdf.Length < 5 || pdf.Length > PdfMaximoBytes)
         {
-            throw new RegraDeNegocioException("O contrato precisa ser um PDF de até 20 MB.");
+            throw new RegraDeNegocioException("Contrato em PDF de até 20 MB.");
         }
 
         return pdf.AsSpan(0, 5).SequenceEqual("%PDF-"u8)
             ? pdf
-            : throw new RegraDeNegocioException("O contrato precisa ser um arquivo PDF.");
+            : throw new RegraDeNegocioException("Arquivo do contrato não é PDF.");
     }
 
     /// <summary>
@@ -190,12 +190,12 @@ public sealed class Contrato : IDoRevendedor
     {
         if (Situacao != SituacaoDoContrato.AguardandoAssinatura || DocumentoNaAssinatura is null)
         {
-            throw new RegraDeNegocioException("O contrato não está esperando assinatura.");
+            throw new RegraDeNegocioException("Contrato não aguarda assinatura.");
         }
 
         if (ReenviadoEm is { } ultimo && agora - ultimo < TimeSpan.FromMinutes(1))
         {
-            throw new RegraDeNegocioException("Aguarde 1 minuto para reenviar o e-mail de assinatura.");
+            throw new RegraDeNegocioException("Reenvio há menos de 1 minuto. Aguarde.");
         }
 
         ReenviadoEm = agora;

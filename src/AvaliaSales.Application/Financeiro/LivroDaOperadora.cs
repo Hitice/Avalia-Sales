@@ -6,32 +6,32 @@ namespace AvaliaSales.Application.Financeiro;
 /// <summary>
 /// As linhas que o pagamento e a ativação do lote lançam no livro da operadora (ADR 0025), na
 /// transação de quem as causa. Roda na sessão da revenda: ela só insere, com a própria revenda
-/// como origem, e não lê o livro. Por isso a linha de taxa tem o mesmo Id da linha do razão que
-/// ela espelha, e o estorno aponta para esse Id sem consultar nada.
+/// como origem, e não lê o livro. Por isso a linha da parte da Avalia tem o mesmo Id da linha do
+/// razão que ela espelha, e o estorno aponta para esse Id sem consultar nada.
 /// </summary>
 public sealed class LivroDaOperadora(IBancoDeDados banco)
 {
-    /// <summary>A taxa retida no split, depois de lançada no razão da revenda: a operadora ganha o que a revenda paga.</summary>
-    public void Taxa(Lancamento taxaDoRazao, Guid revendedorId, bool porFora)
+    /// <summary>A parte da Avalia nos serviços retida no split, depois de lançada no razão da revenda: a operadora ganha o que a revenda paga.</summary>
+    public void ParteDaAvalia(Lancamento linhaDoRazao, Guid revendedorId, bool porFora)
     {
-        if (taxaDoRazao.Tipo != TipoDeLancamento.TaxaAvalia || taxaDoRazao.ValorCents >= 0)
+        if (linhaDoRazao.Tipo != TipoDeLancamento.TaxaAvalia || linhaDoRazao.ValorCents >= 0)
         {
             return;
         }
 
-        banco.LancamentosDaOperadora.Add(new LancamentoDaOperadora(TipoDaTaxa(taxaDoRazao.Descricao), taxaDoRazao.OrigemId, -taxaDoRazao.ValorCents,
-            taxaDoRazao.Descricao, taxaDoRazao.OcorridoEm, taxaDoRazao.Id, revendedorId, taxaDoRazao.VendaId, competencia: taxaDoRazao.Competencia, porFora: porFora));
+        banco.LancamentosDaOperadora.Add(new LancamentoDaOperadora(TipoNoLivro(linhaDoRazao), linhaDoRazao.OrigemId, -linhaDoRazao.ValorCents,
+            linhaDoRazao.Descricao, linhaDoRazao.OcorridoEm, linhaDoRazao.Id, revendedorId, linhaDoRazao.VendaId, competencia: linhaDoRazao.Competencia, porFora: porFora));
     }
 
-    /// <summary>O estorno da taxa no razão estorna a linha do livro junto. Linha de outro tipo não passa por aqui.</summary>
-    public void TaxaEstornada(Lancamento original, Lancamento estornoDoRazao, Guid revendedorId, bool porFora)
+    /// <summary>O estorno da parte da Avalia no razão estorna a linha do livro junto. Linha de outro tipo não passa por aqui.</summary>
+    public void ParteDaAvaliaEstornada(Lancamento original, Lancamento estornoDoRazao, Guid revendedorId, bool porFora)
     {
         if (original.Tipo != TipoDeLancamento.TaxaAvalia)
         {
             return;
         }
 
-        banco.LancamentosDaOperadora.Add(new LancamentoDaOperadora(TipoDaTaxa(original.Descricao), original.OrigemId, -estornoDoRazao.ValorCents,
+        banco.LancamentosDaOperadora.Add(new LancamentoDaOperadora(TipoNoLivro(original), original.OrigemId, -estornoDoRazao.ValorCents,
             estornoDoRazao.Descricao, estornoDoRazao.OcorridoEm, estornoDoRazao.Id, revendedorId, original.VendaId, original.Id, estornoDoRazao.Competencia, porFora));
     }
 
@@ -50,6 +50,12 @@ public sealed class LivroDaOperadora(IBancoDeDados banco)
             $"Pedido de {pedido.Quantidade} placas, lote {rotuloDoLote}", agora, revendedorOrigemId: pedido.RevendedorId));
     }
 
-    private static TipoDeLancamentoDaOperadora TipoDaTaxa(string descricaoDaLinhaOriginal) =>
-        Lancamento.EParteDaAvalia(descricaoDaLinhaOriginal) ? TipoDeLancamentoDaOperadora.ParteDaAvaliaNosServicos : TipoDeLancamentoDaOperadora.TaxaDaPlataforma;
+    /// <summary>
+    /// O tipo da linha do livro, pela linha <see cref="TipoDeLancamento.TaxaAvalia"/> do razão que ela espelha (o estorno usa a
+    /// original). A revenda não lê o livro, e o razão gravou a parte da Avalia e a taxa antiga com o mesmo tipo: só a linha antiga
+    /// da taxa da plataforma (histórico, que não muda mais) é <see cref="TipoDeLancamentoDaOperadora.TaxaDaPlataforma"/>. Toda outra
+    /// é a parte da Avalia, qualquer que seja o texto da descrição.
+    /// </summary>
+    private static TipoDeLancamentoDaOperadora TipoNoLivro(Lancamento linhaDoRazao) =>
+        Lancamento.DaTaxaDaPlataforma(linhaDoRazao) ? TipoDeLancamentoDaOperadora.TaxaDaPlataforma : TipoDeLancamentoDaOperadora.ParteDaAvaliaNosServicos;
 }

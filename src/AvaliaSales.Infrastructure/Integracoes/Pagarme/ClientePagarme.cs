@@ -20,9 +20,23 @@ public sealed class ClientePagarme(HttpClient http, IOptions<OpcoesPagarme> opco
     public async Task<PedidoDoGateway> CriarPedido(PedidoNoGateway pedido, CancellationToken ct)
     {
         var corpo = MontarPedido(pedido, opcoes.Value);
-        var resposta = await ChamadaExterna.Json(Sistema, () => http.PostAsJsonAsync("orders", corpo, ct), ct);
+        var resposta = await ChamadaExterna.Json(Sistema, () => http.SendAsync(Criacao("orders", corpo, pedido.Codigo), ct), ct);
         return LerPedido(resposta);
     }
+
+    /// <summary>
+    /// POST de criação com o código da cobrança no cabeçalho Idempotency-key: o Pagar.me devolve o mesmo pedido para a mesma chave
+    /// por 24 horas, em vez de cobrar duas vezes. É uma proteção a mais: o cliente não repete POST (ver o handler de resiliência), e o
+    /// código da cobrança é único. Documentado para a criação de pedidos; no link de pagamento, sem efeito documentado.
+    /// </summary>
+    private static HttpRequestMessage Criacao(string rota, JsonObject corpo, string codigo)
+    {
+        var requisicao = new HttpRequestMessage(HttpMethod.Post, rota) { Content = JsonContent.Create(corpo) };
+        requisicao.Headers.Add(CabecalhoDeIdempotencia, codigo);
+        return requisicao;
+    }
+
+    private const string CabecalhoDeIdempotencia = "Idempotency-key";
 
     /// <summary>
     /// POST /paymentlinks, type order, um pagamento só (max_paid_sessions 1),
@@ -31,7 +45,7 @@ public sealed class ClientePagarme(HttpClient http, IOptions<OpcoesPagarme> opco
     /// </summary>
     public async Task<LinkDoGateway> CriarLink(LinkNoGateway link, CancellationToken ct)
     {
-        var resposta = await ChamadaExterna.Json(Sistema, () => http.PostAsJsonAsync("paymentlinks", MontarLink(link, opcoes.Value), ct), ct);
+        var resposta = await ChamadaExterna.Json(Sistema, () => http.SendAsync(Criacao("paymentlinks", MontarLink(link, opcoes.Value), link.Codigo), ct), ct);
         return new LinkDoGateway(
             resposta.Texto("id") ?? throw new Application.IntegracaoException(Sistema, null, "link sem id"),
             resposta.Texto("url") ?? throw new Application.IntegracaoException(Sistema, null, "link sem url"));
@@ -90,6 +104,10 @@ public sealed class ClientePagarme(HttpClient http, IOptions<OpcoesPagarme> opco
 
         return null;
     }
+
+    /// <summary>PATCH /paymentlinks/{id}/cancel, sem corpo: o link ativo deixa de abrir o checkout. Responde 204.</summary>
+    public Task CancelarLink(string link, CancellationToken ct) =>
+        ChamadaExterna.Json(Sistema, () => http.PatchAsync($"paymentlinks/{Uri.EscapeDataString(link)}/cancel", null, ct), ct);
 
     /// <summary>
     /// GET /orders/{id} e DELETE /charges/{charge_id} de cada cobrança ainda

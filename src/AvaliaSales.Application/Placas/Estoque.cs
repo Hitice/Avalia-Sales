@@ -118,7 +118,7 @@ public sealed class Estoque(IBancoDeDados banco, IUsuarioAtual usuario, IRevende
             ?? throw new RegraDeNegocioException("Vendedor não encontrado.");
         if (!vendedor.Ativo)
         {
-            throw new RegraDeNegocioException($"{vendedor.Nome} está desativado.");
+            throw new RegraDeNegocioException($"Vendedor {vendedor.Nome} desativado.");
         }
 
         await using var transacao = await banco.Database.BeginTransactionAsync(ct);
@@ -128,7 +128,7 @@ public sealed class Estoque(IBancoDeDados banco, IUsuarioAtual usuario, IRevende
             var normalizados = codigos.Select(CodigoDaPlaca.Normalizar).Distinct().ToList();
             if (normalizados.Count > ConsignacaoMaxima)
             {
-                throw new RegraDeNegocioException($"Consigne até {ConsignacaoMaxima} placas por vez.");
+                throw new RegraDeNegocioException($"Consignação de 1 a {ConsignacaoMaxima} placas por vez.");
             }
 
             var invalido = codigos.FirstOrDefault(c => CodigoDaPlaca.Normalizar(c).Length == 0);
@@ -147,18 +147,18 @@ public sealed class Estoque(IBancoDeDados banco, IUsuarioAtual usuario, IRevende
             var comOutro = placas.FirstOrDefault(p => p.ConsignadaA is not null && p.ConsignadaA != vendedorId);
             if (comOutro is not null)
             {
-                throw new RegraDeNegocioException($"A placa {comOutro.Codigo} está com outro vendedor. Devolva antes.");
+                throw new RegraDeNegocioException($"Placa {comOutro.Codigo} com outro vendedor. Devolva antes.");
             }
         }
         else
         {
             var quantas = quantidade is >= 1 and <= ConsignacaoMaxima
                 ? quantidade.Value
-                : throw new RegraDeNegocioException($"Consigne de 1 a {ConsignacaoMaxima} placas por vez.");
+                : throw new RegraDeNegocioException($"Consignação de 1 a {ConsignacaoMaxima} placas por vez.");
             placas = await banco.TravarPlacasLivres(quantas, ct);
             if (placas.Count < quantas)
             {
-                throw new RegraDeNegocioException($"Só há {placas.Count} placas livres no estoque.");
+                throw new RegraDeNegocioException($"Só {placas.Count} placas livres no estoque.");
             }
         }
 
@@ -252,7 +252,7 @@ public sealed class Estoque(IBancoDeDados banco, IUsuarioAtual usuario, IRevende
     {
         if (motivo == MotivoDaBaixa.LoteArquivado)
         {
-            throw new RegraDeNegocioException("Para tirar o lote inteiro, arquive o lote.");
+            throw new RegraDeNegocioException("Lote inteiro não sai pela baixa. Arquive o lote.");
         }
 
         var placa = await PlacaDoCodigo(codigo, ct);
@@ -267,7 +267,7 @@ public sealed class Estoque(IBancoDeDados banco, IUsuarioAtual usuario, IRevende
         var placa = await PlacaDoCodigo(codigo, ct);
         if (placa.MotivoDaBaixa == MotivoDaBaixa.LoteArquivado)
         {
-            throw new RegraDeNegocioException("A placa saiu com o lote arquivado. Desarquive o lote.");
+            throw new RegraDeNegocioException("Placa de lote arquivado. Desarquive o lote.");
         }
 
         placa.DesfazerBaixa();
@@ -279,6 +279,6 @@ public sealed class Estoque(IBancoDeDados banco, IUsuarioAtual usuario, IRevende
     {
         var normalizado = CodigoDaPlaca.Normalizar(codigo);
         return await banco.Placas.SingleOrDefaultAsync(p => p.Codigo == normalizado, ct)
-            ?? throw new RegraDeNegocioException("Código não encontrado, verifique novamente.");
+            ?? throw new RegraDeNegocioException("Código não encontrado.");
     }
 }

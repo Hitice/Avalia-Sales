@@ -17,7 +17,7 @@ public sealed class RegrasDaVendaTest
     [Theory]
     [InlineData(14_990)]
     [InlineData(74_950)]
-    public void Valor_da_tabela_ate_cinco_vezes_passa(long valor) => Venda.ConferirValor(valor, 14_990);
+    public void Valor_da_tabela_ate_cinco_vezes_passa(long valor) => Assert.Null(Record.Exception(() => Venda.ConferirValor(valor, 14_990)));
 
     [Theory]
     [InlineData(14_990, 2_000, 2_998)]

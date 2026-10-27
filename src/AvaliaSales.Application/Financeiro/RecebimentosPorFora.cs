@@ -66,7 +66,7 @@ public sealed class RecebimentosPorFora(IBancoDeDados banco, IUsuarioAtual usuar
     {
         if (novos.DiaCents is < 0 or > LimiteMaximoCents || novos.VendaCents is < 0 or > LimiteMaximoCents || novos.DiaQuantidade is < 0 or > QuantidadeMaxima)
         {
-            throw new RegraDeNegocioException("Informe valores de zero a R$ 100.000.000,00 e até 10.000 recebimentos por dia.");
+            throw new RegraDeNegocioException("Limites de zero a R$ 100.000.000,00 e até 10.000 por dia.");
         }
 
         var vendedor = await banco.Vendedores.AsNoTracking().SingleOrDefaultAsync(v => v.Id == vendedorId, ct)
@@ -97,7 +97,7 @@ public sealed class RecebimentosPorFora(IBancoDeDados banco, IUsuarioAtual usuar
         var limites = await Limites(vendedorId, ct);
         if (valorCents > limites.VendaCents)
         {
-            throw new RegraDeNegocioException($"Recebimento por fora de até {Reais(limites.VendaCents)} por venda. Chame o revendedor para registrar.");
+            throw new RegraDeNegocioException($"Pagamento por fora de até {Reais(limites.VendaCents)} por venda. Chame o revendedor.");
         }
 
         var agora = relogio.GetUtcNow();
@@ -106,12 +106,12 @@ public sealed class RecebimentosPorFora(IBancoDeDados banco, IUsuarioAtual usuar
         var hoje = await DoDia(vendedorId, inicio, ct);
         if (hoje.Quantidade + 1 > limites.DiaQuantidade)
         {
-            throw new RegraDeNegocioException($"Limite de {limites.DiaQuantidade} recebimentos por fora no dia atingido. Chame o revendedor para registrar.");
+            throw new RegraDeNegocioException($"Limite de {limites.DiaQuantidade} pagamentos por fora no dia atingido. Chame o revendedor.");
         }
 
         if (hoje.ValorCents + valorCents > limites.DiaCents)
         {
-            throw new RegraDeNegocioException($"Limite de {Reais(limites.DiaCents)} recebidos por fora no dia ({Reais(hoje.ValorCents)} já registrados). Chame o revendedor para registrar.");
+            throw new RegraDeNegocioException($"Limite de {Reais(limites.DiaCents)} por fora no dia atingido ({Reais(hoje.ValorCents)} já registrados). Chame o revendedor.");
         }
     }
 

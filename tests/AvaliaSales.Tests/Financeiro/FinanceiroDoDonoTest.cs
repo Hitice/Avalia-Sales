@@ -43,7 +43,7 @@ public sealed class FinanceiroDoDonoTest(ApiDeTeste api)
     [Fact]
     public async Task Dre_do_mes_soma_vendido_recebido_receita_reconhecida_custos_despesas_e_deixa_a_retirada_abaixo_do_resultado()
     {
-        var revenda = await api.RevendaComEstoque("Revenda da DRE", taxaAvaliaBps: 199);
+        var revenda = await api.RevendaComEstoque("Revenda da DRE");
         var email = $"vendedor-{Guid.NewGuid():N}@teste.com.br";
         await revenda.Dono.Postar("/equipe", new { nome = "Lia", email, senha = ApiDeTeste.Senha, comissaoBps = 2_000 }, HttpStatusCode.Created);
         var lia = await api.ClienteLogado(email);
@@ -72,12 +72,13 @@ public sealed class FinanceiroDoDonoTest(ApiDeTeste api)
         Assert.Equal(34_990, Valor(dre, "recebidoCents"));
         Assert.Equal(reconhecida, Valor(dre, "receitaReconhecidaCents"));
         Assert.Equal(34_990 - reconhecida, Valor(dre, "aReconhecerCents"));
-        Assert.Equal(298 + 398, Valor(dre, "taxaCents"));
+        // Venda de placa não tem parte da Avalia.
+        Assert.Equal(0, Valor(dre, "parteDaAvaliaCents"));
         Assert.Equal(2_998 + 4_000, Valor(dre, "comissoesCents"));
         Assert.Equal(custoDoMes, Valor(dre, "custoDasPlacasCents"));
         Assert.Equal(custoDaPerdida, Valor(dre, "perdasCents"));
         Assert.Equal(7_500, Valor(dre, "despesasCents"));
-        Assert.Equal(reconhecida - 696 - 6_998 - custoDoMes - custoDaPerdida - 7_500, Valor(dre, "resultadoCents"));
+        Assert.Equal(reconhecida - 6_998 - custoDoMes - custoDaPerdida - 7_500, Valor(dre, "resultadoCents"));
         Assert.Equal(10_000, Valor(dre, "retiradasCents"));
         Assert.Equal("Frete,Marketing", string.Join(',', dre.GetProperty("despesasPorCategoria").EnumerateArray().Select(d => d.GetProperty("categoria").GetString())));
         Assert.Equal("ProLabore", dre.GetProperty("retiradasPorNatureza").EnumerateArray().Single().GetProperty("natureza").GetString());

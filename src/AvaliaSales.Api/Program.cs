@@ -186,6 +186,12 @@ if (args.Contains("--trocar-email"))
     return;
 }
 
+if (args.Contains("--desligar-segundo-fator"))
+{
+    Environment.ExitCode = await NovoRevendedor.DesligarSegundoFator(app.Services, args);
+    return;
+}
+
 if (args.Contains("--nova-operadora"))
 {
     Environment.ExitCode = await NovoRevendedor.CriarOperadora(app.Services, args);
@@ -292,8 +298,7 @@ app.MapearConta();
 app.MapearLeitura();
 app.MapearWebhooks();
 app.MapearSimulador();
-app.MapHub<HubDeAvisos>(HubDeAvisos.Rota);
+// A conexão ao vivo cai quando o token de acesso vence (ADR 0006): sessão encerrada não segue ouvindo avisos. O app reconecta com o token renovado.
+app.MapHub<HubDeAvisos>(HubDeAvisos.Rota, o => o.CloseOnAuthenticationExpiration = true);
 
 await app.RunAsync();
-
-public partial class Program;

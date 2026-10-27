@@ -28,13 +28,34 @@ public sealed class FluxoFinanceiroTest(ApiDeTeste api)
         return Guid.Parse(id).ToString("N");
     }
 
+    /// <summary>Cancelar com o link aberto cancela a cobrança no Pagar.me e aqui: o link não pode mais ser pago.</summary>
+    [Fact]
+    public async Task Pedido_com_link_aberto_pode_ser_cancelado_e_a_cobranca_e_cancelada_junto()
+    {
+        var operadora = await api.ClienteLogado(await api.CriarOperadora());
+        var (_, email) = await api.CriarRevendedor("Revenda Que Cancela Com Link");
+        var dono = await api.ClienteLogado(email);
+        var pacote = await Cenarios.PacoteDaQuantidade(operadora, Random.Shared.Next(851, 900), 20_000L);
+        var pedido = (await dono.Postar("/pedidos", new { pacoteId = pacote }, HttpStatusCode.Created)).GetProperty("id").GetGuid();
+        await dono.Postar($"/pedidos/{pedido}/pagamento", new { });
+        var link = api.Gateway.Links.Last();
+
+        await dono.Postar($"/pedidos/{pedido}/cancelamento", new { }, HttpStatusCode.NoContent);
+
+        var lido = (await dono.PegarItens("/pedidos")).EnumerateArray().Single(p => p.GetProperty("id").GetGuid() == pedido);
+        Assert.Equal("Cancelado", lido.GetProperty("situacao").GetString());
+        Assert.Contains("pl_" + link.Codigo[..12], api.Gateway.LinksCancelados);
+        await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
+        Assert.Equal(1, await banco.Contar($"select count(*) from cobrancas where origem = 'PedidoDePlacas' and origem_id = '{pedido}' and situacao = 'Cancelada'"));
+    }
+
     [Fact]
     public async Task Pedido_pago_pelo_link_do_checkout_fica_pago_e_avisa_a_operadora()
     {
         var operadora = await api.ClienteLogado(await api.CriarOperadora());
         var (_, email) = await api.CriarRevendedor("Revenda do Link");
         var dono = await api.ClienteLogado(email);
-        var pacote = await Cenarios.PacoteDaQuantidade(operadora, Random.Shared.Next(1_000 - 50, 1_000), 90_000L);
+        var pacote = await Cenarios.PacoteDaQuantidade(operadora, Cenarios.QuantidadeNova(), 90_000L);
         var pedido = (await dono.Postar("/pedidos", new { pacoteId = pacote }, HttpStatusCode.Created)).GetProperty("id").GetGuid();
 
         var url = (await dono.Postar($"/pedidos/{pedido}/pagamento", new { })).GetProperty("url").GetString();
@@ -42,9 +63,6 @@ public sealed class FluxoFinanceiroTest(ApiDeTeste api)
         Assert.Equal(url, deNovo);
         var link = api.Gateway.Links.Last();
         Assert.Equal(90_000, link.ValorCents);
-
-        // Link em aberto segura o cancelamento: o dinheiro ainda pode entrar.
-        await dono.Postar($"/pedidos/{pedido}/cancelamento", new { }, HttpStatusCode.UnprocessableEntity);
 
         api.Gateway.PagarLink(link.Codigo);
         await Conferir();
@@ -55,6 +73,7 @@ public sealed class FluxoFinanceiroTest(ApiDeTeste api)
         Assert.Equal(1, await banco.Contar($"select count(*) from emails where chave = 'pedido:{pedido:N}:pago'"));
         // O dono da revenda também recebe a confirmação do pagamento, uma vez só.
         Assert.Equal(1, await banco.Contar($"select count(*) from emails where chave like 'pagamento:pedido:{pedido:N}:%' and assunto like 'Pagamento confirmado%'"));
+        // O pedido de placas vai inteiro para a Avalia: a parte dela na cobrança é o valor todo.
         Assert.Equal(90_000, await banco.Contar($"select taxa_avalia_cents from cobrancas where origem = 'PedidoDePlacas' and origem_id = '{pedido}'"));
     }
 
@@ -64,7 +83,7 @@ public sealed class FluxoFinanceiroTest(ApiDeTeste api)
         var operadora = await api.ClienteLogado(await api.CriarOperadora());
         var (_, email) = await api.CriarRevendedor("Revenda do Cupom");
         var dono = await api.ClienteLogado(email);
-        var pacote = await Cenarios.PacoteDaQuantidade(operadora, Random.Shared.Next(800, 850), 15_000L);
+        var pacote = await Cenarios.PacoteDaQuantidade(operadora, Cenarios.QuantidadeNova(), 15_000L);
         var codigo = "TESTE" + Random.Shared.Next(1_000, 9_999);
         await operadora.Postar("/operadora/cupons", new { codigo, descontoBps = 10_000, usosMaximos = 1 }, HttpStatusCode.Created);
         var codigoParcial = "META" + Random.Shared.Next(1_000, 9_999);
@@ -85,9 +104,32 @@ public sealed class FluxoFinanceiroTest(ApiDeTeste api)
     }
 
     [Fact]
+    public async Task Venda_de_placa_paga_nao_manda_nada_para_a_avalia_no_split_nem_lanca_parte_da_avalia()
+    {
+        var revenda = await api.RevendaComEstoque("Revenda Só de Placa");
+        await revenda.Dono.Postar("/vendas", Cenarios.Venda(revenda.Codigos[0], revenda.ProdutoId, "11966660009"), HttpStatusCode.Created);
+        var codigo = await CodigoDaCobranca($"origem = 'Venda' and revendedor_id = '{revenda.Id}'");
+
+        var regra = Assert.Single(api.Gateway.Criados.Single(p => p.Codigo == codigo).Divisao);
+        Assert.Equal(14_990, regra.ValorCents);
+        Assert.NotEqual(api.Gateway.RecebedorDaAvalia, regra.Recebedor);
+
+        api.Gateway.Mudar(codigo, SituacaoDaCobranca.Paga);
+        await Conferir();
+
+        var razao = await revenda.Dono.Pegar("/razao");
+        Assert.Equal(14_990, razao.GetProperty("receitaCents").GetInt64());
+        Assert.Equal(0, razao.GetProperty("parteDaAvaliaCents").GetInt64());
+        await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
+        Assert.Equal(0, await banco.Contar($"select taxa_avalia_cents from cobrancas where id = '{Guid.ParseExact(codigo, "N")}'"));
+        Assert.Equal(0, await banco.Contar($"select count(*) from lancamentos where revendedor_id = '{revenda.Id}' and tipo = 'TaxaAvalia'"));
+        Assert.Equal(0, await banco.Contar($"select count(*) from lancamentos_da_operadora where revendedor_origem_id = '{revenda.Id}' and tipo in ('TaxaDaPlataforma', 'ParteDaAvaliaNosServicos')"));
+    }
+
+    [Fact]
     public async Task Venda_paga_vai_ao_razao_o_repasse_paga_o_saldo_e_o_estorno_desconta_no_proximo()
     {
-        var revenda = await api.RevendaComEstoque("Revenda do Razão", taxaAvaliaBps: 199);
+        var revenda = await api.RevendaComEstoque("Revenda do Razão");
         var email = $"vendedor-{Guid.NewGuid():N}@teste.com.br";
         var vendedor = (await revenda.Dono.Postar("/equipe", new { nome = "Lia", email, senha = ApiDeTeste.Senha, comissaoBps = 2_000 }, HttpStatusCode.Created)).GetProperty("id").GetGuid();
         var lia = await api.ClienteLogado(email);
@@ -102,7 +144,7 @@ public sealed class FluxoFinanceiroTest(ApiDeTeste api)
 
         var razao = await revenda.Dono.Pegar("/razao");
         Assert.Equal(34_990, razao.GetProperty("receitaCents").GetInt64());
-        Assert.Equal(298 + 398, razao.GetProperty("taxaAvaliaCents").GetInt64());
+        Assert.Equal(0, razao.GetProperty("parteDaAvaliaCents").GetInt64());
         Assert.Equal(2_998 + 4_000, razao.GetProperty("comissaoCents").GetInt64());
 
         var saldo = (await lia.Pegar("/comissoes")).EnumerateArray().Single();

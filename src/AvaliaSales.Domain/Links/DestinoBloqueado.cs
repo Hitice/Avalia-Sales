@@ -28,30 +28,47 @@ public sealed class DestinoBloqueado
     {
         Dominio = DominioDe(enderecoOuDominio) ?? throw new RegraDeNegocioException("Informe o domínio ou o endereço a bloquear, como golpe.exemplo.com.");
         var porque = (motivo ?? string.Empty).Trim();
-        Motivo = porque.Length is > 0 and <= MotivoMaximo ? porque : throw new RegraDeNegocioException($"Diga o motivo do bloqueio, com até {MotivoMaximo} caracteres.");
+        Motivo = porque.Length is > 0 and <= MotivoMaximo ? porque : throw new RegraDeNegocioException($"Informe o motivo do bloqueio, com até {MotivoMaximo} caracteres.");
         CriadoPor = criadoPor;
         CriadoEm = agora;
     }
 
-    /// <summary>O domínio de um endereço ou de um domínio digitado; nulo quando não parece um.</summary>
+    /// <summary>
+    /// O domínio de um endereço ou de um domínio digitado, como o navegador o resolve: punycode (IDN), minúsculas, sem
+    /// "www." e sem o ponto final ("golpe.com." é o mesmo host que "golpe.com"). Nulo quando não parece um domínio.
+    /// </summary>
     public static string? DominioDe(string? texto)
     {
-        var limpo = (texto ?? string.Empty).Trim().ToLowerInvariant();
+        var limpo = (texto ?? string.Empty).Trim();
         if (limpo.Length == 0)
         {
             return null;
         }
 
-        var host = limpo.Contains("://", StringComparison.Ordinal) && Uri.TryCreate(limpo, UriKind.Absolute, out var uri)
-            ? uri.Host
-            : limpo.Split('/', '?', '#')[0].Split('@')[^1].Split(':')[0];
+        var endereco = limpo.Contains("://", StringComparison.Ordinal) ? limpo : "http://" + limpo;
+        if (!Uri.TryCreate(endereco, UriKind.Absolute, out var uri) || uri.HostNameType is not (UriHostNameType.Dns or UriHostNameType.IPv4))
+        {
+            return null;
+        }
+
+        string host;
+        try
+        {
+            host = uri.IdnHost.ToLowerInvariant().TrimEnd('.');
+        }
+        catch (Exception erro) when (erro is UriFormatException or ArgumentException or InvalidOperationException)
+        {
+            return null;
+        }
+
         if (host.StartsWith("www.", StringComparison.Ordinal))
         {
             host = host[4..];
         }
 
         var valido = host.Length is >= 3 and <= DominioMaximo && host.Contains('.', StringComparison.Ordinal)
-            && !host.StartsWith('.') && !host.EndsWith('.') && host.All(c => char.IsAsciiLetterOrDigit(c) || c is '.' or '-');
+            && !host.StartsWith('.') && !host.Contains("..", StringComparison.Ordinal)
+            && host.All(c => char.IsAsciiLetterOrDigit(c) || c is '.' or '-' or '_');
         return valido ? host : null;
     }
 

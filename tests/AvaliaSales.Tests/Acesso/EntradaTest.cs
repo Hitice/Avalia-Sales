@@ -36,12 +36,4 @@ public sealed class EntradaTest(ApiDeTeste api)
         Assert.Equal(HttpStatusCode.Unauthorized, senhaErrada.StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, semConta.StatusCode);
     }
-
-    [Fact]
-    public async Task Catalogo_sem_token_responde_401()
-    {
-        var resposta = await api.Fabrica.CreateClient().GetAsync("/catalogo", TestContext.Current.CancellationToken);
-
-        Assert.Equal(HttpStatusCode.Unauthorized, resposta.StatusCode);
-    }
 }

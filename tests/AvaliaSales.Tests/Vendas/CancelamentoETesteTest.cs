@@ -92,7 +92,7 @@ public sealed class CancelamentoETesteTest(ApiDeTeste api)
 
         Assert.Equal(1, await banco.Contar($"select count(*) from ordens_de_servico where venda_id = '{venda}' and situacao = 'Cancelada'"));
         Assert.Equal(0, await banco.Contar($"select count(*) from notificacoes where venda_id = '{venda}' and lida_em is null"));
-        Assert.Equal(1, await banco.Contar("select count(*) from notificacoes where titulo = 'Pagamento estornado' and texto like '%Cancele a venda aqui também.' and lida_em is null"
+        Assert.Equal(1, await banco.Contar("select count(*) from notificacoes where titulo = 'Pagamento estornado' and texto like '%Cancele a venda%' and lida_em is null"
             + $" and revendedor_id = (select revendedor_id from vendas where id = '{venda}')"));
         Assert.Equal(0, await banco.Contar($"select coalesce(sum(valor_cents), 0) from lancamentos where venda_id = '{venda}'"));
 
@@ -128,7 +128,7 @@ public sealed class CancelamentoETesteTest(ApiDeTeste api)
 
         Assert.Equal(0, await banco.Contar($"select count(*) from notificacoes where venda_id = '{venda}' and lida_em is null"));
         Assert.Equal(1, await banco.Contar($"select count(*) from notificacoes where usuario_id = '{vendedorId}' and titulo = 'Venda cancelada'"
-            + " and texto like '%o cliente desistiu. A comissão foi estornada.' and lida_em is null"));
+            + " and texto like '%desistiu%' and texto like '%comissão%estornada%' and lida_em is null"));
         Assert.Equal(0, await banco.Contar("select count(*) from notificacoes where titulo = 'Pagamento estornado'"
             + $" and revendedor_id = (select revendedor_id from vendas where id = '{venda}')"));
     }

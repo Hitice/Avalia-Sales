@@ -199,7 +199,7 @@ internal static class Demonstracao
                 continue;
             }
 
-            var cobranca = new Cobranca(OrigemDaCobranca.Venda, venda.Id, MeioDePagamento.Pix, venda.ValorCents, 199);
+            var cobranca = new Cobranca(OrigemDaCobranca.Venda, venda.Id, MeioDePagamento.Pix, venda.ValorCents);
             cobranca.RegistrarPedido("or_simulado_" + cobranca.Codigo, "00020101021226800014br.gov.bcb.pix-simulado", null, quando.AddMinutes(30));
             if (v.Paga)
             {
@@ -302,7 +302,7 @@ internal static class Demonstracao
             var venda = new Venda(placa.Id, cliente.Id, produto.Id, produto.PrecoCents, vendedor, null, placa.CustoCents, 2_000, MeioDePagamento.Pix, quando);
             placa.Vender(venda.Id, LinkDeAvaliacao.De("ChIJsimuladoLugar0007xx"), quando);
             banco.Vendas.Add(venda);
-            var cobranca = new Cobranca(OrigemDaCobranca.Venda, venda.Id, MeioDePagamento.Pix, venda.ValorCents, 199);
+            var cobranca = new Cobranca(OrigemDaCobranca.Venda, venda.Id, MeioDePagamento.Pix, venda.ValorCents);
             cobranca.RegistrarPedido("or_simulado_" + cobranca.Codigo, "00020101021226800014br.gov.bcb.pix-simulado", null, quando.AddMinutes(30));
             if (paga)
             {

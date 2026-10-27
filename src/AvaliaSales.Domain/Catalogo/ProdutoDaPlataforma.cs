@@ -73,7 +73,7 @@ public sealed class ProdutoDaPlataforma
         chave = (chave ?? string.Empty).Trim().ToLowerInvariant();
         Chave = chave.Length is > 0 and <= 60 && chave.All(c => char.IsAsciiLetterLower(c) || char.IsAsciiDigit(c) || c == '-')
             ? chave
-            : throw new RegraDeNegocioException("A chave tem letras minúsculas, números e hífen, até 60.");
+            : throw new RegraDeNegocioException("Chave com letras minúsculas, números e hífen, até 60 caracteres.");
         CriadoEm = agora;
         Nome = Descricao = string.Empty;
         Alterar(nome, descricao, tipo, precoSugeridoCents, ordem);
@@ -84,18 +84,18 @@ public sealed class ProdutoDaPlataforma
         nome = (nome ?? string.Empty).Trim();
         Nome = nome.Length is > 0 and <= NomeMaximo
             ? nome
-            : throw new RegraDeNegocioException($"O nome do produto tem de 1 a {NomeMaximo} caracteres.");
+            : throw new RegraDeNegocioException($"Nome do produto de 1 a {NomeMaximo} caracteres.");
         descricao = (descricao ?? string.Empty).Trim();
         Descricao = descricao.Length <= DescricaoMaxima
             ? descricao
-            : throw new RegraDeNegocioException($"A descrição tem até {DescricaoMaxima} caracteres.");
+            : throw new RegraDeNegocioException($"Descrição com até {DescricaoMaxima} caracteres.");
         Tipo = Enum.IsDefined(tipo) ? tipo : throw new RegraDeNegocioException("Escolha o tipo do produto.");
-        PrecoSugeridoCents = precoSugeridoCents > 0 ? precoSugeridoCents : throw new RegraDeNegocioException("O preço sugerido precisa ser maior que zero.");
+        PrecoSugeridoCents = precoSugeridoCents > 0 ? precoSugeridoCents : throw new RegraDeNegocioException("Preço sugerido precisa ser maior que zero.");
         Ordem = ordem;
     }
 
     public void DefinirDescontoDaRevenda(int bps) =>
-        DescontoDaRevendaBps = bps is >= 0 and <= Base ? bps : throw new RegraDeNegocioException("O desconto da revenda vai de 0% a 100%.");
+        DescontoDaRevendaBps = bps is >= 0 and <= Base ? bps : throw new RegraDeNegocioException("Desconto da revenda de 0% a 100%.");
 
     /// <summary>O que a Avalia recebe pelo split em cada venda, arredondado ao centavo como a comissão.</summary>
     public long ParteDaAvaliaCents => GeraServico ? checked((PrecoSugeridoCents * (Base - DescontoDaRevendaBps) + Base / 2) / Base) : 0;
@@ -103,22 +103,21 @@ public sealed class ProdutoDaPlataforma
     public void DefinirQuantidadeMinima(int quantidade) =>
         QuantidadeMinima = quantidade is >= 1 and <= Vendas.Venda.QuantidadeMaxima && (!UsaPlaca || quantidade == 1)
             ? quantidade
-            : throw new RegraDeNegocioException("O pedido mínimo vai de 1 a 1000; o que leva placa do estoque sai de uma em uma.");
+            : throw new RegraDeNegocioException("Pedido mínimo de 1 a 1000. Produto com placa do estoque sai de uma em uma.");
 
     public void DefinirSituacao(SituacaoDoProduto situacao) =>
         Situacao = Enum.IsDefined(situacao) ? situacao : throw new RegraDeNegocioException("Situação desconhecida.");
 
-    public void DefinirFotoPadrao(string? caminho) => FotoPadrao = string.IsNullOrWhiteSpace(caminho) ? null : caminho.Trim();
 
     public void DefinirFoto(byte[] conteudo, string tipo)
     {
         if (conteudo.Length is 0 or > FotoMaxima)
         {
-            throw new RegraDeNegocioException("A foto tem até 512 KB.");
+            throw new RegraDeNegocioException("Foto com até 512 KB.");
         }
 
         Foto = conteudo;
-        FotoTipo = tipo is "image/webp" or "image/png" or "image/jpeg" ? tipo : throw new RegraDeNegocioException("A foto é WebP, PNG ou JPEG.");
+        FotoTipo = tipo is "image/webp" or "image/png" or "image/jpeg" ? tipo : throw new RegraDeNegocioException("Foto em WebP, PNG ou JPEG.");
         FotoVersao++;
     }
 

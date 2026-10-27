@@ -54,8 +54,8 @@ public sealed class Fornecedor
     {
         Nome = Registros.Texto(nome, NomeMaximo, "Informe o nome do fornecedor");
         Documento = string.IsNullOrWhiteSpace(documento) ? null : Documentos.Normalizar(documento, obrigatorio: true);
-        Contato = Opcional(contato, ContatoMaximo, "O contato");
-        Observacao = Opcional(observacao, ObservacaoMaxima, "A observação");
+        Contato = Opcional(contato, ContatoMaximo, "Contato");
+        Observacao = Opcional(observacao, ObservacaoMaxima, "Observação");
         const FuncaoDoFornecedor Todas = FuncaoDoFornecedor.Grafica | FuncaoDoFornecedor.Acrilico | FuncaoDoFornecedor.Confeccao | FuncaoDoFornecedor.Logistica | FuncaoDoFornecedor.Outros;
         Funcoes = funcoes != 0 && (funcoes & ~Todas) == 0 ? funcoes : throw new RegraDeNegocioException("Marque o que o fornecedor faz.");
     }
@@ -70,6 +70,6 @@ public sealed class Fornecedor
             return null;
         }
 
-        return texto.Length <= maximo ? texto : throw new RegraDeNegocioException($"{campo} tem no máximo {maximo} caracteres.");
+        return texto.Length <= maximo ? texto : throw new RegraDeNegocioException($"{campo} com até {maximo} caracteres.");
     }
 }

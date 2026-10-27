@@ -41,7 +41,7 @@ public static class RotasDaMarca
             {
                 if (memoria.Length + lidos > LogoDoRevendedor.MaximoBytes)
                 {
-                    throw new Domain.RegraDeNegocioException("O logo tem até 512 KB.");
+                    throw new Domain.RegraDeNegocioException("Logo com até 512 KB.");
                 }
 
                 memoria.Write(buffer, 0, lidos);

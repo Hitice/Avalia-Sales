@@ -10,13 +10,6 @@ public sealed class Revendedor
     public Guid Id { get; private set; } = Guid.CreateVersion7();
     public string Nome { get; private set; }
 
-    /// <summary>
-    /// Taxa da Avalia em pontos base. Cada cobrança copia o valor do momento.
-    /// Zero por padrão: a revenda paga a tarifa do Pagar.me e a Avalia ganha
-    /// nas placas e nos serviços.
-    /// </summary>
-    public int TaxaAvaliaBps { get; private set; }
-
     /// <summary>Recebedor do revendedor no Pagar.me (rp_... ou re_...). Sem ele, não há cobrança.</summary>
     public string? RecebedorPagarme { get; private set; }
 
@@ -90,7 +83,35 @@ public sealed class Revendedor
     public DateTimeOffset? GrupoDefinidoEm { get; private set; }
     public Guid? GrupoDefinidoPor { get; private set; }
 
+    /// <summary>
+    /// Recebe os clientes ativos de quem encerra a conta (distrato, cláusula 2; ADR 0029). Marca explícita da operadora,
+    /// no máximo uma revenda na plataforma (índice único parcial); nenhuma regra deduz a receptora do CNPJ ou do nome.
+    /// </summary>
+    public bool ReceptoraNoEncerramento { get; private set; }
+
     private Revendedor() => Nome = string.Empty;
+
+    /// <summary>Revenda que está saindo da plataforma não recebe os clientes de outra.</summary>
+    public void DefinirReceptora(bool receptora)
+    {
+        if (receptora && EncerradaEm is not null)
+        {
+            throw new RegraDeNegocioException("Revenda encerrada não recebe clientes. Escolha uma revenda ativa.");
+        }
+
+        if (receptora && EncerramentoPedidoEm is not null)
+        {
+            throw new RegraDeNegocioException("Revenda com encerramento pedido. Escolha outra como receptora.");
+        }
+
+        // Suspensa não vende nem renova: os clientes passados a ela ficariam sem atendimento.
+        if (receptora && SuspensaEm is not null)
+        {
+            throw new RegraDeNegocioException("Revenda suspensa. Escolha outra como receptora.");
+        }
+
+        ReceptoraNoEncerramento = receptora;
+    }
 
     public void DefinirDoGrupo(bool doGrupo, Guid? usuarioId, DateTimeOffset agora)
     {
@@ -105,7 +126,7 @@ public sealed class Revendedor
         {
             Cnpj = Documentos.Normalizar(cnpj, obrigatorio: true) is { Length: 14 } valido
                 ? valido
-                : throw new RegraDeNegocioException("Informe o CNPJ da empresa, com 14 números.");
+                : throw new RegraDeNegocioException("CNPJ inválido. Use 14 números.");
         }
 
         Nome = string.Empty;
@@ -121,7 +142,7 @@ public sealed class Revendedor
         Renomear(nome);
         Cnpj = Documentos.Normalizar(cnpj, obrigatorio: true) is { Length: 14 } valido
             ? valido
-            : throw new RegraDeNegocioException("Informe o CNPJ da empresa, com 14 números.");
+            : throw new RegraDeNegocioException("CNPJ inválido. Use 14 números.");
     }
 
     /// <summary>O nome da empresa. O CNPJ não muda: é a parte do contrato.</summary>
@@ -130,14 +151,8 @@ public sealed class Revendedor
         nome = (nome ?? string.Empty).Trim();
         Nome = nome.Length is > 0 and <= NomeMaximo
             ? nome
-            : throw new RegraDeNegocioException($"O nome da empresa precisa ter de 1 a {NomeMaximo} caracteres.");
+            : throw new RegraDeNegocioException($"Nome da empresa de 1 a {NomeMaximo} caracteres.");
     }
-
-    /// <summary>Vale para as cobranças novas; a venda já feita guarda a taxa dela.</summary>
-    public void DefinirTaxaAvalia(int bps) =>
-        TaxaAvaliaBps = bps is >= 0 and < Pagamentos.DivisaoDaCobranca.Base
-            ? bps
-            : throw new RegraDeNegocioException("A taxa da Avalia vai de 0% a 99,99%.");
 
     public void DefinirRecebedorPagarme(string recebedor)
     {
@@ -145,7 +160,7 @@ public sealed class Revendedor
         RecebedorPagarme = (recebedor.StartsWith("rp_", StringComparison.Ordinal) || recebedor.StartsWith("re_", StringComparison.Ordinal))
             && recebedor.Length is > 3 and <= 64 && recebedor[3..].All(char.IsAsciiLetterOrDigit)
             ? recebedor
-            : throw new RegraDeNegocioException("O recebedor do Pagar.me começa com rp_ ou re_.");
+            : throw new RegraDeNegocioException("Recebedor do Pagar.me começa com rp_ ou re_.");
     }
 
     public void DefinirCelular(string? celular) =>
@@ -169,7 +184,7 @@ public sealed class Revendedor
     {
         if (quantidade is < 1 or > LiberacaoMaxima)
         {
-            throw new RegraDeNegocioException($"A liberação vai de 1 a {LiberacaoMaxima} cadastros.");
+            throw new RegraDeNegocioException($"Liberação de 1 a {LiberacaoMaxima} cadastros.");
         }
 
         DestinosLiberados = (DestinosLiberadosEm == hoje ? DestinosLiberados : 0) + quantidade;
@@ -179,7 +194,7 @@ public sealed class Revendedor
     public void DefinirComissaoPadrao(int bps) => ComissaoPadraoBps = Comissao.Conferir(bps);
 
     public void DefinirRenovacao(int bps) =>
-        RenovacaoBps = bps is >= 1_000 and <= 10_000 ? bps : throw new RegraDeNegocioException("A renovação vai de 10% a 100% do valor da venda.");
+        RenovacaoBps = bps is >= 1_000 and <= 10_000 ? bps : throw new RegraDeNegocioException("Renovação de 10% a 100% do valor da venda.");
 
     public const int NomeExibidoMaximo = 40;
 
@@ -198,19 +213,19 @@ public sealed class Revendedor
         var nome = string.IsNullOrWhiteSpace(nomeExibido) ? null : nomeExibido.Trim();
         if (nome is { Length: > NomeExibidoMaximo })
         {
-            throw new RegraDeNegocioException($"O nome exibido tem até {NomeExibidoMaximo} caracteres.");
+            throw new RegraDeNegocioException($"Nome exibido com até {NomeExibidoMaximo} caracteres.");
         }
 
         var primaria = Contraste.Normalizar(corPrimaria);
         var destaque = Contraste.Normalizar(corDestaque);
         if (Contraste.Razao(primaria, Contraste.TextoSobre(primaria)) < ContrasteDeTexto)
         {
-            throw new RegraDeNegocioException("A cor primária não dá contraste com texto. Escolha uma mais escura ou mais clara.");
+            throw new RegraDeNegocioException("Cor primária sem contraste com o texto. Escolha uma mais escura ou mais clara.");
         }
 
         if (Contraste.Razao(destaque, Contraste.Branco) < ContrasteDeComponente)
         {
-            throw new RegraDeNegocioException("A cor de destaque some no fundo branco. Escolha uma com mais contraste.");
+            throw new RegraDeNegocioException("Cor de destaque sem contraste no fundo branco. Escolha outra.");
         }
 
         NomeExibido = nome;
@@ -239,11 +254,17 @@ public sealed class Revendedor
     {
         if (EncerradaEm is not null)
         {
-            throw new RegraDeNegocioException("A conta desta revenda está encerrada.");
+            throw new RegraDeNegocioException("Revenda encerrada.");
+        }
+
+        // A receptora suspensa deixaria o próximo distrato sem destino (ADR 0029): a operadora troca a marca antes.
+        if (ReceptoraNoEncerramento)
+        {
+            throw new RegraDeNegocioException("Revenda receptora. Marque outra antes de suspender.");
         }
 
         var texto = string.IsNullOrWhiteSpace(motivo) ? null : motivo.Trim();
-        MotivoDaSuspensao = texto is null || texto.Length <= MotivoMaximo ? texto : throw new RegraDeNegocioException($"O motivo tem até {MotivoMaximo} caracteres.");
+        MotivoDaSuspensao = texto is null || texto.Length <= MotivoMaximo ? texto : throw new RegraDeNegocioException($"Motivo com até {MotivoMaximo} caracteres.");
         SuspensaEm ??= agora;
     }
 
@@ -258,7 +279,7 @@ public sealed class Revendedor
     {
         if (SuspensaEm is not null)
         {
-            throw new RegraDeNegocioException("A revenda está suspensa pela Avalia. Fale com o suporte.");
+            throw new RegraDeNegocioException("Revenda suspensa. Fale com o suporte.");
         }
     }
 
@@ -268,17 +289,23 @@ public sealed class Revendedor
     {
         if (EncerradaEm is not null)
         {
-            throw new RegraDeNegocioException("A conta já está encerrada.");
+            throw new RegraDeNegocioException("Revenda já encerrada.");
         }
 
         if (EncerramentoPedidoEm is not null)
         {
-            throw new RegraDeNegocioException("O encerramento já foi pedido. Assine o distrato pelo e-mail da D4Sign.");
+            throw new RegraDeNegocioException("Encerramento já pedido. Assine o distrato pelo e-mail da D4Sign.");
         }
 
         if (Endereco is null)
         {
-            throw new RegraDeNegocioException("Complete o endereço da empresa em Meus dados antes de encerrar a conta.");
+            throw new RegraDeNegocioException("Endereço da empresa incompleto. Complete em Meus dados.");
+        }
+
+        // A receptora não recebe de si mesma: a operadora marca outra antes de ela encerrar.
+        if (ReceptoraNoEncerramento)
+        {
+            throw new RegraDeNegocioException("Revenda receptora não encerra. Fale com o suporte.");
         }
 
         EncerramentoPedidoEm = agora;
@@ -288,7 +315,7 @@ public sealed class Revendedor
     {
         if (EncerradaEm is not null)
         {
-            throw new RegraDeNegocioException("A conta já está encerrada.");
+            throw new RegraDeNegocioException("Revenda já encerrada.");
         }
 
         EncerramentoPedidoEm = null;
@@ -298,12 +325,12 @@ public sealed class Revendedor
     {
         if (EncerradaEm is null)
         {
-            throw new RegraDeNegocioException("A conta não está encerrada.");
+            throw new RegraDeNegocioException("Revenda não encerrada.");
         }
 
         if (ReaberturaPedidaEm is not null)
         {
-            throw new RegraDeNegocioException("A reabertura já foi pedida. O suporte da Avalia responde pelo chamado.");
+            throw new RegraDeNegocioException("Reabertura já pedida. O suporte responde pelo chamado.");
         }
 
         ReaberturaPedidaEm = agora;
@@ -313,7 +340,7 @@ public sealed class Revendedor
     {
         if (ReaberturaPedidaEm is null)
         {
-            throw new RegraDeNegocioException("Não há pedido de reabertura.");
+            throw new RegraDeNegocioException("Sem pedido de reabertura.");
         }
 
         ReaberturaPedidaEm = null;
@@ -328,7 +355,7 @@ public sealed class Revendedor
     {
         if (EncerradaEm is null)
         {
-            throw new RegraDeNegocioException("A conta não está encerrada.");
+            throw new RegraDeNegocioException("Revenda não encerrada.");
         }
 
         EncerradaEm = null;

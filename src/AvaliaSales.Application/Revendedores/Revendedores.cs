@@ -5,10 +5,10 @@ using Microsoft.Extensions.Options;
 
 namespace AvaliaSales.Application.Revendedores;
 
-public sealed record RevendedorDto(Guid Id, string Nome, string? Cnpj, int TaxaAvaliaBps, int ComissaoPadraoBps,
+public sealed record RevendedorDto(Guid Id, string Nome, string? Cnpj, int ComissaoPadraoBps,
     string? RecebedorPagarme, DateTimeOffset? ContratoAssinadoEm, DateTimeOffset CriadoEm, int RenovacaoBps, string? Celular,
     bool TemEndereco, DateTimeOffset? EncerramentoPedidoEm, DateTimeOffset? EncerradaEm, DateTimeOffset? ReaberturaPedidaEm,
-    DateTimeOffset? SuspensaEm = null, string? MotivoDaSuspensao = null, bool DoGrupoDaOperadora = false);
+    DateTimeOffset? SuspensaEm = null, string? MotivoDaSuspensao = null, bool DoGrupoDaOperadora = false, bool ReceptoraNoEncerramento = false);
 
 public sealed record MinhaRevenda(RevendedorDto Revendedor, SituacaoDoContrato? Contrato);
 
@@ -28,8 +28,8 @@ public sealed class Revendedores(IBancoDeDados banco, IRevendedorAtual atual, IU
         }
 
         return await consulta.OrderBy(r => r.Nome).ThenBy(r => r.Id)
-            .Select(r => new RevendedorDto(r.Id, r.Nome, r.Cnpj, r.TaxaAvaliaBps, r.ComissaoPadraoBps, r.RecebedorPagarme, r.ContratoAssinadoEm, r.CriadoEm, r.RenovacaoBps, r.Celular,
-                r.Endereco != null, r.EncerramentoPedidoEm, r.EncerradaEm, r.ReaberturaPedidaEm, r.SuspensaEm, r.MotivoDaSuspensao, r.DoGrupoDaOperadora))
+            .Select(r => new RevendedorDto(r.Id, r.Nome, r.Cnpj, r.ComissaoPadraoBps, r.RecebedorPagarme, r.ContratoAssinadoEm, r.CriadoEm, r.RenovacaoBps, r.Celular,
+                r.Endereco != null, r.EncerramentoPedidoEm, r.EncerradaEm, r.ReaberturaPedidaEm, r.SuspensaEm, r.MotivoDaSuspensao, r.DoGrupoDaOperadora, r.ReceptoraNoEncerramento))
             .PaginarAsync(pedido, ct);
     }
 
@@ -42,18 +42,24 @@ public sealed class Revendedores(IBancoDeDados banco, IRevendedorAtual atual, IU
             .Select(c => (SituacaoDoContrato?)c.Situacao)
             .FirstOrDefaultAsync(ct);
         return new MinhaRevenda(
-            new RevendedorDto(r.Id, r.Nome, r.Cnpj, r.TaxaAvaliaBps, r.ComissaoPadraoBps, r.RecebedorPagarme, r.ContratoAssinadoEm, r.CriadoEm, r.RenovacaoBps, r.Celular,
+            new RevendedorDto(r.Id, r.Nome, r.Cnpj, r.ComissaoPadraoBps, r.RecebedorPagarme, r.ContratoAssinadoEm, r.CriadoEm, r.RenovacaoBps, r.Celular,
                 r.Endereco is not null, r.EncerramentoPedidoEm, r.EncerradaEm, r.ReaberturaPedidaEm, r.SuspensaEm, r.MotivoDaSuspensao),
             contrato);
     }
 
-    /// <summary>Pela operadora: o dono é avisado no sino, com o motivo.</summary>
+    /// <summary>
+    /// Pela operadora: o dono é avisado no sino, com o motivo. A receptora não é suspensa; a trava da receptora impede
+    /// que a marca chegue a esta revenda no meio da suspensão.
+    /// </summary>
     public async Task Suspender(Guid id, string? motivo, CancellationToken ct)
     {
+        await using var transacao = await banco.Database.BeginTransactionAsync(ct);
+        await banco.TravarReceptora(ct);
         var revendedor = await Achar(id, ct);
         revendedor.Suspender(motivo, relogio.GetUtcNow());
         notificacoes.ParaDono(revendedor.Id, "Revenda suspensa", revendedor.MotivoDaSuspensao ?? "Fale com o suporte da Avalia.", "/painel/suporte");
         await banco.SaveChangesAsync(ct);
+        await transacao.CommitAsync(ct);
     }
 
     public async Task Reativar(Guid id, CancellationToken ct)
@@ -71,9 +77,42 @@ public sealed class Revendedores(IBancoDeDados banco, IRevendedorAtual atual, IU
     /// </summary>
     public async Task DefinirDoGrupo(Guid id, bool doGrupo, CancellationToken ct)
     {
+        // A marca abre o DRE da revenda à leitura da operadora: pede o segundo fator (ADR 0027).
+        await sensiveis.Exigir("Trocar grupo da revenda", ct);
         var revendedor = await Achar(id, ct);
         revendedor.DefinirDoGrupo(doGrupo, usuario.UsuarioId, relogio.GetUtcNow());
         await banco.SaveChangesAsync(ct);
+    }
+
+    /// <summary>
+    /// A revenda que recebe os clientes de quem encerra (ADR 0029). Decide para onde vão os clientes e as renovações deles,
+    /// como o CNPJ decidia antes: pede o segundo fator (ADR 0027). Marcar uma tira a marca da anterior na mesma transação;
+    /// tirar a marca com encerramento em andamento deixaria o distrato assinado sem destino.
+    /// </summary>
+    public async Task DefinirReceptora(Guid id, bool receptora, CancellationToken ct)
+    {
+        await sensiveis.Exigir("Trocar a revenda receptora", ct);
+        await using var transacao = await banco.Database.BeginTransactionAsync(ct);
+        await banco.TravarReceptora(ct);
+        var revendedor = await Achar(id, ct);
+        if (receptora)
+        {
+            revendedor.DefinirReceptora(true);
+            await banco.Revendedores.Where(r => r.ReceptoraNoEncerramento && r.Id != id)
+                .ExecuteUpdateAsync(s => s.SetProperty(r => r.ReceptoraNoEncerramento, false), ct);
+        }
+        else if (revendedor.ReceptoraNoEncerramento)
+        {
+            if (await banco.Revendedores.AnyAsync(r => r.EncerramentoPedidoEm != null && r.EncerradaEm == null, ct))
+            {
+                throw new RegraDeNegocioException("Há encerramento em andamento. Marque outra revenda como receptora.");
+            }
+
+            revendedor.DefinirReceptora(false);
+        }
+
+        await banco.SaveChangesAsync(ct);
+        await transacao.CommitAsync(ct);
     }
 
     /// <summary>
@@ -82,12 +121,12 @@ public sealed class Revendedores(IBancoDeDados banco, IRevendedorAtual atual, IU
     /// </summary>
     public async Task CorrigirCadastro(Guid id, string nome, string cnpj, CancellationToken ct)
     {
-        await sensiveis.Exigir("Trocar o nome ou o CNPJ da revenda", ct);
+        await sensiveis.Exigir("Trocar nome ou CNPJ da revenda", ct);
         var revendedor = await Achar(id, ct);
         revendedor.CorrigirCadastro(nome, cnpj);
         if (await banco.Revendedores.AnyAsync(r => r.Id != id && r.Cnpj == revendedor.Cnpj, ct))
         {
-            throw new RegraDeNegocioException("Já existe uma revenda com este CNPJ.");
+            throw new RegraDeNegocioException("CNPJ já cadastrado.");
         }
 
         await banco.SaveChangesAsync(ct);
@@ -95,7 +134,7 @@ public sealed class Revendedores(IBancoDeDados banco, IRevendedorAtual atual, IU
 
     public async Task DefinirRecebedor(Guid id, string recebedor, CancellationToken ct)
     {
-        await sensiveis.Exigir("Trocar o recebedor do Pagar.me", ct);
+        await sensiveis.Exigir("Trocar recebedor do Pagar.me", ct);
         var revendedor = await Achar(id, ct);
         revendedor.DefinirRecebedorPagarme(recebedor);
         // O recebedor define para onde vai o dinheiro das vendas da revenda: o dono é avisado de toda troca, para estranhar a que não pediu.
@@ -103,9 +142,10 @@ public sealed class Revendedores(IBancoDeDados banco, IRevendedorAtual atual, IU
         await banco.SaveChangesAsync(ct);
     }
 
-    /// <summary>A operadora define o preço da renovação de cada revenda; vale para renovação nova.</summary>
+    /// <summary>A operadora define o preço da renovação de cada revenda; vale para renovação nova. É dinheiro da revenda: pede o segundo fator (ADR 0027).</summary>
     public async Task DefinirRenovacao(Guid id, int bps, CancellationToken ct)
     {
+        await sensiveis.Exigir("Trocar preço da renovação", ct);
         (await Achar(id, ct)).DefinirRenovacao(bps);
         await banco.SaveChangesAsync(ct);
     }
@@ -158,5 +198,5 @@ public sealed class Revendedores(IBancoDeDados banco, IRevendedorAtual atual, IU
     }
 
     private async Task<Domain.Revendedores.Revendedor> Achar(Guid id, CancellationToken ct) =>
-        await banco.Revendedores.SingleOrDefaultAsync(r => r.Id == id, ct) ?? throw new RegraDeNegocioException("Revendedor não encontrado.");
+        await banco.Revendedores.SingleOrDefaultAsync(r => r.Id == id, ct) ?? throw new RegraDeNegocioException("Revenda não encontrada.");
 }

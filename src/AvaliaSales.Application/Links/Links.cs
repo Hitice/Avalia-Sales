@@ -70,8 +70,8 @@ public sealed class Links(IBancoDeDados banco, IRevendedorAtual atual, IUsuarioA
         {
             // O vendedor só recebe o endereço do link que já enxerga; o de outro fica com o dono.
             throw new RegraDeNegocioException(await DoUsuario(banco.Links.AsNoTracking()).AnyAsync(l => l.Id == existente.Id, ct)
-                ? $"Este destino já tem o link {plataforma.Value.EnderecoDoLink(existente.Codigo)}."
-                : "Este destino já tem um link. Peça ao revendedor.");
+                ? $"Destino já com o link {plataforma.Value.EnderecoDoLink(existente.Codigo)}."
+                : "Destino já com link. Peça ao revendedor.");
         }
 
         await destinosBloqueados.ExigirPermitido(destino, ct);

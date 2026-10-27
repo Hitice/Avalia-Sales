@@ -41,7 +41,7 @@ public sealed class ContaEncerrada(RequestDelegate proximo)
 
         await Results.Problem(
             title: "Conta encerrada",
-            detail: "A conta foi encerrada pelo distrato. Ela só consulta e exporta os dados.",
+            detail: "Conta encerrada pelo distrato. Só consulta e exportação.",
             statusCode: StatusCodes.Status409Conflict).ExecuteAsync(http);
     }
 }

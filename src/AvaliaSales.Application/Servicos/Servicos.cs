@@ -66,7 +66,7 @@ public sealed class Servicos(IBancoDeDados banco, IRevendedorAtual atual, Notifi
             if (venda?.Situacao == Domain.Vendas.SituacaoDaVenda.Cancelada || !await banco.Cobrancas.AnyAsync(c => c.Origem == Domain.Pagamentos.OrigemDaCobranca.Venda
                     && c.OrigemId == cobradaPor && c.Situacao == Domain.Pagamentos.SituacaoDaCobranca.Paga, ct))
             {
-                throw new RegraDeNegocioException("A venda deste serviço não está paga.");
+                throw new RegraDeNegocioException("Venda do serviço não paga.");
             }
         }
 
@@ -83,7 +83,7 @@ public sealed class Servicos(IBancoDeDados banco, IRevendedorAtual atual, Notifi
     {
         if (!atual.Operadora)
         {
-            throw new RegraDeNegocioException("Só a Avalia anda com a ordem de serviço.");
+            throw new RegraDeNegocioException("Só a operadora anda com a ordem de serviço.");
         }
 
         var ordem = await Achar(id, ct);

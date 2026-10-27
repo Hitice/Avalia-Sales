@@ -37,6 +37,16 @@ public sealed class EfeitosDaCobranca(IBancoDeDados banco, FilaDeEmails avisos, 
         }
     }
 
+    /// <summary>A cobrança cancelada que o Pagar.me diz paga: aviso único à operadora para devolver o dinheiro.</summary>
+    public void PagaDepoisDeCancelada(Cobranca cobranca, string pedidoNoGateway) =>
+        avisos.Enfileirar($"cobranca:{cobranca.Id:N}:paga-depois-de-cancelada", plataforma.Value.EmailDaOperadora,
+            "Pagamento a devolver - cobrança cancelada",
+            $"""
+            A cobrança {cobranca.Codigo} ({cobranca.Origem}, {Financeiro.RecebimentosPorFora.Reais(cobranca.ValorCents)}) estava cancelada e foi paga no Pagar.me (pedido {pedidoNoGateway}).
+
+            Estorne pelo painel do Pagar.me ou fale com a revenda.
+            """);
+
     private async Task PedidoPago(Cobranca cobranca, DateTimeOffset agora, CancellationToken ct)
     {
         var pedido = await banco.Pedidos.SingleOrDefaultAsync(p => p.Id == cobranca.OrigemId, ct);
@@ -73,11 +83,13 @@ public sealed class EfeitosDaCobranca(IBancoDeDados banco, FilaDeEmails avisos, 
     }
 
     /// <summary>
-    /// Receita bruta, taxa da Avalia retida no split e a comissão que passa a
-    /// ser devida, de cada venda que a cobrança paga: a sozinha, ou as do grupo
-    /// (as que seguem de pé). No grupo, cada venda recebe o valor dela, e a
-    /// última fica com o que sobra (o custo do parcelamento e os centavos do
-    /// rateio da taxa), para a soma bater com a cobrança.
+    /// Receita bruta, parte da Avalia nos serviços retida no split e a comissão
+    /// que passa a ser devida, de cada venda que a cobrança paga: a sozinha, ou
+    /// as do grupo (as que seguem de pé). No grupo, cada venda recebe o valor
+    /// dela, e a última fica com o que sobra (o custo do parcelamento). A parte
+    /// da Avalia é rateada só entre as vendas de serviço, pela parte de cada
+    /// uma, e a última delas fica com os centavos do rateio: a venda de placa
+    /// não manda nada à Avalia.
     /// </summary>
     private async Task VendaPaga(Cobranca cobranca, CancellationToken ct)
     {
@@ -85,22 +97,23 @@ public sealed class EfeitosDaCobranca(IBancoDeDados banco, FilaDeEmails avisos, 
         var vendas = (await banco.Vendas.Where(v => v.Id == origem || v.GrupoId == origem).ToListAsync(ct))
             .Where(v => v.GrupoId is null || v.Situacao == SituacaoDaVenda.Registrada)
             .OrderBy(v => v.VendidaEm).ThenBy(v => v.Id).ToList();
-        var soma = vendas.Sum(v => v.ValorCents);
-        var (receitaQueSobra, taxaQueSobra) = (cobranca.ValorCents, cobranca.TaxaAvaliaCents);
+        var somaDasPartes = vendas.Sum(v => v.ParteDaAvaliaCents);
+        var ultimaComParte = vendas.FindLastIndex(v => v.ParteDaAvaliaCents > 0);
+        var (receitaQueSobra, parteQueSobra) = (cobranca.ValorCents, cobranca.ParteDaAvaliaCents);
         for (var i = 0; i < vendas.Count; i++)
         {
             var venda = vendas[i];
-            var ultima = i == vendas.Count - 1;
-            var receita = ultima ? receitaQueSobra : venda.ValorCents;
-            var taxa = ultima || soma == 0 ? taxaQueSobra : cobranca.TaxaAvaliaCents * venda.ValorCents / soma;
-            (receitaQueSobra, taxaQueSobra) = (receitaQueSobra - receita, taxaQueSobra - taxa);
-            await LancarVenda(cobranca, venda, receita, taxa, ct);
+            var receita = i == vendas.Count - 1 ? receitaQueSobra : venda.ValorCents;
+            var parte = i == ultimaComParte ? parteQueSobra
+                : venda.ParteDaAvaliaCents > 0 ? cobranca.ParteDaAvaliaCents * venda.ParteDaAvaliaCents / somaDasPartes : 0;
+            (receitaQueSobra, parteQueSobra) = (receitaQueSobra - receita, parteQueSobra - parte);
+            await LancarVenda(cobranca, venda, receita, parte, ct);
         }
 
         await confirmacoes.VendaPaga(cobranca, vendas, ct);
     }
 
-    private async Task LancarVenda(Cobranca cobranca, Domain.Vendas.Venda venda, long receitaCents, long taxaCents, CancellationToken ct)
+    private async Task LancarVenda(Cobranca cobranca, Domain.Vendas.Venda venda, long receitaCents, long parteDaAvaliaCents, CancellationToken ct)
     {
         if (await banco.Lancamentos.AnyAsync(l => l.OrigemId == cobranca.Id && l.VendaId == venda.Id && l.EstornaId == null, ct))
         {
@@ -115,13 +128,13 @@ public sealed class EfeitosDaCobranca(IBancoDeDados banco, FilaDeEmails avisos, 
         var quando = cobranca.PagaEm!.Value;
         banco.AvisarAoVivo("pagamento", venda.RevendedorId);
         banco.Lancamentos.Add(new Lancamento(TipoDeLancamento.Receita, cobranca.Id, receitaCents, $"Venda da {item}", quando, venda.Id, venda.VendedorId));
-        if (taxaCents > 0)
+        if (parteDaAvaliaCents > 0)
         {
-            var oQue = venda.ParteDaAvaliaCents > 0 ? Lancamento.InicioDaParteDaAvalia : "Taxa da plataforma";
-            var taxa = cobranca.PorFora ? $"{oQue} a acertar, {item} recebida por fora" : $"{oQue}, {item}";
-            var linhaDaTaxa = new Lancamento(TipoDeLancamento.TaxaAvalia, cobranca.Id, -taxaCents, taxa, quando, venda.Id);
-            banco.Lancamentos.Add(linhaDaTaxa);
-            livro.Taxa(linhaDaTaxa, venda.RevendedorId, cobranca.PorFora);
+            const string oQue = Lancamento.InicioDaParteDaAvalia;
+            var descricao = cobranca.PorFora ? $"{oQue} a acertar, {item} recebida por fora" : $"{oQue}, {item}";
+            var linhaDaParte = new Lancamento(TipoDeLancamento.TaxaAvalia, cobranca.Id, -parteDaAvaliaCents, descricao, quando, venda.Id);
+            banco.Lancamentos.Add(linhaDaParte);
+            livro.ParteDaAvalia(linhaDaParte, venda.RevendedorId, cobranca.PorFora);
         }
 
         if (venda.ComissaoCents > 0)
@@ -161,7 +174,7 @@ public sealed class EfeitosDaCobranca(IBancoDeDados banco, FilaDeEmails avisos, 
         }
     }
 
-    /// <summary>A placa ganha mais um ano; renovação não comissiona.</summary>
+    /// <summary>A placa ganha mais um ano; renovação não comissiona nem manda nada à Avalia.</summary>
     private async Task RenovacaoPaga(Cobranca cobranca, CancellationToken ct)
     {
         var renovacao = await banco.Renovacoes.SingleOrDefaultAsync(r => r.Id == cobranca.OrigemId, ct);
@@ -179,13 +192,6 @@ public sealed class EfeitosDaCobranca(IBancoDeDados banco, FilaDeEmails avisos, 
 
         banco.Lancamentos.Add(new Lancamento(TipoDeLancamento.Receita, cobranca.Id, cobranca.ValorCents, $"Renovação da placa {placa.Codigo}", quando, renovacao.VendaId));
         banco.AvisarAoVivo("pagamento", placa.RevendedorId);
-        if (cobranca.TaxaAvaliaCents > 0)
-        {
-            var taxa = cobranca.PorFora ? $"Taxa da plataforma a acertar, renovação {placa.Codigo} recebida por fora" : $"Taxa da plataforma, renovação {placa.Codigo}";
-            var linhaDaTaxa = new Lancamento(TipoDeLancamento.TaxaAvalia, cobranca.Id, -cobranca.TaxaAvaliaCents, taxa, quando, renovacao.VendaId);
-            banco.Lancamentos.Add(linhaDaTaxa);
-            livro.Taxa(linhaDaTaxa, placa.RevendedorId, cobranca.PorFora);
-        }
     }
 
     /// <summary>
@@ -201,7 +207,7 @@ public sealed class EfeitosDaCobranca(IBancoDeDados banco, FilaDeEmails avisos, 
         {
             var estorno = linha.Estorno(cobranca.PorFora ? "recebimento por fora desfeito" : "pagamento estornado no Pagar.me", agora);
             banco.Lancamentos.Add(estorno);
-            livro.TaxaEstornada(linha, estorno, cobranca.RevendedorId, cobranca.PorFora);
+            livro.ParteDaAvaliaEstornada(linha, estorno, cobranca.RevendedorId, cobranca.PorFora);
         }
 
         if (cobranca.Origem == OrigemDaCobranca.Venda && cobranca.OrigemId is { } origem)

@@ -46,6 +46,7 @@ public sealed class AvisoDeVencimentoTest(ApiDeTeste api)
         await Rotinas(DateTimeOffset.UtcNow.AddMonths(12).AddDays(-3));
         await Rotinas(DateTimeOffset.UtcNow.AddMonths(12).AddDays(-2));
         Assert.Equal(2, await banco.Contar($"select count(*) from emails where chave like '{chave}'"));
-        Assert.Contains("Sua placa de avaliação vence em", await banco.Texto($"select assunto from emails where chave like '{chave}' order by criado_em desc limit 1"), StringComparison.Ordinal);
+        var vence = await banco.Texto($"select to_char(vence_em at time zone 'America/Sao_Paulo', 'DD/MM/YYYY') from placas where codigo = '{codigo}'");
+        Assert.Contains($"vence em {vence}", await banco.Texto($"select assunto from emails where chave like '{chave}' order by criado_em desc limit 1"), StringComparison.Ordinal);
     }
 }

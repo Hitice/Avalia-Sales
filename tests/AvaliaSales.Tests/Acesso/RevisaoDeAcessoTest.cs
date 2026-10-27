@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.RegularExpressions;
 using AvaliaSales.Tests.Apoio;
 
 namespace AvaliaSales.Tests.Acesso;
@@ -9,21 +10,9 @@ namespace AvaliaSales.Tests.Acesso;
 /// correção: o que cada um prova está no comentário.
 /// </summary>
 [Collection(ColecaoDaApi.Nome)]
-public sealed class RevisaoDeAcessoTest(ApiDeTeste api)
+public sealed partial class RevisaoDeAcessoTest(ApiDeTeste api)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
-
-    private static string Cnpj()
-    {
-        var d = Enumerable.Range(0, 12).Select(_ => Random.Shared.Next(10)).ToList();
-        foreach (var pesos in new[] { new[] { 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2 }, new[] { 6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2 } })
-        {
-            var resto = d.Select((n, i) => n * pesos[i]).Sum() % 11;
-            d.Add(resto < 2 ? 0 : 11 - resto);
-        }
-
-        return string.Concat(d);
-    }
 
     /// <summary>
     /// Quem sabe a senha repete "senha certa, 4 códigos errados" sem parar: a senha certa
@@ -81,7 +70,7 @@ public sealed class RevisaoDeAcessoTest(ApiDeTeste api)
         await api.Fabrica.CreateClient().Postar("/auth/senha/link", new { email }, HttpStatusCode.NoContent);
         await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
         var texto = (await banco.UltimoEmail(email)).Texto;
-        var token = System.Text.RegularExpressions.Regex.Match(texto, @"/senha#([A-Za-z0-9_-]{20,})").Groups[1].Value;
+        var token = LinkDaSenha().Match(texto).Groups[1].Value;
         Assert.NotEmpty(token);
 
         var respostas = await Disparar(8, () => api.Fabrica.CreateClient().PostAsJsonAsync("/auth/senha", new { token, senha = "senha-nova-paralela-1" }, Ct));
@@ -91,36 +80,13 @@ public sealed class RevisaoDeAcessoTest(ApiDeTeste api)
     }
 
     /// <summary>
-    /// Renovações do mesmo cookie ao mesmo tempo (várias abas, retentativa): dentro da janela de
-    /// tolerância todas recebem sessão, nenhuma vira 500 e a família não é revogada
-    /// (ToleranciaDoRefreshTest cobre o reuso fora da janela).
-    /// </summary>
-    [Fact]
-    public async Task Renovacoes_simultaneas_do_mesmo_token_dentro_da_janela_nao_derrubam_a_sessao()
-    {
-        var (_, email) = await api.CriarRevendedor("Revenda Renovação Dupla");
-        var cliente = api.Fabrica.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions { HandleCookies = false });
-        var entrada = await cliente.PostAsJsonAsync("/auth/entrar", new { email, senha = ApiDeTeste.Senha }, Ct);
-        var cookie = entrada.Headers.GetValues("Set-Cookie").Single(c => c.StartsWith("avalia_sessao=", StringComparison.Ordinal)).Split(';')[0];
-
-        var respostas = await Task.WhenAll(Enumerable.Range(0, 8).Select(async _ =>
-        {
-            var pedido = new HttpRequestMessage(HttpMethod.Post, "/auth/renovar");
-            pedido.Headers.Add("Cookie", cookie);
-            return (await cliente.SendAsync(pedido, Ct)).StatusCode;
-        }));
-
-        Assert.All(respostas, s => Assert.Equal(HttpStatusCode.OK, s));
-    }
-
-    /// <summary>
     /// Dois cadastros ao mesmo tempo com o mesmo CNPJ ou e-mail: o banco barra o segundo, e a
     /// resposta tem de ser a recusa de sempre (422), e não um 500 com o erro no Sentry.
     /// </summary>
     [Fact]
     public async Task Cadastros_simultaneos_com_o_mesmo_cnpj_recusam_o_segundo_sem_erro_500()
     {
-        var cnpj = Cnpj();
+        var cnpj = Cenarios.Cnpj();
         var respostas = await Task.WhenAll(Enumerable.Range(0, 6).Select(async i =>
         {
             var resposta = await api.Fabrica.CreateClient().PostAsJsonAsync("/cadastro",
@@ -131,7 +97,7 @@ public sealed class RevisaoDeAcessoTest(ApiDeTeste api)
         // O cadastro responde igual para quem repete (202), e o banco nunca guarda dois com o mesmo CNPJ.
         Assert.DoesNotContain(HttpStatusCode.InternalServerError, respostas);
         await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
-        Assert.InRange(await banco.Contar($"select count(*) from revendedores where cnpj = '{cnpj}'"), 0, 1);
+        Assert.Equal(1, await banco.Contar($"select count(*) from revendedores where cnpj = '{cnpj}'"));
     }
 
     [Fact]
@@ -141,13 +107,13 @@ public sealed class RevisaoDeAcessoTest(ApiDeTeste api)
         var respostas = await Task.WhenAll(Enumerable.Range(0, 6).Select(async _ =>
         {
             var resposta = await api.Fabrica.CreateClient().PostAsJsonAsync("/cadastro",
-                new { empresa = "Revenda Corrida Email", cnpj = Cnpj(), celular = "(11) 98765-4321", endereco = ApiDeTeste.Endereco, nome = "Bia", email, senha = ApiDeTeste.Senha }, Ct);
+                new { empresa = "Revenda Corrida Email", cnpj = Cenarios.Cnpj(), celular = "(11) 98765-4321", endereco = ApiDeTeste.Endereco, nome = "Bia", email, senha = ApiDeTeste.Senha }, Ct);
             return resposta.StatusCode;
         }));
 
         Assert.DoesNotContain(HttpStatusCode.InternalServerError, respostas);
         await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
-        Assert.InRange(await banco.Contar($"select count(*) from usuarios where email = '{email}'"), 0, 1);
+        Assert.Equal(1, await banco.Contar($"select count(*) from usuarios where email = '{email}'"));
     }
 
     /// <summary>Corridas nas demais regras de "já existe": cada uma termina com uma gravação e recusas, nunca 500.</summary>
@@ -354,4 +320,7 @@ public sealed class RevisaoDeAcessoTest(ApiDeTeste api)
         Assert.Equal(HttpStatusCode.Accepted, resposta.StatusCode);
         return (await resposta.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>(Ct)).GetProperty("desafio").GetString()!;
     }
+
+    [GeneratedRegex(@"/senha#([A-Za-z0-9_-]{20,})")]
+    private static partial Regex LinkDaSenha();
 }

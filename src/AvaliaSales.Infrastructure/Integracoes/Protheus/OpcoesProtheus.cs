@@ -1,6 +1,6 @@
 namespace AvaliaSales.Infrastructure.Integracoes.Protheus;
 
-/// <summary>Sem endereço, o envio espera na fila. Simulado só em Development.</summary>
+/// <summary>Sem endereço, a integração fica desligada e nenhum pedido entra na fila. Simulado só em Development.</summary>
 public sealed class OpcoesProtheus
 {
     public const string Secao = "Protheus";

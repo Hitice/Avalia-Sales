@@ -17,7 +17,7 @@ public sealed partial class ConfirmacaoDeEmailTest(ApiDeTeste api)
         var email = $"dono-{Guid.NewGuid():N}@teste.com.br";
         var cliente = api.Fabrica.CreateClient();
         var resposta = await cliente.PostAsJsonAsync("/cadastro",
-            new { empresa = "Revenda Confirma", cnpj = Cnpj(), celular = "(11) 98765-4321", endereco = ApiDeTeste.Endereco, nome = "Ana", email }, Ct);
+            new { empresa = "Revenda Confirma", cnpj = Cenarios.Cnpj(), celular = "(11) 98765-4321", endereco = ApiDeTeste.Endereco, nome = "Ana", email }, Ct);
 
         Assert.Equal(HttpStatusCode.Accepted, resposta.StatusCode);
         await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
@@ -113,19 +113,6 @@ public sealed partial class ConfirmacaoDeEmailTest(ApiDeTeste api)
     {
         using var escopo = api.Fabrica.Services.CreateScope();
         return await escopo.ServiceProvider.GetRequiredService<Application.Equipe.IContas>().EmailsDosDonos(revendedorId, Ct);
-    }
-
-    /// <summary>CNPJ válido e diferente a cada teste: o cadastro recusa CNPJ repetido.</summary>
-    private static string Cnpj()
-    {
-        var d = Enumerable.Range(0, 12).Select(_ => Random.Shared.Next(10)).ToList();
-        foreach (var pesos in new[] { new[] { 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2 }, new[] { 6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2 } })
-        {
-            var resto = d.Select((n, i) => n * pesos[i]).Sum() % 11;
-            d.Add(resto < 2 ? 0 : 11 - resto);
-        }
-
-        return string.Concat(d);
     }
 
     private static string TokenDoCadastro(string texto) => LinkDoCadastro().Match(texto) is { Success: true } m ? m.Groups[1].Value : throw new Xunit.Sdk.XunitException(texto);

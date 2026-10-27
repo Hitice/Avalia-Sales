@@ -122,12 +122,12 @@ public sealed class Venda : IDoRevendedor
     {
         Quantidade = quantidade is >= 1 and <= QuantidadeMaxima && (placaId is null || quantidade == 1)
             ? quantidade
-            : throw new RegraDeNegocioException($"A quantidade vai de 1 a {QuantidadeMaxima}; placa vende uma por código.");
+            : throw new RegraDeNegocioException($"Quantidade de 1 a {QuantidadeMaxima}. Placa vende uma por código.");
         var valor = valorCents ?? tabelaCents;
         ConferirValor(valor, tabelaCents);
         if (valor < parteDaAvaliaCents)
         {
-            throw new RegraDeNegocioException("O preço ficou abaixo da parte da Avalia neste serviço. Ajuste o preço no catálogo.");
+            throw new RegraDeNegocioException("Preço abaixo da parte da Avalia no serviço. Ajuste o preço no catálogo.");
         }
 
         ParteDaAvaliaCents = parteDaAvaliaCents;
@@ -176,7 +176,7 @@ public sealed class Venda : IDoRevendedor
     {
         if (Situacao == SituacaoDaVenda.Cancelada)
         {
-            throw new RegraDeNegocioException("Esta venda já foi cancelada.");
+            throw new RegraDeNegocioException("Venda já cancelada.");
         }
 
         if (motivo is { } m && !Enum.IsDefined(m))
@@ -187,7 +187,7 @@ public sealed class Venda : IDoRevendedor
         var nota = string.IsNullOrWhiteSpace(observacao) ? null : observacao.Trim();
         if (nota is { Length: > ObservacaoMaxima })
         {
-            throw new RegraDeNegocioException($"A observação tem até {ObservacaoMaxima} caracteres.");
+            throw new RegraDeNegocioException($"Observação com até {ObservacaoMaxima} caracteres.");
         }
 
         Situacao = SituacaoDaVenda.Cancelada;
@@ -236,7 +236,7 @@ public sealed class Venda : IDoRevendedor
     {
         if (Situacao == SituacaoDaVenda.Cancelada || Cortesia)
         {
-            throw new RegraDeNegocioException("Esta venda não pode virar cortesia.");
+            throw new RegraDeNegocioException("Venda cancelada ou já cortesia.");
         }
 
         Cortesia = true;
@@ -256,12 +256,12 @@ public sealed class Venda : IDoRevendedor
     {
         if (valorCents <= 0)
         {
-            throw new RegraDeNegocioException("O valor da venda precisa ser maior que zero.");
+            throw new RegraDeNegocioException("Valor da venda precisa ser maior que zero.");
         }
 
         if (valorCents < tabelaCents)
         {
-            throw new RegraDeNegocioException("O valor não pode ser menor que o preço de tabela.");
+            throw new RegraDeNegocioException("Valor abaixo do preço de tabela.");
         }
 
         if (tabelaCents > 0 && valorCents > tabelaCents * TetoEmVezesDaTabela)

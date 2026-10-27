@@ -1,8 +1,8 @@
 namespace AvaliaSales.Domain.Financeiro;
 
 /// <summary>
-/// Dinheiro que a revenda pagou à Avalia por fora para quitar o "a acertar" das vendas e renovações que recebeu por fora
-/// (a taxa e a parte da Avalia nos serviços, que o split não repassou). É caixa, e não resultado: a receita já está no
+/// Dinheiro que a revenda pagou à Avalia por fora para quitar o "a acertar" das vendas de serviço que recebeu por fora
+/// (a parte da Avalia nos serviços, que o split não repassou). É caixa, e não resultado: a receita já está no
 /// livro da operadora desde a venda. Só a operadora lança; a revenda lê os dela, para o distrato descontar o que já quitou.
 /// </summary>
 public sealed class AcertoDeRevenda
@@ -28,7 +28,7 @@ public sealed class AcertoDeRevenda
         observacao = observacao?.Trim();
         Observacao = string.IsNullOrEmpty(observacao)
             ? null
-            : observacao.Length <= ObservacaoMaxima ? observacao : throw new RegraDeNegocioException($"A observação tem no máximo {ObservacaoMaxima} caracteres.");
+            : observacao.Length <= ObservacaoMaxima ? observacao : throw new RegraDeNegocioException($"Observação com até {ObservacaoMaxima} caracteres.");
         CriadoEm = agora;
     }
 }

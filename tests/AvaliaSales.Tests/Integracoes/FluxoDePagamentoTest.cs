@@ -20,19 +20,19 @@ public sealed class FluxoDePagamentoTest(ApiDeTeste api)
 
     private static readonly Pagador Maria = new("Maria Lima", "maria@cliente.com.br", "12345678909", "11987654321");
 
-    private async Task<Guid> RevendedorComRecebedor(string nome, int taxaAvaliaBps = 0)
+    private async Task<Guid> RevendedorComRecebedor(string nome)
     {
-        var (id, _) = await api.CriarRevendedor(nome, taxaAvaliaBps: taxaAvaliaBps);
+        var (id, _) = await api.CriarRevendedor(nome);
         await api.DefinirRecebedor(id, "rp_" + Guid.NewGuid().ToString("N")[..16]);
         return id;
     }
 
-    private static async Task<CobrancaDto> Cobrar(ServiceProvider worker, Guid revendedor, long valor = 14_990)
+    private static async Task<CobrancaDto> Cobrar(ServiceProvider worker, Guid revendedor, long valor = 14_990, long parteDaAvalia = 0)
     {
         using var escopo = worker.CreateScope();
         escopo.ServiceProvider.GetRequiredService<RevendedorDaExecucao>().RevendedorId = revendedor;
         return await escopo.ServiceProvider.GetRequiredService<Cobrancas>()
-            .Criar(new CriarCobranca(OrigemDaCobranca.Venda, null, MeioDePagamento.Pix, valor, "Placa NFC", Maria), Ct);
+            .Criar(new CriarCobranca(OrigemDaCobranca.Venda, null, MeioDePagamento.Pix, valor, "Placa NFC", Maria, ParteDaAvaliaCents: parteDaAvalia), Ct);
     }
 
     private static async Task<T> NoRevendedor<T>(ServiceProvider worker, Guid revendedor, Func<BancoDeDados, Task<T>> leitura)
@@ -55,43 +55,74 @@ public sealed class FluxoDePagamentoTest(ApiDeTeste api)
     }
 
     [Fact]
-    public async Task Cobranca_divide_o_valor_entre_revendedor_e_avalia_e_devolve_o_pix()
+    public async Task Cobranca_de_servico_divide_o_valor_entre_revendedor_e_avalia_e_devolve_o_pix()
     {
-        var revendedor = await RevendedorComRecebedor("Revenda Pix", taxaAvaliaBps: 199);
+        var revendedor = await RevendedorComRecebedor("Revenda Pix");
         var gateway = new GatewayFalso();
         await using var worker = api.AmbienteDoWorker(gateway, new AssinaturaFalsa());
 
-        var cobranca = await Cobrar(worker, revendedor);
+        // Parte da Avalia de R$ 80,00 no Pix: ela devolve a fatia dela na tarifa (1,09%) e recebe R$ 79,13.
+        var cobranca = await Cobrar(worker, revendedor, parteDaAvalia: 8_000);
 
         var pedido = Assert.Single(gateway.Criados);
         Assert.Equal(cobranca.Id.ToString("N"), pedido.Codigo);
-        Assert.Equal([14_692L, 298L], pedido.Divisao.Select(r => r.ValorCents));
+        Assert.Equal([7_077L, 7_913L], pedido.Divisao.Select(r => r.ValorCents));
+        Assert.Equal(14_990, pedido.Divisao.Sum(r => r.ValorCents));
         Assert.True(pedido.Divisao[0].AssumeTaxasERisco);
         Assert.Equal("rp_avaliaDeTeste", pedido.Divisao[1].Recebedor);
-        Assert.Equal(298, cobranca.TaxaAvaliaCents);
+        Assert.Equal(7_913, cobranca.ParteDaAvaliaCents);
         Assert.Equal("00020101pix-copia-e-cola", cobranca.PixCopiaECola);
         Assert.True(await NoRevendedor(worker, revendedor, b => b.Vinculos.AnyAsync(v => v.Origem == VinculoExterno.Pagarme && v.IdExterno == pedido.Codigo, Ct)));
     }
 
+    /// <summary>Pix gerado antes do cancelamento ainda pode ser pago: o aviso do Pagar.me acha a cobrança cancelada e a operadora é avisada para devolver.</summary>
     [Fact]
-    public async Task Revenda_que_recebe_na_conta_da_avalia_vai_numa_regra_so_com_a_taxa_registrada()
+    public async Task Pagamento_de_cobranca_cancelada_avisa_a_operadora_para_devolver()
     {
-        var (revendedor, _) = await api.CriarRevendedor("Revenda Na Conta Da Avalia", taxaAvaliaBps: 199);
+        var revendedor = await RevendedorComRecebedor("Revenda Do Pix Tardio");
+        var gateway = new GatewayFalso();
+        await using var worker = api.AmbienteDoWorker(gateway, new AssinaturaFalsa());
+        var cobranca = await Cobrar(worker, revendedor);
+        using (var escopo = worker.CreateScope())
+        {
+            escopo.ServiceProvider.GetRequiredService<RevendedorDaExecucao>().RevendedorId = revendedor;
+            var banco = escopo.ServiceProvider.GetRequiredService<BancoDeDados>();
+            var lida = await banco.Cobrancas.SingleAsync(c => c.Id == cobranca.Id, Ct);
+            await escopo.ServiceProvider.GetRequiredService<Cobrancas>().Cancelar(lida, Ct);
+            await banco.SaveChangesAsync(Ct);
+        }
+
+        var codigo = cobranca.Id.ToString("N");
+        gateway.Mudar(codigo, SituacaoDaCobranca.Paga);
+        await WebhookPagarme("hook_pix_tardio_" + codigo[..8], "order.paid", codigo);
+        await Processar(worker);
+        await WebhookPagarme("hook_pix_tardio_2_" + codigo[..8], "charge.paid", codigo);
+        await Processar(worker);
+
+        await using var dono = new BancoDeDadosDoDono(api.ConexaoDoDono);
+        Assert.Equal(1, await dono.Contar($"select count(*) from emails where chave = 'cobranca:{codigo}:paga-depois-de-cancelada'"));
+        Assert.Equal("Cancelada", await dono.Texto($"select situacao from cobrancas where id = '{cobranca.Id}'"));
+    }
+
+    [Fact]
+    public async Task Revenda_que_recebe_na_conta_da_avalia_vai_numa_regra_so_com_a_parte_registrada()
+    {
+        var (revendedor, _) = await api.CriarRevendedor("Revenda Na Conta Da Avalia");
         await api.DefinirRecebedor(revendedor, "rp_avaliaDeTeste");
         var gateway = new GatewayFalso();
         await using var worker = api.AmbienteDoWorker(gateway, new AssinaturaFalsa());
 
-        var cobranca = await Cobrar(worker, revendedor);
+        var cobranca = await Cobrar(worker, revendedor, parteDaAvalia: 8_000);
 
         var regra = Assert.Single(Assert.Single(gateway.Criados).Divisao);
         Assert.Equal(("rp_avaliaDeTeste", 14_990L, true), (regra.Recebedor, regra.ValorCents, regra.AssumeTaxasERisco));
-        Assert.Equal(298, cobranca.TaxaAvaliaCents);
+        Assert.Equal(7_913, cobranca.ParteDaAvaliaCents);
     }
 
     [Fact]
-    public async Task Sem_taxa_da_avalia_a_cobranca_vai_inteira_para_a_revenda_numa_regra_so()
+    public async Task Venda_de_placa_vai_inteira_para_a_revenda_numa_regra_so()
     {
-        var revendedor = await RevendedorComRecebedor("Revenda Sem Taxa");
+        var revendedor = await RevendedorComRecebedor("Revenda Só Placa");
         var gateway = new GatewayFalso();
         await using var worker = api.AmbienteDoWorker(gateway, new AssinaturaFalsa());
 
@@ -100,7 +131,7 @@ public sealed class FluxoDePagamentoTest(ApiDeTeste api)
         var regra = Assert.Single(Assert.Single(gateway.Criados).Divisao);
         Assert.Equal((14_990L, true), (regra.ValorCents, regra.AssumeTaxasERisco));
         Assert.NotEqual(gateway.RecebedorDaAvalia, regra.Recebedor);
-        Assert.Equal(0, cobranca.TaxaAvaliaCents);
+        Assert.Equal(0, cobranca.ParteDaAvaliaCents);
     }
 
     [Fact]
@@ -241,5 +272,35 @@ public sealed class FluxoDePagamentoTest(ApiDeTeste api)
 
         await using var dono = new BancoDeDadosDoDono(api.ConexaoDoDono);
         Assert.Equal(1, await dono.Contar($"select count(*) from eventos_externos where id_externo = '{hook}' and processado_em is not null and ultimo_erro like 'sem vínculo%'"));
+    }
+
+    /// <summary>
+    /// Pagamento que não acha a cobrança (o pedido do link sem o order_code) não fecha em silêncio: a operadora recebe um e-mail com o
+    /// pedido no Pagar.me, uma vez só. Evento sem vínculo que não é de pagamento fecha sem aviso.
+    /// </summary>
+    [Fact]
+    public async Task Pagamento_sem_vinculo_avisa_a_operadora_por_email_com_o_pedido_do_pagarme()
+    {
+        await using var worker = api.AmbienteDoWorker(new GatewayFalso(), new AssinaturaFalsa());
+        var sufixo = Guid.NewGuid().ToString("N")[..8];
+        var pago = "hook_pago_sem_vinculo_" + sufixo;
+        var cobrancaPaga = "hook_charge_sem_vinculo_" + sufixo;
+        var criado = "hook_criado_sem_vinculo_" + sufixo;
+        await WebhookPagarme(pago, "order.paid", "codigo-que-o-link-nao-repetiu-" + sufixo);
+        var corpoDaCobranca = System.Text.Json.JsonSerializer.Serialize(new
+        {
+            id = cobrancaPaga, type = "charge.paid", data = new { id = "ch_" + sufixo, code = "outro", status = "paid", order = new { id = "or_" + sufixo } },
+        });
+        await api.Fabrica.CreateClient().PostAsync($"/webhooks/pagarme/{ApiDeTeste.SegredoDoWebhookPagarme}", new StringContent(corpoDaCobranca, Encoding.UTF8, "application/json"), Ct);
+        await WebhookPagarme(criado, "order.created", "codigo-de-outro-sistema-" + sufixo);
+
+        await Processar(worker);
+        await Processar(worker);
+
+        await using var dono = new BancoDeDadosDoDono(api.ConexaoDoDono);
+        Assert.Equal(1, await dono.Contar($"select count(*) from emails where chave = 'pagarme-sem-vinculo:{pago}' and para = 'operadora@exemplo.com.br' and texto like '%or_x%'"));
+        Assert.Equal(1, await dono.Contar($"select count(*) from emails where chave = 'pagarme-sem-vinculo:{cobrancaPaga}' and assunto like '%or_{sufixo}%'"));
+        Assert.Equal(0, await dono.Contar($"select count(*) from emails where chave = 'pagarme-sem-vinculo:{criado}'"));
+        Assert.Equal(3, await dono.Contar($"select count(*) from eventos_externos where id_externo in ('{pago}', '{cobrancaPaga}', '{criado}') and processado_em is not null and ultimo_erro like 'sem vínculo%'"));
     }
 }

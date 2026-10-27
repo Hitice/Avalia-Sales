@@ -19,7 +19,7 @@ public static partial class LinkDeAvaliacao
     public static string De(string lugarNoGoogle) =>
         PareceValido(lugarNoGoogle)
             ? "https://search.google.com/local/writereview?placeid=" + Uri.EscapeDataString(lugarNoGoogle.Trim())
-            : throw new RegraDeNegocioException("Busque o negócio no Google de novo: o lugar veio inválido.");
+            : throw new RegraDeNegocioException("Lugar do Google inválido. Busque o negócio de novo.");
 
     /// <summary>
     /// O link colado, se for do Google. Com Place ID na URL sai o endereço
@@ -32,7 +32,7 @@ public static partial class LinkDeAvaliacao
         if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || uri.Scheme != Uri.UriSchemeHttps && uri.Scheme != Uri.UriSchemeHttp
             || !HostsDoGoogle.Contains(uri.Host))
         {
-            throw new RegraDeNegocioException("Este não é um link de avaliação do Google. Copie o link do Perfil da Empresa (g.page/r/...).");
+            throw new RegraDeNegocioException("Link de avaliação do Google inválido. Copie o link do Perfil da Empresa (g.page/r/...).");
         }
 
         var lugar = System.Web.HttpUtility.ParseQueryString(uri.Query) is var consulta

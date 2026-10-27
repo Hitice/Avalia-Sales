@@ -28,7 +28,7 @@ public sealed class CatalogoDaPlataforma(IBancoDeDados banco, TimeProvider relog
         var chave = (comando.Chave ?? "").Trim().ToLowerInvariant();
         if (await banco.ProdutosDaPlataforma.AnyAsync(p => p.Chave == chave, ct))
         {
-            throw new RegraDeNegocioException("Já existe produto com esta chave.");
+            throw new RegraDeNegocioException("Chave já cadastrada.");
         }
 
         var produto = new ProdutoDaPlataforma(chave, comando.Nome, comando.Descricao ?? "", comando.Tipo, comando.PrecoSugeridoCents, comando.Ordem, relogio.GetUtcNow());

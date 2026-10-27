@@ -48,7 +48,7 @@ public sealed class Vendedor : IDoRevendedor
         nome = (nome ?? string.Empty).Trim();
         Nome = nome.Length is > 0 and <= NomeMaximo
             ? nome
-            : throw new RegraDeNegocioException($"O nome do vendedor precisa ter de 1 a {NomeMaximo} caracteres.");
+            : throw new RegraDeNegocioException($"Nome do vendedor de 1 a {NomeMaximo} caracteres.");
         Telefone = Telefones.Normalizar(telefone, obrigatorio: false);
         ChavePix = string.IsNullOrWhiteSpace(chavePix) ? null : chavePix.Trim()[..Math.Min(chavePix.Trim().Length, 140)];
         ComissaoBps = comissaoBps is null ? null : Comissao.Conferir(comissaoBps.Value);
@@ -70,7 +70,7 @@ public sealed class Vendedor : IDoRevendedor
     public void DefinirMeta(long? cents) => MetaMensalCents = cents switch
     {
         null or 0 => null,
-        < 0 or > MetaMaximaCents => throw new RegraDeNegocioException("A meta vai de R$ 0,01 a R$ 10.000.000,00."),
+        < 0 or > MetaMaximaCents => throw new RegraDeNegocioException("Meta de R$ 0,01 a R$ 10.000.000,00."),
         _ => cents,
     };
 

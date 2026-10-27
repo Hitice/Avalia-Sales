@@ -26,7 +26,7 @@ public sealed class DuplicidadeEm422(IProblemDetailsService problemas) : IExcept
             {
                 Status = StatusCodes.Status422UnprocessableEntity,
                 Title = "Pedido recusado",
-                Detail = "Este cadastro já existe. Confira os dados e tente de novo.",
+                Detail = "Cadastro já existe. Confira os dados.",
             },
         });
     }

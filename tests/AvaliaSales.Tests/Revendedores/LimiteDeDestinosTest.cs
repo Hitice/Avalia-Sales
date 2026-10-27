@@ -30,8 +30,9 @@ public sealed class LimiteDeDestinosTest(ApiDeTeste api)
         await revenda.Dono.Postar("/vendas", Cenarios.Venda(revenda.Codigos[0], revenda.ProdutoId, "11977770051"), HttpStatusCode.UnprocessableEntity);
 
         await revenda.Dono.Postar("/revenda/limite-de-destinos/solicitacao", new { motivo = "Campanha de sexta" }, HttpStatusCode.NoContent);
-        var chamados = await operadora.PegarItens("/operadora/chamados");
-        Assert.Contains(chamados.EnumerateArray(), c => c.GetProperty("assunto").GetString() == "Liberação de cadastros de destino");
+        var chamados = await operadora.PegarItens($"/operadora/chamados?busca={Uri.EscapeDataString("Revenda do Limite de Destinos")}");
+        Assert.Contains(chamados.EnumerateArray(), c => c.GetProperty("assunto").GetString() == "Liberação de cadastros de destino"
+            && c.GetProperty("revendedor").GetString() == "Revenda do Limite de Destinos");
 
         await operadora.Postar($"/operadora/revendedores/{revenda.Id}/liberacao-de-destinos", new { quantidade = 3 }, HttpStatusCode.NoContent);
         Assert.Equal(13, (await revenda.Dono.Pegar("/limite-de-destinos")).GetProperty("limite").GetInt32());
@@ -60,16 +61,24 @@ public sealed class LimiteDeDestinosTest(ApiDeTeste api)
     {
         var (id, _) = await api.CriarRevendedor("Revenda Que Muda de CNPJ");
         var (outraId, _) = await api.CriarRevendedor("Revenda Do CNPJ Ocupado");
-        var operadora = await api.ClienteLogado(await api.CriarOperadora());
-        var lista = await operadora.PegarItens("/operadora/revendedores?busca=Ocupado");
-        var ocupado = lista.EnumerateArray().Single(r => r.GetProperty("id").GetGuid() == outraId).GetProperty("cnpj").GetString();
+        var ocupado = Cenarios.Cnpj();
+        await using (var banco = new BancoDeDadosDoDono(api.ConexaoDoDono))
+        {
+            await banco.Texto($"update revendedores set cnpj = '{ocupado}' where id = '{outraId}' returning 1");
+        }
 
-        await operadora.Colocar($"/operadora/revendedores/{id}/cadastro", new { nome = "Pedro H F M Pereira", cnpj = "45.723.174/0001-10" }, HttpStatusCode.NoContent);
+        var operadora = await api.ClienteLogado(await api.CriarOperadora());
+        var novo = Cenarios.Cnpj();
+        var formatado = $"{novo[..2]}.{novo[2..5]}.{novo[5..8]}/{novo[8..12]}-{novo[12..]}";
+
+        await operadora.Colocar($"/operadora/revendedores/{id}/cadastro", new { nome = "Pedro H F M Pereira", cnpj = formatado }, HttpStatusCode.NoContent);
         var depois = (await operadora.PegarItens("/operadora/revendedores?busca=Pedro")).EnumerateArray().Single(r => r.GetProperty("id").GetGuid() == id);
-        Assert.Equal("45723174000110", depois.GetProperty("cnpj").GetString());
+        Assert.Equal(novo, depois.GetProperty("cnpj").GetString());
         Assert.Equal("Pedro H F M Pereira", depois.GetProperty("nome").GetString());
 
-        await operadora.Colocar($"/operadora/revendedores/{id}/cadastro", new { nome = "Pedro H F M Pereira", cnpj = ocupado }, HttpStatusCode.UnprocessableEntity);
+        var repetido = await operadora.Colocar($"/operadora/revendedores/{id}/cadastro", new { nome = "Pedro H F M Pereira", cnpj = ocupado }, HttpStatusCode.UnprocessableEntity);
+        Assert.Contains("CNPJ já cadastrado", repetido.GetProperty("detail").GetString(), StringComparison.Ordinal);
+        Assert.Equal(novo, (await operadora.PegarItens("/operadora/revendedores?busca=Pedro")).EnumerateArray().Single(r => r.GetProperty("id").GetGuid() == id).GetProperty("cnpj").GetString());
         await operadora.Colocar($"/operadora/revendedores/{id}/cadastro", new { nome = "Pedro H F M Pereira", cnpj = "123" }, HttpStatusCode.UnprocessableEntity);
     }
 }

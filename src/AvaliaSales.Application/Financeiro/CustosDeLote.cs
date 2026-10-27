@@ -60,16 +60,12 @@ public sealed class CustosDeLote(IBancoDeDados banco, Fornecedores fornecedores,
         return pagina.Mapear(x => Dto(x.Lote, x.Custo, x.Lote.RevendedorId is { } r ? nomes.GetValueOrDefault(r) : null, x.Custo?.FornecedorId is { } f ? fornecedoresDaPagina.GetValueOrDefault(f) : null));
     }
 
-    /// <summary>Quantos lotes despachados a pedidos seguem sem custo: a pendência que o resultado do grupo mostra.</summary>
-    public Task<int> Pendentes(CancellationToken ct) =>
-        banco.Lotes.AsNoTracking().CountAsync(l => l.PedidoId != null && l.ArquivadoEm == null && !banco.CustosDeLote.Any(c => c.LoteId == l.Id), ct);
-
     public async Task<CustoDoLoteDto> Criar(NovoCustoDoLote pedido, CancellationToken ct)
     {
         var lote = await AcharLote(pedido.LoteId, ct);
         if (await banco.CustosDeLote.AnyAsync(c => c.LoteId == lote.Id, ct))
         {
-            throw new RegraDeNegocioException($"O lote {lote.Rotulo} já tem custo. Edite o custo dele.");
+            throw new RegraDeNegocioException($"Lote {lote.Rotulo} já com custo. Edite o custo.");
         }
 
         var custo = new CustoDoLote(lote.Id, lote.Quantidade, pedido.GraficaCents, pedido.AcrilicoCents, relogio.GetUtcNow());
@@ -84,7 +80,7 @@ public sealed class CustosDeLote(IBancoDeDados banco, Fornecedores fornecedores,
     {
         var lote = await AcharLote(loteId, ct);
         var custo = await banco.CustosDeLote.SingleOrDefaultAsync(c => c.LoteId == loteId, ct)
-            ?? throw new RegraDeNegocioException($"O lote {lote.Rotulo} ainda não tem custo. Informe o custo dele.");
+            ?? throw new RegraDeNegocioException($"Lote {lote.Rotulo} sem custo. Informe o custo.");
         custo.Alterar(lote.Quantidade, pedido.GraficaCents, pedido.AcrilicoCents, relogio.GetUtcNow());
         if (custo.FornecedorId != pedido.FornecedorId)
         {
@@ -107,7 +103,7 @@ public sealed class CustosDeLote(IBancoDeDados banco, Fornecedores fornecedores,
     private async Task<Lote> AcharLote(Guid loteId, CancellationToken ct)
     {
         var lote = await banco.Lotes.AsNoTracking().SingleOrDefaultAsync(l => l.Id == loteId, ct) ?? throw new RegraDeNegocioException("Lote não encontrado.");
-        return lote.PedidoId is null && lote.DespachadoEm is not null ? throw new RegraDeNegocioException("Lote importado de outro sistema não tem custo de produção.") : lote;
+        return lote.PedidoId is null && lote.DespachadoEm is not null ? throw new RegraDeNegocioException("Lote importado sem custo de produção.") : lote;
     }
 
     private static CustoDoLoteDto Dto(Lote l, CustoDoLote? c, string? revendedor, string? fornecedor = null) =>

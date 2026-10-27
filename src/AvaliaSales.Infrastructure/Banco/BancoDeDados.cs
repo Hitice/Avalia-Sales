@@ -117,6 +117,10 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
             r.Property(x => x.CorPrimaria).HasMaxLength(7).IsFixedLength();
             r.Property(x => x.CorDestaque).HasMaxLength(7).IsFixedLength();
             r.Ignore(x => x.ExportacaoAte);
+
+            // A taxa percentual da plataforma saiu em 27/10/2026: o código não lê nem grava a coluna, que fica no
+            // modelo só até a migration posterior que a remove (migration só aditiva).
+            r.Property<int>("TaxaAvaliaBps");
             r.OwnsOne(x => x.Endereco, e =>
             {
                 e.Property(x => x.Logradouro).HasColumnName("endereco_logradouro").HasMaxLength(120);
@@ -128,6 +132,8 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
                 e.Property(x => x.Cep).HasColumnName("endereco_cep").HasMaxLength(8).IsFixedLength();
             });
             r.HasIndex(x => x.Cnpj).IsUnique();
+            // No máximo uma receptora na plataforma (ADR 0029).
+            r.HasIndex(x => x.ReceptoraNoEncerramento).IsUnique().HasFilter("receptora_no_encerramento");
         });
 
         modelo.Entity<Mensagem>(m =>
@@ -277,6 +283,9 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
             c.Property(x => x.PixQrCodeUrl).HasMaxLength(500);
             c.Ignore(x => x.Codigo);
             c.Ignore(x => x.Divisao);
+
+            // A coluna guarda o nome da taxa percentual que já saiu; o conteúdo é a parte da Avalia (ADR 0003).
+            c.Property(x => x.ParteDaAvaliaCents).HasColumnName("taxa_avalia_cents");
             c.HasOne<Revendedor>().WithMany().HasForeignKey(x => x.RevendedorId).OnDelete(DeleteBehavior.Restrict);
             c.HasIndex(x => new { x.RevendedorId, x.Situacao });
             c.HasIndex(x => x.PedidoNoGateway).IsUnique();
@@ -388,7 +397,7 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
     /// <summary>
     /// O livro, as despesas, o fechamento e os custos de lote da operadora (ADR 0025). Não são de
     /// revendedor: sem filtro do EF; o RLS os fecha a quem não é a operadora, e o livro aceita a
-    /// inserção da revenda de origem, para o pagamento lançar a taxa na transação dele.
+    /// inserção da revenda de origem, para o pagamento lançar a parte da Avalia na transação dele.
     /// </summary>
     private static void ConfigurarFinanceiroDaOperadora(ModelBuilder modelo)
     {
@@ -504,7 +513,7 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
 
             // O mesmo pagamento nunca é lançado duas vezes, e a mesma linha nunca é estornada duas vezes.
             // Uma linha de cada tipo por origem, venda e vendedor: a cobrança do grupo paga várias vendas, e a venda passada a outro
-            // vendedor ganha a comissão dele. Sem venda ou sem vendedor (repasse, taxa), o nulo conta como valor.
+            // vendedor ganha a comissão dele. Sem venda ou sem vendedor (repasse, parte da Avalia), o nulo conta como valor.
             l.HasIndex(x => new { x.OrigemId, x.Tipo, x.VendaId, x.VendedorId }).IsUnique().AreNullsDistinct(false).HasFilter("estorna_id is null");
             l.HasIndex(x => x.EstornaId).IsUnique().HasFilter("estorna_id is not null");
             l.HasIndex(x => new { x.RevendedorId, x.Competencia });
@@ -777,6 +786,11 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
     public Task TravarGeracaoDeLotes(CancellationToken ct) =>
         Database.ExecuteSqlAsync($"select pg_advisory_xact_lock({TravaDaGeracaoDeLotes})", ct);
 
+    private const long TravaDaReceptora = 7_413_002;
+
+    public Task TravarReceptora(CancellationToken ct) =>
+        Database.ExecuteSqlAsync($"select pg_advisory_xact_lock({TravaDaReceptora})", ct);
+
     public Task TravarOrigemDaCobranca(Guid origemId, CancellationToken ct) =>
         Database.ExecuteSqlAsync($"select pg_advisory_xact_lock(hashtextextended({origemId.ToString()}, 0))", ct);
 
@@ -814,6 +828,12 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
                 await banco.Database.CloseConnectionAsync();
             }
         }
+    }
+
+    public Task TravarAcertosDaRevenda(Guid revendedorId, CancellationToken ct)
+    {
+        var chave = $"acertos:{revendedorId}";
+        return Database.ExecuteSqlAsync($"select pg_advisory_xact_lock(hashtextextended({chave}, 0))", ct);
     }
 
     public Task TravarLinksDaRevenda(Guid revendedorId, CancellationToken ct)

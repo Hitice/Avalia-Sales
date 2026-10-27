@@ -12,7 +12,8 @@ public sealed record RetiradaDaNatureza(NaturezaDaRetirada Natureza, long ValorC
 /// <summary>
 /// O resultado do mês. Vendido é o valor das vendas registradas no mês que
 /// seguem de pé; recebido é o caixa (pagamentos menos estornos); receita
-/// reconhecida é a parte do mês. Taxa, comissão, custo, perda e despesa vêm
+/// reconhecida é a parte do mês. Parte da Avalia nos serviços, comissão,
+/// custo, perda e despesa vêm
 /// em positivo e saem da receita reconhecida; retirada de sócio fica abaixo
 /// do resultado, porque não é despesa.
 /// </summary>
@@ -25,7 +26,7 @@ public sealed record DreDoMes(
     long RecebidoCents,
     long ReceitaReconhecidaCents,
     long AReconhecerCents,
-    long TaxaCents,
+    long ParteDaAvaliaCents,
     long ComissoesCents,
     long CustoDasPlacasCents,
     long PerdasCents,
@@ -41,7 +42,7 @@ public sealed record MesDoHistorico(string Competencia, long RecebidoCents, long
 /// A DRE gerencial do dono, toda lida do razão e das vendas. A receita da
 /// placa (venda e renovação) entra em 12 partes a partir do mês do pagamento,
 /// e o custo da placa vendida acompanha a receita da venda; o serviço entra
-/// inteiro no mês. Comissão e taxa entram no mês do pagamento (CPC 47, item
+/// inteiro no mês. Comissão e parte da Avalia entram no mês do pagamento (CPC 47, item
 /// 94: contrato de até um ano). Como o razão de mês fechado não muda, a DRE
 /// dele também não.
 /// </summary>
@@ -72,12 +73,13 @@ public sealed class Dre(IBancoDeDados banco, TimeProvider relogio)
 
         var reconhecida = Reconhecimento.NoMes(receitas, mes);
         var custo = -Reconhecimento.NoMes(custos, mes) + Saida(TipoDeLancamento.CustoDaPlaca);
-        var (taxa, comissoes, perdas, despesas) = (Saida(TipoDeLancamento.TaxaAvalia), Saida(TipoDeLancamento.ComissaoDevida), Saida(TipoDeLancamento.Perda), Saida(TipoDeLancamento.Despesa));
+        // Mês antigo pode ter a taxa da plataforma, que saiu em 27/10/2026, no mesmo tipo: ela soma aqui e o resultado não muda.
+        var (parteDaAvalia, comissoes, perdas, despesas) = (Saida(TipoDeLancamento.TaxaAvalia), Saida(TipoDeLancamento.ComissaoDevida), Saida(TipoDeLancamento.Perda), Saida(TipoDeLancamento.Despesa));
         return new DreDoMes(mes, fechamento is not null, fechamento, vendidas?.Quantas ?? 0, vendidas?.Valor ?? 0,
             doMes.Where(l => l.Tipo == TipoDeLancamento.Receita).Sum(l => l.ValorCents),
             reconhecida, Reconhecimento.AReconhecer(receitas, mes),
-            taxa, comissoes, custo, perdas, despesas, porCategoria,
-            reconhecida - taxa - comissoes - custo - perdas - despesas,
+            parteDaAvalia, comissoes, custo, perdas, despesas, porCategoria,
+            reconhecida - parteDaAvalia - comissoes - custo - perdas - despesas,
             Saida(TipoDeLancamento.RetiradaDeSocio), porNatureza);
     }
 

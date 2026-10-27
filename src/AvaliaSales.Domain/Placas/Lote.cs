@@ -56,7 +56,7 @@ public sealed class Lote
     {
         if (quantidade is < 1 or > QuantidadeMaxima)
         {
-            throw new RegraDeNegocioException($"O lote tem de 1 a {QuantidadeMaxima} placas.");
+            throw new RegraDeNegocioException($"Lote de 1 a {QuantidadeMaxima} placas.");
         }
 
         Numero = numero;
@@ -68,7 +68,7 @@ public sealed class Lote
     public void Descrever(string? titulo, CategoriaDoLote categoria)
     {
         var limpo = string.IsNullOrWhiteSpace(titulo) ? null : titulo.Trim();
-        Titulo = limpo is null || limpo.Length <= TituloMaximo ? limpo : throw new RegraDeNegocioException($"O título tem até {TituloMaximo} caracteres.");
+        Titulo = limpo is null || limpo.Length <= TituloMaximo ? limpo : throw new RegraDeNegocioException($"Título com até {TituloMaximo} caracteres.");
         Categoria = Enum.IsDefined(categoria) ? categoria : throw new RegraDeNegocioException("Categoria desconhecida.");
     }
 
@@ -115,7 +115,7 @@ public sealed class Lote
     public static Lote Importado(int numero, int quantidade, Guid revendedorId, DateTimeOffset agora) => new()
     {
         Numero = numero,
-        Quantidade = quantidade > 0 ? quantidade : throw new RegraDeNegocioException("O arquivo não tem placas."),
+        Quantidade = quantidade > 0 ? quantidade : throw new RegraDeNegocioException("Arquivo sem placas."),
         CriadoEm = agora,
         RevendedorId = revendedorId,
         DespachadoEm = agora,
@@ -126,17 +126,17 @@ public sealed class Lote
     {
         if (DespachadoEm is not null)
         {
-            throw new RegraDeNegocioException($"O lote {Rotulo} já foi despachado.");
+            throw new RegraDeNegocioException($"Lote {Rotulo} já despachado.");
         }
 
         if (ArquivadoEm is not null)
         {
-            throw new RegraDeNegocioException($"O lote {Rotulo} está arquivado.");
+            throw new RegraDeNegocioException($"Lote {Rotulo} arquivado.");
         }
 
         if (quantidadeDoPedido != Quantidade)
         {
-            throw new RegraDeNegocioException($"O lote {Rotulo} tem {Quantidade} placas e o pedido, {quantidadeDoPedido}.");
+            throw new RegraDeNegocioException($"Lote {Rotulo} com {Quantidade} placas e pedido com {quantidadeDoPedido}.");
         }
 
         PedidoId = pedidoId;
@@ -157,12 +157,12 @@ public sealed class Lote
 
         if (ArquivadoEm is not null)
         {
-            throw new RegraDeNegocioException($"O lote {Rotulo} está arquivado.");
+            throw new RegraDeNegocioException($"Lote {Rotulo} arquivado.");
         }
 
         if (AtivadoEm is not null)
         {
-            throw new RegraDeNegocioException($"O lote {Rotulo} já foi ativado.");
+            throw new RegraDeNegocioException($"Lote {Rotulo} já ativado.");
         }
 
         AtivadoEm = agora;

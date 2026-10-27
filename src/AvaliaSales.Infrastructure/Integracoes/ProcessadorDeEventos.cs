@@ -1,3 +1,6 @@
+using System.Text.Json;
+using AvaliaSales.Application;
+using AvaliaSales.Application.Avisos;
 using AvaliaSales.Application.Contratos;
 using AvaliaSales.Application.Revendedores;
 using AvaliaSales.Application.Pagamentos;
@@ -7,6 +10,7 @@ using AvaliaSales.Infrastructure.Banco;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace AvaliaSales.Infrastructure.Integracoes;
 
@@ -23,16 +27,21 @@ public sealed partial class ProcessadorDeEventos(
     BancoDeDados banco,
     IGatewayDePagamento gateway,
     IAssinaturaEletronica assinatura,
+    FilaDeEmails emails,
+    IOptions<OpcoesDaPlataforma> plataforma,
     TimeProvider relogio,
     ILogger<ProcessadorDeEventos> log)
 {
+    /// <summary>Eventos do Pagar.me que dizem que alguém pagou: sem vínculo, o dinheiro entrou e nada na plataforma andou.</summary>
+    private static readonly string[] EventosDePagamento = ["order.paid", "charge.paid"];
+
     public async Task<int> ProcessarPendentes(int lote, CancellationToken ct)
     {
         var pendentes = await banco.EventosExternos.AsNoTracking()
             .Where(e => e.ProcessadoEm == null && e.Tentativas < EventoExterno.TentativasMaximas)
             .OrderBy(e => e.RecebidoEm)
             .Take(lote)
-            .Select(e => new { e.Id, e.Origem, e.Chave })
+            .Select(e => new { e.Id, e.Origem, e.Chave, e.Tipo, e.IdExterno })
             .ToListAsync(ct);
 
         var aplicados = 0;
@@ -40,7 +49,7 @@ public sealed partial class ProcessadorDeEventos(
         {
             try
             {
-                if (await Processar(evento.Id, evento.Origem, evento.Chave, ct))
+                if (await Processar(evento.Id, evento.Origem, evento.Chave, evento.Tipo, evento.IdExterno, ct))
                 {
                     aplicados++;
                 }
@@ -57,10 +66,16 @@ public sealed partial class ProcessadorDeEventos(
         return aplicados;
     }
 
-    private async Task<bool> Processar(Guid id, string origem, string chave, CancellationToken ct)
+    private async Task<bool> Processar(Guid id, string origem, string chave, string tipo, string idExterno, CancellationToken ct)
     {
         var vinculo = await banco.Vinculos.AsNoTracking()
             .SingleOrDefaultAsync(v => v.Origem == origem && v.IdExterno == chave, ct);
+        if (vinculo is null && origem == VinculoExterno.Pagarme && EventosDePagamento.Contains(tipo))
+        {
+            await AvisarPagamentoSemVinculo(id, chave, tipo, idExterno, ct);
+            return false;
+        }
+
         if (vinculo is null)
         {
             await Encerrar(banco, id, "sem vínculo: evento de pedido ou documento que não é nosso", ct);
@@ -115,6 +130,57 @@ public sealed partial class ProcessadorDeEventos(
         return mudou;
     }
 
+    /// <summary>
+    /// Pagamento que não acha a cobrança: o pedido gerado pelo link pode não repetir o order_code, e aí a revenda pagou e o pedido
+    /// fica parado. Sem vínculo não há revenda, então o aviso vai ao e-mail da operadora (a notificação do sino é sempre de uma
+    /// revenda), com o pedido no Pagar.me para ela achar o pagamento. O evento fecha como antes; a chave do e-mail é o id do
+    /// evento, e o e-mail e o fechamento vão na mesma transação, então reprocessar não avisa duas vezes.
+    /// </summary>
+    private async Task AvisarPagamentoSemVinculo(Guid id, string chave, string tipo, string idExterno, CancellationToken ct)
+    {
+        var corpo = await banco.EventosExternos.AsNoTracking().Where(e => e.Id == id).Select(e => e.Corpo).SingleAsync(ct);
+        var pedido = PedidoDoEvento(corpo) ?? "não informado";
+        LogPagamentoSemVinculo(log, idExterno, pedido);
+        await using var transacao = await banco.Database.BeginTransactionAsync(ct);
+        if (plataforma.Value.EmailDaOperadora is { Length: > 0 } operadora)
+        {
+            emails.Enfileirar($"pagarme-sem-vinculo:{idExterno}", operadora, $"Pagamento sem cobrança na plataforma - Pagar.me {pedido}",
+                $"""
+                O Pagar.me avisou um pagamento ({tipo}) que não corresponde a nenhuma cobrança da plataforma.
+
+                Pedido no Pagar.me: {pedido}
+                Código informado: {(chave.Length > 0 ? chave : "nenhum")}
+                Evento: {idExterno}
+
+                Confira no painel do Pagar.me de qual revenda é o pagamento. Se for um pedido de placas, registre o pagamento na tela do pedido.
+                """);
+            await banco.SaveChangesAsync(ct);
+        }
+
+        await Encerrar(banco, id, "sem vínculo: pagamento avisado à operadora", ct);
+        await transacao.CommitAsync(ct);
+    }
+
+    /// <summary>O id do pedido no Pagar.me: em order.paid é o próprio dado; em charge.paid, o pedido da cobrança.</summary>
+    private static string? PedidoDoEvento(string corpo)
+    {
+        try
+        {
+            using var documento = JsonDocument.Parse(corpo);
+            if (!documento.RootElement.TryGetProperty("data", out var dados) || dados.ValueKind != JsonValueKind.Object)
+            {
+                return null;
+            }
+
+            var pedido = dados.TryGetProperty("order", out var doPedido) && doPedido.ValueKind == JsonValueKind.Object ? doPedido : dados;
+            return pedido.TryGetProperty("id", out var idDoPedido) && idDoPedido.ValueKind == JsonValueKind.String ? idDoPedido.GetString() : null;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
     private Task<int> Encerrar(BancoDeDados alvo, Guid id, string? nota, CancellationToken ct) =>
         alvo.EventosExternos.Where(e => e.Id == id).ExecuteUpdateAsync(s => s
             .SetProperty(e => e.ProcessadoEm, relogio.GetUtcNow())
@@ -122,4 +188,7 @@ public sealed partial class ProcessadorDeEventos(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Evento externo {Id} falhou e volta para a fila")]
     private static partial void LogFalha(ILogger log, Guid id, Exception erro);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Pagamento do Pagar.me sem cobrança na plataforma: evento {Evento}, pedido {Pedido}")]
+    private static partial void LogPagamentoSemVinculo(ILogger log, string evento, string pedido);
 }

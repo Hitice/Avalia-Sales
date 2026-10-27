@@ -21,6 +21,6 @@ public sealed class CartaoTest(ApiDeTeste api)
             documento = "11222333000181", email = "rui@loja.com.br",
             destino = new { tipo = "Link", link = "https://loja.exemplo.com.br" }, meio = "Cartao",
         }, HttpStatusCode.Created);
-        Assert.Equal("Falta o cartão para cobrar.", venda.GetProperty("semCobranca").GetString());
+        Assert.Contains("cartão", venda.GetProperty("semCobranca").GetString(), StringComparison.Ordinal);
     }
 }

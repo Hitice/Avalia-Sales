@@ -67,7 +67,7 @@ public sealed class FornecedoresTest(ApiDeTeste api)
         var operadora = await Operadora();
         var (_, email) = await api.CriarRevendedor("Revenda do Rastreio");
         var dono = await api.ClienteLogado(email);
-        var quantidade = Random.Shared.Next(520, 600);
+        var quantidade = Cenarios.QuantidadeNova();
         var pacote = await Cenarios.PacoteDaQuantidade(operadora, quantidade, quantidade * 1_400L);
         var lote = await operadora.Postar("/operadora/lotes", new { quantidade }, HttpStatusCode.Created);
         var pedidoId = (await dono.Postar("/pedidos", new { pacoteId = pacote }, HttpStatusCode.Created)).GetProperty("id").GetGuid();

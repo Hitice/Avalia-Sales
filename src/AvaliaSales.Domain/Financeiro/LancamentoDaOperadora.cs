@@ -3,7 +3,10 @@ namespace AvaliaSales.Domain.Financeiro;
 /// <summary>O que a operadora ganha ou gasta, do ponto de vista dela.</summary>
 public enum TipoDeLancamentoDaOperadora
 {
-    /// <summary>A taxa da plataforma retida no split de uma venda ou renovação paga: receita da operadora no pagamento.</summary>
+    /// <summary>
+    /// Só histórico, não gravado mais: a taxa percentual da plataforma, que deixou de existir em 27/10/2026.
+    /// A linha antiga continua lida, somada à parte da Avalia, e o estorno dela sai com este tipo.
+    /// </summary>
     TaxaDaPlataforma = 1,
 
     /// <summary>A parte da Avalia nos serviços que ela executa, retida no split: receita da operadora no pagamento.</summary>
@@ -46,7 +49,7 @@ public sealed class LancamentoDaOperadora
     /// <summary>Mês da apuração, como 2026-10, em Brasília. Mês fechado da operadora não recebe linha: o banco passa a linha ao mês corrente.</summary>
     public string Competencia { get; private set; }
 
-    /// <summary>A taxa "a acertar" de venda recebida por fora: a Avalia ainda cobra da revenda.</summary>
+    /// <summary>A parte da Avalia "a acertar" de venda recebida por fora: a Avalia ainda cobra da revenda.</summary>
     public bool PorFora { get; private set; }
 
     /// <summary>A categoria da despesa, pelo nome do enum.</summary>
@@ -59,7 +62,7 @@ public sealed class LancamentoDaOperadora
     }
 
     /// <summary>
-    /// O <paramref name="id"/> da taxa é o da linha do razão da revenda que ela espelha: o estorno do
+    /// O <paramref name="id"/> da parte da Avalia é o da linha do razão da revenda que ela espelha: o estorno do
     /// razão acha a linha do livro sem precisar lê-la, o que a sessão da revenda não pode.
     /// </summary>
     public LancamentoDaOperadora(TipoDeLancamentoDaOperadora tipo, Guid origemId, long valorCents, string descricao, DateTimeOffset ocorridoEm,

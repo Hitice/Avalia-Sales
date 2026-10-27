@@ -1,3 +1,6 @@
+using AvaliaSales.Api.Autenticacao;
+using AvaliaSales.Application;
+using AvaliaSales.Application.Avisos;
 using AvaliaSales.Domain;
 using AvaliaSales.Domain.Acesso;
 using AvaliaSales.Domain.Revendedores;
@@ -5,6 +8,7 @@ using AvaliaSales.Infrastructure.Banco;
 using AvaliaSales.Infrastructure.Identidade;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace AvaliaSales.Api;
 
@@ -137,6 +141,89 @@ internal static class NovoRevendedor
         await banco.Sessoes.Where(s => s.UsuarioId == usuario.Id && s.EncerradaEm == null)
             .ExecuteUpdateAsync(s => s.SetProperty(x => x.EncerradaEm, agora));
         Console.WriteLine($"Login {usuario.Papel} trocado de {de} para {para}. Para entrar, use \"Esqueci a senha\" com o e-mail novo, ou a senha de antes.");
+        return 0;
+    }
+
+    /// <summary>
+    /// Recuperação de conta de quem perdeu o app autenticador e os códigos de
+    /// recuperação, depois de conferir a identidade fora da plataforma:
+    /// dotnet AvaliaSales.Api.dll --desligar-segundo-fator --email=dono@x.com --motivo="..."
+    /// Desliga o segundo fator, troca a chave do app, encerra as sessões e avisa o
+    /// e-mail do login. A pessoa liga de novo em Segurança na próxima entrada. O motivo fica na
+    /// auditoria da revenda, para o dono, ou na trilha da operadora, para a operadora.
+    /// </summary>
+    public static async Task<int> DesligarSegundoFator(IServiceProvider servicos, string[] argumentos)
+    {
+        var email = Valor(argumentos, "email")?.Trim();
+        var motivo = Valor(argumentos, "motivo")?.Trim();
+        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(motivo))
+        {
+            await Console.Error.WriteLineAsync("Use --email= e --motivo=.");
+            return 1;
+        }
+
+        Guid? revendedorId;
+        using (var busca = servicos.CreateScope())
+        {
+            if (await busca.ServiceProvider.GetRequiredService<UserManager<Usuario>>().FindByEmailAsync(email) is not { } achado)
+            {
+                await Console.Error.WriteLineAsync($"Não há usuário com o e-mail {email}.");
+                return 1;
+            }
+
+            revendedorId = achado.RevendedorId;
+        }
+
+        // O registro do dono vai à auditoria da revenda, que só aceita linha na sessão dela: o escopo assume a revenda antes da primeira consulta.
+        using var escopo = servicos.CreateScope();
+        if (revendedorId is { } daRevenda)
+        {
+            escopo.ServiceProvider.GetRequiredService<AcessoDaRequisicao>().Assumir(daRevenda);
+        }
+
+        var usuarios = escopo.ServiceProvider.GetRequiredService<UserManager<Usuario>>();
+        var usuario = (await usuarios.FindByEmailAsync(email))!;
+        if (!usuario.TwoFactorEnabled)
+        {
+            await Console.Error.WriteLineAsync($"O segundo fator de {email} já está desligado.");
+            return 1;
+        }
+
+        await usuarios.SetTwoFactorEnabledAsync(usuario, false);
+        await usuarios.ResetAuthenticatorKeyAsync(usuario);
+        usuario.SegundoFatorPorEmail = false;
+        await usuarios.UpdateAsync(usuario);
+        await usuarios.UpdateSecurityStampAsync(usuario);
+
+        var banco = escopo.ServiceProvider.GetRequiredService<BancoDeDados>();
+        var agora = DateTimeOffset.UtcNow;
+        await banco.Sessoes.Where(s => s.UsuarioId == usuario.Id && s.EncerradaEm == null)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.EncerradaEm, agora));
+        var painel = escopo.ServiceProvider.GetRequiredService<IOptions<OpcoesDaPlataforma>>().Value.UrlDoPainel.TrimEnd('/');
+        escopo.ServiceProvider.GetRequiredService<FilaDeEmails>().Enfileirar($"segundo-fator-desligado-pelo-suporte:{usuario.Id:N}:{agora.ToUnixTimeSeconds()}",
+            usuario.Email!, "Segundo fator desligado pelo suporte",
+            $"""
+            Olá, {usuario.Nome}.
+
+            O suporte desligou o segundo fator da sua conta na Avalia Sales, a seu pedido. Os aparelhos conectados saíram da conta.
+
+            Ligue de novo em Segurança na próxima entrada. Se não foi você que pediu, troque a senha agora e fale com o suporte.
+
+            Trocar a senha: {painel}/esqueci
+            """);
+        if (revendedorId is not null)
+        {
+            escopo.ServiceProvider.GetRequiredService<Application.Auditoria.Auditoria>()
+                .Registrar(Domain.Auditoria.AcaoAuditada.SegundoFatorDesligado, $"Login {usuario.Nome}", usuario.Id.ToString(), null, $"Pelo suporte: {motivo}");
+        }
+        else
+        {
+            banco.AuditoriaDaOperadora.Add(new Domain.Auditoria.RegistroDaOperadora(usuario.Id, "Segundo fator desligado pelo suporte", usuario.Id.ToString(),
+                System.Text.Json.JsonSerializer.Serialize(new { motivo }), agora));
+        }
+
+        await banco.SaveChangesAsync();
+        Console.WriteLine($"Segundo fator de {email} ({usuario.Papel}) desligado. Motivo: {motivo}. Sessões encerradas e aviso enfileirado.");
         return 0;
     }
 

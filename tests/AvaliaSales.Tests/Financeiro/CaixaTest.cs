@@ -22,9 +22,9 @@ public sealed class CaixaTest(ApiDeTeste api)
     private static long Valor(JsonElement caixa, string campo) => caixa.GetProperty(campo).GetInt64();
 
     [Fact]
-    public async Task Caixa_soma_o_recebido_e_o_aporte_e_tira_taxa_comissao_repassada_despesa_e_retirada()
+    public async Task Caixa_soma_o_recebido_e_o_aporte_e_tira_comissao_repassada_despesa_e_retirada()
     {
-        var revenda = await api.RevendaComEstoque("Revenda do Caixa", taxaAvaliaBps: 199);
+        var revenda = await api.RevendaComEstoque("Revenda do Caixa");
         Assert.Null((await revenda.Dono.Pegar("/financeiro/caixa")).GetProperty("inicio").GetString());
 
         // O pedido de placas da revenda foi pago agora: já sai do caixa que começa neste mês.
@@ -51,8 +51,8 @@ public sealed class CaixaTest(ApiDeTeste api)
 
         var caixa = await revenda.Dono.Pegar("/financeiro/caixa");
         Assert.Equal(14_990 + 30_000, Valor(caixa, "entradasCents"));
-        Assert.Equal(pedido + 298 + 2_998 + 5_000 + 10_000, Valor(caixa, "saidasCents"));
-        Assert.Equal(500_000 + 14_990 + 30_000 - pedido - 298 - 2_998 - 5_000 - 10_000, Valor(caixa, "saldoCents"));
+        Assert.Equal(pedido + 2_998 + 5_000 + 10_000, Valor(caixa, "saidasCents"));
+        Assert.Equal(500_000 + 14_990 + 30_000 - pedido - 2_998 - 5_000 - 10_000, Valor(caixa, "saldoCents"));
 
         // O aporte fica fora do resultado e fora das retiradas do DRE.
         var dre = await revenda.Dono.Pegar("/financeiro/dre");

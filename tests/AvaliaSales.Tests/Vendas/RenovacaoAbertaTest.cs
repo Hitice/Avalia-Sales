@@ -1,4 +1,3 @@
-using System.Net.Http.Json;
 using System.Net;
 using AvaliaSales.Tests.Apoio;
 
@@ -32,8 +31,7 @@ public sealed class RenovacaoAbertaTest(ApiDeTeste api)
         await operadora.Colocar($"/operadora/revendedores/{revenda.Id}/renovacao", new { renovacaoBps = 4_500 }, HttpStatusCode.NoContent);
 
         Assert.Equal(4_500, (await revenda.Dono.Pegar("/revenda")).GetProperty("revendedor").GetProperty("renovacaoBps").GetInt32());
-        var tentativa = await revenda.Dono.PutAsJsonAsync("/revenda/renovacao", new { renovacaoBps = 1_000 }, TestContext.Current.CancellationToken);
-        Assert.False(tentativa.IsSuccessStatusCode);
+        await revenda.Dono.Colocar($"/operadora/revendedores/{revenda.Id}/renovacao", new { renovacaoBps = 1_000 }, HttpStatusCode.Forbidden);
         Assert.Equal(4_500, (await revenda.Dono.Pegar("/revenda")).GetProperty("revendedor").GetProperty("renovacaoBps").GetInt32());
     }
 }

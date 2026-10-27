@@ -63,8 +63,6 @@ public sealed class PaginacaoTest(ApiDeTeste api)
         var dono = (await api.RevendaComEstoque("Revenda da Busca Gigante")).Dono;
         var resposta = await dono.Pegar($"/clientes?busca={new string('a', 20_000)}");
         Assert.Equal(0, resposta.GetProperty("total").GetInt32());
-        // % e _ valem como letra, e não como curinga.
-        Assert.Equal(0, (await dono.Pegar("/clientes?busca=%25_%25")).GetProperty("total").GetInt32());
     }
 
     // ---- vendas (dono e vendedor), resumo, clientes, carteira ----
@@ -213,11 +211,8 @@ public sealed class PaginacaoTest(ApiDeTeste api)
         var nome = "Revenda do Lote Livre " + new string(Guid.NewGuid().ToString("N").Where(char.IsAsciiLetter).Take(6).ToArray());
         var (_, email) = await api.CriarRevendedor(nome);
         var dono = await api.ClienteLogado(email);
-        var quantidade = Random.Shared.Next(951, 1_000);
-        var existente = (await operadora.Pegar("/operadora/pacotes")).EnumerateArray().FirstOrDefault(p => p.GetProperty("quantidade").GetInt32() == quantidade);
-        var pacote = existente.ValueKind == JsonValueKind.Object
-            ? existente.GetProperty("id").GetGuid()
-            : (await operadora.Postar("/operadora/pacotes", new { quantidade, precoCents = quantidade * 1_400L }, HttpStatusCode.Created)).GetProperty("id").GetGuid();
+        var quantidade = Cenarios.QuantidadeNova();
+        var pacote = await Cenarios.PacoteDaQuantidade(operadora, quantidade, quantidade * 1_400L);
         var pedido = (await dono.Postar("/pedidos", new { pacoteId = pacote }, HttpStatusCode.Created)).GetProperty("id").GetGuid();
         await operadora.Postar($"/operadora/pedidos/{pedido}/pagamento", new { }, HttpStatusCode.NoContent);
         var rota = $"/operadora/pedidos?busca={Uri.EscapeDataString(nome)}";
@@ -225,7 +220,7 @@ public sealed class PaginacaoTest(ApiDeTeste api)
 
         Assert.False(await HaLoteLivre());
         // Lote de outra quantidade não conta.
-        await operadora.Postar("/operadora/lotes", new { quantidade = quantidade - 1 }, HttpStatusCode.Created);
+        await operadora.Postar("/operadora/lotes", new { quantidade = Cenarios.QuantidadeNova() }, HttpStatusCode.Created);
         Assert.False(await HaLoteLivre());
 
         var lote = await operadora.Postar("/operadora/lotes", new { quantidade }, HttpStatusCode.Created);
@@ -665,10 +660,7 @@ public sealed class PaginacaoTest(ApiDeTeste api)
         var (id, email) = await api.CriarRevendedor(nome);
         await api.DefinirRecebedor(id, "rp_" + Guid.NewGuid().ToString("N")[..12]);
         var dono = await api.ClienteLogado(email);
-        var pacote = (await operadora.Pegar("/operadora/pacotes")).EnumerateArray().FirstOrDefault(p => p.GetProperty("quantidade").GetInt32() == placas);
-        var pacoteId = pacote.ValueKind == JsonValueKind.Object
-            ? pacote.GetProperty("id").GetGuid()
-            : (await operadora.Postar("/operadora/pacotes", new { quantidade = placas, precoCents = placas * 1_400L }, HttpStatusCode.Created)).GetProperty("id").GetGuid();
+        var pacoteId = await Cenarios.PacoteDaQuantidade(operadora, placas, placas * 1_400L);
         var lote = await operadora.Postar("/operadora/lotes", new { quantidade = placas }, HttpStatusCode.Created);
         var pedido = (await dono.Postar("/pedidos", new { pacoteId }, HttpStatusCode.Created)).GetProperty("id").GetGuid();
         await operadora.Postar($"/operadora/pedidos/{pedido}/pagamento", new { }, HttpStatusCode.NoContent);

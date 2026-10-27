@@ -61,7 +61,7 @@ public sealed class OrdemDeServico : IAtendidoPelaOperadora
     {
         if (Situacao is not (SituacaoDaOrdem.AFazer or SituacaoDaOrdem.EmAndamento))
         {
-            throw new RegraDeNegocioException("Esta ordem já foi encerrada.");
+            throw new RegraDeNegocioException("Ordem já encerrada.");
         }
 
         IniciadaEm ??= agora;
@@ -73,7 +73,7 @@ public sealed class OrdemDeServico : IAtendidoPelaOperadora
     {
         if (Situacao is not (SituacaoDaOrdem.AFazer or SituacaoDaOrdem.EmAndamento))
         {
-            throw new RegraDeNegocioException("Esta ordem já foi encerrada.");
+            throw new RegraDeNegocioException("Ordem já encerrada.");
         }
 
         Situacao = SituacaoDaOrdem.Cancelada;
@@ -95,7 +95,7 @@ public sealed class OrdemDeServico : IAtendidoPelaOperadora
         observacao = observacao?.Trim();
         Observacao = string.IsNullOrEmpty(observacao)
             ? null
-            : observacao.Length <= ObservacaoMaxima ? observacao : throw new RegraDeNegocioException($"A observação tem até {ObservacaoMaxima} caracteres.");
+            : observacao.Length <= ObservacaoMaxima ? observacao : throw new RegraDeNegocioException($"Observação com até {ObservacaoMaxima} caracteres.");
     }
 
     private void Exigir(SituacaoDaOrdem esperada, string recusa)

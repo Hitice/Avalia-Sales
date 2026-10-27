@@ -69,6 +69,9 @@ public interface IBancoDeDados
     /// <summary>Trava da transação: dois lotes gerados juntos não pegam o mesmo número.</summary>
     Task TravarGeracaoDeLotes(CancellationToken ct);
 
+    /// <summary>Trava da transação: duas trocas de receptora juntas não esbarram no índice único da marca.</summary>
+    Task TravarReceptora(CancellationToken ct);
+
     /// <summary>Trava de aplicação, até o fim da transação, pela origem da cobrança: duas cobranças da mesma venda não nascem juntas.</summary>
     Task TravarOrigemDaCobranca(Guid origemId, CancellationToken ct);
 
@@ -79,6 +82,9 @@ public interface IBancoDeDados
     /// resultado de quem veio antes.
     /// </summary>
     Task<IAsyncDisposable> SegurarOrigemDaCobranca(Guid origemId, CancellationToken ct);
+
+    /// <summary>Trava de aplicação, até o fim da transação, pelos acertos da revenda: dois acertos juntos não passam do saldo devido.</summary>
+    Task TravarAcertosDaRevenda(Guid revendedorId, CancellationToken ct);
 
     /// <summary>Trava de aplicação, até o fim da transação, pelos links da revenda: "este destino já tem link" não vale para duas criações juntas.</summary>
     Task TravarLinksDaRevenda(Guid revendedorId, CancellationToken ct);

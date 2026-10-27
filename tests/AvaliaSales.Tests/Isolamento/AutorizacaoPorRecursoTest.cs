@@ -141,6 +141,8 @@ public sealed class AutorizacaoPorRecursoTest(ApiDeTeste api)
             r => Assert.Contains("operadora", Politicas(r)));
 
         string[] soDoDono = ["/equipe", "/repasses", "/financeiro", "/clientes", "/auditoria", "/revenda", "/pedidos", "/lotes", "/estoque", "/razao", "/mapa", "/pacotes", "/servicos", "/chamados"];
+        // Prefixo sem rota passaria vazio: cada um tem de achar ao menos uma.
+        Assert.All(soDoDono, p => Assert.Contains(rotas, r => (r.RoutePattern.RawText ?? string.Empty).StartsWith(p, StringComparison.Ordinal)));
         Assert.All(rotas.Where(r => soDoDono.Any(p => (r.RoutePattern.RawText ?? string.Empty).StartsWith(p, StringComparison.Ordinal))),
             r => Assert.Contains("dono", Politicas(r)));
     }
@@ -160,7 +162,13 @@ public sealed class AutorizacaoPorRecursoTest(ApiDeTeste api)
             var (vendedor, vendedorId) = await Vendedor(revenda, "Vendedor RLS");
             await revenda.Dono.Postar("/estoque/consignacao", new { vendedorId, codigos = new[] { revenda.Codigos[1] } });
             await vendedor.Postar("/vendas", Cenarios.Venda(revenda.Codigos[1], revenda.ProdutoId, telefone), HttpStatusCode.Created);
-            await revenda.Dono.Postar("/links", new { titulo = "Cardápio", destino = new { tipo = "Link", link = $"https://exemplo.com.br/{telefone}" } }, HttpStatusCode.Created);
+            // Com a chave, a resposta gravada entra em chaves_de_idempotencia, e o laço abaixo prova essa tabela também.
+            using var link = new HttpRequestMessage(HttpMethod.Post, "/links")
+            {
+                Content = System.Net.Http.Json.JsonContent.Create(new { titulo = "Cardápio", destino = new { tipo = "Link", link = $"https://exemplo.com.br/{telefone}" } }, options: Chamadas.Json),
+            };
+            link.Headers.Add("Idempotency-Key", Guid.NewGuid().ToString());
+            Assert.Equal(HttpStatusCode.Created, (await revenda.Dono.SendAsync(link, Ct)).StatusCode);
             await revenda.Dono.Postar("/chamados", new { assunto = "Ajuda", texto = "Preciso de ajuda" }, HttpStatusCode.Created);
         }
 
@@ -241,6 +249,7 @@ public sealed class AutorizacaoPorRecursoTest(ApiDeTeste api)
 
         // O teste provou algo: A tinha dado em boa parte das tabelas.
         Assert.True(totalDeA.Values.Count(v => v > 0) >= 12, "A revenda de teste precisa ter linhas em boa parte das tabelas.");
+        Assert.True(totalDeA[TabelaDeLinhasDaOperadora] > 0, "A revenda de teste precisa ter uma resposta gravada por chave de idempotência.");
     }
 
     private static async Task Definir(NpgsqlConnection conexao, Guid? revendedor, bool operadora) =>

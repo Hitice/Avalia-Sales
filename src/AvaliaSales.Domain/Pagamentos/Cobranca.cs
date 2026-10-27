@@ -1,5 +1,8 @@
 namespace AvaliaSales.Domain.Pagamentos;
 
+/// <summary>Quanto da cobrança vai para a Avalia e quanto para a revenda, em centavos.</summary>
+public readonly record struct Divisao(long AvaliaCents, long RevendedorCents);
+
 public enum OrigemDaCobranca
 {
     Venda = 1,
@@ -42,7 +45,12 @@ public sealed class Cobranca : IDoRevendedor
     public Guid? OrigemId { get; private set; }
     public MeioDePagamento Meio { get; private set; }
     public long ValorCents { get; private set; }
-    public long TaxaAvaliaCents { get; private set; }
+
+    /// <summary>
+    /// O que o split manda à Avalia: a parte dela nos serviços que executa, ou o
+    /// pedido de placas inteiro. Venda de placa e renovação não mandam nada.
+    /// </summary>
+    public long ParteDaAvaliaCents { get; private set; }
     public SituacaoDaCobranca Situacao { get; private set; } = SituacaoDaCobranca.Pendente;
 
     /// <summary>
@@ -69,28 +77,31 @@ public sealed class Cobranca : IDoRevendedor
     {
     }
 
-    /// <summary>
-    /// O que é da Avalia: a taxa sobre o valor e a parte fixa do serviço que
-    /// ela executa. A soma nunca passa do valor cobrado.
-    /// </summary>
-    public Cobranca(OrigemDaCobranca origem, Guid? origemId, MeioDePagamento meio, long valorCents, int taxaAvaliaBps, long parteDaAvaliaCents = 0)
+    /// <summary>A parte da Avalia nunca passa do valor cobrado; o resto é da revenda.</summary>
+    public Cobranca(OrigemDaCobranca origem, Guid? origemId, MeioDePagamento meio, long valorCents, long parteDaAvaliaCents = 0)
     {
+        if (valorCents <= 0)
+        {
+            throw new RegraDeNegocioException("Valor da cobrança precisa ser maior que zero.");
+        }
+
+        if (parteDaAvaliaCents < 0 || parteDaAvaliaCents > valorCents)
+        {
+            throw new RegraDeNegocioException("Valor abaixo da parte da Avalia no serviço.");
+        }
+
         Origem = origem;
         OrigemId = origemId;
         Meio = meio;
         ValorCents = valorCents;
-        TaxaAvaliaCents = DivisaoDaCobranca.Calcular(valorCents, taxaAvaliaBps).AvaliaCents + parteDaAvaliaCents;
-        if (parteDaAvaliaCents < 0 || TaxaAvaliaCents > valorCents)
-        {
-            throw new RegraDeNegocioException("O valor não cobre a parte da Avalia neste serviço.");
-        }
+        ParteDaAvaliaCents = parteDaAvaliaCents;
     }
 
     /// <summary>
     /// Pagamento que não passou pelo Pagar.me: nasce paga, sem pedido no
-    /// gateway. A taxa da Avalia não foi retida no split e fica a acertar.
+    /// gateway. A parte da Avalia não foi retida no split e fica a acertar.
     /// </summary>
-    public static Cobranca RecebidaPorFora(OrigemDaCobranca origem, Guid origemId, MeioDePagamento meio, long valorCents, int taxaAvaliaBps, DateTimeOffset agora,
+    public static Cobranca RecebidaPorFora(OrigemDaCobranca origem, Guid origemId, MeioDePagamento meio, long valorCents, DateTimeOffset agora,
         long parteDaAvaliaCents = 0)
     {
         if (meio is not (MeioDePagamento.Dinheiro or MeioDePagamento.OutroPix))
@@ -98,7 +109,7 @@ public sealed class Cobranca : IDoRevendedor
             throw new RegraDeNegocioException("Escolha dinheiro ou outro Pix.");
         }
 
-        return new Cobranca(origem, origemId, meio, valorCents, taxaAvaliaBps, parteDaAvaliaCents)
+        return new Cobranca(origem, origemId, meio, valorCents, parteDaAvaliaCents)
         {
             Situacao = SituacaoDaCobranca.Paga,
             PagaEm = agora,
@@ -116,7 +127,7 @@ public sealed class Cobranca : IDoRevendedor
     {
         if (!PorFora || Situacao != SituacaoDaCobranca.Paga)
         {
-            throw new RegraDeNegocioException("Só o pagamento confirmado na tela pode ser desfeito.");
+            throw new RegraDeNegocioException("Só pagamento por fora confirmado se desfaz.");
         }
 
         Situacao = SituacaoDaCobranca.Estornada;
@@ -127,7 +138,7 @@ public sealed class Cobranca : IDoRevendedor
     {
         if (Situacao != SituacaoDaCobranca.Paga || valorCents <= 0 || EstornadoCents + valorCents > ValorCents)
         {
-            throw new RegraDeNegocioException("Esta cobrança não tem esse valor a devolver.");
+            throw new RegraDeNegocioException("Cobrança sem esse valor a devolver.");
         }
     }
 
@@ -142,7 +153,8 @@ public sealed class Cobranca : IDoRevendedor
     /// <summary>Código do pedido no Pagar.me: o id sem hífens, 32 dos 52 caracteres aceitos.</summary>
     public string Codigo => Id.ToString("N");
 
-    public Divisao Divisao => new(TaxaAvaliaCents, ValorCents - TaxaAvaliaCents);
+    /// <summary>Em centavos (<c>flat</c>, ADR 0003): a soma fecha com o valor cobrado.</summary>
+    public Divisao Divisao => new(ParteDaAvaliaCents, ValorCents - ParteDaAvaliaCents);
 
     public void RegistrarPedido(string pedido, string? pixCopiaECola, string? pixQrCodeUrl, DateTimeOffset? pixExpiraEm)
     {

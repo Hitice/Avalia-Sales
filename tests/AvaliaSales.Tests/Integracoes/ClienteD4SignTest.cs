@@ -16,7 +16,9 @@ public sealed class ClienteD4SignTest
     {
         var cliente = Cliente(HttpStatusCode.BadRequest, """{"message":"This file is already in the signature phase","mensagem_pt":"O documento já foi enviado para assinatura."}""");
 
-        await cliente.EnviarParaAssinatura("uuid-do-documento", "Contrato de revenda", TestContext.Current.CancellationToken);
+        var erro = await Record.ExceptionAsync(() => cliente.EnviarParaAssinatura("uuid-do-documento", "Contrato de revenda", TestContext.Current.CancellationToken));
+
+        Assert.Null(erro);
     }
 
     [Fact]

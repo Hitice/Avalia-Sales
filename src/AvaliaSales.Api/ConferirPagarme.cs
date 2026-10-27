@@ -33,7 +33,7 @@ internal static class ConferirPagarme
             .ToListAsync();
 
         var todosAtivos = true;
-        foreach (var (quem, recebedor) in revendas.Select(r => ($"Revenda {r.Nome}", r.Recebedor)).Prepend(("Avalia (taxa)", opcoes.RecebedorAvalia)))
+        foreach (var (quem, recebedor) in revendas.Select(r => ($"Revenda {r.Nome}", r.Recebedor)).Prepend(("Avalia", opcoes.RecebedorAvalia)))
         {
             try
             {

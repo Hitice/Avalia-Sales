@@ -1,4 +1,3 @@
-using System.Net.Http.Json;
 using AvaliaSales.Domain.Catalogo;
 using AvaliaSales.Infrastructure.Banco;
 using AvaliaSales.Tests.Apoio;
@@ -36,15 +35,17 @@ public sealed class IsolamentoEntreRevendedoresTest(ApiDeTeste api)
     public async Task Revendedor_do_corpo_do_pedido_e_ignorado()
     {
         var (revendedorA, _) = await api.CriarRevendedor("Revenda Alvo");
-        var (_, emailB) = await api.CriarRevendedor("Revenda Intrusa");
+        var (revendedorB, emailB) = await api.CriarRevendedor("Revenda Intrusa");
         var clienteB = await api.ClienteLogado(emailB);
 
         var placa = (await clienteB.Pegar("/catalogo")).EnumerateArray().Single(i => i.GetProperty("chave").GetString() == "placa-avaliacao-google").GetProperty("id").GetGuid();
-        await clienteB.PutAsJsonAsync($"/catalogo/{placa}", new { precoCents = 5_000, revendedorId = revendedorA }, Ct);
+        var gravado = await clienteB.Colocar($"/catalogo/{placa}", new { precoCents = 14_990L, revendedorId = revendedorA });
 
+        Assert.Equal(14_990, gravado.GetProperty("precoCents").GetInt64());
         await using var dono = new NpgsqlConnection(api.ConexaoDoDono);
         await dono.OpenAsync(Ct);
         Assert.Equal(0, await ApiDeTeste.Contar(dono, $"select count(*) from produtos where revendedor_id = '{revendedorA}'"));
+        Assert.Equal(1, await ApiDeTeste.Contar(dono, $"select count(*) from produtos where revendedor_id = '{revendedorB}' and preco_cents = 14990"));
     }
 
     [Fact]

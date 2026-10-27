@@ -116,7 +116,7 @@ public sealed class ServicosTest(ApiDeTeste api)
     public async Task Pedido_pago_entra_em_producao_antes_de_sair()
     {
         var operadora = await api.ClienteLogado(await api.CriarOperadora());
-        var (id, email) = await api.CriarRevendedor("Revenda da Produção");
+        var (_, email) = await api.CriarRevendedor("Revenda da Produção");
         var dono = await api.ClienteLogado(email);
         var pacote = (await dono.Pegar("/pacotes")).EnumerateArray().Single(p => p.GetProperty("quantidade").GetInt32() == 20);
         Assert.Equal(2_390, pacote.GetProperty("custoPorPlacaCents").GetInt64());
@@ -135,6 +135,5 @@ public sealed class ServicosTest(ApiDeTeste api)
         Assert.Contains("Placas enviadas", titulos);
         Assert.Contains((await operadora.Pegar("/notificacoes")).GetProperty("notificacoes").EnumerateArray(), n => n.GetProperty("titulo").GetString() == "Pedido novo"
             && n.GetProperty("revendedor").GetString() == "Revenda da Produção");
-        Assert.NotEqual(Guid.Empty, id);
     }
 }

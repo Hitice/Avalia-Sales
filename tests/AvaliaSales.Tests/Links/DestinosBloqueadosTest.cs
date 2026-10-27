@@ -49,4 +49,50 @@ public sealed class DestinosBloqueadosTest(ApiDeTeste api)
         // A revenda não gerencia a lista.
         Assert.Equal(HttpStatusCode.Forbidden, (await revenda.Dono.GetAsync("/operadora/destinos-bloqueados", Ct)).StatusCode);
     }
+
+    /// <summary>O ponto final do domínio ("golpe.com.") e as maiúsculas levam ao mesmo host: não contornam o bloqueio, nem no cadastro nem na leitura.</summary>
+    [Fact]
+    public async Task Ponto_final_e_maiusculas_no_dominio_nao_contornam_o_bloqueio()
+    {
+        var operadora = await api.ClienteLogado(await api.CriarOperadora());
+        var revenda = await api.RevendaComEstoque("Revenda do Ponto Final");
+        var dominio = $"golpe{Guid.NewGuid():N}"[..14] + ".com";
+
+        // Cadastrados antes do bloqueio: uma placa e um link com o ponto final no domínio.
+        var codigo = revenda.Codigos[0];
+        var venda = new
+        {
+            codigo, produtoId = revenda.ProdutoId, empresa = "Loja do Ponto", responsavel = "Ana", telefone = "11977770082", documento = "11222333000181",
+            email = "ana@loja.com.br", destino = new { tipo = "Link", lugarNoGoogle = (string?)null, link = $"https://{dominio}./x" }, valorCents = (long?)null, meio = "Pix", testeGratuito = false,
+        };
+        await revenda.Dono.Postar("/vendas", venda, HttpStatusCode.Created);
+        var link = await revenda.Dono.Postar("/links", new { titulo = "Ponto final", destino = new { tipo = "Link", link = $"https://{dominio.ToUpperInvariant()}./promo" } }, HttpStatusCode.Created);
+        var curto = link.GetProperty("codigo").GetString();
+        Assert.Equal(HttpStatusCode.Redirect, (await Leitor().GetAsync($"/q/{codigo}", Ct)).StatusCode);
+
+        await operadora.Postar("/operadora/destinos-bloqueados", new { dominio, motivo = "Phishing denunciado" }, HttpStatusCode.Created);
+
+        // Leitura: o que já apontava para "golpe.com." para de redirecionar.
+        var lida = await Leitor().GetAsync($"/q/{codigo}", Ct);
+        Assert.Equal(HttpStatusCode.OK, lida.StatusCode);
+        Assert.Contains("Endereço bloqueado", await lida.Content.ReadAsStringAsync(Ct), StringComparison.Ordinal);
+        Assert.Equal(HttpStatusCode.OK, (await Leitor().GetAsync($"/l/{curto}", Ct)).StatusCode);
+
+        // Cadastro: com ponto final e em maiúsculas, recusado.
+        await revenda.Dono.Colocar($"/placas/{codigo}/destino", new { tipo = "Link", lugarNoGoogle = (string?)null, link = $"https://{dominio}./outra" }, HttpStatusCode.UnprocessableEntity);
+        await revenda.Dono.Colocar($"/placas/{codigo}/destino", new { tipo = "Link", lugarNoGoogle = (string?)null, link = $"https://{dominio.ToUpperInvariant()}/x" }, HttpStatusCode.UnprocessableEntity);
+        await revenda.Dono.Postar("/links", new { titulo = "Outro", destino = new { tipo = "Link", link = $"https://{dominio}./y" } }, HttpStatusCode.UnprocessableEntity);
+    }
+
+    [Theory]
+    [InlineData("https://golpe.com./x", "golpe.com")]
+    [InlineData("https://GOLPE.com/x", "golpe.com")]
+    [InlineData("https://www.golpe.com./x", "golpe.com")]
+    [InlineData("https://golpe.com../x", null)]
+    [InlineData("https://pão.com.br/x", "xn--po-sia.com.br")]
+    [InlineData("golpe.com.", "golpe.com")]
+    [InlineData("https://[::1]/x", null)]
+    [InlineData("sem-ponto", null)]
+    public void Dominio_sai_normalizado_como_o_navegador_resolve(string texto, string? esperado) =>
+        Assert.Equal(esperado, AvaliaSales.Domain.Links.DestinoBloqueado.DominioDe(texto));
 }

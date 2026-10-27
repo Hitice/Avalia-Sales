@@ -72,7 +72,7 @@ public sealed class Chamados(IBancoDeDados banco, IUsuarioAtual usuario, IRevend
     {
         if (atual.Operadora)
         {
-            throw new RegraDeNegocioException("Quem abre o chamado é o revendedor.");
+            throw new RegraDeNegocioException("Só o revendedor abre chamado.");
         }
 
         var autor = Autor();

@@ -63,12 +63,12 @@ internal static class Registros
     public const long ValorMaximoCents = 1_000_000_000;
 
     public static DateOnly Data(DateOnly data, DateOnly hoje) =>
-        data > hoje ? throw new RegraDeNegocioException("A data não pode ser no futuro.")
-        : data.Year < 2000 ? throw new RegraDeNegocioException("Confira o ano da data.")
+        data > hoje ? throw new RegraDeNegocioException("Data no futuro. Use uma data até hoje.")
+        : data.Year < 2000 ? throw new RegraDeNegocioException("Ano inválido. Confira a data.")
         : data;
 
     public static long Valor(long valorCents) =>
-        valorCents is > 0 and <= ValorMaximoCents ? valorCents : throw new RegraDeNegocioException("Digite um valor maior que zero.");
+        valorCents is > 0 and <= ValorMaximoCents ? valorCents : throw new RegraDeNegocioException("Valor de R$ 0,01 a R$ 10.000.000,00.");
 
     public static string Texto(string? texto, int maximo, string pedido)
     {

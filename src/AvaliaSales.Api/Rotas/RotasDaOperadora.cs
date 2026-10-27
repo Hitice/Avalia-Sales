@@ -25,6 +25,8 @@ public sealed record AlterarAtivo(bool Ativo);
 
 public sealed record DefinirGrupo(bool DoGrupo);
 
+public sealed record DefinirReceptora(bool Receptora);
+
 /// <summary>A área da Avalia operando a plataforma: pacotes, lotes, pedidos e revendedores.</summary>
 public static class RotasDaOperadora
 {
@@ -142,6 +144,8 @@ public static class RotasDaOperadora
             return Results.NoContent();
         });
 
+        // Ligada só com o endereço do Protheus (Protheus:UrlBase); desligada, nenhum pedido pago entra na fila.
+        operadora.MapGet("/erp/integracao", (Application.Erp.FilaDoErp fila) => fila.Integracao());
         operadora.MapGet("/erp", (string? busca, [AsParameters] PedidoDePagina pagina, Application.Erp.FilaDoErp fila, CancellationToken ct) => fila.Listar(busca, pagina, ct));
         operadora.MapPost("/erp/{pedidoId:guid}/reenvio", async (Guid pedidoId, Application.Erp.FilaDoErp fila, CancellationToken ct) =>
         {
@@ -183,6 +187,13 @@ public static class RotasDaOperadora
         operadora.MapPut("/revendedores/{id:guid}/grupo", async (Guid id, DefinirGrupo pedido, Revendedores revendedores, CancellationToken ct) =>
         {
             await revendedores.DefinirDoGrupo(id, pedido.DoGrupo, ct);
+            return Results.NoContent();
+        });
+
+        // A revenda que recebe os clientes de quem encerra (ADR 0029); marcar uma tira a marca da anterior.
+        operadora.MapPut("/revendedores/{id:guid}/receptora", async (Guid id, DefinirReceptora pedido, Revendedores revendedores, CancellationToken ct) =>
+        {
+            await revendedores.DefinirReceptora(id, pedido.Receptora, ct);
             return Results.NoContent();
         });
 

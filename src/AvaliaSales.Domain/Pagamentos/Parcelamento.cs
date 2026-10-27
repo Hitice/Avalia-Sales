@@ -52,5 +52,5 @@ public static class Parcelamento
     public static bool ClientePagaOCusto(MeioDePagamento meio, int parcelas) => meio == MeioDePagamento.Cartao && Conferir(parcelas) > 1;
 
     private static int Conferir(int parcelas) =>
-        parcelas is >= 1 and <= Maximo ? parcelas : throw new RegraDeNegocioException($"O parcelamento vai de 1 a {Maximo} vezes.");
+        parcelas is >= 1 and <= Maximo ? parcelas : throw new RegraDeNegocioException($"Parcelamento de 1 a {Maximo} vezes.");
 }

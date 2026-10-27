@@ -37,7 +37,7 @@ public sealed class CadastroComCaptchaTest(ApiDeTeste api)
         var captcha = new CaptchaFalso(ResultadoDoCaptcha.Aprovado);
         var email = $"captcha-{Guid.NewGuid():N}@teste.com.br";
 
-        var resposta = await Cliente(captcha).PostAsJsonAsync("/cadastro", Corpo(email, Cnpj()), Ct);
+        var resposta = await Cliente(captcha).PostAsJsonAsync("/cadastro", Corpo(email, Cenarios.Cnpj()), Ct);
 
         Assert.Equal(HttpStatusCode.Accepted, resposta.StatusCode);
         Assert.Equal(["token-do-widget"], captcha.Tokens);
@@ -48,7 +48,7 @@ public sealed class CadastroComCaptchaTest(ApiDeTeste api)
     {
         var email = $"captcha-{Guid.NewGuid():N}@teste.com.br";
 
-        var resposta = await Cliente(new CaptchaFalso(ResultadoDoCaptcha.Reprovado)).PostAsJsonAsync("/cadastro", Corpo(email, Cnpj(), token: null), Ct);
+        var resposta = await Cliente(new CaptchaFalso(ResultadoDoCaptcha.Reprovado)).PostAsJsonAsync("/cadastro", Corpo(email, Cenarios.Cnpj(), token: null), Ct);
 
         Assert.Equal(HttpStatusCode.UnprocessableEntity, resposta.StatusCode);
         await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
@@ -61,7 +61,7 @@ public sealed class CadastroComCaptchaTest(ApiDeTeste api)
     {
         var email = $"captcha-{Guid.NewGuid():N}@teste.com.br";
 
-        var resposta = await Cliente(new CaptchaFalso(ResultadoDoCaptcha.Indisponivel)).PostAsJsonAsync("/cadastro", Corpo(email, Cnpj()), Ct);
+        var resposta = await Cliente(new CaptchaFalso(ResultadoDoCaptcha.Indisponivel)).PostAsJsonAsync("/cadastro", Corpo(email, Cenarios.Cnpj()), Ct);
 
         Assert.Equal(HttpStatusCode.ServiceUnavailable, resposta.StatusCode);
         await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
@@ -74,19 +74,7 @@ public sealed class CadastroComCaptchaTest(ApiDeTeste api)
         var verificador = api.Fabrica.Services.GetRequiredService<IVerificadorDeCaptcha>();
 
         Assert.False(verificador.Ligado);
-        var resposta = await api.Fabrica.CreateClient().PostAsJsonAsync("/cadastro", Corpo($"semcaptcha-{Guid.NewGuid():N}@teste.com.br", Cnpj(), token: null), Ct);
+        var resposta = await api.Fabrica.CreateClient().PostAsJsonAsync("/cadastro", Corpo($"semcaptcha-{Guid.NewGuid():N}@teste.com.br", Cenarios.Cnpj(), token: null), Ct);
         Assert.Equal(HttpStatusCode.Accepted, resposta.StatusCode);
-    }
-
-    private static string Cnpj()
-    {
-        var d = Enumerable.Range(0, 12).Select(_ => Random.Shared.Next(10)).ToList();
-        foreach (var pesos in new[] { new[] { 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2 }, new[] { 6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2 } })
-        {
-            var resto = d.Select((n, i) => n * pesos[i]).Sum() % 11;
-            d.Add(resto < 2 ? 0 : 11 - resto);
-        }
-
-        return string.Concat(d);
     }
 }

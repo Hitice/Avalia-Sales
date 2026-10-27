@@ -15,7 +15,7 @@ public static class Contraste
         var limpo = (cor ?? string.Empty).Trim().TrimStart('#').ToUpperInvariant();
         return limpo.Length == 6 && limpo.All(char.IsAsciiHexDigit)
             ? "#" + limpo
-            : throw new RegraDeNegocioException("Use a cor em hexadecimal, como #120C2B.");
+            : throw new RegraDeNegocioException("Cor inválida. Use hexadecimal, como #120C2B.");
     }
 
     public static double Razao(string a, string b)

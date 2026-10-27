@@ -61,7 +61,19 @@ public sealed class GatewayFalso : IGatewayDePagamento
         Task.FromResult(new RecebedorDoGateway(id, "Recebedor de teste", "active"));
 
     public List<string> Cancelados { get; } = [];
+    public List<string> LinksCancelados { get; } = [];
     public Exception? FalhaAoCancelar { get; set; }
+
+    public Task CancelarLink(string link, CancellationToken ct)
+    {
+        if (FalhaAoCancelar is not null)
+        {
+            throw FalhaAoCancelar;
+        }
+
+        LinksCancelados.Add(link);
+        return Task.CompletedTask;
+    }
 
     public Task CancelarPedido(string pedido, CancellationToken ct)
     {
@@ -197,10 +209,14 @@ public sealed class HttpFalso(params (HttpStatusCode Status, string Corpo)[] res
 
     public List<(HttpMethod Metodo, Uri Uri, string? Corpo, string? Autorizacao)> Pedidos { get; } = [];
 
+    /// <summary>Os cabeçalhos de cada pedido, na mesma ordem de <see cref="Pedidos"/>.</summary>
+    public List<Dictionary<string, string>> Cabecalhos { get; } = [];
+
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage pedido, CancellationToken ct)
     {
         var corpo = pedido.Content is null ? null : await pedido.Content.ReadAsStringAsync(ct);
         Pedidos.Add((pedido.Method, pedido.RequestUri!, corpo, pedido.Headers.Authorization?.ToString()));
+        Cabecalhos.Add(pedido.Headers.ToDictionary(c => c.Key, c => string.Join(",", c.Value), StringComparer.OrdinalIgnoreCase));
         var (status, texto) = _respostas.Count > 0 ? _respostas.Dequeue() : (HttpStatusCode.InternalServerError, "{}");
         return new HttpResponseMessage(status) { Content = new StringContent(texto, Encoding.UTF8, "application/json") };
     }

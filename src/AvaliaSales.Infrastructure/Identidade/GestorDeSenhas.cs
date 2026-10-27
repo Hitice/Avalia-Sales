@@ -25,7 +25,7 @@ public sealed class GestorDeSenhas(BancoDeDados banco, UserManager<Usuario> usua
         var usuario = await usuarios.FindByIdAsync(usuarioId.ToString()) ?? throw new RegraDeNegocioException("Login não encontrado.");
         if (usuario.PasswordHash is not null)
         {
-            throw new RegraDeNegocioException("O vendedor já criou a senha.");
+            throw new RegraDeNegocioException("Senha já criada.");
         }
 
         var (link, endereco) = await Emitir(usuario.Id, FinalidadeDoLink.Convite, ct);
@@ -85,13 +85,13 @@ public sealed class GestorDeSenhas(BancoDeDados banco, UserManager<Usuario> usua
         var usuario = await usuarios.FindByIdAsync(usuarioId.ToString()) ?? throw new RegraDeNegocioException("Login não encontrado.");
         if (usuario.EmailConfirmed)
         {
-            throw new RegraDeNegocioException("Este e-mail já está confirmado.");
+            throw new RegraDeNegocioException("E-mail já confirmado.");
         }
 
         var limite = relogio.GetUtcNow() - EsperaParaReenviar;
         if (await banco.LinksDeSenha.AnyAsync(l => l.UsuarioId == usuario.Id && l.Finalidade == FinalidadeDoLink.ConfirmacaoDeEmail && l.CriadoEm > limite, ct))
         {
-            throw new RegraDeNegocioException("Aguarde 1 minuto para pedir outro e-mail.");
+            throw new RegraDeNegocioException("E-mail pedido há menos de 1 minuto. Aguarde.");
         }
 
         var (link, endereco) = await Emitir(usuario.Id, FinalidadeDoLink.ConfirmacaoDeEmail, ct);
@@ -269,7 +269,7 @@ public sealed class GestorDeSenhas(BancoDeDados banco, UserManager<Usuario> usua
 
         if (nova == atual)
         {
-            throw new RegraDeNegocioException("A senha nova precisa ser diferente da atual.");
+            throw new RegraDeNegocioException("Senha nova igual à atual. Use outra.");
         }
 
         foreach (var validador in usuarios.PasswordValidators)

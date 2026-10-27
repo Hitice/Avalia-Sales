@@ -1,6 +1,7 @@
 using AvaliaSales.Application.Contratos;
 using AvaliaSales.Application.Equipe;
 using AvaliaSales.Domain.Contratos;
+using AvaliaSales.Domain.Financeiro;
 using AvaliaSales.Domain.Pagamentos;
 using AvaliaSales.Domain.Placas;
 using Microsoft.EntityFrameworkCore;
@@ -73,16 +74,25 @@ public sealed class DocumentosDaRevenda(IBancoDeDados banco, IContas contas, IDo
         return numeros.Select(Lote.Rotular).ToList();
     }
 
-    private async Task<Conciliacao> Conciliacao(Guid revendedorId, CancellationToken ct)
+    /// <summary>
+    /// Os números da cláusula de acerto do distrato. O devido por fora sai do razão da própria revenda: as linhas da parte
+    /// da Avalia das cobranças recebidas por fora, com os estornos. São as mesmas linhas, com o sinal trocado, que o livro da
+    /// operadora marca por fora e que o saldo a acertar soma (ADR 0028), então o distrato e a operadora chegam ao mesmo valor,
+    /// inclusive depois de desfeita parte de uma cobrança agrupada.
+    /// </summary>
+    public async Task<Conciliacao> Conciliacao(Guid revendedorId, CancellationToken ct)
     {
         var pagas = banco.Cobrancas.AsNoTracking()
             .Where(c => (c.Origem == OrigemDaCobranca.Venda || c.Origem == OrigemDaCobranca.Renovacao) && c.Situacao == SituacaoDaCobranca.Paga);
-        var porFora = pagas.Where(c => c.Meio == MeioDePagamento.Dinheiro || c.Meio == MeioDePagamento.OutroPix);
+        var porFora = banco.Cobrancas.AsNoTracking().Where(c => c.Meio == MeioDePagamento.Dinheiro || c.Meio == MeioDePagamento.OutroPix).Select(c => c.Id);
+        var devido = -(await banco.Lancamentos.AsNoTracking().Where(l => l.Tipo == TipoDeLancamento.TaxaAvalia && porFora.Contains(l.OrigemId))
+            .SumAsync(l => (long?)l.ValorCents, ct) ?? 0);
+        // O que a revenda já quitou com a Avalia (acertos da operadora) sai do saldo devido no distrato.
+        var acertado = await banco.AcertosDeRevenda.AsNoTracking().Where(a => a.RevendedorId == revendedorId).SumAsync(a => (long?)a.ValorCents, ct) ?? 0;
         return new Conciliacao(
             await pagas.CountAsync(ct),
             await pagas.SumAsync(c => c.ValorCents, ct),
-            // O que a revenda já quitou com a Avalia (acertos da operadora) sai do saldo devido no distrato.
-            Math.Max(0, await porFora.SumAsync(c => c.TaxaAvaliaCents, ct) - (await banco.AcertosDeRevenda.AsNoTracking().Where(a => a.RevendedorId == revendedorId).SumAsync(a => (long?)a.ValorCents, ct) ?? 0)),
+            Math.Max(0, devido - acertado),
             await banco.Cobrancas.CountAsync(c => (c.Origem == OrigemDaCobranca.Venda || c.Origem == OrigemDaCobranca.Renovacao) && c.Situacao == SituacaoDaCobranca.Pendente, ct));
     }
 }

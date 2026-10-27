@@ -25,7 +25,7 @@ public sealed partial class DocumentosEmPdf(IConversorDePdf conversor, IOptions<
     public Task<byte[]> Distrato(DadosDoDistrato dados, CancellationToken ct)
     {
         var campos = Comuns(dados.Revendedora, dados.Emissao);
-        var saldo = dados.Conciliacao.TaxaPorForaCents;
+        var saldo = dados.Conciliacao.DevidoPorForaCents;
         campos["data_do_contrato"] = dados.ContratoAssinadoEm is { } assinado ? Data(assinado) : "data da adesão pela Plataforma";
         campos["prazo_de_exportacao"] = "30 (trinta) dias após a Data Efetiva";
         campos["saldo_do_revendedor"] = Reais(saldo);

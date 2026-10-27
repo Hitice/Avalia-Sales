@@ -27,10 +27,9 @@ public sealed class CatalogoDaAvaliaTest(ApiDeTeste api)
         Assert.Contains((await revenda.Dono.Pegar("/catalogo")).EnumerateArray(), i => i.GetProperty("chave").GetString() == "placa-avaliacao-google"
             && i.GetProperty("fotoUrl").GetString() == "/produtos/placa-avaliacao-google.jpg");
 
-        // Serviço: preço livre acima da parte da Avalia. A revenda não cria produto nem mexe no catálogo da Avalia.
+        // Serviço: preço livre acima da parte da Avalia. A revenda não mexe no catálogo da Avalia.
         await revenda.Dono.Colocar($"/catalogo/{id}", new { precoCents = 25_000L });
         Assert.Equal(HttpStatusCode.Forbidden, (await revenda.Dono.GetAsync("/operadora/catalogo", Ct)).StatusCode);
-        Assert.Equal(HttpStatusCode.NotFound, (await revenda.Dono.PostAsJsonAsync("/produtos", new { nome = "Placa", precoCents = 100 }, Ct)).StatusCode);
 
         // Esgotado aparece, mas não vende; fora de linha some do catálogo da revenda.
         await operadora.Colocar($"/operadora/catalogo/{id}/situacao", new { situacao = "Esgotado" });

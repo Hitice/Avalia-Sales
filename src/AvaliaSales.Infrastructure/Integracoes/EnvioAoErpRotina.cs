@@ -10,8 +10,8 @@ using Microsoft.Extensions.Options;
 namespace AvaliaSales.Infrastructure.Integracoes;
 
 /// <summary>
-/// Leva os pedidos de placas pagos ao ERP. Sem ERP configurado, não faz nada e
-/// o envio espera. A chave é o id do pedido: reenviar depois de uma queda não
+/// Leva os pedidos de placas pagos ao ERP. Sem ERP configurado, não faz nada; o que
+/// entrou na fila antes de o endereço sair espera ele voltar. A chave é o id do pedido: reenviar depois de uma queda não
 /// cria outro pedido de venda.
 /// </summary>
 public sealed partial class EnvioAoErpRotina(BancoDeDados banco, IErp erp, IOptions<OpcoesProtheus> opcoes, TimeProvider relogio, ILogger<EnvioAoErpRotina> log)

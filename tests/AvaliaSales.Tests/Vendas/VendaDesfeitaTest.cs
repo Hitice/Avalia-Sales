@@ -122,9 +122,9 @@ public sealed class VendaDesfeitaTest(ApiDeTeste api)
     }
 
     [Fact]
-    public async Task Recebido_por_fora_vai_ao_razao_com_a_taxa_a_acertar_e_o_dono_desfaz()
+    public async Task Recebido_por_fora_vai_ao_razao_sem_nada_a_acertar_na_placa_e_o_dono_desfaz()
     {
-        var revenda = await api.RevendaComEstoque("Revenda do Balcão", taxaAvaliaBps: 199);
+        var revenda = await api.RevendaComEstoque("Revenda do Balcão");
         var email = $"vendedor-{Guid.NewGuid():N}@teste.com.br";
         await revenda.Dono.Postar("/equipe", new { nome = "Caio", email, senha = ApiDeTeste.Senha, comissaoBps = 2_000 }, HttpStatusCode.Created);
         var caio = await api.ClienteLogado(email);
@@ -141,10 +141,10 @@ public sealed class VendaDesfeitaTest(ApiDeTeste api)
 
         var razao = await revenda.Dono.Pegar("/razao");
         Assert.Equal(14_990, razao.GetProperty("receitaCents").GetInt64());
-        Assert.Equal(298, razao.GetProperty("taxaAvaliaCents").GetInt64());
+        Assert.Equal(0, razao.GetProperty("parteDaAvaliaCents").GetInt64());
         Assert.Equal(2_998, razao.GetProperty("comissaoCents").GetInt64());
         await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
-        Assert.Equal(1, await banco.Contar($"select count(*) from lancamentos where revendedor_id = '{revenda.Id}' and descricao like 'Taxa da plataforma a acertar%'"));
+        Assert.Equal(0, await banco.Contar($"select count(*) from lancamentos where revendedor_id = '{revenda.Id}' and tipo = 'TaxaAvalia'"));
 
         Assert.Equal(HttpStatusCode.Forbidden, (await caio.DeleteAsync($"/vendas/{venda}/recebimento", Ct)).StatusCode);
         Assert.Equal(HttpStatusCode.NoContent, (await revenda.Dono.DeleteAsync($"/vendas/{venda}/recebimento", Ct)).StatusCode);
@@ -158,7 +158,7 @@ public sealed class VendaDesfeitaTest(ApiDeTeste api)
     [Fact]
     public async Task Renovacao_recebida_por_fora_estende_a_placa_depois_do_Pix_vencer()
     {
-        var revenda = await api.RevendaComEstoque("Revenda da Renovação no Balcão", taxaAvaliaBps: 199);
+        var revenda = await api.RevendaComEstoque("Revenda da Renovação no Balcão");
         var codigo = revenda.Codigos[6];
         await revenda.Dono.Postar("/vendas", Cenarios.Venda(codigo, revenda.ProdutoId, "11977770008"), HttpStatusCode.Created);
         await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
@@ -173,13 +173,15 @@ public sealed class VendaDesfeitaTest(ApiDeTeste api)
         Assert.Equal(8_994, renovada.GetProperty("valorCents").GetInt64());
         var venceAgora = await banco.Texto($"select to_char(vence_em at time zone 'UTC', 'YYYY-MM-DD') from placas where codigo = '{codigo}'");
         Assert.Equal(DateOnly.Parse(venciaEm, System.Globalization.CultureInfo.InvariantCulture).AddYears(1), DateOnly.Parse(venceAgora, System.Globalization.CultureInfo.InvariantCulture));
-        Assert.Equal(1, await banco.Contar($"select count(*) from lancamentos where revendedor_id = '{revenda.Id}' and descricao like 'Taxa da plataforma a acertar, renovação%'"));
+        // Renovação não manda nada à Avalia: só a receita entra no razão.
+        Assert.Equal(1, await banco.Contar($"select count(*) from lancamentos where revendedor_id = '{revenda.Id}' and descricao like 'Renovação da placa%'"));
+        Assert.Equal(0, await banco.Contar($"select count(*) from lancamentos where revendedor_id = '{revenda.Id}' and tipo = 'TaxaAvalia'"));
     }
 
     [Fact]
     public async Task Renovacao_recebida_por_engano_e_desfeita_pelo_revendedor_com_estorno_e_o_vencimento_de_antes()
     {
-        var revenda = await api.RevendaComEstoque("Revenda da Renovação Desfeita", taxaAvaliaBps: 199);
+        var revenda = await api.RevendaComEstoque("Revenda da Renovação Desfeita");
         var codigo = revenda.Codigos[7];
         var email = $"vendedor-{Guid.NewGuid():N}@teste.com.br";
         await revenda.Dono.Postar("/equipe", new { nome = "Téo", email, senha = ApiDeTeste.Senha, comissaoBps = 2_000 }, HttpStatusCode.Created);
@@ -198,9 +200,9 @@ public sealed class VendaDesfeitaTest(ApiDeTeste api)
         Assert.Equal(HttpStatusCode.NoContent, (await revenda.Dono.DeleteAsync($"/placas/{codigo}/renovacao/recebimento", Ct)).StatusCode);
 
         Assert.Equal(venciaEm, await banco.Texto($"select to_char(vence_em at time zone 'UTC', 'YYYY-MM-DD') from placas where codigo = '{codigo}'"));
-        // Receita e taxa a acertar da renovação, cada uma com o estorno: o razão volta a zero.
+        // A receita da renovação e o estorno dela: o razão volta a zero.
         var daRenovacao = $"from lancamentos where origem_id in (select id from cobrancas where origem = 'Renovacao' and revendedor_id = '{revenda.Id}')";
-        Assert.Equal(4, await banco.Contar($"select count(*) {daRenovacao}"));
+        Assert.Equal(2, await banco.Contar($"select count(*) {daRenovacao}"));
         Assert.Equal(0, await banco.Contar($"select coalesce(sum(valor_cents), 0) {daRenovacao}"));
         var depois = await revenda.Dono.Pegar($"/placas/{codigo}");
         Assert.Equal(JsonValueKind.Null, depois.GetProperty("ultimaRenovacao").ValueKind);

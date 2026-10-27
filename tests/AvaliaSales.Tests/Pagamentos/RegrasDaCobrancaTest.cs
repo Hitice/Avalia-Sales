@@ -6,14 +6,12 @@ namespace AvaliaSales.Tests.Pagamentos;
 public sealed class RegrasDaCobrancaTest
 {
     [Theory]
-    [InlineData(10_000, 199, 199, 9_801)]
-    [InlineData(14_990, 199, 298, 14_692)]
-    [InlineData(100, 199, 2, 98)]
-    [InlineData(1, 199, 0, 1)]
-    [InlineData(5_000, 0, 0, 5_000)]
-    public void Taxa_da_avalia_arredonda_ao_centavo_e_o_resto_e_do_revendedor(long valor, int taxaBps, long avalia, long revendedor)
+    [InlineData(14_990, 0, 0, 14_990)]
+    [InlineData(89_900, 71_137, 71_137, 18_763)]
+    [InlineData(90_000, 90_000, 90_000, 0)]
+    public void Split_manda_a_parte_da_avalia_em_centavos_e_o_resto_e_do_revendedor(long valor, long parte, long avalia, long revendedor)
     {
-        var divisao = DivisaoDaCobranca.Calcular(valor, taxaBps);
+        var divisao = new Cobranca(OrigemDaCobranca.Venda, null, MeioDePagamento.Pix, valor, parte).Divisao;
 
         Assert.Equal(avalia, divisao.AvaliaCents);
         Assert.Equal(revendedor, divisao.RevendedorCents);
@@ -21,17 +19,17 @@ public sealed class RegrasDaCobrancaTest
     }
 
     [Theory]
-    [InlineData(0, 199)]
-    [InlineData(-10, 199)]
+    [InlineData(0, 0)]
+    [InlineData(-10, 0)]
     [InlineData(1_000, -1)]
-    [InlineData(1_000, 10_001)]
-    public void Valor_ou_taxa_fora_do_intervalo_e_recusado(long valor, int taxaBps) =>
-        Assert.Throws<RegraDeNegocioException>(() => DivisaoDaCobranca.Calcular(valor, taxaBps));
+    [InlineData(1_000, 1_001)]
+    public void Valor_zerado_ou_parte_fora_do_valor_e_recusado(long valor, long parte) =>
+        Assert.Throws<RegraDeNegocioException>(() => new Cobranca(OrigemDaCobranca.Venda, null, MeioDePagamento.Pix, valor, parte));
 
     [Fact]
     public void Cobranca_paga_nao_volta_a_pendente_nem_a_cancelada()
     {
-        var cobranca = new Cobranca(OrigemDaCobranca.Venda, null, MeioDePagamento.Pix, 10_000, 199);
+        var cobranca = new Cobranca(OrigemDaCobranca.Venda, null, MeioDePagamento.Pix, 10_000);
 
         Assert.True(cobranca.Atualizar(SituacaoDaCobranca.Paga, DateTimeOffset.UtcNow));
         Assert.False(cobranca.Atualizar(SituacaoDaCobranca.Pendente, null));
@@ -41,11 +39,12 @@ public sealed class RegrasDaCobrancaTest
     }
 
     [Fact]
-    public void Taxa_fica_gravada_na_cobranca_no_momento_da_criacao()
+    public void Venda_de_placa_nao_manda_nada_para_a_avalia_no_split()
     {
-        var cobranca = new Cobranca(OrigemDaCobranca.Venda, null, MeioDePagamento.Cartao, 14_990, 199);
+        var cobranca = new Cobranca(OrigemDaCobranca.Venda, null, MeioDePagamento.Cartao, 14_990);
 
-        Assert.Equal(298, cobranca.TaxaAvaliaCents);
+        Assert.Equal(0, cobranca.ParteDaAvaliaCents);
+        Assert.Equal(new Divisao(0, 14_990), cobranca.Divisao);
         Assert.Equal(32, cobranca.Codigo.Length);
     }
 }

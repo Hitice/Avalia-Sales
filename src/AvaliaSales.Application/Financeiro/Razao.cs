@@ -5,11 +5,11 @@ namespace AvaliaSales.Application.Financeiro;
 
 public sealed record LancamentoDto(Guid Id, TipoDeLancamento Tipo, long ValorCents, string Descricao, DateTimeOffset OcorridoEm, string Competencia, bool Estorno);
 
-public sealed record ResumoDoMes(string Competencia, long ReceitaCents, long TaxaAvaliaCents, long ComissaoCents, long LiquidoCents, Pagina<LancamentoDto> Lancamentos);
+public sealed record ResumoDoMes(string Competencia, long ReceitaCents, long ParteDaAvaliaCents, long ComissaoCents, long LiquidoCents, Pagina<LancamentoDto> Lancamentos);
 
 /// <summary>
-/// O razão do revendedor por mês. Líquido é o que fica com ele depois da taxa
-/// da Avalia e da comissão; a taxa do Pagar.me sai no extrato do Pagar.me.
+/// O razão do revendedor por mês. Líquido é o que fica com ele depois da parte
+/// da Avalia nos serviços e da comissão; a tarifa do Pagar.me sai no extrato do Pagar.me.
 /// </summary>
 public sealed class Razao(IBancoDeDados banco, TimeProvider relogio)
 {
@@ -24,7 +24,7 @@ public sealed class Razao(IBancoDeDados banco, TimeProvider relogio)
         var somas = await doMes.GroupBy(l => l.Tipo).Select(g => new { Tipo = g.Key, Total = g.Sum(l => l.ValorCents) }).ToListAsync(ct);
         long Soma(TipoDeLancamento tipo) => somas.Where(l => l.Tipo == tipo).Sum(l => l.Total);
         var receita = Soma(TipoDeLancamento.Receita);
-        var taxa = -Soma(TipoDeLancamento.TaxaAvalia);
+        var parteDaAvalia = -Soma(TipoDeLancamento.TaxaAvalia);
         var comissao = -Soma(TipoDeLancamento.ComissaoDevida);
 
         var termo = Paginacao.Termo(busca);
@@ -34,7 +34,7 @@ public sealed class Razao(IBancoDeDados banco, TimeProvider relogio)
         }
 
         var pagina = await doMes.OrderByDescending(l => l.OcorridoEm).ThenByDescending(l => l.Id).PaginarAsync(pedido, ct);
-        return new ResumoDoMes(mes, receita, taxa, comissao, receita - taxa - comissao,
+        return new ResumoDoMes(mes, receita, parteDaAvalia, comissao, receita - parteDaAvalia - comissao,
             pagina.Mapear(l => new LancamentoDto(l.Id, l.Tipo, l.ValorCents, l.Descricao, l.OcorridoEm, l.Competencia, l.EstornaId is not null)));
     }
 

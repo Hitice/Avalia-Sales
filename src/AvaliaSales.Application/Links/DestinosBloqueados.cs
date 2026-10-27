@@ -32,7 +32,7 @@ public sealed class DestinosBloqueados(IBancoDeDados banco, IUsuarioAtual usuari
         var destino = new DestinoBloqueado(comando.Dominio, comando.Motivo, usuario.UsuarioId, relogio.GetUtcNow());
         if (await banco.DestinosBloqueados.AnyAsync(d => d.Dominio == destino.Dominio, ct))
         {
-            throw new RegraDeNegocioException($"{destino.Dominio} já está bloqueado.");
+            throw new RegraDeNegocioException($"{destino.Dominio} já bloqueado.");
         }
 
         banco.DestinosBloqueados.Add(destino);
@@ -47,7 +47,11 @@ public sealed class DestinosBloqueados(IBancoDeDados banco, IUsuarioAtual usuari
         await banco.SaveChangesAsync(ct);
     }
 
-    /// <summary>O endereço ou algum domínio acima dele está na lista.</summary>
+    /// <summary>
+    /// O endereço ou algum domínio acima dele está na lista. Host que não normaliza não é gravado como destino novo
+    /// (<see cref="ExigirPermitido"/>); na leitura de um destino antigo assim (IPv6, nome longo), a placa impressa
+    /// continua redirecionando, porque a lista só guarda domínio e não teria como bloqueá-lo.
+    /// </summary>
     public async Task<bool> Bloqueado(string? endereco, CancellationToken ct)
     {
         var host = DestinoBloqueado.DominioDe(endereco);
@@ -62,9 +66,14 @@ public sealed class DestinosBloqueados(IBancoDeDados banco, IUsuarioAtual usuari
 
     public async Task ExigirPermitido(string? endereco, CancellationToken ct)
     {
+        if (DestinoBloqueado.DominioDe(endereco) is null)
+        {
+            throw new RegraDeNegocioException("Endereço sem domínio válido. Confira o link.");
+        }
+
         if (await Bloqueado(endereco, ct))
         {
-            throw new RegraDeNegocioException("A Avalia bloqueou este endereço de destino. Use outro ou fale com o suporte.");
+            throw new RegraDeNegocioException("Destino bloqueado pela operadora. Use outro ou fale com o suporte.");
         }
     }
 

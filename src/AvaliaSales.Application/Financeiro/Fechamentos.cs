@@ -31,7 +31,7 @@ public sealed class Fechamentos(IBancoDeDados banco, IUsuarioAtual usuario, Audi
     {
         if (await Fechado(competencia, ct))
         {
-            throw new RegraDeNegocioException($"O mês {Nome(competencia)} está fechado. Use uma data de mês aberto ou reabra o mês.");
+            throw new RegraDeNegocioException($"Mês {Nome(competencia)} fechado. Use outra data ou reabra o mês.");
         }
     }
 
@@ -49,7 +49,7 @@ public sealed class Fechamentos(IBancoDeDados banco, IUsuarioAtual usuario, Audi
         var fechamento = new FechamentoDoMes(competencia, usuario.UsuarioId, relogio.GetUtcNow());
         if (await Fechado(fechamento.Competencia, ct))
         {
-            throw new RegraDeNegocioException($"O mês {Nome(fechamento.Competencia)} já está fechado.");
+            throw new RegraDeNegocioException($"Mês {Nome(fechamento.Competencia)} já fechado.");
         }
 
         banco.Fechamentos.Add(fechamento);
@@ -61,7 +61,7 @@ public sealed class Fechamentos(IBancoDeDados banco, IUsuarioAtual usuario, Audi
     {
         var mes = Competencias.Conferir(competencia);
         var fechamento = await banco.Fechamentos.SingleOrDefaultAsync(f => f.Competencia == mes && f.ReabertoEm == null, ct)
-            ?? throw new RegraDeNegocioException($"O mês {Nome(mes)} não está fechado.");
+            ?? throw new RegraDeNegocioException($"Mês {Nome(mes)} não fechado.");
         fechamento.Reabrir(pedido.Motivo, usuario.UsuarioId, relogio.GetUtcNow());
         auditoria.Registrar(AcaoAuditada.MesReaberto, $"Mês {Nome(mes)}", mes, "Fechado", fechamento.MotivoDaReabertura);
         await banco.SaveChangesAsync(ct);

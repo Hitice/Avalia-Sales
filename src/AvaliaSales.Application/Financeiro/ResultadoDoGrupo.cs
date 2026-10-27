@@ -36,7 +36,7 @@ public sealed record ResultadoDoGrupoDto(
     PendenciasDoGrupo Pendencias,
     long RetiradasDeSocioCents);
 
-public sealed record ReceitaDaRevenda(Guid RevendedorId, string Revendedor, bool DoGrupo, long TaxaDaPlataformaCents, long ParteDaAvaliaCents, long PedidosDePlacasCents, long TotalCents);
+public sealed record ReceitaDaRevenda(Guid RevendedorId, string Revendedor, bool DoGrupo, long ParteDaAvaliaCents, long PedidosDePlacasCents, long TotalCents);
 
 /// <summary>
 /// O resultado consolidado do grupo (a Avalia empresa: revenda do grupo mais operadora), por mês.
@@ -64,6 +64,10 @@ public sealed class ResultadoDoGrupo(IBancoDeDados banco, IEscopoDeRevenda escop
             .ToListAsync(ct);
         long Livro(TipoDeLancamentoDaOperadora tipo, bool? soDoGrupo = null) =>
             livro.Where(x => x.Tipo == tipo && (soDoGrupo is null || x.DoGrupo == soDoGrupo)).Sum(x => x.Total);
+
+        // A taxa da plataforma saiu em 27/10/2026; a linha antiga dela soma na parte da Avalia, dos dois lados da eliminação.
+        long ParteNoLivro(bool? soDoGrupo = null) =>
+            Livro(TipoDeLancamentoDaOperadora.ParteDaAvaliaNosServicos, soDoGrupo) + Livro(TipoDeLancamentoDaOperadora.TaxaDaPlataforma, soDoGrupo);
 
         // Os lotes que passaram a ser do cliente no mês, a custo real.
         var ativados = await (
@@ -94,22 +98,17 @@ public sealed class ResultadoDoGrupo(IBancoDeDados banco, IEscopoDeRevenda escop
         var despesasDaOperadora = -Livro(TipoDeLancamentoDaOperadora.Despesa);
 
         long Soma(Func<DreDoMes, long> campo) => leituras.Sum(l => campo(l.Dre));
-        var taxaDaPlataformaPaga = leituras.Sum(l => l.TaxaDaPlataformaCents);
-        var parteDaAvaliaPaga = leituras.Sum(l => l.ParteDaAvaliaCents);
+        var parteDaAvaliaPaga = Soma(d => d.ParteDaAvaliaCents);
 
         var receitas = new[]
         {
             Linha("receita-das-vendas", "Receita das vendas ao cliente final", TipoDaLinhaDoResultado.Receita, Soma(d => d.ReceitaReconhecidaCents), 0, 0),
-            Linha("taxa-da-plataforma", "Taxa da plataforma", TipoDaLinhaDoResultado.Receita, 0, Livro(TipoDeLancamentoDaOperadora.TaxaDaPlataforma),
-                -Livro(TipoDeLancamentoDaOperadora.TaxaDaPlataforma, true)),
-            Linha("parte-da-avalia", "Parte da Avalia nos serviços", TipoDaLinhaDoResultado.Receita, 0, Livro(TipoDeLancamentoDaOperadora.ParteDaAvaliaNosServicos),
-                -Livro(TipoDeLancamentoDaOperadora.ParteDaAvaliaNosServicos, true)),
+            Linha("parte-da-avalia", "Parte da Avalia nos serviços", TipoDaLinhaDoResultado.Receita, 0, ParteNoLivro(), -ParteNoLivro(true)),
             Linha("pedidos-de-placas", "Pedidos de placas ativados", TipoDaLinhaDoResultado.Receita, 0, Livro(TipoDeLancamentoDaOperadora.PedidoDePlacas),
                 -Livro(TipoDeLancamentoDaOperadora.PedidoDePlacas, true)),
         };
         var custos = new[]
         {
-            Linha("taxa-da-plataforma-paga", "Taxa da plataforma paga pela revenda", TipoDaLinhaDoResultado.Custo, taxaDaPlataformaPaga, 0, -taxaDaPlataformaPaga),
             Linha("parte-da-avalia-paga", "Parte da Avalia paga pela revenda", TipoDaLinhaDoResultado.Custo, parteDaAvaliaPaga, 0, -parteDaAvaliaPaga),
             Linha("comissoes", "Comissões", TipoDaLinhaDoResultado.Custo, Soma(d => d.ComissoesCents), 0, 0),
             Linha("placas-pelo-preco-da-operadora", "Placas pelo preço pago à operadora", TipoDaLinhaDoResultado.Custo,
@@ -127,8 +126,7 @@ public sealed class ResultadoDoGrupo(IBancoDeDados banco, IEscopoDeRevenda escop
         var conciliacao = new[]
         {
             Conciliar("pedido-de-placas", "Pedido de placas: compra da revenda do grupo e receita da operadora", pedidosDoGrupo, Livro(TipoDeLancamentoDaOperadora.PedidoDePlacas, true)),
-            Conciliar("taxa-da-plataforma", "Taxa da plataforma: paga pela revenda do grupo e recebida pela operadora", taxaDaPlataformaPaga, Livro(TipoDeLancamentoDaOperadora.TaxaDaPlataforma, true)),
-            Conciliar("parte-da-avalia", "Parte da Avalia: paga pela revenda do grupo e recebida pela operadora", parteDaAvaliaPaga, Livro(TipoDeLancamentoDaOperadora.ParteDaAvaliaNosServicos, true)),
+            Conciliar("parte-da-avalia", "Parte da Avalia: paga pela revenda do grupo e recebida pela operadora", parteDaAvaliaPaga, ParteNoLivro(true)),
         };
 
         var lotesSemCusto = await banco.Lotes.AsNoTracking().CountAsync(l => l.PedidoId != null && l.ArquivadoEm == null && !banco.CustosDeLote.Any(c => c.LoteId == l.Id), ct);
@@ -152,14 +150,14 @@ public sealed class ResultadoDoGrupo(IBancoDeDados banco, IEscopoDeRevenda escop
             select new
             {
                 Origem = g.Key,
-                Taxa = g.Where(l => l.Tipo == TipoDeLancamentoDaOperadora.TaxaDaPlataforma).Sum(l => l.ValorCents),
-                Parte = g.Where(l => l.Tipo == TipoDeLancamentoDaOperadora.ParteDaAvaliaNosServicos).Sum(l => l.ValorCents),
+                // A taxa da plataforma (só histórico) soma na parte da Avalia.
+                Parte = g.Where(l => l.Tipo == TipoDeLancamentoDaOperadora.ParteDaAvaliaNosServicos || l.Tipo == TipoDeLancamentoDaOperadora.TaxaDaPlataforma).Sum(l => l.ValorCents),
                 Pedidos = g.Where(l => l.Tipo == TipoDeLancamentoDaOperadora.PedidoDePlacas).Sum(l => l.ValorCents),
             };
         var consulta =
             from x in somas
             join r in banco.Revendedores.AsNoTracking() on x.Origem equals r.Id
-            select new { r.Id, r.Nome, r.DoGrupoDaOperadora, x.Taxa, x.Parte, x.Pedidos };
+            select new { r.Id, r.Nome, r.DoGrupoDaOperadora, x.Parte, x.Pedidos };
         var termo = Paginacao.Termo(busca);
         if (termo.Length > 0)
         {
@@ -167,7 +165,7 @@ public sealed class ResultadoDoGrupo(IBancoDeDados banco, IEscopoDeRevenda escop
         }
 
         return (await consulta.OrderBy(x => x.Nome).ThenBy(x => x.Id).PaginarAsync(pedido, ct))
-            .Mapear(x => new ReceitaDaRevenda(x.Id, x.Nome, x.DoGrupoDaOperadora, x.Taxa, x.Parte, x.Pedidos, x.Taxa + x.Parte + x.Pedidos));
+            .Mapear(x => new ReceitaDaRevenda(x.Id, x.Nome, x.DoGrupoDaOperadora, x.Parte, x.Pedidos, x.Parte + x.Pedidos));
     }
 
     private static LinhaDoResultado Linha(string chave, string rotulo, TipoDaLinhaDoResultado tipo, long revenda, long operadora, long eliminacoes) =>
@@ -185,22 +183,11 @@ public sealed class ResultadoDoGrupo(IBancoDeDados banco, IEscopoDeRevenda escop
 
     private sealed record PlacaSemReceita(long ValorCents, Guid LoteId);
 
-    private sealed record LeituraDaRevenda(DreDoMes Dre, long TaxaDaPlataformaCents, long ParteDaAvaliaCents,
-        IReadOnlyList<PlacaDaReceita> Receitas, IReadOnlyList<PlacaSemReceita> SemReceita);
+    private sealed record LeituraDaRevenda(DreDoMes Dre, IReadOnlyList<PlacaDaReceita> Receitas, IReadOnlyList<PlacaSemReceita> SemReceita);
 
     private async Task<LeituraDaRevenda> LerRevenda(IBancoDeDados b, string mes, CancellationToken ct)
     {
         var dre = await new Dre(b, relogio).DoMes(mes, ct);
-
-        // A taxa por tipo: a linha de estorno não repete a descrição, então ela é do tipo da linha que estorna.
-        var taxas = (await b.Lancamentos.AsNoTracking().Where(l => l.Tipo == TipoDeLancamento.TaxaAvalia)
-            .Select(l => new { l.Id, l.EstornaId, l.Descricao, l.ValorCents, l.Competencia }).ToListAsync(ct))
-            .Where(l => string.CompareOrdinal(l.Competencia, mes) <= 0).ToList();
-        var descricaoDaOriginal = taxas.Where(l => l.EstornaId is null).ToDictionary(l => l.Id, l => l.Descricao);
-        bool EParte(Guid? estornaId, string descricao) => Lancamento.EParteDaAvalia(estornaId is { } o ? descricaoDaOriginal.GetValueOrDefault(o, descricao) : descricao);
-        var doMes = taxas.Where(l => l.Competencia == mes).ToList();
-        var parte = -doMes.Where(l => EParte(l.EstornaId, l.Descricao)).Sum(l => l.ValorCents);
-        var plataforma = -doMes.Where(l => !EParte(l.EstornaId, l.Descricao)).Sum(l => l.ValorCents);
 
         var receitas = (await (
             from l in b.Lancamentos.AsNoTracking()
@@ -224,7 +211,7 @@ public sealed class ResultadoDoGrupo(IBancoDeDados banco, IEscopoDeRevenda escop
             where (l.Tipo == TipoDeLancamento.Perda || l.Tipo == TipoDeLancamento.CustoDaPlaca) && l.Competencia == mes && l.PlacaId != null
             join p in b.Placas on l.PlacaId equals p.Id
             select new PlacaSemReceita(l.ValorCents, p.LoteId)).ToListAsync(ct);
-        return new LeituraDaRevenda(dre, plataforma, parte, receitas, semReceita);
+        return new LeituraDaRevenda(dre, receitas, semReceita);
     }
 
     /// <summary>O custo por placa de cada lote com custo informado. Lote sem custo não entra: a placa dele conta como pendência.</summary>

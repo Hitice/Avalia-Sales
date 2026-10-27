@@ -70,6 +70,24 @@ public sealed class ResultadoDoGrupoTest(ApiDeTeste api)
         return cobranca;
     }
 
+    /// <summary>
+    /// Vende um serviço do catálogo com documento (cobrança por Pix) e paga. Devolve a cobrança e a parte da Avalia que
+    /// o split levou: no Pix, a parte do catálogo menos a fatia dela na tarifa.
+    /// </summary>
+    private async Task<(string Cobranca, long Parte, long Preco)> VenderServicoEPagar(HttpClient operadora, Revenda revenda, string telefone)
+    {
+        var item = (await operadora.Pegar("/operadora/catalogo")).EnumerateArray().Single(p => p.GetProperty("chave").GetString() == "cardapio-digital-profissional");
+        var parte = item.GetProperty("parteDaAvaliaCents").GetInt64();
+        var preco = parte + 10_000;
+        var produto = await Cenarios.ProdutoDoCatalogo(revenda.Dono, "cardapio-digital-profissional", preco);
+        await revenda.Dono.Postar("/vendas", Cenarios.Servico(produto, telefone, documento: "11222333000181"), HttpStatusCode.Created);
+        var cobranca = await CodigoDaCobranca($"origem = 'Venda' and revendedor_id = '{revenda.Id}'");
+        api.Gateway.Mudar(cobranca, SituacaoDaCobranca.Paga);
+        await Conferir();
+        await Conferir();
+        return (cobranca, Parcelamento.ParteLiquida(parte, MeioDePagamento.Pix, 1), preco);
+    }
+
     private async Task Estornar(string cobranca)
     {
         api.Gateway.Mudar(cobranca, SituacaoDaCobranca.Estornada);
@@ -85,56 +103,36 @@ public sealed class ResultadoDoGrupoTest(ApiDeTeste api)
     // ---- O livro é lançado junto com o pagamento e estornado junto com o estorno ----
 
     [Fact]
-    public async Task Pagamento_lanca_a_taxa_no_livro_com_o_id_da_linha_do_razao_e_o_estorno_estorna_a_linha()
+    public async Task Pagamento_lanca_a_parte_da_Avalia_no_livro_com_o_id_da_linha_do_razao_e_o_estorno_estorna_a_linha()
     {
         var operadora = await Operadora();
-        var revenda = await api.RevendaComEstoque("Revenda da Taxa no Livro", taxaAvaliaBps: 199);
+        var revenda = await api.RevendaComEstoque("Revenda da Parte no Livro pelo Pix");
         var antes = await Ler(operadora);
 
-        var cobranca = await VenderEPagar(revenda, revenda.Codigos[0], "11944440001");
+        var (cobranca, parte, _) = await VenderServicoEPagar(operadora, revenda, "11944440001");
 
         await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
         var origem = Guid.Parse(cobranca);
         Assert.Equal(1, await banco.Contar($"""
             select count(*) from lancamentos_da_operadora o join lancamentos l on l.id = o.id
-            where o.origem_id = '{origem}' and o.tipo = 'TaxaDaPlataforma' and o.valor_cents = 298 and l.valor_cents = -298 and l.tipo = 'TaxaAvalia'
+            where o.origem_id = '{origem}' and o.tipo = 'ParteDaAvaliaNosServicos' and o.valor_cents = {parte} and l.valor_cents = -{parte} and l.tipo = 'TaxaAvalia'
               and o.revendedor_origem_id = '{revenda.Id}' and o.estorna_id is null and not o.por_fora
             """));
         var pago = await Ler(operadora);
-        Assert.Equal(298, pago.Valor("taxa-da-plataforma", "operadora") - antes.Valor("taxa-da-plataforma", "operadora"));
+        Assert.Equal(parte, pago.Valor("parte-da-avalia", "operadora") - antes.Valor("parte-da-avalia", "operadora"));
 
         await Estornar(cobranca);
 
         Assert.Equal(1, await banco.Contar($"""
             select count(*) from lancamentos_da_operadora e join lancamentos_da_operadora o on o.id = e.estorna_id
-            where o.origem_id = '{origem}' and o.tipo = 'TaxaDaPlataforma' and e.valor_cents = -298 and e.tipo = 'TaxaDaPlataforma'
+            where o.origem_id = '{origem}' and o.tipo = 'ParteDaAvaliaNosServicos' and e.valor_cents = -{parte} and e.tipo = 'ParteDaAvaliaNosServicos'
             """));
         var estornado = await Ler(operadora);
-        Assert.Equal(antes.Valor("taxa-da-plataforma", "operadora"), estornado.Valor("taxa-da-plataforma", "operadora"));
+        Assert.Equal(antes.Valor("parte-da-avalia", "operadora"), estornado.Valor("parte-da-avalia", "operadora"));
     }
 
     [Fact]
-    public async Task Taxa_a_acertar_de_venda_recebida_por_fora_entra_marcada_e_desfazer_o_recebimento_estorna()
-    {
-        var operadora = await Operadora();
-        var revenda = await api.RevendaComEstoque("Revenda da Taxa por Fora", taxaAvaliaBps: 199);
-        var antes = await Ler(operadora);
-        var venda = (await revenda.Dono.Postar("/vendas", Cenarios.Venda(revenda.Codigos[0], revenda.ProdutoId, "11944440002", documento: null), HttpStatusCode.Created)).GetProperty("vendaId").GetGuid();
-
-        await revenda.Dono.Postar($"/vendas/{venda}/recebimento", new { meio = "Dinheiro" }, HttpStatusCode.NoContent);
-
-        await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
-        Assert.Equal(1, await banco.Contar($"select count(*) from lancamentos_da_operadora where venda_id = '{venda}' and tipo = 'TaxaDaPlataforma' and por_fora and valor_cents = 298 and estorna_id is null"));
-        Assert.Equal(298, (await Ler(operadora)).Valor("taxa-da-plataforma", "operadora") - antes.Valor("taxa-da-plataforma", "operadora"));
-
-        Assert.Equal(HttpStatusCode.NoContent, (await revenda.Dono.DeleteAsync($"/vendas/{venda}/recebimento", Ct)).StatusCode);
-
-        Assert.Equal(1, await banco.Contar($"select count(*) from lancamentos_da_operadora where venda_id = '{venda}' and por_fora and valor_cents = -298 and estorna_id is not null"));
-        Assert.Equal(antes.Valor("taxa-da-plataforma", "operadora"), (await Ler(operadora)).Valor("taxa-da-plataforma", "operadora"));
-    }
-
-    [Fact]
-    public async Task Parte_da_Avalia_nos_servicos_e_receita_da_operadora_em_linha_propria()
+    public async Task Parte_da_Avalia_a_acertar_de_venda_recebida_por_fora_entra_marcada_e_desfazer_o_recebimento_estorna()
     {
         var operadora = await Operadora();
         var revenda = await api.RevendaComEstoque("Revenda da Parte no Livro");
@@ -150,7 +148,73 @@ public sealed class ResultadoDoGrupoTest(ApiDeTeste api)
         Assert.Equal(1, await banco.Contar($"select count(*) from lancamentos_da_operadora where venda_id = '{venda}' and tipo = 'ParteDaAvaliaNosServicos' and valor_cents = {parte} and por_fora"));
         var depois = await Ler(operadora);
         Assert.Equal(parte, depois.Valor("parte-da-avalia", "operadora") - antes.Valor("parte-da-avalia", "operadora"));
-        Assert.Equal(0, depois.Valor("taxa-da-plataforma", "operadora") - antes.Valor("taxa-da-plataforma", "operadora"));
+
+        Assert.Equal(HttpStatusCode.NoContent, (await revenda.Dono.DeleteAsync($"/vendas/{venda}/recebimento", Ct)).StatusCode);
+
+        Assert.Equal(1, await banco.Contar($"select count(*) from lancamentos_da_operadora where venda_id = '{venda}' and por_fora and valor_cents = -{parte} and estorna_id is not null"));
+        Assert.Equal(antes.Valor("parte-da-avalia", "operadora"), (await Ler(operadora)).Valor("parte-da-avalia", "operadora"));
+    }
+
+    /// <summary>
+    /// A taxa percentual da plataforma saiu em 27/10/2026, mas o mês antigo pode ter a linha dela: no razão, com o tipo
+    /// <c>TaxaAvalia</c> e a descrição "Taxa da plataforma"; no livro, com o tipo <c>TaxaDaPlataforma</c>. A linha é gravada
+    /// aqui como era gravada antes, e o DRE, o razão e o resultado do grupo continuam fechando com ela.
+    /// </summary>
+    [Fact]
+    public async Task Linha_antiga_da_taxa_da_plataforma_soma_na_parte_da_Avalia_e_o_estorno_sai_com_o_tipo_dela()
+    {
+        var operadora = await Operadora();
+        var revenda = await api.RevendaComEstoque("Revenda com Taxa Antiga");
+        await Marcar(operadora, revenda.Id);
+        var (antes, dreAntes, razaoAntes) = (await Ler(operadora), await revenda.Dono.Pegar("/financeiro/dre"), await revenda.Dono.Pegar("/razao"));
+
+        var linha = new Domain.Financeiro.Lancamento(Domain.Financeiro.TipoDeLancamento.TaxaAvalia, Guid.NewGuid(), -298, "Taxa da plataforma, placa ANTIGA", DateTimeOffset.UtcNow);
+        await NoLivroDaRevenda(revenda.Id, (banco, livro) =>
+        {
+            banco.Lancamentos.Add(linha);
+            livro.ParteDaAvalia(linha, revenda.Id, porFora: false);
+        });
+
+        await using var dono = new BancoDeDadosDoDono(api.ConexaoDoDono);
+        Assert.Equal(1, await dono.Contar($"select count(*) from lancamentos_da_operadora where id = '{linha.Id}' and tipo = 'TaxaDaPlataforma' and valor_cents = 298"));
+        var depois = await Ler(operadora);
+        long Delta(Foto foto, string chave, string coluna) => foto.Valor(chave, coluna) - antes.Valor(chave, coluna);
+        Assert.Equal(298, Delta(depois, "parte-da-avalia", "operadora"));
+        Assert.Equal(-298, Delta(depois, "parte-da-avalia", "eliminacoes"));
+        Assert.Equal(298, Delta(depois, "parte-da-avalia-paga", "revenda"));
+        Assert.Equal(0, Delta(depois, "resultado", "consolidado"));
+        Assert.Equal(0, depois.Resultado.GetProperty("conciliacao").EnumerateArray().Single(l => l.GetProperty("chave").GetString() == "parte-da-avalia").GetProperty("diferencaCents").GetInt64());
+        var dre = await revenda.Dono.Pegar("/financeiro/dre");
+        Assert.Equal(298, dre.GetProperty("parteDaAvaliaCents").GetInt64() - dreAntes.GetProperty("parteDaAvaliaCents").GetInt64());
+        Assert.Equal(-298, dre.GetProperty("resultadoCents").GetInt64() - dreAntes.GetProperty("resultadoCents").GetInt64());
+        var razao = await revenda.Dono.Pegar("/razao");
+        Assert.Equal(298, razao.GetProperty("parteDaAvaliaCents").GetInt64() - razaoAntes.GetProperty("parteDaAvaliaCents").GetInt64());
+        Assert.Equal(-298, razao.GetProperty("liquidoCents").GetInt64() - razaoAntes.GetProperty("liquidoCents").GetInt64());
+        var lista = await operadora.PegarItens("/operadora/financeiro/receita-por-revenda?busca=Revenda%20com%20Taxa%20Antiga");
+        Assert.Equal(298, lista.EnumerateArray().Single(l => l.GetProperty("revendedorId").GetGuid() == revenda.Id).GetProperty("parteDaAvaliaCents").GetInt64());
+
+        await NoLivroDaRevenda(revenda.Id, (banco, livro) =>
+        {
+            var estorno = linha.Estorno("pagamento estornado no Pagar.me", DateTimeOffset.UtcNow);
+            banco.Lancamentos.Add(estorno);
+            livro.ParteDaAvaliaEstornada(linha, estorno, revenda.Id, porFora: false);
+        });
+
+        Assert.Equal(1, await dono.Contar($"select count(*) from lancamentos_da_operadora where estorna_id = '{linha.Id}' and tipo = 'TaxaDaPlataforma' and valor_cents = -298"));
+        var estornado = await Ler(operadora);
+        Assert.Equal(0, Delta(estornado, "parte-da-avalia", "operadora"));
+        Assert.Equal(0, Delta(estornado, "parte-da-avalia-paga", "revenda"));
+    }
+
+    /// <summary>Grava na sessão da revenda, como o pagamento grava: razão e livro no mesmo SaveChanges.</summary>
+    private async Task NoLivroDaRevenda(Guid revendedor, Action<BancoDeDados, Application.Financeiro.LivroDaOperadora> gravar)
+    {
+        await using var worker = api.AmbienteDoWorker(api.Gateway, new AssinaturaFalsa());
+        using var escopo = worker.CreateScope();
+        escopo.ServiceProvider.GetRequiredService<RevendedorDaExecucao>().RevendedorId = revendedor;
+        var banco = escopo.ServiceProvider.GetRequiredService<BancoDeDados>();
+        gravar(banco, escopo.ServiceProvider.GetRequiredService<Application.Financeiro.LivroDaOperadora>());
+        await banco.SaveChangesAsync(Ct);
     }
 
     [Fact]
@@ -159,7 +223,7 @@ public sealed class ResultadoDoGrupoTest(ApiDeTeste api)
         var operadora = await Operadora();
         var (revendedorId, email) = await api.CriarRevendedor("Revenda do Pedido Reconhecido");
         var dono = await api.ClienteLogado(email);
-        var quantidade = Random.Shared.Next(701, 750);
+        var quantidade = Cenarios.QuantidadeNova();
         var pacote = await Cenarios.PacoteJson(operadora, quantidade, quantidade * 1_000L);
         var lote = await operadora.Postar("/operadora/lotes", new { quantidade }, HttpStatusCode.Created);
         var pedido = (await dono.Postar("/pedidos", new { pacoteId = pacote.GetProperty("id").GetGuid() }, HttpStatusCode.Created)).GetProperty("id").GetGuid();
@@ -194,28 +258,31 @@ public sealed class ResultadoDoGrupoTest(ApiDeTeste api)
     public async Task Eliminacao_fecha_com_uma_revenda_do_grupo_e_uma_de_fora_e_o_consolidado_so_leva_o_dre_da_do_grupo()
     {
         var operadora = await Operadora();
-        var doGrupo = await api.RevendaComEstoque("Revenda do Grupo", taxaAvaliaBps: 199);
-        var deFora = await api.RevendaComEstoque("Revenda de Fora", taxaAvaliaBps: 199);
+        var doGrupo = await api.RevendaComEstoque("Revenda do Grupo");
+        var deFora = await api.RevendaComEstoque("Revenda de Fora");
         await Marcar(operadora, doGrupo.Id);
         var antes = await Ler(operadora);
 
         await VenderEPagar(doGrupo, doGrupo.Codigos[0], "11944440011");
         await VenderEPagar(deFora, deFora.Codigos[0], "11944440012");
+        var (_, parte, preco) = await VenderServicoEPagar(operadora, doGrupo, "11944440014");
+        await VenderServicoEPagar(operadora, deFora, "11944440015");
         var depois = await Ler(operadora);
         long Delta(string chave, string coluna) => depois.Valor(chave, coluna) - antes.Valor(chave, coluna);
 
-        // Só o DRE da revenda do grupo entra: R$ 149,90 em doze partes, a primeira no mês. A de fora paga a taxa à operadora e nada mais.
-        Assert.Equal(14_990 / 12, Delta("receita-das-vendas", "revenda"));
-        Assert.Equal(14_990 / 12, Delta("receita-das-vendas", "consolidado"));
+        // Só o DRE da revenda do grupo entra: a placa de R$ 149,90 em doze partes, a primeira no mês, e o serviço inteiro.
+        // A de fora paga à operadora a parte da Avalia no serviço e nada mais; a placa não manda nada à Avalia.
+        Assert.Equal(14_990 / 12 + preco, Delta("receita-das-vendas", "revenda"));
+        Assert.Equal(14_990 / 12 + preco, Delta("receita-das-vendas", "consolidado"));
         Assert.Equal(0, Delta("receita-das-vendas", "operadora"));
 
-        // A operadora recebeu a taxa das duas; a da revenda do grupo é eliminada contra o que a revenda pagou.
-        Assert.Equal(596, Delta("taxa-da-plataforma", "operadora"));
-        Assert.Equal(-298, Delta("taxa-da-plataforma", "eliminacoes"));
-        Assert.Equal(298, Delta("taxa-da-plataforma", "consolidado"));
-        Assert.Equal(298, Delta("taxa-da-plataforma-paga", "revenda"));
-        Assert.Equal(-298, Delta("taxa-da-plataforma-paga", "eliminacoes"));
-        Assert.Equal(0, Delta("taxa-da-plataforma-paga", "consolidado"));
+        // A operadora recebeu a parte das duas; a da revenda do grupo é eliminada contra o que a revenda pagou.
+        Assert.Equal(2 * parte, Delta("parte-da-avalia", "operadora"));
+        Assert.Equal(-parte, Delta("parte-da-avalia", "eliminacoes"));
+        Assert.Equal(parte, Delta("parte-da-avalia", "consolidado"));
+        Assert.Equal(parte, Delta("parte-da-avalia-paga", "revenda"));
+        Assert.Equal(-parte, Delta("parte-da-avalia-paga", "eliminacoes"));
+        Assert.Equal(0, Delta("parte-da-avalia-paga", "consolidado"));
 
         // O custo da placa pelo preço da operadora (R$ 150,00 por 10 placas, em doze partes) sai do consolidado.
         Assert.Equal(1_500 / 12, Delta("placas-pelo-preco-da-operadora", "revenda"));
@@ -227,9 +294,9 @@ public sealed class ResultadoDoGrupoTest(ApiDeTeste api)
             Assert.Equal(Delta(chave, "revenda") + Delta(chave, "operadora") + Delta(chave, "eliminacoes"), Delta(chave, "consolidado"));
         }
 
-        Assert.Equal(14_990 / 12 + 298, Delta("resultado", "consolidado"));
-        // A eliminação da taxa tira a mesma quantia da receita da operadora e da despesa da revenda: o efeito no resultado é zero.
-        Assert.Equal(0, Delta("taxa-da-plataforma", "eliminacoes") - Delta("taxa-da-plataforma-paga", "eliminacoes"));
+        Assert.Equal(14_990 / 12 + preco + parte, Delta("resultado", "consolidado"));
+        // A eliminação da parte tira a mesma quantia da receita da operadora e da despesa da revenda: o efeito no resultado é zero.
+        Assert.Equal(0, Delta("parte-da-avalia", "eliminacoes") - Delta("parte-da-avalia-paga", "eliminacoes"));
         Assert.Equal(0, depois.Resultado.GetProperty("diferencaDaConciliacaoCents").GetInt64());
         foreach (var linha in depois.Resultado.GetProperty("conciliacao").EnumerateArray())
         {
@@ -238,20 +305,20 @@ public sealed class ResultadoDoGrupoTest(ApiDeTeste api)
     }
 
     [Fact]
-    public async Task Conciliacao_compara_o_razao_da_revenda_do_grupo_com_o_livro_em_tres_linhas()
+    public async Task Conciliacao_compara_o_razao_da_revenda_do_grupo_com_o_livro_em_duas_linhas()
     {
         var operadora = await Operadora();
-        var revenda = await api.RevendaComEstoque("Revenda da Conciliacao", taxaAvaliaBps: 199);
+        var revenda = await api.RevendaComEstoque("Revenda da Conciliacao");
         await Marcar(operadora, revenda.Id);
-        await VenderEPagar(revenda, revenda.Codigos[0], "11944440013");
+        var (_, parte, _) = await VenderServicoEPagar(operadora, revenda, "11944440013");
 
         var resultado = (await Ler(operadora)).Resultado;
 
         var chaves = resultado.GetProperty("conciliacao").EnumerateArray().Select(l => l.GetProperty("chave").GetString()).ToList();
-        Assert.Equal(["pedido-de-placas", "taxa-da-plataforma", "parte-da-avalia"], chaves);
-        var taxa = resultado.GetProperty("conciliacao").EnumerateArray().Single(l => l.GetProperty("chave").GetString() == "taxa-da-plataforma");
-        Assert.True(taxa.GetProperty("naRevendaCents").GetInt64() >= 298);
-        Assert.Equal(taxa.GetProperty("naRevendaCents").GetInt64(), taxa.GetProperty("naOperadoraCents").GetInt64());
+        Assert.Equal(["pedido-de-placas", "parte-da-avalia"], chaves);
+        var daParte = resultado.GetProperty("conciliacao").EnumerateArray().Single(l => l.GetProperty("chave").GetString() == "parte-da-avalia");
+        Assert.True(daParte.GetProperty("naRevendaCents").GetInt64() >= parte);
+        Assert.Equal(daParte.GetProperty("naRevendaCents").GetInt64(), daParte.GetProperty("naOperadoraCents").GetInt64());
         var pedido = resultado.GetProperty("conciliacao").EnumerateArray().Single(l => l.GetProperty("chave").GetString() == "pedido-de-placas");
         Assert.True(pedido.GetProperty("naRevendaCents").GetInt64() >= 15_000);
         Assert.Equal(0, pedido.GetProperty("diferencaCents").GetInt64());
@@ -261,28 +328,29 @@ public sealed class ResultadoDoGrupoTest(ApiDeTeste api)
     public async Task Revenda_nao_marcada_nunca_entra_no_consolidado_nem_e_lida_mesmo_com_o_id()
     {
         var operadora = await Operadora();
-        var naoMarcada = await api.RevendaComEstoque("Revenda Nao Marcada", taxaAvaliaBps: 199);
+        var naoMarcada = await api.RevendaComEstoque("Revenda Nao Marcada");
         var antes = await Ler(operadora);
 
         await VenderEPagar(naoMarcada, naoMarcada.Codigos[0], "11944440021");
+        var (_, parte, _) = await VenderServicoEPagar(operadora, naoMarcada, "11944440024");
         var depois = await Ler(operadora);
 
-        // O DRE dela não aparece: nem a receita da venda, nem a taxa como despesa, nem o custo das placas. A taxa que ela paga é só receita da operadora.
-        foreach (var chave in new[] { "receita-das-vendas", "taxa-da-plataforma-paga", "parte-da-avalia-paga", "comissoes", "placas-pelo-preco-da-operadora", "despesas-da-revenda" })
+        // O DRE dela não aparece: nem a receita da venda, nem a parte da Avalia como despesa, nem o custo das placas. A parte que ela paga é só receita da operadora.
+        foreach (var chave in new[] { "receita-das-vendas", "parte-da-avalia-paga", "comissoes", "placas-pelo-preco-da-operadora", "despesas-da-revenda" })
         {
             Assert.Equal(0, depois.Valor(chave, "revenda") - antes.Valor(chave, "revenda"));
             Assert.Equal(0, depois.Valor(chave, "consolidado") - antes.Valor(chave, "consolidado"));
         }
 
-        Assert.Equal(298, depois.Valor("taxa-da-plataforma", "operadora") - antes.Valor("taxa-da-plataforma", "operadora"));
-        Assert.Equal(298, depois.Valor("taxa-da-plataforma", "consolidado") - antes.Valor("taxa-da-plataforma", "consolidado"));
-        Assert.Equal(0, depois.Valor("taxa-da-plataforma", "eliminacoes") - antes.Valor("taxa-da-plataforma", "eliminacoes"));
+        Assert.Equal(parte, depois.Valor("parte-da-avalia", "operadora") - antes.Valor("parte-da-avalia", "operadora"));
+        Assert.Equal(parte, depois.Valor("parte-da-avalia", "consolidado") - antes.Valor("parte-da-avalia", "consolidado"));
+        Assert.Equal(0, depois.Valor("parte-da-avalia", "eliminacoes") - antes.Valor("parte-da-avalia", "eliminacoes"));
 
         // Na lista por revenda ela aparece só pelo que paga à operadora.
         var lista = await operadora.PegarItens("/operadora/financeiro/receita-por-revenda?busca=Revenda%20Nao%20Marcada");
         var linha = lista.EnumerateArray().Single(l => l.GetProperty("revendedor").GetString() == "Revenda Nao Marcada");
         Assert.False(linha.GetProperty("doGrupo").GetBoolean());
-        Assert.Equal(298, linha.GetProperty("taxaDaPlataformaCents").GetInt64());
+        Assert.Equal(parte, linha.GetProperty("parteDaAvaliaCents").GetInt64());
         Assert.True(linha.GetProperty("pedidosDePlacasCents").GetInt64() > 0);
         Assert.DoesNotContain(linha.EnumerateObject(), p => p.Name.Contains("receitaReconhecida", StringComparison.OrdinalIgnoreCase) || p.Name.Contains("dre", StringComparison.OrdinalIgnoreCase));
 
@@ -302,7 +370,7 @@ public sealed class ResultadoDoGrupoTest(ApiDeTeste api)
     public async Task Escopo_so_serve_a_operadora_e_a_revenda_do_grupo_enxerga_so_o_proprio_razao()
     {
         var operadora = await Operadora();
-        var revenda = await api.RevendaComEstoque("Revenda Lida no Escopo", taxaAvaliaBps: 199);
+        var revenda = await api.RevendaComEstoque("Revenda Lida no Escopo");
         var outra = await api.RevendaComEstoque("Revenda Que Nao Pode Aparecer");
         await Marcar(operadora, revenda.Id);
         await VenderEPagar(revenda, revenda.Codigos[0], "11944440022");
@@ -316,71 +384,22 @@ public sealed class ResultadoDoGrupoTest(ApiDeTeste api)
         await Assert.ThrowsAsync<InvalidOperationException>(() => semOperadora.Ler(revenda.Id, _ => Task.FromResult(1), Ct));
     }
 
-    // ---- Rotas: só a operadora ----
-
-    private static readonly (string Metodo, string Rota)[] RotasNovas =
-    [
-        ("GET", "/operadora/financeiro/resultado"),
-        ("GET", "/operadora/financeiro/receita-por-revenda"),
-        ("GET", "/operadora/financeiro/meses"),
-        ("POST", "/operadora/financeiro/fechamentos"),
-        ("POST", "/operadora/financeiro/fechamentos/2019-01/reabertura"),
-        ("GET", "/operadora/financeiro/despesas"),
-        ("POST", "/operadora/financeiro/despesas"),
-        ("PUT", "/operadora/financeiro/despesas/{id}"),
-        ("DELETE", "/operadora/financeiro/despesas/{id}"),
-        ("GET", "/operadora/financeiro/custos-de-lote"),
-        ("POST", "/operadora/financeiro/custos-de-lote"),
-        ("PUT", "/operadora/financeiro/custos-de-lote/{id}"),
-        ("DELETE", "/operadora/financeiro/custos-de-lote/{id}"),
-        ("PUT", "/operadora/revendedores/{id}/grupo"),
-    ];
-
+    /// <summary>A sessão aberta na revenda do grupo é só leitura: nem um UPDATE sem linha passa.</summary>
     [Fact]
-    public async Task Vendedor_e_dono_recebem_403_em_todas_as_rotas_novas_e_anonimo_401()
+    public async Task Escopo_da_revenda_do_grupo_nao_grava()
     {
-        var revenda = await api.RevendaComEstoque("Revenda das Rotas do Grupo");
-        var email = $"vendedor-{Guid.NewGuid():N}@teste.com.br";
-        await revenda.Dono.Postar("/equipe", new { nome = "Lia", email, senha = ApiDeTeste.Senha }, HttpStatusCode.Created);
-        var vendedor = await api.ClienteLogado(email);
-        var anonimo = api.Fabrica.CreateClient();
-        var erros = new List<string>();
+        var operadora = await Operadora();
+        var revenda = await api.RevendaComEstoque("Revenda do Grupo Só Leitura");
+        await Marcar(operadora, revenda.Id);
 
-        foreach (var (metodo, rota) in RotasNovas)
-        {
-            var url = rota.Replace("{id}", Guid.NewGuid().ToString(), StringComparison.Ordinal);
-            foreach (var (quem, cliente, esperado) in new[] { ("dono", revenda.Dono, HttpStatusCode.Forbidden), ("vendedor", vendedor, HttpStatusCode.Forbidden), ("anônimo", anonimo, HttpStatusCode.Unauthorized) })
-            {
-                using var pedido = new HttpRequestMessage(new HttpMethod(metodo), url) { Content = new StringContent("{}", System.Text.Encoding.UTF8, "application/json") };
-                using var resposta = await cliente.SendAsync(pedido, Ct);
-                if (resposta.StatusCode != esperado)
-                {
-                    erros.Add($"{quem} {metodo} {rota}: {(int)resposta.StatusCode}, esperava {(int)esperado}");
-                }
-            }
-        }
+        var erro = await Assert.ThrowsAsync<Npgsql.PostgresException>(() =>
+            EscopoComoOperadora().Ler(revenda.Id, banco => banco.Database.ExecuteSqlRawAsync("update clientes set nome = nome where false", Ct), Ct));
 
-        Assert.True(erros.Count == 0, string.Join(Environment.NewLine, erros));
-    }
-
-    [Fact]
-    public void As_rotas_novas_existem_e_exigem_a_politica_da_operadora()
-    {
-        var rotas = api.Fabrica.Services.GetRequiredService<Microsoft.AspNetCore.Routing.EndpointDataSource>().Endpoints
-            .OfType<Microsoft.AspNetCore.Routing.RouteEndpoint>().ToList();
-        foreach (var (metodo, rota) in RotasNovas)
-        {
-            var padrao = rota.Replace("{id}", "{id:guid}", StringComparison.Ordinal).Replace("2019-01", "{competencia}", StringComparison.Ordinal);
-            if (rota.Contains("custos-de-lote/", StringComparison.Ordinal))
-            {
-                padrao = rota.Replace("{id}", "{loteId:guid}", StringComparison.Ordinal);
-            }
-
-            var endpoint = rotas.SingleOrDefault(r => r.RoutePattern.RawText == padrao
-                && (r.Metadata.GetMetadata<Microsoft.AspNetCore.Routing.HttpMethodMetadata>()?.HttpMethods.Contains(metodo) ?? false));
-            Assert.True(endpoint is not null, $"{metodo} {padrao} não está mapeada.");
-            Assert.Contains(endpoint.Metadata.GetOrderedMetadata<Microsoft.AspNetCore.Authorization.IAuthorizeData>(), a => a.Policy == "operadora");
-        }
+        Assert.Equal(Npgsql.PostgresErrorCodes.ReadOnlySqlTransaction, erro.SqlState);
+        // A leitura segue normal, e só da revenda marcada.
+        await using var dono = new BancoDeDadosDoDono(api.ConexaoDoDono);
+        Assert.Equal(await dono.Contar($"select count(*) from placas where revendedor_id = '{revenda.Id}'"),
+            await EscopoComoOperadora().Ler(revenda.Id, banco => banco.Placas.LongCountAsync(Ct), Ct));
     }
 
     [Fact]
@@ -570,7 +589,7 @@ public sealed class ResultadoDoGrupoTest(ApiDeTeste api)
     public async Task Custo_real_da_placa_vendida_vai_ao_consolidado_junto_com_a_venda_e_nao_na_compra_da_revenda()
     {
         var operadora = await Operadora();
-        var revenda = await api.RevendaComEstoque("Revenda do Custo Real", taxaAvaliaBps: 199);
+        var revenda = await api.RevendaComEstoque("Revenda do Custo Real");
         await Marcar(operadora, revenda.Id);
         var inicio = await Ler(operadora);
 
@@ -590,7 +609,7 @@ public sealed class ResultadoDoGrupoTest(ApiDeTeste api)
         Assert.Equal(-10_000 + 1_000 / 12, comCusto.Valor("custo-de-producao", "eliminacoes") - semCusto.Valor("custo-de-producao", "eliminacoes"));
         Assert.Equal(1_000 / 12, comCusto.Valor("custo-de-producao", "consolidado") - semCusto.Valor("custo-de-producao", "consolidado"));
         Assert.Equal(0, comCusto.Pendencia("placasVendidasSemCusto") - inicio.Pendencia("placasVendidasSemCusto"));
-        // A taxa, o custo das placas pelo preço da operadora e o lote entregue à revenda do grupo se eliminam: sobra a receita da venda menos o custo real.
+        // O custo das placas pelo preço da operadora e o lote entregue à revenda do grupo se eliminam: sobra a receita da venda menos o custo real.
         Assert.Equal(inicio.Valor("resultado", "consolidado") + 14_990 / 12 - 1_000 / 12, comCusto.Valor("resultado", "consolidado"));
     }
 
@@ -600,19 +619,18 @@ public sealed class ResultadoDoGrupoTest(ApiDeTeste api)
     public async Task Backfill_lanca_no_livro_o_que_ja_aconteceu_sem_duplicar_e_sem_tocar_no_razao()
     {
         var operadora = await Operadora();
-        var revenda = await api.RevendaComEstoque("Revenda do Backfill", taxaAvaliaBps: 199);
-        var paga = await VenderEPagar(revenda, revenda.Codigos[0], "11944440041");
-        var estornada = await VenderEPagar(revenda, revenda.Codigos[1], "11944440042");
+        var revenda = await api.RevendaComEstoque("Revenda do Backfill");
+        var (paga, _, _) = await VenderServicoEPagar(operadora, revenda, "11944440041");
+        var (estornada, _, _) = await VenderServicoEPagar(operadora, revenda, "11944440042");
         await Estornar(estornada);
-        var item = (await operadora.Pegar("/operadora/catalogo")).EnumerateArray().Single(p => p.GetProperty("chave").GetString() == "cardapio-digital-profissional");
-        var produto = await Cenarios.ProdutoDoCatalogo(revenda.Dono, "cardapio-digital-profissional", item.GetProperty("parteDaAvaliaCents").GetInt64() + 10_000);
+        var produto = (await revenda.Dono.Pegar("/catalogo")).EnumerateArray().Single(p => p.GetProperty("chave").GetString() == "cardapio-digital-profissional").GetProperty("id").GetGuid();
         var servico = (await revenda.Dono.Postar("/vendas", Cenarios.Servico(produto, "11944440043"), HttpStatusCode.Created)).GetProperty("vendaId").GetGuid();
         await revenda.Dono.Postar($"/vendas/{servico}/recebimento", new { meio = "Dinheiro" }, HttpStatusCode.NoContent);
         Assert.Equal(HttpStatusCode.NoContent, (await revenda.Dono.DeleteAsync($"/vendas/{servico}/recebimento", Ct)).StatusCode);
 
         await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
         var filtro = $"revendedor_origem_id = '{revenda.Id}'";
-        // O pedido é comparado sem o Id, que o backfill sorteia; as taxas, com o Id da linha do razão.
+        // O pedido é comparado sem o Id, que o backfill sorteia; a parte da Avalia, com o Id da linha do razão.
         var consulta = $"""
             select coalesce(string_agg(
                 case when tipo = 'PedidoDePlacas' then '' else id::text end || '|' || tipo || '|' || valor_cents || '|' || coalesce(estorna_id::text, '') || '|' || competencia || '|' || por_fora || '|' || descricao,
@@ -655,7 +673,7 @@ public sealed class ResultadoDoGrupoTest(ApiDeTeste api)
 
         Assert.Equal(esperado, await banco.Texto(consulta));
         Assert.Equal(razao, await banco.Contar($"select count(*) from lancamentos where revendedor_id = '{revenda.Id}'"));
-        Assert.Equal(1, await banco.Contar($"select count(*) from lancamentos_da_operadora where origem_id = '{Guid.Parse(paga)}' and tipo = 'TaxaDaPlataforma' and estorna_id is null"));
+        Assert.Equal(1, await banco.Contar($"select count(*) from lancamentos_da_operadora where origem_id = '{Guid.Parse(paga)}' and tipo = 'ParteDaAvaliaNosServicos' and estorna_id is null"));
     }
 
     // ---- Apoio ----

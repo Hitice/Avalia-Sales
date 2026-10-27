@@ -89,15 +89,15 @@ public sealed class Renovacoes(IBancoDeDados banco, IUsuarioAtual usuario, Cobra
     {
         var normalizado = CodigoDaPlaca.Normalizar(codigo);
         var placa = await banco.Placas.SingleOrDefaultAsync(p => p.Codigo == normalizado, ct)
-            ?? throw new RegraDeNegocioException("Código não encontrado, verifique novamente.");
+            ?? throw new RegraDeNegocioException("Código não encontrado.");
         var renovacao = await banco.Renovacoes.Where(r => r.PlacaId == placa.Id && r.Situacao == SituacaoDaRenovacao.Paga)
-            .OrderByDescending(r => r.PagaEm).FirstOrDefaultAsync(ct) ?? throw new RegraDeNegocioException("Esta placa não tem renovação paga.");
+            .OrderByDescending(r => r.PagaEm).FirstOrDefaultAsync(ct) ?? throw new RegraDeNegocioException("Placa sem renovação paga.");
         var cobranca = await banco.Cobrancas
             .SingleOrDefaultAsync(c => c.Origem == OrigemDaCobranca.Renovacao && c.OrigemId == renovacao.Id && c.Situacao == SituacaoDaCobranca.Paga, ct)
-            ?? throw new RegraDeNegocioException("Esta placa não tem renovação paga.");
+            ?? throw new RegraDeNegocioException("Placa sem renovação paga.");
         if (!cobranca.PorFora)
         {
-            throw new RegraDeNegocioException("Renovação paga pelo Pagar.me: a devolução é pelo estorno no Pagar.me.");
+            throw new RegraDeNegocioException("Renovação paga pelo Pagar.me. Estorne pelo painel do Pagar.me.");
         }
 
         var antes = Vencimento(placa);
@@ -123,13 +123,13 @@ public sealed class Renovacoes(IBancoDeDados banco, IUsuarioAtual usuario, Cobra
     {
         var normalizado = CodigoDaPlaca.Normalizar(codigo);
         var placa = await banco.Placas.SingleOrDefaultAsync(p => p.Codigo == normalizado, ct)
-            ?? throw new RegraDeNegocioException("Código não encontrado, verifique novamente.");
+            ?? throw new RegraDeNegocioException("Código não encontrado.");
         var venda = placa.VendaId is { } vendaId && placa.TransferidaEm is null ? await banco.Vendas.SingleAsync(v => v.Id == vendaId, ct) : null;
         var (clienteId, valorDaVenda, vendedor) = venda is not null
             ? (venda.ClienteId, await BaseDaRenovacao(venda, ct), (Guid?)venda.VendedorId)
             : placa is { ClienteDaTransferenciaId: { } transferido, ValorDaVendaCents: { } valor }
                 ? (transferido, valor, null)
-                : throw new RegraDeNegocioException("Placa sem venda não tem o que renovar.");
+                : throw new RegraDeNegocioException("Placa sem venda não renova.");
 
         // A renovação é anual e só do revendedor: o vendedor não renova, nem a placa que vendeu.
         if (usuario.Papel == Papel.Vendedor)

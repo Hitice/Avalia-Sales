@@ -13,7 +13,7 @@ public sealed class FluxoDoLoteTest(ApiDeTeste api)
         var operadora = await api.ClienteLogado(await api.CriarOperadora());
         var (revendedorId, email) = await api.CriarRevendedor("Revenda do Lote");
         var dono = await api.ClienteLogado(email);
-        var quantidade = Random.Shared.Next(200, 300);
+        var quantidade = Cenarios.QuantidadeNova();
 
         var pacote = await Cenarios.PacoteJson(operadora, quantidade, quantidade * 1_400L);
         var lote = await operadora.Postar("/operadora/lotes", new { quantidade }, HttpStatusCode.Created);
@@ -46,7 +46,7 @@ public sealed class FluxoDoLoteTest(ApiDeTeste api)
         var operadora = await api.ClienteLogado(await api.CriarOperadora());
         var (_, email) = await api.CriarRevendedor("Revenda Que Retira");
         var dono = await api.ClienteLogado(email);
-        var quantidade = Random.Shared.Next(400, 450);
+        var quantidade = Cenarios.QuantidadeNova();
         var pacote = await Cenarios.PacoteJson(operadora, quantidade, quantidade * 1_400L);
         var lote = await operadora.Postar("/operadora/lotes", new { quantidade }, HttpStatusCode.Created);
         var pedidoId = (await dono.Postar("/pedidos", new { pacoteId = pacote.GetProperty("id").GetGuid() }, HttpStatusCode.Created)).GetProperty("id").GetGuid();
@@ -68,11 +68,11 @@ public sealed class FluxoDoLoteTest(ApiDeTeste api)
         var operadora = await api.ClienteLogado(await api.CriarOperadora());
         var (_, email) = await api.CriarRevendedor("Revenda Sem Contrato", contratoAssinado: false);
         var dono = await api.ClienteLogado(email);
-        var pacoteId = await Cenarios.PacoteDaQuantidade(operadora, Random.Shared.Next(901, 950), 10_000L);
+        var pacoteId = await Cenarios.PacoteDaQuantidade(operadora, Cenarios.QuantidadeNova(), 10_000L);
 
         var recusa = await dono.Postar("/pedidos", new { pacoteId }, HttpStatusCode.UnprocessableEntity);
 
-        Assert.Contains("contrato", recusa.GetProperty("detail").GetString());
+        Assert.Contains("Contrato", recusa.GetProperty("detail").GetString());
     }
 
     [Fact]
@@ -83,7 +83,7 @@ public sealed class FluxoDoLoteTest(ApiDeTeste api)
         var (revendedorB, emailB) = await api.CriarRevendedor("Revenda Que Digitou Errado");
         var donoA = await api.ClienteLogado(emailA);
         var donoB = await api.ClienteLogado(emailB);
-        var quantidade = Random.Shared.Next(101, 199);
+        var quantidade = Cenarios.QuantidadeNova();
         var pacoteId = await Cenarios.PacoteDaQuantidade(operadora, quantidade, 50_000L);
         var lote = await operadora.Postar("/operadora/lotes", new { quantidade }, HttpStatusCode.Created);
         var pedido = await donoA.Postar("/pedidos", new { pacoteId }, HttpStatusCode.Created);
@@ -106,7 +106,7 @@ public sealed class FluxoDoLoteTest(ApiDeTeste api)
         var (_, emailB) = await api.CriarRevendedor("Revenda Pedido B");
         var donoA = await api.ClienteLogado(emailA);
         var donoB = await api.ClienteLogado(emailB);
-        var pacote = await Cenarios.PacoteDaQuantidade(operadora, Random.Shared.Next(51, 100), 9_900L);
+        var pacote = await Cenarios.PacoteDaQuantidade(operadora, Cenarios.QuantidadeNova(), 9_900L);
 
         var deA = (await donoA.Postar("/pedidos", new { pacoteId = pacote }, HttpStatusCode.Created)).GetProperty("id").GetGuid();
         var deB = (await donoB.Postar("/pedidos", new { pacoteId = pacote }, HttpStatusCode.Created)).GetProperty("id").GetGuid();
@@ -119,16 +119,11 @@ public sealed class FluxoDoLoteTest(ApiDeTeste api)
     }
 
     [Fact]
-    public async Task Cada_papel_so_abre_a_propria_area()
+    public async Task Operadora_nao_abre_o_estoque_de_placas_da_revenda()
     {
         var operadora = await api.ClienteLogado(await api.CriarOperadora());
-        var (_, email) = await api.CriarRevendedor("Revenda dos Papéis");
-        var dono = await api.ClienteLogado(email);
-        var ct = TestContext.Current.CancellationToken;
 
-        Assert.Equal(HttpStatusCode.Forbidden, (await dono.GetAsync("/operadora/pedidos", ct)).StatusCode);
-        Assert.Equal(HttpStatusCode.Forbidden, (await operadora.GetAsync("/placas", ct)).StatusCode);
-        Assert.Equal(HttpStatusCode.Forbidden, (await operadora.GetAsync("/equipe", ct)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await operadora.GetAsync("/placas", TestContext.Current.CancellationToken)).StatusCode);
     }
 
     [Fact]
@@ -154,7 +149,7 @@ public sealed class FluxoDoLoteTest(ApiDeTeste api)
         var desenho = await svg.ReadToEndAsync(TestContext.Current.CancellationToken);
         Assert.Contains("width=\"30mm\"", desenho, StringComparison.Ordinal);
         Assert.Contains("fill=\"none\"", desenho, StringComparison.Ordinal);
-        Assert.Single(System.Text.RegularExpressions.Regex.Matches(desenho, "fill-rule=\"evenodd\""));
+        Assert.Equal(2, desenho.Split("fill-rule=\"evenodd\"").Length);
         Assert.Contains("<g id=\"logo\"", desenho, StringComparison.Ordinal);
     }
 

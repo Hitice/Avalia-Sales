@@ -55,7 +55,7 @@ public sealed partial class SegundoFatorTest(ApiDeTeste api)
         await dono.Postar("/conta/segundo-fator/desligar/codigo", new { }, HttpStatusCode.NoContent);
         await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
         var assunto = (await banco.Emails(email)).First(e => e.Assunto.StartsWith("Código de acesso", StringComparison.Ordinal)).Assunto;
-        var codigo = System.Text.RegularExpressions.Regex.Match(assunto, @"\d{6}").Value;
+        var codigo = SeisDigitos().Match(assunto).Value;
 
         await dono.Postar("/conta/segundo-fator/desligar", new { codigo }, HttpStatusCode.NoContent);
         Assert.False((await dono.Pegar("/conta/segundo-fator")).GetProperty("ligado").GetBoolean());
@@ -75,6 +75,71 @@ public sealed partial class SegundoFatorTest(ApiDeTeste api)
         var assuntos = (await banco.Emails(email)).Select(e => e.Assunto).ToList();
         Assert.Equal(1, assuntos.Count(a => a == "Segundo fator ligado"));
         Assert.Equal(1, assuntos.Count(a => a == "Segundo fator desligado"));
+    }
+
+    /// <summary>Quem perdeu o app e os códigos recupera a conta pelo suporte: o comando desliga o segundo fator e avisa o e-mail.</summary>
+    [Fact]
+    public async Task Suporte_desliga_o_segundo_fator_pela_linha_de_comando_e_a_senha_volta_a_entrar()
+    {
+        var (_, email) = await api.CriarRevendedor("Revenda 2FA Perdido");
+        await Ligar(await api.ClienteLogado(email));
+
+        var saida = await AvaliaSales.Api.NovoRevendedor.DesligarSegundoFator(api.Fabrica.Services, ["--desligar-segundo-fator", $"--email={email}", "--motivo=celular perdido"]);
+
+        Assert.Equal(0, saida);
+        var entrada = await api.Fabrica.CreateClient().PostAsJsonAsync("/auth/entrar", new { email, senha = ApiDeTeste.Senha }, Ct);
+        Assert.Equal(HttpStatusCode.OK, entrada.StatusCode);
+        await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
+        Assert.Contains(await banco.Emails(email), e => e.Assunto == "Segundo fator desligado pelo suporte");
+        Assert.Equal(1, await AvaliaSales.Api.NovoRevendedor.DesligarSegundoFator(api.Fabrica.Services, ["--desligar-segundo-fator", $"--email={email}", "--motivo=de novo"]));
+    }
+
+    /// <summary>Quem entrou antes só com a senha não segue renovando o acesso depois que o dono liga o segundo fator; o aparelho de quem ligou continua.</summary>
+    [Fact]
+    public async Task Ligar_o_segundo_fator_encerra_as_outras_sessoes_e_mantem_a_de_quem_ligou()
+    {
+        var (_, email) = await api.CriarRevendedor("Revenda 2FA Sessões");
+        var esteAparelho = await api.ClienteLogado(email);
+        var outroAparelho = await api.ClienteLogado(email);
+
+        await Ligar(esteAparelho);
+
+        Assert.Equal(HttpStatusCode.OK, (await esteAparelho.PostAsync("/auth/renovar", null, Ct)).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await outroAparelho.PostAsync("/auth/renovar", null, Ct)).StatusCode);
+    }
+
+    /// <summary>A operadora não tem revenda: ligar e desligar o segundo fator dela vão à trilha da operadora.</summary>
+    [Fact]
+    public async Task Ligar_e_desligar_o_segundo_fator_da_operadora_vao_a_trilha_da_operadora()
+    {
+        var email = await api.CriarOperadora();
+        var operadora = await api.ClienteLogado(email);
+        var (chave, _) = await Ligar(operadora);
+        await operadora.Postar("/conta/segundo-fator/desligar", new { codigo = Totp.Codigo(chave) }, HttpStatusCode.NoContent);
+
+        await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
+        var id = await banco.Texto($"select id::text from usuarios where email = '{email}'");
+        Assert.Equal(1, await banco.Contar($"select count(*) from auditoria_da_operadora where usuario_id = '{id}' and acao = 'Segundo fator ligado' and corpo like '%app autenticador%'"));
+        Assert.Equal(1, await banco.Contar($"select count(*) from auditoria_da_operadora where usuario_id = '{id}' and acao = 'Segundo fator desligado'"));
+    }
+
+    /// <summary>O desligamento pelo suporte fica registrado com o motivo: na auditoria da revenda para o dono, na trilha da operadora para a operadora.</summary>
+    [Fact]
+    public async Task Suporte_desligar_o_segundo_fator_fica_na_auditoria_com_o_motivo()
+    {
+        var (revendedor, emailDoDono) = await api.CriarRevendedor("Revenda 2FA Suporte Auditado");
+        await Ligar(await api.ClienteLogado(emailDoDono));
+        var emailDaOperadora = await api.CriarOperadora();
+        var operadora = await api.ClienteLogado(emailDaOperadora);
+        await Ligar(operadora);
+
+        Assert.Equal(0, await AvaliaSales.Api.NovoRevendedor.DesligarSegundoFator(api.Fabrica.Services, ["--desligar-segundo-fator", $"--email={emailDoDono}", "--motivo=celular roubado"]));
+        Assert.Equal(0, await AvaliaSales.Api.NovoRevendedor.DesligarSegundoFator(api.Fabrica.Services, ["--desligar-segundo-fator", $"--email={emailDaOperadora}", "--motivo=app apagado"]));
+
+        await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
+        var idDaOperadora = await banco.Texto($"select id::text from usuarios where email = '{emailDaOperadora}'");
+        Assert.Equal(1, await banco.Contar($"select count(*) from auditoria where revendedor_id = '{revendedor}' and acao = 'SegundoFatorDesligado' and depois like '%celular roubado%'"));
+        Assert.Equal(1, await banco.Contar($"select count(*) from auditoria_da_operadora where usuario_id = '{idDaOperadora}' and acao = 'Segundo fator desligado pelo suporte' and corpo like '%app apagado%'"));
     }
 
     [Fact]
@@ -123,4 +188,7 @@ public sealed partial class SegundoFatorTest(ApiDeTeste api)
 
     [GeneratedRegex(@"/senha#([A-Za-z0-9_-]{20,})")]
     private static partial Regex LinkDaSenha();
+
+    [GeneratedRegex(@"\d{6}")]
+    private static partial Regex SeisDigitos();
 }

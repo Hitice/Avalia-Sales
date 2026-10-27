@@ -125,7 +125,7 @@ public sealed class FichaDaPlaca(IBancoDeDados banco, IUsuarioAtual usuario, ICo
     {
         var normalizado = CodigoDaPlaca.Normalizar(codigo);
         return (normalizado.Length == 0 ? null : await banco.Placas.SingleOrDefaultAsync(p => p.Codigo == normalizado, ct))
-            ?? throw new RegraDeNegocioException("Código não encontrado, verifique novamente.");
+            ?? throw new RegraDeNegocioException("Código não encontrado.");
     }
 
     private async Task<bool> VendidaPorMim(Placa placa, CancellationToken ct) =>

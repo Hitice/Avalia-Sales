@@ -2329,6 +2329,10 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .HasColumnType("character varying(64)")
                         .HasColumnName("recebedor_pagarme");
 
+                    b.Property<bool>("ReceptoraNoEncerramento")
+                        .HasColumnType("boolean")
+                        .HasColumnName("receptora_no_encerramento");
+
                     b.Property<int>("RenovacaoBps")
                         .HasColumnType("integer")
                         .HasColumnName("renovacao_bps");
@@ -2347,6 +2351,11 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                     b.HasIndex("Cnpj")
                         .IsUnique()
                         .HasDatabaseName("ix_revendedores_cnpj");
+
+                    b.HasIndex("ReceptoraNoEncerramento")
+                        .IsUnique()
+                        .HasDatabaseName("ix_revendedores_receptora_no_encerramento")
+                        .HasFilter("receptora_no_encerramento");
 
                     b.ToTable("revendedores", (string)null);
                 });

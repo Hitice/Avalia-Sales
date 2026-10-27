@@ -121,28 +121,8 @@ internal static class Importar
     /// <summary>--completar-clientes: o mesmo arquivo do --importar-placas, só para e-mail e lugar no Google.</summary>
     public static async Task<int> CompletarClientes(IServiceProvider servicos, string[] argumentos)
     {
-        var arquivo = Valor(argumentos, "arquivo");
-        var quem = Valor(argumentos, "revendedor");
-        if (arquivo is null || !File.Exists(arquivo) || string.IsNullOrWhiteSpace(quem))
+        if (await RevendedorEPlacas(servicos, argumentos) is not var (revendedorId, linhas))
         {
-            await Console.Error.WriteLineAsync("Use --revendedor= (CNPJ ou id) e --arquivo= com o CSV das placas.");
-            return 1;
-        }
-
-        if (await RevendedorPor(servicos, quem) is not { } revendedorId)
-        {
-            await Console.Error.WriteLineAsync($"Revendedor {quem} não encontrado.");
-            return 1;
-        }
-
-        List<LinhaDePlaca> linhas;
-        try
-        {
-            linhas = LerPlacas(arquivo);
-        }
-        catch (FormatException erro)
-        {
-            await Console.Error.WriteLineAsync(erro.Message);
             return 1;
         }
 
@@ -165,6 +145,34 @@ internal static class Importar
         return r.Recusas.Count == 0 ? 0 : 2;
     }
 
+    /// <summary>O revendedor (CNPJ ou id) e as linhas do CSV das placas; nulo com o erro já escrito no terminal.</summary>
+    private static async Task<(Guid RevendedorId, List<LinhaDePlaca> Linhas)?> RevendedorEPlacas(IServiceProvider servicos, string[] argumentos)
+    {
+        var arquivo = Valor(argumentos, "arquivo");
+        var quem = Valor(argumentos, "revendedor");
+        if (arquivo is null || !File.Exists(arquivo) || string.IsNullOrWhiteSpace(quem))
+        {
+            await Console.Error.WriteLineAsync("Use --revendedor= (CNPJ ou id) e --arquivo= com o CSV das placas.");
+            return null;
+        }
+
+        if (await RevendedorPor(servicos, quem) is not { } revendedorId)
+        {
+            await Console.Error.WriteLineAsync($"Revendedor {quem} não encontrado.");
+            return null;
+        }
+
+        try
+        {
+            return (revendedorId, LerPlacas(arquivo));
+        }
+        catch (FormatException erro)
+        {
+            await Console.Error.WriteLineAsync(erro.Message);
+            return null;
+        }
+    }
+
     private static async Task<Guid?> RevendedorPor(IServiceProvider servicos, string quem)
     {
         using var escopo = servicos.CreateScope();
@@ -177,28 +185,8 @@ internal static class Importar
 
     public static async Task<int> ImportarPlacas(IServiceProvider servicos, string[] argumentos)
     {
-        var arquivo = Valor(argumentos, "arquivo");
-        var quem = Valor(argumentos, "revendedor");
-        if (arquivo is null || !File.Exists(arquivo) || string.IsNullOrWhiteSpace(quem))
+        if (await RevendedorEPlacas(servicos, argumentos) is not var (revendedorId, linhas))
         {
-            await Console.Error.WriteLineAsync("Use --revendedor= (CNPJ ou id) e --arquivo= com o CSV das placas.");
-            return 1;
-        }
-
-        if (await RevendedorPor(servicos, quem) is not { } revendedorId)
-        {
-            await Console.Error.WriteLineAsync($"Revendedor {quem} não encontrado.");
-            return 1;
-        }
-
-        List<LinhaDePlaca> linhas;
-        try
-        {
-            linhas = LerPlacas(arquivo);
-        }
-        catch (FormatException erro)
-        {
-            await Console.Error.WriteLineAsync(erro.Message);
             return 1;
         }
 

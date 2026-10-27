@@ -21,7 +21,7 @@ public sealed record DestinoInformado(TipoDeDestino Tipo, string? LugarNoGoogle,
         {
             TipoDeDestino.Google when !string.IsNullOrWhiteSpace(Link) => LinkDeAvaliacao.Colado(Link),
             TipoDeDestino.Google when !string.IsNullOrWhiteSpace(LugarNoGoogle) => LinkDeAvaliacao.De(LugarNoGoogle),
-            TipoDeDestino.Google => throw new RegraDeNegocioException("Busque o negócio no Google ou cole o link de avaliação do perfil."),
+            TipoDeDestino.Google => throw new RegraDeNegocioException("Negócio do Google não informado. Busque ou cole o link de avaliação."),
             TipoDeDestino.Link => Link ?? string.Empty,
             _ => throw new RegraDeNegocioException("Escolha para onde o QR Code leva."),
         };

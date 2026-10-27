@@ -24,7 +24,7 @@ public sealed class Cupom
     {
         Codigo = Normalizar(codigo) is { Length: >= 3 and <= CodigoMaximo } valido
             ? valido
-            : throw new RegraDeNegocioException($"O código do cupom tem de 3 a {CodigoMaximo} letras e números.");
+            : throw new RegraDeNegocioException($"Código do cupom de 3 a {CodigoMaximo} letras e números.");
         Alterar(descontoBps, descontoCents, validoAte, usosMaximos);
     }
 
@@ -35,13 +35,13 @@ public sealed class Cupom
     {
         if ((descontoBps is null) == (descontoCents is null))
         {
-            throw new RegraDeNegocioException("Escolha o desconto em percentual ou em reais, um dos dois.");
+            throw new RegraDeNegocioException("Desconto em percentual ou em reais, um dos dois.");
         }
 
-        DescontoBps = descontoBps is null or (> 0 and <= 10_000) ? descontoBps : throw new RegraDeNegocioException("O percentual vai de 0,01% a 100%.");
-        DescontoCents = descontoCents is null or > 0 ? descontoCents : throw new RegraDeNegocioException("O desconto precisa ser maior que zero.");
+        DescontoBps = descontoBps is null or (> 0 and <= 10_000) ? descontoBps : throw new RegraDeNegocioException("Percentual de 0,01% a 100%.");
+        DescontoCents = descontoCents is null or > 0 ? descontoCents : throw new RegraDeNegocioException("Desconto precisa ser maior que zero.");
         ValidoAte = validoAte;
-        UsosMaximos = usosMaximos is null or > 0 ? usosMaximos : throw new RegraDeNegocioException("O limite de usos precisa ser maior que zero.");
+        UsosMaximos = usosMaximos is null or > 0 ? usosMaximos : throw new RegraDeNegocioException("Limite de usos precisa ser maior que zero.");
     }
 
     public void DefinirAtivo(bool ativo) => Ativo = ativo;
@@ -51,7 +51,7 @@ public sealed class Cupom
     {
         if (!Ativo || ValidoAte is { } ate && agora > ate || UsosMaximos is { } maximo && Usos >= maximo)
         {
-            throw new RegraDeNegocioException($"O cupom {Codigo} não vale mais.");
+            throw new RegraDeNegocioException($"Cupom {Codigo} não vale mais.");
         }
 
         Usos++;

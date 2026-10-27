@@ -43,7 +43,8 @@ public sealed class RecebimentoPorForaDoVendedorTest(ApiDeTeste api)
 
         // Aviso imediato ao dono, com o atalho para a venda, onde ele desfaz.
         var aviso = (await c.Revenda.Dono.Pegar("/notificacoes")).GetProperty("notificacoes").EnumerateArray().Single(n => n.GetProperty("titulo").GetString() == "Recebido por fora");
-        Assert.Equal("Rui Prado registrou R$ 149,90 recebido em dinheiro da venda de Padaria Pão Quente (placa " + c.Revenda.Codigos[0] + ").", aviso.GetProperty("texto").GetString());
+        var texto = aviso.GetProperty("texto").GetString();
+        Assert.All(new[] { "Rui Prado", "R$ 149,90", "dinheiro", "Padaria Pão Quente", c.Revenda.Codigos[0] }, trecho => Assert.Contains(trecho, texto, StringComparison.Ordinal));
         Assert.Equal($"/painel/vendas/{venda}", aviso.GetProperty("link").GetString());
         Assert.DoesNotContain("Recebido por fora", (await c.Rui.Pegar("/notificacoes")).GetRawText(), StringComparison.Ordinal);
 
@@ -121,18 +122,22 @@ public sealed class RecebimentoPorForaDoVendedorTest(ApiDeTeste api)
         // Teto por venda.
         await c.Revenda.Dono.Colocar($"/equipe/{c.RuiId}/limites-por-fora", new { diaCents = 20_000, diaQuantidade = 5, vendaCents = 10_000 }, HttpStatusCode.NoContent);
         var teto = await c.Rui.Postar($"/vendas/{a}/recebimento", new { meio = "Dinheiro" }, HttpStatusCode.UnprocessableEntity);
-        Assert.Contains("R$ 100,00 por venda", teto.GetProperty("detail").GetString());
+        Assert.Contains("R$ 100,00", teto.GetProperty("detail").GetString(), StringComparison.Ordinal);
+        Assert.Contains("por venda", teto.GetProperty("detail").GetString(), StringComparison.Ordinal);
 
         // Valor do dia: a primeira passa, a segunda estoura os R$ 200,00.
         await c.Revenda.Dono.Colocar($"/equipe/{c.RuiId}/limites-por-fora", new { diaCents = 20_000, diaQuantidade = 5, vendaCents = 20_000 }, HttpStatusCode.NoContent);
         await c.Rui.Postar($"/vendas/{a}/recebimento", new { meio = "Dinheiro" }, HttpStatusCode.NoContent);
         var valor = await c.Rui.Postar($"/vendas/{b}/recebimento", new { meio = "Dinheiro" }, HttpStatusCode.UnprocessableEntity);
-        Assert.Contains("R$ 200,00 recebidos por fora no dia (R$ 149,90 já registrados)", valor.GetProperty("detail").GetString());
+        Assert.Contains("R$ 200,00", valor.GetProperty("detail").GetString(), StringComparison.Ordinal);
+        Assert.Contains("no dia", valor.GetProperty("detail").GetString(), StringComparison.Ordinal);
+        Assert.Contains("R$ 149,90", valor.GetProperty("detail").GetString(), StringComparison.Ordinal);
 
         // Quantidade do dia.
         await c.Revenda.Dono.Colocar($"/equipe/{c.RuiId}/limites-por-fora", new { diaCents = 1_000_000, diaQuantidade = 1, vendaCents = 500_000 }, HttpStatusCode.NoContent);
         var quantidade = await c.Rui.Postar($"/vendas/{b}/recebimento", new { meio = "Dinheiro" }, HttpStatusCode.UnprocessableEntity);
-        Assert.Contains("Limite de 1 recebimentos por fora no dia", quantidade.GetProperty("detail").GetString());
+        Assert.Contains("Limite de 1 ", quantidade.GetProperty("detail").GetString(), StringComparison.Ordinal);
+        Assert.Contains("no dia", quantidade.GetProperty("detail").GetString(), StringComparison.Ordinal);
 
         // O dono desfaz o primeiro e o limite do dia se libera; a mudança de limite ficou na auditoria.
         await c.Revenda.Dono.DeleteAsync($"/vendas/{a}/recebimento", Ct);

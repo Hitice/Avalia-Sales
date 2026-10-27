@@ -54,7 +54,7 @@ public sealed class Pacotes(IBancoDeDados banco)
     {
         if (await banco.Pacotes.AnyAsync(p => p.Quantidade == quantidade && p.Id != exceto, ct))
         {
-            throw new RegraDeNegocioException($"Já existe um pacote de {quantidade} placas.");
+            throw new RegraDeNegocioException($"Pacote de {quantidade} placas já cadastrado.");
         }
     }
 

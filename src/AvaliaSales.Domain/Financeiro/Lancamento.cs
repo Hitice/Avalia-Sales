@@ -6,7 +6,10 @@ public enum TipoDeLancamento
     /// <summary>Venda ou renovação paga pelo cliente: entra o valor bruto.</summary>
     Receita = 1,
 
-    /// <summary>A taxa da Avalia, retida no split.</summary>
+    /// <summary>
+    /// A parte da Avalia nos serviços, retida no split ou a acertar quando recebida por fora. O nome
+    /// vem da taxa percentual da plataforma, que saiu em 27/10/2026: linha antiga desse tipo pode ser dela.
+    /// </summary>
     TaxaAvalia = 2,
 
     /// <summary>A comissão que o revendedor passa a dever ao vendedor.</summary>
@@ -105,11 +108,18 @@ public sealed class Lancamento : IDoRevendedor
     public Lancamento Estorno(string motivo, DateTimeOffset agora, string? competencia = null) =>
         new(Tipo, OrigemId, -ValorCents, $"Estorno: {motivo}", agora, VendaId, VendedorId, Id, competencia, Categoria, PlacaId);
 
-    /// <summary>Como começa a descrição da taxa que é a parte da Avalia nos serviços; a outra é a taxa da plataforma.</summary>
+    /// <summary>Como começa a descrição da parte da Avalia nos serviços.</summary>
     public const string InicioDaParteDaAvalia = "Parte da Avalia";
 
-    /// <summary>A descrição de uma linha original de taxa que é a parte da Avalia nos serviços, e não a taxa da plataforma.</summary>
-    public static bool EParteDaAvalia(string descricao) => descricao.StartsWith(InicioDaParteDaAvalia, StringComparison.Ordinal);
+    /// <summary>Como começava a descrição da taxa da plataforma, que saiu em 27/10/2026 (ADR 0003). Nenhuma linha nova começa assim.</summary>
+    public const string InicioDaTaxaDaPlataforma = "Taxa da plataforma";
+
+    /// <summary>
+    /// A linha original <see cref="TipoDeLancamento.TaxaAvalia"/> antiga, da taxa da plataforma. Lê a descrição porque o razão
+    /// gravou as duas com o mesmo tipo, e essas linhas são histórico: as novas são todas da parte da Avalia.
+    /// </summary>
+    public static bool DaTaxaDaPlataforma(Lancamento linha) =>
+        linha.Tipo == TipoDeLancamento.TaxaAvalia && linha.Descricao.StartsWith(InicioDaTaxaDaPlataforma, StringComparison.Ordinal);
 
     private static readonly TimeZoneInfo Brasilia = TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo");
 

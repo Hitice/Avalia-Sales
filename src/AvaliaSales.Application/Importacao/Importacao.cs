@@ -83,13 +83,13 @@ public sealed class Importacao(IBancoDeDados banco, IRevendedorAtual atual, ICon
         var revendedorId = atual.RevendedorId ?? throw new InvalidOperationException("Importação sem revendedor.");
         if (linhas.Count == 0)
         {
-            throw new RegraDeNegocioException("O arquivo não tem placas.");
+            throw new RegraDeNegocioException("Arquivo sem placas.");
         }
 
         // Conta encerrada só consulta: a importação espera a reabertura aprovada pela operadora.
         if (await banco.Revendedores.AnyAsync(r => r.Id == revendedorId && r.EncerradaEm != null, ct))
         {
-            throw new RegraDeNegocioException("A conta deste revendedor está encerrada. Reabra pela tela Revendedores antes de importar.");
+            throw new RegraDeNegocioException("Revenda encerrada. Reabra em Revendedores antes de importar.");
         }
 
         var agora = relogio.GetUtcNow();
@@ -439,7 +439,7 @@ public sealed class Importacao(IBancoDeDados banco, IRevendedorAtual atual, ICon
     /// O histórico financeiro das vendas pagas no sistema anterior, já
     /// importadas com as placas, vai ao razão nos meses de origem: receita no
     /// mês do pagamento, comissão devida junto, comissão paga no mês em que foi
-    /// paga. Sem taxa da Avalia, que lá não existia. Tudo ou nada, com ensaio;
+    /// paga. Sem linha da parte da Avalia, que lá não existia. Tudo ou nada, com ensaio;
     /// a venda que já tem a receita é pulada, então pode rodar de novo. Mês
     /// fechado recusa o arquivo: o gatilho do razão passaria a linha ao mês
     /// corrente, e o histórico não entra no mês de hoje por engano.
@@ -449,12 +449,12 @@ public sealed class Importacao(IBancoDeDados banco, IRevendedorAtual atual, ICon
         var revendedorId = atual.RevendedorId ?? throw new InvalidOperationException("Histórico sem revendedor.");
         if (linhas.Count == 0)
         {
-            throw new RegraDeNegocioException("O arquivo não tem vendas.");
+            throw new RegraDeNegocioException("Arquivo sem vendas.");
         }
 
         if (await banco.Revendedores.AnyAsync(r => r.Id == revendedorId && r.EncerradaEm != null, ct))
         {
-            throw new RegraDeNegocioException("A conta deste revendedor está encerrada. Reabra pela tela Revendedores antes de importar.");
+            throw new RegraDeNegocioException("Revenda encerrada. Reabra em Revendedores antes de importar.");
         }
 
         var agora = relogio.GetUtcNow();

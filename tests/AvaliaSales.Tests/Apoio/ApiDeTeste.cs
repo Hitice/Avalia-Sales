@@ -47,6 +47,8 @@ public sealed class ApiDeTeste : IAsyncLifetime
         ["D4Sign:UrlDoWebhook"] = "https://api.exemplo.com.br/webhooks/d4sign",
         ["Pagarme:Simulado"] = "false",
         ["Protheus:Simulado"] = "false",
+        // Com endereço, a fila do ERP ligada, como a suíte sempre rodou; nenhum envio sai: o Worker de teste usa o ErpFalso.
+        ["Protheus:UrlBase"] = "https://erp.exemplo.com.br/rest/",
         ["Pdf:UrlDoConversor"] = "http://conversor.invalid",
         ["Plataforma:UrlPublica"] = UrlPublica,
         ["Plataforma:UrlDoPainel"] = "https://painel.exemplo.com.br",
@@ -150,12 +152,11 @@ public sealed class ApiDeTeste : IAsyncLifetime
     }
 
     /// <summary>Revendedor com o dono já cadastrado e, por padrão, contrato assinado.</summary>
-    public async Task<(Guid RevendedorId, string Email)> CriarRevendedor(string nome, bool contratoAssinado = true, int taxaAvaliaBps = 0)
+    public async Task<(Guid RevendedorId, string Email)> CriarRevendedor(string nome, bool contratoAssinado = true)
     {
         using var escopo = Fabrica.Services.CreateScope();
         var banco = escopo.ServiceProvider.GetRequiredService<BancoDeDados>();
         var revendedor = new Revendedor(nome);
-        revendedor.DefinirTaxaAvalia(taxaAvaliaBps);
         if (contratoAssinado)
         {
             revendedor.RegistrarContratoAssinado(DateTimeOffset.UtcNow);
@@ -242,9 +243,10 @@ public sealed class ApiDeTeste : IAsyncLifetime
         return servicos.BuildServiceProvider(validateScopes: true);
     }
 
-    public async Task<HttpClient> ClienteLogado(string email)
+    /// <summary>Logado na API da fixture ou, com <paramref name="fabrica"/>, numa derivada dela com outra configuração.</summary>
+    public async Task<HttpClient> ClienteLogado(string email, WebApplicationFactory<Program>? fabrica = null)
     {
-        var cliente = Fabrica.CreateClient();
+        var cliente = (fabrica ?? Fabrica).CreateClient();
         var resposta = await cliente.PostAsJsonAsync("/auth/entrar", new { email, senha = Senha });
         resposta.EnsureSuccessStatusCode();
         var token = await resposta.Content.ReadFromJsonAsync<TokenLido>();
