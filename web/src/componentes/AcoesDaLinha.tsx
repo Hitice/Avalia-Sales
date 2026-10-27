@@ -63,9 +63,10 @@ export function AcoesDaLinha({ nome, principal, outras = [] }: Props) {
         <BotaoDaAcao acao={primeira} />
         {demais.length === 1 ? <BotaoDaAcao acao={demais[0]} /> : demais.length > 1 && menu(demais)}
       </div>
-      <span className="flex items-center justify-end gap-1 max-md:hidden">
+      {/* Linha sem "⋯" guarda a vaga dele, e o botão fica na coluna dos outros; tabela sem nenhum "⋯" solta a vaga (index.css). */}
+      <span className="flex items-center justify-end gap-1 max-md:hidden" data-com-menu={demais.length > 0 || undefined}>
         <BotaoDaAcao acao={primeira} compacto />
-        {demais.length > 0 && menu(demais)}
+        {demais.length > 0 ? menu(demais) : <span aria-hidden data-vaga-do-menu className="size-9 shrink-0" />}
       </span>
     </>
   )

@@ -374,6 +374,13 @@
   [data-slot="table-row"]:is(:hover, :has([aria-expanded="true"])) > [data-slot="table-cell"][data-tipo="acoes"] {
     background: var(--cinza-50);
   }
+  /* A vaga do "⋯" (AcoesDaLinha) só existe quando alguma linha da mesma tabela tem o menu. */
+  [data-vaga-do-menu] {
+    display: none;
+  }
+  [data-slot="table"]:has([data-com-menu]) [data-vaga-do-menu] {
+    display: block;
+  }
   [data-slot="table-cell"][data-tipo="situacao"] > [data-slot="badge"] {
     width: 100%;
   }
