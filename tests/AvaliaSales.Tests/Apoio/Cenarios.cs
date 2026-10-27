@@ -16,12 +16,16 @@ public static class Cenarios
     /// O pacote da quantidade, criado se ainda não existe. A quantidade do pacote é única e o banco é compartilhado entre os testes,
     /// então dois testes que sortearam a mesma quantidade usam o mesmo pacote em vez de falhar.
     /// </summary>
-    public static async Task<Guid> PacoteDaQuantidade(HttpClient operadora, int quantidade, long precoCents)
+    public static async Task<Guid> PacoteDaQuantidade(HttpClient operadora, int quantidade, long precoCents) =>
+        (await PacoteJson(operadora, quantidade, precoCents)).GetProperty("id").GetGuid();
+
+    /// <summary>O mesmo pacote, no JSON da API, para o teste que lê mais do que o id.</summary>
+    public static async Task<JsonElement> PacoteJson(HttpClient operadora, int quantidade, long precoCents)
     {
         var existente = (await operadora.Pegar("/operadora/pacotes")).EnumerateArray().FirstOrDefault(p => p.GetProperty("quantidade").GetInt32() == quantidade);
         return existente.ValueKind == JsonValueKind.Object
-            ? existente.GetProperty("id").GetGuid()
-            : (await operadora.Postar("/operadora/pacotes", new { quantidade, precoCents }, HttpStatusCode.Created)).GetProperty("id").GetGuid();
+            ? existente
+            : await operadora.Postar("/operadora/pacotes", new { quantidade, precoCents }, HttpStatusCode.Created);
     }
 
     public static async Task<Revenda> RevendaComEstoque(this ApiDeTeste api, string nome, int taxaAvaliaBps = 0)

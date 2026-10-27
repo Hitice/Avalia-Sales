@@ -15,7 +15,7 @@ public sealed class FluxoDoLoteTest(ApiDeTeste api)
         var dono = await api.ClienteLogado(email);
         var quantidade = Random.Shared.Next(200, 300);
 
-        var pacote = await operadora.Postar("/operadora/pacotes", new { quantidade, precoCents = quantidade * 1_400L }, HttpStatusCode.Created);
+        var pacote = await Cenarios.PacoteJson(operadora, quantidade, quantidade * 1_400L);
         var lote = await operadora.Postar("/operadora/lotes", new { quantidade }, HttpStatusCode.Created);
         var pedido = await dono.Postar("/pedidos", new { pacoteId = pacote.GetProperty("id").GetGuid() }, HttpStatusCode.Created);
         var pedidoId = pedido.GetProperty("id").GetGuid();
@@ -47,7 +47,7 @@ public sealed class FluxoDoLoteTest(ApiDeTeste api)
         var (_, email) = await api.CriarRevendedor("Revenda Que Retira");
         var dono = await api.ClienteLogado(email);
         var quantidade = Random.Shared.Next(400, 450);
-        var pacote = await operadora.Postar("/operadora/pacotes", new { quantidade, precoCents = quantidade * 1_400L }, HttpStatusCode.Created);
+        var pacote = await Cenarios.PacoteJson(operadora, quantidade, quantidade * 1_400L);
         var lote = await operadora.Postar("/operadora/lotes", new { quantidade }, HttpStatusCode.Created);
         var pedidoId = (await dono.Postar("/pedidos", new { pacoteId = pacote.GetProperty("id").GetGuid() }, HttpStatusCode.Created)).GetProperty("id").GetGuid();
         await operadora.Postar($"/operadora/pedidos/{pedidoId}/pagamento", new { }, HttpStatusCode.NoContent);
@@ -106,7 +106,7 @@ public sealed class FluxoDoLoteTest(ApiDeTeste api)
         var (_, emailB) = await api.CriarRevendedor("Revenda Pedido B");
         var donoA = await api.ClienteLogado(emailA);
         var donoB = await api.ClienteLogado(emailB);
-        var pacote = (await operadora.Postar("/operadora/pacotes", new { quantidade = Random.Shared.Next(51, 100), precoCents = 9_900L }, HttpStatusCode.Created)).GetProperty("id").GetGuid();
+        var pacote = await Cenarios.PacoteDaQuantidade(operadora, Random.Shared.Next(51, 100), 9_900L);
 
         var deA = (await donoA.Postar("/pedidos", new { pacoteId = pacote }, HttpStatusCode.Created)).GetProperty("id").GetGuid();
         var deB = (await donoB.Postar("/pedidos", new { pacoteId = pacote }, HttpStatusCode.Created)).GetProperty("id").GetGuid();
