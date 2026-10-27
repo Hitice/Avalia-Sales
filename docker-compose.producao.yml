@@ -23,6 +23,8 @@ x-integracoes: &integracoes
   Pagarme__SegredoDoWebhook: ${PAGARME_SEGREDO_DO_WEBHOOK:?defina PAGARME_SEGREDO_DO_WEBHOOK}
   Pagarme__ChavePublica: ${PAGARME_CHAVE_PUBLICA:-}
   D4Sign__UrlBase: ${D4SIGN_URL_BASE:-https://sandbox.d4sign.com.br/api/v1/}
+  # Obrigatória: o deploy para no build, antes de trocar os contêineres, se faltar. true enquanto a URL for a do sandbox (docs/OPERACAO.md).
+  D4Sign__SandboxEmProducao: ${D4SIGN_SANDBOX_EM_PRODUCAO:?defina D4SIGN_SANDBOX_EM_PRODUCAO (true enquanto usar o sandbox da D4Sign)}
   D4Sign__TokenApi: ${D4SIGN_TOKEN_API:?defina D4SIGN_TOKEN_API}
   D4Sign__CryptKey: ${D4SIGN_CRYPT_KEY:-}
   D4Sign__SegredoHmac: ${D4SIGN_SEGREDO_HMAC:?defina D4SIGN_SEGREDO_HMAC}

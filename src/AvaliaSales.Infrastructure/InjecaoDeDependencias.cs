@@ -90,6 +90,7 @@ public static class InjecaoDeDependencias
     {
         servicos.AddOptions<OpcoesPagarme>().BindConfiguration(OpcoesPagarme.Secao).ValidateDataAnnotations().ValidateOnStart();
         servicos.AddOptions<OpcoesD4Sign>().BindConfiguration(OpcoesD4Sign.Secao).ValidateDataAnnotations().ValidateOnStart();
+        servicos.AddSingleton<IValidateOptions<OpcoesD4Sign>, ValidadorDasOpcoesD4Sign>();
 
         var pagarme = servicos.AddHttpClient<IGatewayDePagamento, ClientePagarme>((sp, http) =>
         {
