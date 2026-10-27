@@ -9,13 +9,15 @@ namespace AvaliaSales.Api.Autenticacao;
 /// Registra cada escrita da operadora que deu certo: o método e a rota com os
 /// parâmetros, o id ou código do alvo e o corpo em JSON (foto e arquivo, não).
 /// Uma regra no grupo /operadora, para ação nova não ficar de fora da auditoria.
-/// O registro grava depois da resposta pronta, numa gravação própria.
+/// O registro grava depois da resposta pronta, numa gravação própria, sem o
+/// cancelamento da requisição: a ação já foi feita, e o cliente que desconecta
+/// não a tira da trilha. Falha ao gravar vai ao log como erro (e ao Sentry).
 /// </summary>
-public sealed class AuditoriaDaOperadoraNaRota(RequestDelegate proximo)
+public sealed partial class AuditoriaDaOperadoraNaRota(RequestDelegate proximo)
 {
     private const string Prefixo = "/operadora";
 
-    public async Task InvokeAsync(HttpContext http, IUsuarioAtual usuario, BancoDeDados banco, TimeProvider relogio)
+    public async Task InvokeAsync(HttpContext http, IUsuarioAtual usuario, BancoDeDados banco, TimeProvider relogio, ILogger<AuditoriaDaOperadoraNaRota> log)
     {
         var metodo = http.Request.Method;
         if (HttpMethods.IsGet(metodo) || HttpMethods.IsHead(metodo) || HttpMethods.IsOptions(metodo) || !http.Request.Path.StartsWithSegments(Prefixo))
@@ -35,9 +37,19 @@ public sealed class AuditoriaDaOperadoraNaRota(RequestDelegate proximo)
         var valores = http.GetRouteData().Values;
         var referencia = (valores.GetValueOrDefault("id") ?? valores.GetValueOrDefault("pedidoId") ?? valores.GetValueOrDefault("loteId")
             ?? valores.GetValueOrDefault("competencia") ?? valores.GetValueOrDefault("codigo"))?.ToString();
-        banco.AuditoriaDaOperadora.Add(new RegistroDaOperadora(quem, $"{metodo} {rota}", referencia, corpo, relogio.GetUtcNow()));
-        await banco.SaveChangesAsync(http.RequestAborted);
+        try
+        {
+            banco.AuditoriaDaOperadora.Add(new RegistroDaOperadora(quem, $"{metodo} {rota}", referencia, corpo, relogio.GetUtcNow()));
+            await banco.SaveChangesAsync(CancellationToken.None);
+        }
+        catch (Exception erro)
+        {
+            LogFalha(log, $"{metodo} {rota}", referencia, quem, erro);
+        }
     }
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Ação da operadora {Acao} em {Referencia} por {Usuario} feita e sem registro na trilha")]
+    private static partial void LogFalha(ILogger log, string acao, string? referencia, Guid usuario, Exception erro);
 
     /// <summary>Só JSON, até o tamanho do registro; o binding lê de novo, por isso o buffer.</summary>
     private static async Task<string?> LerCorpo(HttpRequest pedido)

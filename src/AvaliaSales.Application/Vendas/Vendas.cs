@@ -225,9 +225,10 @@ public sealed class Vendas(
             await destinosBloqueados.ExigirPermitido(destino, ct);
         }
 
-        // Cada placa vendida cadastra um destino novo: o limite do dia conta antes de travar qualquer placa.
-        await limiteDeDestinos.Exigir(linhas.Count(l => l.Destino is not null), ct);
         await using var transacao = await banco.Database.BeginTransactionAsync(ct);
+        // Cada placa vendida cadastra um destino novo: o limite do dia conta antes de travar qualquer placa, sob a trava dos
+        // destinos da revenda. A mesma trava põe em fila o "um teste por cliente" abaixo, porque o teste sempre tem destino.
+        await limiteDeDestinos.Exigir(linhas.Count(l => l.Destino is not null), ct);
         var lugar = pedido.Itens.Select(i => i.Destino?.LugarNoGoogle).FirstOrDefault(l => l is not null);
         var cliente = await EncontrarCliente(pedido.Empresa, pedido.Responsavel, pedido.Telefone, pedido.Documento, pedido.Email, lugar, agora, ct);
         if (pedido.TesteGratuito && await banco.Vendas.AnyAsync(v => v.ClienteId == cliente.Id && v.TesteAte != null, ct))
@@ -281,10 +282,11 @@ public sealed class Vendas(
         await transacao.CommitAsync(ct);
 
         // No teste a cobrança sai quando o cliente decidir, pela lista de vendas ou no balcão.
+        // Depois do commit a venda existe: a cobrança não para se o cliente desconectar, e a resposta fica na Idempotency-Key.
         var vendas = feitas.Select(f => f.Venda).ToList();
         var (cobranca, semCobranca) = vendas[0].TesteAte is { } ate
-            ? (null, $"Teste gratuito até {ate.ToOffset(TimeSpan.FromHours(-3)):dd/MM}.")
-            : await TentarCobrar(vendas, cliente, Descricao(feitas.Select(f => f.Descricao).ToList()), pedido.TokenDoCartao, pedido.Parcelas, ct);
+            ? (null, $"Teste gratuito até {Lancamento.DiaDe(ate):dd/MM}.")
+            : await TentarCobrar(vendas, cliente, Descricao(feitas.Select(f => f.Descricao).ToList()), pedido.TokenDoCartao, pedido.Parcelas, CancellationToken.None);
         var registradas = feitas.Select(f => f.Placa is { } p
             ? new VendaRegistrada(f.Venda.Id, p.Codigo, plataforma.Value.EnderecoDaPlaca(p.Codigo), f.Venda.ValorCents, p.VenceEm, null, null, f.LinkCurto)
             : new VendaRegistrada(f.Venda.Id, "", "", f.Venda.ValorCents, null, null, null)).ToList();
@@ -877,7 +879,17 @@ public sealed class Vendas(
         var existente = novo.Documento is { } doc
             ? await banco.Clientes.SingleOrDefaultAsync(c => c.Documento == doc, ct)
             : null;
-        existente ??= await banco.Clientes.FirstOrDefaultAsync(c => c.Telefone == novo.Telefone, ct);
+        // O telefone acha o cliente só quando um dos dois não tem documento: documentos diferentes são empresas
+        // diferentes, e juntar levaria a cobrança ao CNPJ e ao e-mail da outra.
+        if (existente is null)
+        {
+            var doTelefone = await banco.Clientes.Where(c => c.Telefone == novo.Telefone && (novo.Documento == null || c.Documento == null))
+                .OrderBy(c => c.CriadoEm).ThenBy(c => c.Id).ToListAsync(ct);
+            // Sem documento na venda, o telefone de um contador com várias empresas não escolhe nenhuma: vale o cadastro
+            // sem documento, ou o único documento do telefone; com mais de um, nasce cliente novo.
+            existente = doTelefone.FirstOrDefault(c => c.Documento is null)
+                ?? (doTelefone.Select(c => c.Documento).Distinct().Count() == 1 ? doTelefone[0] : null);
+        }
         if (existente is null)
         {
             banco.Clientes.Add(novo);

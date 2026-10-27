@@ -90,8 +90,8 @@ marcada, mesmo com o id certo, e o escopo só serve a quem entra como operadora.
 - Revenda fora do grupo aparece só pelo que paga à operadora; o DRE dela nunca é lido, e o teste prova isso
   mesmo com o id dela.
 - O consolidado é calculado, e não lançado. O livro fecha por mês; a linha de custo real das placas
-  vendidas é lida do custo vigente do lote, então corrigir o custo de um lote muda também meses já fechados.
-  O fechamento congela o livro, e não essa linha.
+  vendidas é lida do custo vigente do lote. Por isso o custo de lote ativado num mês fechado da operadora, ou
+  antes de um, não se cria, edita nem exclui até a reabertura (27/10/2026): o resultado fechado não muda.
 - O custo real da placa vendida acompanha a receita da venda, nas mesmas doze partes do `Reconhecimento`,
   para o custo e a receita ficarem no mesmo período. Se o dono preferir o custo inteiro no mês da venda, a
   troca é local a `ResultadoDoGrupo.ApurarCustoReal`.

@@ -35,7 +35,8 @@ public sealed class EmailTest
         email.AssinarComo("Padaria \"Boa\" <Ltda>\n", "Dono@Padaria.com.br", "#EE46BC");
 
         var id = await servicos.GetRequiredService<IEnvioDeEmail>().Enviar(
-            new MensagemDeEmail(email.Chave, email.Para, email.Assunto, email.Texto, new RemetenteDoEmail(email.NomeDoRemetente!, email.ResponderPara, email.CorDaMarca)), Ct);
+            new MensagemDeEmail(email.Chave, email.Para, email.Assunto, email.Texto, new RemetenteDoEmail(email.NomeDoRemetente!, email.ResponderPara, email.CorDaMarca),
+                new HashSet<string> { DestaquesDoEmail.Hash("https://painel.exemplo.com.br/convite#abc") }), Ct);
 
         Assert.Equal("em_1", id);
         var corpo = JsonDocument.Parse(http.Pedidos.Single().Corpo!).RootElement;

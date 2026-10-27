@@ -177,6 +177,8 @@ public sealed class EncerramentoTest(ApiDeTeste api)
         }
 
         await api.MarcarReceptora(receptora.Id);
+        // O evento que falhou espera 30 s antes da próxima tentativa.
+        await banco.Texto($"update eventos_externos set proxima_tentativa_em = null where chave = '{uuid}' returning 1");
         await Processar();
 
         Assert.NotEqual(System.Text.Json.JsonValueKind.Null, (await revenda.Dono.Pegar("/revenda/encerramento")).GetProperty("encerradaEm").ValueKind);

@@ -42,7 +42,8 @@ public sealed class FichaDaPlaca(IBancoDeDados banco, IUsuarioAtual usuario, ICo
             return new FichaDto(placa.Codigo, plataforma.Value.EnderecoDaPlaca(placa.Codigo), placa.Sequencia, placa.Estado(agora), null, null, null, 0, null, null, null, [], []);
         }
 
-        var desde = DateOnly.FromDateTime(agora.UtcDateTime).AddDays(-DiasDeLeitura);
+        // A leitura é gravada por dia de Brasília (Leituras): a janela conta do dia de Brasília, e não do de UTC.
+        var desde = Domain.Financeiro.Lancamento.DiaDe(agora).AddDays(-DiasDeLeitura);
         var leituras = await banco.Leituras.AsNoTracking().Where(l => l.PlacaId == placa.Id && l.Dia >= desde)
             .OrderBy(l => l.Dia).Select(l => new LeituraDto(l.Dia, l.Total)).ToListAsync(ct);
 
@@ -95,6 +96,7 @@ public sealed class FichaDaPlaca(IBancoDeDados banco, IUsuarioAtual usuario, ICo
         await ExigirQuePodeMexer(placa, ct);
         var antes = placa.Destino;
         var novo = destino.Resolver(plataforma.Value.HostPublico);
+        await using var transacao = await banco.Database.BeginTransactionAsync(ct);
         if (novo != antes)
         {
             await destinosBloqueados.ExigirPermitido(novo, ct);
@@ -108,6 +110,7 @@ public sealed class FichaDaPlaca(IBancoDeDados banco, IUsuarioAtual usuario, ICo
         }
 
         await banco.SaveChangesAsync(ct);
+        await transacao.CommitAsync(ct);
     }
 
     public async Task<EstadoDaPlaca> Alternar(string codigo, CancellationToken ct)

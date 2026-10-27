@@ -37,11 +37,12 @@ public sealed partial class ProcessadorDeEventos(
 
     public async Task<int> ProcessarPendentes(int lote, CancellationToken ct)
     {
+        var agora = relogio.GetUtcNow();
         var pendentes = await banco.EventosExternos.AsNoTracking()
-            .Where(e => e.ProcessadoEm == null && e.Tentativas < EventoExterno.TentativasMaximas)
+            .Where(e => e.ProcessadoEm == null && e.Tentativas < EventoExterno.TentativasMaximas && (e.ProximaTentativaEm == null || e.ProximaTentativaEm <= agora))
             .OrderBy(e => e.RecebidoEm)
             .Take(lote)
-            .Select(e => new { e.Id, e.Origem, e.Chave, e.Tipo, e.IdExterno })
+            .Select(e => new { e.Id, e.Origem, e.Chave, e.Tipo, e.IdExterno, e.Tentativas })
             .ToListAsync(ct);
 
         var aplicados = 0;
@@ -54,16 +55,52 @@ public sealed partial class ProcessadorDeEventos(
                     aplicados++;
                 }
             }
-            catch (Exception erro) when (erro is not OperationCanceledException)
+            catch (Exception erro) when (!ct.IsCancellationRequested)
             {
                 LogFalha(log, evento.Id, erro);
-                await banco.EventosExternos.Where(e => e.Id == evento.Id).ExecuteUpdateAsync(s => s
-                    .SetProperty(e => e.Tentativas, e => e.Tentativas + 1)
-                    .SetProperty(e => e.UltimoErro, erro.Message.Length > 500 ? erro.Message.Substring(0, 500) : erro.Message), ct);
+                await RegistrarFalha(evento.Id, evento.Origem, evento.Tipo, evento.IdExterno, evento.Tentativas + 1, erro.Message, ct);
             }
         }
 
         return aplicados;
+    }
+
+    /// <summary>
+    /// A falha conta uma tentativa e adia a próxima (<see cref="EventoExterno.EsperaDepoisDe"/>). Na última, o evento sai
+    /// da fila e a operadora recebe um e-mail para conferir na fonte; a chave do e-mail é o id do evento, e o e-mail e a
+    /// contagem vão na mesma transação, então o aviso sai uma vez.
+    /// </summary>
+    private async Task RegistrarFalha(Guid id, string origem, string tipo, string idExterno, int tentativas, string mensagem, CancellationToken ct)
+    {
+        var erro = mensagem.Length > 500 ? mensagem[..500] : mensagem;
+        var proxima = relogio.GetUtcNow() + EventoExterno.EsperaDepoisDe(tentativas);
+        banco.ChangeTracker.Clear();
+        await using var transacao = await banco.Database.BeginTransactionAsync(ct);
+        var contadas = await banco.EventosExternos.Where(e => e.Id == id && e.ProcessadoEm == null).ExecuteUpdateAsync(s => s
+            .SetProperty(e => e.Tentativas, e => e.Tentativas + 1)
+            .SetProperty(e => e.ProximaTentativaEm, proxima)
+            .SetProperty(e => e.UltimoErro, erro), ct);
+        if (contadas > 0 && tentativas >= EventoExterno.TentativasMaximas)
+        {
+            LogDesistencia(log, id, origem, idExterno);
+            if (plataforma.Value.EmailDaOperadora is { Length: > 0 } operadora)
+            {
+                var sistema = origem == VinculoExterno.Pagarme ? "Pagar.me" : "D4Sign";
+                emails.Enfileirar($"evento-desistido:{id:N}", operadora, $"Aviso do {sistema} sem efeito na plataforma",
+                    $"""
+                    Um aviso do {sistema} falhou {tentativas} vezes e saiu da fila de processamento.
+
+                    Evento: {idExterno}
+                    Tipo: {tipo}
+                    Último erro: {erro}
+
+                    Confira no painel do {sistema} a situação do pagamento ou do documento. A conferência periódica das cobranças e dos contratos aplica o que a fonte disser.
+                    """);
+                await banco.SaveChangesAsync(ct);
+            }
+        }
+
+        await transacao.CommitAsync(ct);
     }
 
     private async Task<bool> Processar(Guid id, string origem, string chave, string tipo, string idExterno, CancellationToken ct)
@@ -188,6 +225,9 @@ public sealed partial class ProcessadorDeEventos(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Evento externo {Id} falhou e volta para a fila")]
     private static partial void LogFalha(ILogger log, Guid id, Exception erro);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Evento externo {Id} ({Origem} {Evento}) esgotou as tentativas e saiu da fila")]
+    private static partial void LogDesistencia(ILogger log, Guid id, string origem, string evento);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Pagamento do Pagar.me sem cobrança na plataforma: evento {Evento}, pedido {Pedido}")]
     private static partial void LogPagamentoSemVinculo(ILogger log, string evento, string pedido);

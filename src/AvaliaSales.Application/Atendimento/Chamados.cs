@@ -95,7 +95,7 @@ public sealed class Chamados(IBancoDeDados banco, IUsuarioAtual usuario, IRevend
             Responder até {Quando(chamado.PrazoEm!.Value)}.
 
             Abrir o chamado: {site.UrlDoPainel.TrimEnd('/')}/operadora/atendimento
-            """);
+            """, destaques: [$"{site.UrlDoPainel.TrimEnd('/')}/operadora/atendimento"]);
         notificacoes.ParaOperadora(revendedor, $"Chamado {chamado.Numero}", $"{nome}: {chamado.Assunto}", "/operadora/atendimento");
         await banco.SaveChangesAsync(ct);
         return Dto(chamado, new Dictionary<Guid, string> { [revendedor] = nome }, agora, 0);
@@ -164,7 +164,7 @@ public sealed class Chamados(IBancoDeDados banco, IUsuarioAtual usuario, IRevend
                     {mensagem.Texto}
 
                     Abrir o chamado: {plataforma.Value.UrlDoPainel.TrimEnd('/')}/painel/suporte
-                    """);
+                    """, destaques: [$"{plataforma.Value.UrlDoPainel.TrimEnd('/')}/painel/suporte"]);
             }
         }
 

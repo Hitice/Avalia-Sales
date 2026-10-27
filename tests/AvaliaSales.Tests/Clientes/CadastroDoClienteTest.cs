@@ -46,6 +46,39 @@ public sealed class CadastroDoClienteTest(ApiDeTeste api)
     }
 
     [Fact]
+    public async Task Venda_com_outro_documento_e_o_mesmo_telefone_e_outro_cliente_e_sem_documento_acha_pelo_telefone()
+    {
+        var revenda = await api.RevendaComEstoque("Revenda dos Telefones Iguais");
+        var (primeiro, segundo, terceiro) = (Cenarios.Cnpj(), Cenarios.Cnpj(), Cenarios.Cnpj());
+
+        // Duas empresas no mesmo telefone (o do contador): documentos diferentes nunca viram um cliente só.
+        await revenda.Dono.Postar("/vendas", Cenarios.Venda(revenda.Codigos[0], revenda.ProdutoId, "34999990061", documento: primeiro), HttpStatusCode.Created);
+        await revenda.Dono.Postar("/vendas", Cenarios.Venda(revenda.Codigos[1], revenda.ProdutoId, "34999990061", documento: segundo), HttpStatusCode.Created);
+        var mesmoTelefone = (await revenda.Dono.PegarItens("/clientes?busca=34999990061")).EnumerateArray().Select(c => c.GetProperty("id").GetGuid()).ToList();
+        Assert.Equal(2, mesmoTelefone.Count);
+        var documentos = new List<string?>();
+        foreach (var id in mesmoTelefone)
+        {
+            documentos.Add((await revenda.Dono.Pegar($"/clientes/{id}")).GetProperty("documento").GetString());
+        }
+
+        Assert.Equal(new[] { primeiro, segundo }.Order(), documentos.Order());
+
+        // Venda sem documento nesse telefone não cai em nenhuma das duas empresas: nasce cliente novo, sem documento.
+        await revenda.Dono.Postar("/vendas", Cenarios.Venda(revenda.Codigos[4], revenda.ProdutoId, "34999990061", documento: null), HttpStatusCode.Created);
+        var depois = (await revenda.Dono.PegarItens("/clientes?busca=34999990061")).EnumerateArray().Select(c => c.GetProperty("id").GetGuid()).ToList();
+        Assert.Equal(3, depois.Count);
+        var semDocumento = Assert.Single(depois.Except(mesmoTelefone));
+        Assert.Equal(System.Text.Json.JsonValueKind.Null, (await revenda.Dono.Pegar($"/clientes/{semDocumento}")).GetProperty("documento").ValueKind);
+
+        // Sem documento de um dos lados, o telefone acha o cliente, e o que faltava é completado.
+        await revenda.Dono.Postar("/vendas", Cenarios.Venda(revenda.Codigos[2], revenda.ProdutoId, "34999990062", documento: null), HttpStatusCode.Created);
+        await revenda.Dono.Postar("/vendas", Cenarios.Venda(revenda.Codigos[3], revenda.ProdutoId, "34999990062", documento: terceiro), HttpStatusCode.Created);
+        var completado = await ClienteDe(revenda.Dono, "34999990062");
+        Assert.Equal(terceiro, (await revenda.Dono.Pegar($"/clientes/{completado}")).GetProperty("documento").GetString());
+    }
+
+    [Fact]
     public async Task Venda_corrigida_muda_o_valor_so_sem_cobranca_e_passa_a_comissao_ao_vendedor_certo()
     {
         var revenda = await api.RevendaComEstoque("Revenda da Venda Corrigida");

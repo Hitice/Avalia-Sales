@@ -29,7 +29,11 @@ public sealed class LimiteDeDestinos(IBancoDeDados banco, IRevendedorAtual atual
         return new SituacaoDoLimite(usados, limite, usados >= limite);
     }
 
-    /// <summary>Recusa quando <paramref name="novos"/> destinos passariam do limite do dia. Chamar antes de gravar o destino.</summary>
+    /// <summary>
+    /// Recusa quando <paramref name="novos"/> destinos passariam do limite do dia. Chamar dentro da transação que grava o
+    /// destino e a auditoria dele: a trava dos destinos da revenda vale até o commit, e duas gravações juntas contam uma
+    /// depois da outra.
+    /// </summary>
     public async Task Exigir(int novos, CancellationToken ct)
     {
         if (novos <= 0)
@@ -37,6 +41,12 @@ public sealed class LimiteDeDestinos(IBancoDeDados banco, IRevendedorAtual atual
             return;
         }
 
+        if (banco.Database.CurrentTransaction is null)
+        {
+            throw new InvalidOperationException("O limite de destinos é conferido dentro da transação que grava o destino.");
+        }
+
+        await banco.TravarLinksDaRevenda(atual.RevendedorId ?? throw new InvalidOperationException("Limite de destinos sem revenda na sessão."), ct);
         var situacao = await Situacao(ct);
         if (situacao.Usados + novos > situacao.Limite)
         {

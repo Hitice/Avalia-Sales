@@ -124,8 +124,16 @@ public sealed partial class IdempotenciaDaRequisicao(RequestDelegate proximo, IL
             && captura.Length <= LimiteDoCorpo
             && !http.Response.Headers.ContainsKey(HeaderNames.SetCookie);
         // O corpo já está na captura; devolve ao cliente antes de gravar, para a gravação não atrasar a resposta.
+        // Cliente que caiu no meio não impede a gravação: a retentativa dele recebe esta resposta pela chave.
         captura.Position = 0;
-        await captura.CopyToAsync(original, http.RequestAborted);
+        try
+        {
+            await captura.CopyToAsync(original, CancellationToken.None);
+        }
+        catch (Exception erro) when (erro is IOException or OperationCanceledException)
+        {
+            // Conexão fechada pelo cliente; segue para gravar.
+        }
 
         if (!guardavel)
         {

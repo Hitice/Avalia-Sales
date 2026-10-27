@@ -262,6 +262,38 @@ public sealed class FluxoDePagamentoTest(ApiDeTeste api)
     }
 
     [Fact]
+    public async Task Evento_que_falha_espera_cada_vez_mais_e_na_ultima_tentativa_sai_da_fila_com_um_email_a_operadora()
+    {
+        var revendedor = await RevendedorComRecebedor("Revenda da Espera");
+        var gateway = new GatewayFalso { FalhaAoBuscar = new IntegracaoException("Pagar.me", 503, "indisponivel") };
+        await using var worker = api.AmbienteDoWorker(gateway, new AssinaturaFalsa());
+        var codigo = (await Cobrar(worker, revendedor)).Id.ToString("N");
+        var hook = "hook_espera_" + codigo[..8];
+        await WebhookPagarme(hook, "order.paid", codigo);
+        await using var dono = new BancoDeDadosDoDono(api.ConexaoDoDono);
+
+        // A primeira falha adia a próxima em 30 s: a volta seguinte, 10 s depois, não tenta de novo.
+        await Processar(worker);
+        await Processar(worker);
+        Assert.Equal(1, await dono.Contar($"select tentativas from eventos_externos where id_externo = '{hook}'"));
+        Assert.Equal(1, await dono.Contar($"select count(*) from eventos_externos where id_externo = '{hook}' and proxima_tentativa_em between now() + interval '20 seconds' and now() + interval '40 seconds'"));
+
+        // Passada a espera, a falha seguinte dobra o intervalo.
+        await dono.Contar($"update eventos_externos set proxima_tentativa_em = now() - interval '1 second' where id_externo = '{hook}' returning 1");
+        await Processar(worker);
+        Assert.Equal(1, await dono.Contar($"select count(*) from eventos_externos where id_externo = '{hook}' and tentativas = 2 and proxima_tentativa_em > now() + interval '50 seconds'"));
+
+        // A última tentativa desiste e avisa a operadora uma vez; o evento não volta à fila.
+        await dono.Contar($"update eventos_externos set tentativas = {EventoExterno.TentativasMaximas - 1}, proxima_tentativa_em = null where id_externo = '{hook}' returning 1");
+        await Processar(worker);
+        await dono.Contar($"update eventos_externos set proxima_tentativa_em = null where id_externo = '{hook}' returning 1");
+        await Processar(worker);
+        var id = Guid.Parse(await dono.Texto($"select id::text from eventos_externos where id_externo = '{hook}'"));
+        Assert.Equal(EventoExterno.TentativasMaximas, await dono.Contar($"select tentativas from eventos_externos where id = '{id}'"));
+        Assert.Equal(1, await dono.Contar($"select count(*) from emails where chave = 'evento-desistido:{id:N}' and para = 'operadora@exemplo.com.br' and texto like '%{hook}%'"));
+    }
+
+    [Fact]
     public async Task Evento_de_pedido_que_nao_e_nosso_e_encerrado_sem_efeito()
     {
         await using var worker = api.AmbienteDoWorker(new GatewayFalso(), new AssinaturaFalsa());

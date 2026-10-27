@@ -43,6 +43,12 @@ public sealed partial class Cadastro(IBancoDeDados banco, IContas contas, Janela
             throw new RegraDeNegocioException("Nome de 1 a 120 caracteres.");
         }
 
+        // O nome vai no e-mail que a plataforma manda a qualquer endereço digitado: endereço de site nele não tem uso legítimo.
+        if (TemEndereco(nome) || TemEndereco(comando.Empresa))
+        {
+            throw new RegraDeNegocioException("Nome com endereço de site. Use só o nome.");
+        }
+
         var revendedor = new Revendedor(comando.Empresa, comando.Cnpj);
         revendedor.DefinirCelular(comando.Celular);
         revendedor.DefinirEndereco(comando.Endereco?.ParaDominio() ?? throw new RegraDeNegocioException("Informe o endereço da empresa."));
@@ -100,6 +106,9 @@ public sealed partial class Cadastro(IBancoDeDados banco, IContas contas, Janela
 
         return ResultadoDoCadastro.Aceito;
     }
+
+    private static bool TemEndereco(string? texto) =>
+        texto is not null && (texto.Contains("://", StringComparison.Ordinal) || texto.Contains("www.", StringComparison.OrdinalIgnoreCase) || texto.Any(char.IsControl));
 
     /// <summary>
     /// Novo e-mail de confirmação para o cadastro pendente. Responde igual com e

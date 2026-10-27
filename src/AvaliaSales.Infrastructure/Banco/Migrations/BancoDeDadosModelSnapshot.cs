@@ -1638,6 +1638,10 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("paga_em");
 
+                    b.Property<long>("ParteDaAvaliaCents")
+                        .HasColumnType("bigint")
+                        .HasColumnName("taxa_avalia_cents");
+
                     b.Property<string>("PedidoNoGateway")
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)")
@@ -1665,10 +1669,6 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .HasMaxLength(12)
                         .HasColumnType("character varying(12)")
                         .HasColumnName("situacao");
-
-                    b.Property<long>("TaxaAvaliaCents")
-                        .HasColumnType("bigint")
-                        .HasColumnName("taxa_avalia_cents");
 
                     b.Property<string>("UrlDoLink")
                         .HasMaxLength(500)
@@ -2053,6 +2053,10 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .HasMaxLength(12)
                         .HasColumnType("character varying(12)")
                         .HasColumnName("situacao");
+
+                    b.Property<bool>("SuspensaPorTeste")
+                        .HasColumnType("boolean")
+                        .HasColumnName("suspensa_por_teste");
 
                     b.Property<long>("TotalLeituras")
                         .HasColumnType("bigint")
@@ -3041,6 +3045,10 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                     b.Property<DateTimeOffset?>("ProcessadoEm")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("processado_em");
+
+                    b.Property<DateTimeOffset?>("ProximaTentativaEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("proxima_tentativa_em");
 
                     b.Property<DateTimeOffset>("RecebidoEm")
                         .HasColumnType("timestamp with time zone")

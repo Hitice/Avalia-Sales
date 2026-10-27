@@ -45,7 +45,7 @@ public sealed class TestesGratuitos(IBancoDeDados banco, Notificacoes.Notificaco
             else
             {
                 venda.AvisarFimDoTeste(agora);
-                (titulo, texto) = ("Teste acabando", $"{cliente}: o teste da placa {placa.Codigo} acaba em {venda.TesteAte!.Value.ToOffset(TimeSpan.FromHours(-3)):dd/MM}.");
+                (titulo, texto) = ("Teste acabando", $"{cliente}: o teste da placa {placa.Codigo} acaba em {Domain.Financeiro.Lancamento.DiaDe(venda.TesteAte!.Value):dd/MM}.");
             }
 
             notificacoes.ParaDono(venda.RevendedorId, titulo, texto, "/painel/vendas", venda.Id);

@@ -181,7 +181,7 @@ public sealed class Importacao(IBancoDeDados banco, IRevendedorAtual atual, ICon
 
                         // Na data de hoje, e não na da venda: mês fechado do razão não muda.
                         banco.Lancamentos.Add(new Lancamento(TipoDeLancamento.ComissaoDevida, venda.Id, -devida,
-                            $"Comissão da placa {codigo}, vendida em {vendidaEm.ToOffset(TimeSpan.FromHours(-3)).ToString("dd'/'MM'/'yyyy", System.Globalization.CultureInfo.InvariantCulture)} no sistema anterior", agora, venda.Id, quem));
+                            $"Comissão da placa {codigo}, vendida em {Domain.Financeiro.Lancamento.DiaDe(vendidaEm).ToString("dd'/'MM'/'yyyy", System.Globalization.CultureInfo.InvariantCulture)} no sistema anterior", agora, venda.Id, quem));
                         comissaoDevida += devida;
                     }
                     vendidas++;

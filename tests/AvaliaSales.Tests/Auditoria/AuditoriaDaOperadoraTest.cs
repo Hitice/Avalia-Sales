@@ -1,5 +1,12 @@
 using System.Net;
+using System.Security.Claims;
+using AvaliaSales.Api.Autenticacao;
+using AvaliaSales.Application;
+using AvaliaSales.Infrastructure.Banco;
 using AvaliaSales.Tests.Apoio;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace AvaliaSales.Tests.Auditoria;
 
@@ -7,6 +14,37 @@ namespace AvaliaSales.Tests.Auditoria;
 public sealed class AuditoriaDaOperadoraTest(ApiDeTeste api)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
+
+    /// <summary>A ação já foi feita quando o cliente desconecta: a trilha grava mesmo assim, sem o cancelamento da requisição.</summary>
+    [Fact]
+    public async Task Cliente_que_desconecta_depois_da_acao_nao_tira_a_acao_da_trilha()
+    {
+        var email = await api.CriarOperadora();
+        await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
+        var usuario = await banco.Texto($"select id::text from usuarios where email = '{email}'");
+        using var escopo = api.Fabrica.Services.CreateScope();
+        var http = new DefaultHttpContext
+        {
+            RequestServices = escopo.ServiceProvider,
+            User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(Reivindicacoes.Usuario, usuario), new Claim(Reivindicacoes.Papel, "Operadora")], "teste")),
+        };
+        escopo.ServiceProvider.GetRequiredService<IHttpContextAccessor>().HttpContext = http;
+        var rota = $"/operadora/teste-da-trilha/{Guid.NewGuid():N}";
+        http.Request.Method = HttpMethods.Post;
+        http.Request.Path = rota;
+        using var desconexao = new CancellationTokenSource();
+        http.RequestAborted = desconexao.Token;
+        var trilha = new AuditoriaDaOperadoraNaRota(async contexto =>
+        {
+            contexto.Response.StatusCode = StatusCodes.Status204NoContent;
+            await desconexao.CancelAsync();
+        });
+
+        await trilha.InvokeAsync(http, escopo.ServiceProvider.GetRequiredService<IUsuarioAtual>(), escopo.ServiceProvider.GetRequiredService<BancoDeDados>(),
+            TimeProvider.System, NullLogger<AuditoriaDaOperadoraNaRota>.Instance);
+
+        Assert.Equal(1, await banco.Contar($"select count(*) from auditoria_da_operadora where acao = 'POST {rota}' and usuario_id = '{usuario}'"));
+    }
 
     [Fact]
     public async Task Escrita_da_operadora_que_deu_certo_fica_registrada_com_a_rota_o_alvo_e_o_corpo()

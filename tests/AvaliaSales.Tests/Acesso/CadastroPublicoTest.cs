@@ -25,10 +25,11 @@ public sealed partial class CadastroPublicoTest(ApiDeTeste api)
     [GeneratedRegex("\"traceId\":\"[^\"]*\"")]
     private static partial Regex TraceId();
 
-    private async Task<string> UltimoEmail(string email, string coluna = "texto")
+    /// <summary>O texto do último e-mail, aberto: o link de cadastro cria a senha e fica cifrado na fila.</summary>
+    private async Task<string> UltimoEmail(string email)
     {
         await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
-        return await banco.Texto($"select {coluna} from emails where para = '{email}' order by criado_em desc limit 1");
+        return (await banco.UltimoEmail(email)).Texto;
     }
 
     private async Task<long> Emails(string email)
@@ -77,6 +78,36 @@ public sealed partial class CadastroPublicoTest(ApiDeTeste api)
         Assert.Equal("Revenda Publica", entrou.GetProperty("perfil").GetProperty("revendedor").GetString());
         await cliente.Postar("/auth/senha", new { token, senha = "outra-senha-escolhida" }, HttpStatusCode.UnprocessableEntity);
         await cliente.Postar("/auth/entrar", new { email, senha = "senha-escolhida-123" });
+    }
+
+    /// <summary>O link de cadastro cria a senha da conta: na fila ele fica cifrado, como o convite e a redefinição.</summary>
+    [Fact]
+    public async Task Link_de_cadastro_fica_cifrado_na_fila()
+    {
+        var email = $"cifra-{Guid.NewGuid():N}@teste.com.br";
+        var (status, _) = await Cadastrar(api.Fabrica.CreateClient(), Corpo(email, Cenarios.Cnpj()));
+        Assert.Equal(HttpStatusCode.Accepted, status);
+
+        await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
+        var guardado = await banco.Texto($"select assunto || '|' || texto from emails where para = '{email}'");
+        Assert.StartsWith("(conteúdo protegido)|avalia-cifra:v1:", guardado, StringComparison.Ordinal);
+        Assert.DoesNotContain("confirmar-cadastro", guardado, StringComparison.Ordinal);
+        Assert.Contains("confirmar-cadastro", await UltimoEmail(email), StringComparison.Ordinal);
+    }
+
+    /// <summary>O nome vai no e-mail oficial mandado a qualquer endereço digitado: endereço de site nele é recusado.</summary>
+    [Theory]
+    [InlineData("Confirme: https://mau.exemplo/x", "Revenda Publica")]
+    [InlineData("Ana", "Acesse www.mau.exemplo")]
+    public async Task Nome_ou_empresa_com_endereco_de_site_e_recusado(string nome, string empresa)
+    {
+        var email = $"url-{Guid.NewGuid():N}@teste.com.br";
+        var resposta = await api.Fabrica.CreateClient().PostAsJsonAsync("/cadastro",
+            new { empresa, cnpj = Cenarios.Cnpj(), celular = "(11) 98765-4321", endereco = ApiDeTeste.Endereco, nome, email }, Ct);
+
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, resposta.StatusCode);
+        await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
+        Assert.Equal(0, await banco.Contar($"select count(*) from emails where para = '{email}'"));
     }
 
     [Fact]

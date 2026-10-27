@@ -38,7 +38,7 @@ public sealed class ClienteResend(HttpClient http, IOptions<OpcoesResend> opcoes
                 to = new[] { mensagem.Para },
                 subject = mensagem.Assunto,
                 text = mensagem.Texto,
-                html = ModeloDeEmail.Html(mensagem.Assunto, mensagem.Texto, mensagem.Remetente?.Nome, mensagem.Remetente?.Cor, UrlDoLogo),
+                html = ModeloDeEmail.Html(mensagem.Assunto, mensagem.Texto, mensagem.Remetente?.Nome, mensagem.Remetente?.Cor, UrlDoLogo, mensagem.Destaques, UrlDoPainel),
                 reply_to = responder is null ? null : new[] { responder },
             }, options: SemNulos),
         };
@@ -51,7 +51,9 @@ public sealed class ClienteResend(HttpClient http, IOptions<OpcoesResend> opcoes
     }
 
     /// <summary>O PNG do logo servido pelo próprio front (web/public/marca).</summary>
-    private string UrlDoLogo => plataforma.Value.UrlDoPainel.TrimEnd('/') + "/marca/avaliasales-email.png";
+    private string UrlDoPainel => plataforma.Value.UrlDoPainel;
+
+    private string UrlDoLogo => UrlDoPainel.TrimEnd('/') + "/marca/avaliasales-email.png";
 
     private static string? NuloSeVazio(string? texto) => string.IsNullOrWhiteSpace(texto) ? null : texto;
 }

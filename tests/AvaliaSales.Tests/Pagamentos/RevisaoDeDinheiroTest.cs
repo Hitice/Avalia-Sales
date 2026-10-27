@@ -115,6 +115,30 @@ public sealed class RevisaoDeDinheiroTest(ApiDeTeste api)
     }
 
     [Fact]
+    public async Task Acrescimo_do_parcelamento_no_grupo_e_rateado_pelo_valor_e_o_estorno_de_uma_venda_devolve_so_a_fatia_dela()
+    {
+        var revenda = await api.RevendaComEstoque("Revenda do Acréscimo no Grupo");
+        var feita = await revenda.Dono.Postar("/vendas/itens", Carrinho("11955560009",
+            new { produtoId = revenda.ProdutoId, codigo = revenda.Codigos[0], destino = Google, valorCents = 15_000L },
+            new { produtoId = revenda.ProdutoId, codigo = revenda.Codigos[1], destino = Google, valorCents = 45_000L }), HttpStatusCode.Created);
+        var ids = feita.GetProperty("vendas").EnumerateArray().Select(v => v.GetProperty("vendaId").GetGuid()).ToArray();
+        await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
+        // O cliente pagou R$ 600,00 em parcelas com R$ 10,01 de acréscimo: a cobrança leva o total com o custo do parcelamento.
+        await banco.Contar($"update cobrancas set valor_cents = 61001 where origem_id = '{ids[0]}' returning 1");
+        var cobranca = Guid.Parse(await banco.Texto($"select id::text from cobrancas where origem_id = '{ids[0]}'")).ToString("N");
+        api.Gateway.Mudar(cobranca, SituacaoDaCobranca.Paga);
+        await Rotinas(DateTimeOffset.UtcNow.AddMinutes(10));
+
+        Assert.Equal(15_250, await banco.Contar($"select valor_cents from lancamentos where venda_id = '{ids[0]}' and tipo = 'Receita'"));
+        Assert.Equal(45_751, await banco.Contar($"select valor_cents from lancamentos where venda_id = '{ids[1]}' and tipo = 'Receita'"));
+
+        await revenda.Dono.Postar($"/vendas/{ids[0]}/cancelamento", new { motivo = "Desistencia" }, HttpStatusCode.NoContent);
+
+        var pedido = api.Gateway.PorCodigo[cobranca].Id;
+        Assert.Equal(15_250, api.Gateway.EstornosParciais.Where(e => e.Pedido == pedido).Sum(e => e.ValorCents));
+    }
+
+    [Fact]
     public async Task Estorno_parcial_com_resposta_perdida_nao_devolve_de_novo_ao_repetir_o_cancelamento()
     {
         var revenda = await api.RevendaComEstoque("Revenda do Estorno Ambíguo");

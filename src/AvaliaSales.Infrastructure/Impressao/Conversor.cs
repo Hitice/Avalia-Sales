@@ -59,6 +59,11 @@ public sealed class ConversorGotenberg(HttpClient http) : IConversorDePdf
         {
             throw new IntegracaoException(Sistema, null, erro.Message);
         }
+        catch (TaskCanceledException) when (!ct.IsCancellationRequested)
+        {
+            // O tempo do HttpClient esgotado chega como cancelamento; só o pedido de parada do Worker para a rotina.
+            throw new IntegracaoException(Sistema, null, "tempo esgotado");
+        }
 
         using (resposta)
         {

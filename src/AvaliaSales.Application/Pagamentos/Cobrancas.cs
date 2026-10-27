@@ -204,7 +204,7 @@ public sealed class Cobrancas(IBancoDeDados banco, IGatewayDePagamento gateway, 
         if (cobranca.Situacao == SituacaoDaCobranca.Cancelada && pedido.Situacao == SituacaoDaCobranca.Paga)
         {
             // Pix gerado antes do cancelamento continua pagável: o dinheiro entrou sem pedido, e a operadora devolve.
-            efeitos.PagaDepoisDeCancelada(cobranca, pedido.Id);
+            await efeitos.PagaDepoisDeCancelada(cobranca, pedido.Id, ct);
         }
 
         var mudou = cobranca.Atualizar(pedido.Situacao, pedido.PagoEm);

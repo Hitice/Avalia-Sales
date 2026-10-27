@@ -44,6 +44,41 @@ public sealed partial class SegundoFatorTest(ApiDeTeste api)
         Assert.Equal(HttpStatusCode.OK, entrada.StatusCode);
     }
 
+    /// <summary>Com a sessão roubada não dá para tentar códigos até desligar: cinco erros bloqueiam, e bloqueado nem o código certo passa.</summary>
+    [Fact]
+    public async Task Desligar_com_cinco_codigos_errados_bloqueia_e_o_certo_nao_passa()
+    {
+        var (_, email) = await api.CriarRevendedor("Revenda 2FA Força Bruta");
+        var dono = await api.ClienteLogado(email);
+        var (chave, _) = await Ligar(dono);
+
+        for (var i = 0; i < 5; i++)
+        {
+            await dono.Postar("/conta/segundo-fator/desligar", new { codigo = $"00000{i}" }, HttpStatusCode.UnprocessableEntity);
+        }
+
+        var recusa = await dono.Postar("/conta/segundo-fator/desligar", new { codigo = Totp.Codigo(chave) }, HttpStatusCode.UnprocessableEntity);
+        Assert.Contains("Espere", recusa.GetProperty("detail").GetString(), StringComparison.Ordinal);
+        Assert.True((await dono.Pegar("/conta/segundo-fator")).GetProperty("ligado").GetBoolean());
+        await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
+        Assert.Equal(1, await banco.Contar($"select count(*) from usuarios where email = '{email}' and lockout_end > now()"));
+    }
+
+    [Fact]
+    public async Task Ligar_conta_o_codigo_errado_e_o_certo_zera_a_contagem()
+    {
+        var (_, email) = await api.CriarRevendedor("Revenda 2FA Ligar Errado");
+        var dono = await api.ClienteLogado(email);
+        var chave = (await dono.Postar("/conta/segundo-fator/chave", new { })).GetProperty("chave").GetString()!;
+        await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
+
+        await dono.Postar("/conta/segundo-fator", new { codigo = "000000" }, HttpStatusCode.UnprocessableEntity);
+        Assert.Equal(1, await banco.Contar($"select access_failed_count from usuarios where email = '{email}'"));
+
+        await dono.Postar("/conta/segundo-fator", new { codigo = Totp.Codigo(chave) });
+        Assert.Equal(0, await banco.Contar($"select access_failed_count from usuarios where email = '{email}'"));
+    }
+
     /// <summary>Ligado pelo app, desligar manda um código novo ao e-mail cadastrado, e ele basta.</summary>
     [Fact]
     public async Task Desativar_manda_codigo_novo_ao_email_e_ele_desliga()

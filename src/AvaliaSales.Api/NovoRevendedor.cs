@@ -210,7 +210,7 @@ internal static class NovoRevendedor
             Ligue de novo em Segurança na próxima entrada. Se não foi você que pediu, troque a senha agora e fale com o suporte.
 
             Trocar a senha: {painel}/esqueci
-            """);
+            """, destaques: [$"{painel}/esqueci"]);
         if (revendedorId is not null)
         {
             escopo.ServiceProvider.GetRequiredService<Application.Auditoria.Auditoria>()

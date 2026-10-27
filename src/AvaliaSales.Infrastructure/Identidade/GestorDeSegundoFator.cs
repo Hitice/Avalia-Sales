@@ -56,11 +56,7 @@ public sealed class GestorDeSegundoFator(BancoDeDados banco, UserManager<Usuario
     public async Task<IReadOnlyList<string>> Ligar(Guid usuarioId, string? codigo, string? sessaoAtual)
     {
         var usuario = await AcharDesligado(usuarioId);
-        if (!await CodigoDoApp(usuario, codigo))
-        {
-            throw new RegraDeNegocioException("Código não confere. Confira o horário do celular.");
-        }
-
+        await ExigirCodigo(usuario, () => CodigoDoApp(usuario, codigo), "Código não confere. Confira o horário do celular.");
         return await Ativar(usuario, porEmail: false, sessaoAtual);
     }
 
@@ -87,11 +83,12 @@ public sealed class GestorDeSegundoFator(BancoDeDados banco, UserManager<Usuario
     public async Task<IReadOnlyList<string>> LigarPorEmail(Guid usuarioId, string? codigo, string? sessaoAtual)
     {
         var usuario = await AcharDesligado(usuarioId);
-        if (!usuario.EmailConfirmed || !await CodigoDoEmail(usuario, codigo))
+        if (!usuario.EmailConfirmed)
         {
             throw new RegraDeNegocioException("Código não confere. Use o código mais recente.");
         }
 
+        await ExigirCodigo(usuario, () => CodigoDoEmail(usuario, codigo), "Código não confere. Use o código mais recente.");
         return await Ativar(usuario, porEmail: true, sessaoAtual);
     }
 
@@ -120,11 +117,12 @@ public sealed class GestorDeSegundoFator(BancoDeDados banco, UserManager<Usuario
     public async Task Desligar(Guid usuarioId, string? codigo)
     {
         var usuario = await Achar(usuarioId);
-        if (!usuario.TwoFactorEnabled || !(usuario.EmailConfirmed && await CodigoDoEmail(usuario, codigo) || await Confere(usuario, codigo)))
+        if (!usuario.TwoFactorEnabled)
         {
             throw new RegraDeNegocioException("Código não confere.");
         }
 
+        await ExigirCodigo(usuario, async () => usuario.EmailConfirmed && await CodigoDoEmail(usuario, codigo) || await Confere(usuario, codigo), "Código não confere.");
         await usuarios.SetTwoFactorEnabledAsync(usuario, false);
         await usuarios.ResetAuthenticatorKeyAsync(usuario);
         usuario.SegundoFatorPorEmail = false;
@@ -187,6 +185,26 @@ public sealed class GestorDeSegundoFator(BancoDeDados banco, UserManager<Usuario
         return usuario;
     }
 
+    /// <summary>
+    /// Código errado ao ligar ou desligar conta para o bloqueio de 5 erros, como na entrada: com uma sessão roubada,
+    /// não dá para tentar códigos até desligar o segundo fator. Bloqueado, nem o código certo passa.
+    /// </summary>
+    private async Task ExigirCodigo(Usuario usuario, Func<Task<bool>> confere, string recusa)
+    {
+        if (await usuarios.IsLockedOutAsync(usuario))
+        {
+            throw new RegraDeNegocioException("Muitos códigos errados. Espere 15 minutos.");
+        }
+
+        if (!await confere())
+        {
+            await usuarios.AccessFailedAsync(usuario);
+            throw new RegraDeNegocioException(recusa);
+        }
+
+        await usuarios.ResetAccessFailedCountAsync(usuario);
+    }
+
     private async Task<(LinkDeSenha Link, Usuario Usuario)> DesafioValido(string? desafio, CancellationToken ct)
     {
         var hash = Sessao.Hash(desafio ?? string.Empty);
@@ -241,7 +259,7 @@ public sealed class GestorDeSegundoFator(BancoDeDados banco, UserManager<Usuario
             Se não foi você, troque a senha agora e fale com o suporte.
 
             Trocar a senha: {plataforma.Value.UrlDoPainel.TrimEnd('/')}/esqueci
-            """);
+            """, destaques: [$"{plataforma.Value.UrlDoPainel.TrimEnd('/')}/esqueci"]);
     }
 
     private async Task MandarCodigo(Usuario usuario, string chave, CancellationToken ct)
@@ -256,7 +274,7 @@ public sealed class GestorDeSegundoFator(BancoDeDados banco, UserManager<Usuario
             Vale alguns minutos. A Avalia nunca pede este código por telefone ou mensagem: não passe a ninguém.
 
             Se não foi você, troque a senha.
-            """, sensivel: true);
+            """, sensivel: true, destaques: [codigo]);
         await banco.SaveChangesAsync(ct);
     }
 

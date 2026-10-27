@@ -1,7 +1,19 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Security.Claims;
+using AvaliaSales.Api.Autenticacao;
+using AvaliaSales.Domain.Acesso;
 using AvaliaSales.Domain.Financeiro;
+using AvaliaSales.Infrastructure.Banco;
+using AvaliaSales.Infrastructure.Identidade;
+using AvaliaSales.Infrastructure.Idempotencia;
 using AvaliaSales.Tests.Apoio;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using Npgsql;
 
 namespace AvaliaSales.Tests.Api;
@@ -205,5 +217,49 @@ public sealed class IdempotenciaTest(ApiDeTeste api)
         var resposta = await dono.PostAsJsonAsync("/repasses", new { vendedorId = vendedor, ate = "2020-01-01T10:00:00-03:00", comprovante = (string?)null }, Chamadas.Json, Ct);
 
         Assert.True((int)resposta.StatusCode < 500, $"Veio {(int)resposta.StatusCode}: {await resposta.Content.ReadAsStringAsync(Ct)}");
+    }
+
+    [Fact]
+    public async Task Cliente_que_cai_antes_de_receber_a_resposta_deixa_a_chave_concluida()
+    {
+        var email = await api.CriarOperadora();
+        using var escopo = api.Fabrica.Services.CreateScope();
+        var servicos = escopo.ServiceProvider;
+        var usuarioId = (await servicos.GetRequiredService<UserManager<Usuario>>().FindByEmailAsync(email))!.Id;
+        using var queda = new CancellationTokenSource();
+        // A identidade da operadora pela mesma leitura da API: a conexão grava app.operadora e o RLS da chave vale.
+        var identidade = new ClaimsIdentity([new Claim(Reivindicacoes.Usuario, usuarioId.ToString()), new Claim(Reivindicacoes.Papel, nameof(Papel.Operadora))], "teste");
+        var http = new DefaultHttpContext { RequestServices = servicos, RequestAborted = queda.Token, User = new ClaimsPrincipal(identidade) };
+        servicos.GetRequiredService<IHttpContextAccessor>().HttpContext = http;
+        var acesso = servicos.GetRequiredService<AcessoDaRequisicao>();
+        http.Request.Method = HttpMethods.Post;
+        http.Request.Path = "/financeiro/despesas";
+        http.Request.ContentType = "application/json";
+        http.Request.Body = new MemoryStream("{}"u8.ToArray());
+        http.Request.Headers[IdempotenciaDaRequisicao.Cabecalho] = "queda-de-conexao";
+        http.SetEndpoint(new Endpoint(null, EndpointMetadataCollection.Empty, "teste"));
+        http.Response.Body = new ConexaoFechada();
+        var rota = new IdempotenciaDaRequisicao(async c =>
+        {
+            c.Response.StatusCode = StatusCodes.Status201Created;
+            await c.Response.WriteAsync("{\"id\":1}", CancellationToken.None);
+            await queda.CancelAsync();
+        }, NullLogger<IdempotenciaDaRequisicao>.Instance);
+
+        await rota.InvokeAsync(http, acesso, acesso, servicos.GetRequiredService<ChavesDeIdempotencia>(),
+            servicos.GetRequiredService<IOptions<OpcoesJwt>>());
+
+        var chave = await servicos.GetRequiredService<BancoDeDados>().ChavesDeIdempotencia.AsNoTracking().SingleAsync(c => c.UsuarioId == usuarioId, Ct);
+        Assert.Equal(SituacaoDaChave.Concluida, chave.Situacao);
+    }
+
+    /// <summary>A resposta não chega: o cliente fechou a conexão.</summary>
+    private sealed class ConexaoFechada : MemoryStream
+    {
+        public override void Write(byte[] buffer, int offset, int count) => throw new IOException("Conexão fechada.");
+
+        public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) => throw new IOException("Conexão fechada.");
+
+        public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default) => throw new IOException("Conexão fechada.");
     }
 }

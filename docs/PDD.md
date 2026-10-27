@@ -185,7 +185,9 @@ maiúscula ("otica" acha "Ótica").
   novos ou já cadastrados, e quem já tem conta recebe o aviso por e-mail. O
   reenvio espera 1 minuto. Captcha (Cloudflare Turnstile, desligado até
   configurar as chaves), limite de cadastros por IP, por e-mail e por CNPJ e
-  teto diário de e-mails do cadastro. O dono criado antes desta regra, com o
+  teto diário de e-mails do cadastro. Nome ou empresa com endereço de site
+  (`://`, `www.`) ou caractere de controle é recusado, porque vai no e-mail
+  oficial. O dono criado antes desta regra, com o
   e-mail não confirmado, segue no fluxo anterior: painel só com a confirmação,
   código de 6 dígitos e reenvio depois de 1 minuto; cinco códigos errados
   encerram o envio.
@@ -195,7 +197,8 @@ maiúscula ("otica" acha "Ótica").
   sistema, horário e IP, e o link para trocar a senha. O primeiro aparelho
   entra sem aviso.
 - Ligar ou desligar o segundo fator gera um e-mail ao dono da conta, sem código
-  nem link de entrada, com o atalho para trocar a senha. O e-mail do código de
+  nem link de entrada, com o atalho para trocar a senha. Código errado ao
+  ligar ou desligar conta para o bloqueio de 5 erros, como na entrada. O e-mail do código de
   acesso lembra que a Avalia nunca pede o código por telefone ou mensagem.
 - Troca de senha logada, para todos os papéis - pede a senha atual, encerra
   os outros aparelhos e avisa por e-mail. Vale também com a conta encerrada.
@@ -229,8 +232,8 @@ maiúscula ("otica" acha "Ótica").
   com cobrança. Exige CNPJ ou CPF e e-mail do cliente, porque a cobrança sai
   deles no fim. Não há cobrança na hora. Dois dias antes do fim, o
   revendedor e o vendedor são avisados. No fim, sem pagamento, a placa sai do
-  ar e a venda mostra "teste vencido: receber ou devolver". Pago, a placa
-  volta ao ar e os 12 meses contam do pagamento.
+  ar e a venda mostra "teste vencido: receber ou devolver"; o botão de ligar
+  não a devolve. Pago, a placa volta ao ar e os 12 meses contam do pagamento.
 - Destino do QR - avaliação no Google (lugar buscado no Places ou link colado
   do Perfil da Empresa; o link colado vence a busca) ou link livre do cliente.
   Só http e https, com domínio, até 1.000 caracteres, e nunca o endereço de
@@ -249,7 +252,9 @@ maiúscula ("otica" acha "Ótica").
 - Cliente - empresa, responsável e telefone obrigatórios. CNPJ ou CPF e
   e-mail são opcionais na venda, mas sem eles a cobrança não sai. Um cliente
   por documento ou telefone na revenda: o que já existe é achado e só ganha o
-  que faltava.
+  que faltava. O telefone só acha o cliente quando um dos dois não tem
+  documento: CNPJ ou CPF diferentes são clientes diferentes, mesmo com o
+  mesmo telefone.
 - Telefone - gravado sem o 55 do país e sem o 0 da operadora: "+55 34 9…" e
   "34 9…" são o mesmo cliente.
 - Venda do revendedor não tem comissão: a parte dele é o que sobra.
@@ -614,9 +619,11 @@ vendedor.
   serviço, a parte da Avalia. Renovação paga lança só a receita, sem
   comissão. Repasse lança a comissão paga. O mesmo pagamento nunca é lançado
   duas vezes.
-- Na venda em grupo, o razão lança cada venda pelo valor dela; a última do
-  grupo fica com o custo do parcelamento. A parte da Avalia é dividida só
-  entre as vendas de serviço, e a última delas fica com os centavos do rateio.
+- Na venda em grupo, o razão lança cada venda pelo valor dela; o acréscimo
+  do parcelamento é rateado pelo valor de cada venda, e a última fica com os
+  centavos que sobram. O estorno devolve a fatia que foi lançada. A parte da
+  Avalia é dividida só entre as vendas de serviço, e a última delas fica com
+  os centavos do rateio.
 - Competência no fuso de Brasília. O líquido do mês é receita menos parte da
   Avalia menos comissão; a tarifa do Pagar.me sai no extrato do Pagar.me.
 - Mês de antes de 27/10/2026 pode ter linha da taxa da plataforma, que saiu:
@@ -889,6 +896,7 @@ As mudanças de 21 a 24/10/2026 estão em [historico/pdd-ate-24-10.md](historico
 
 | Data | Mudança |
 | --- | --- |
+| 27/10/2026 | Travas de dinheiro, placa e cadastro - custo de lote ativado até um mês fechado da operadora só muda com o mês reaberto; o limite de 10 destinos por dia vale também para vendas ao mesmo tempo; placa fora do ar pelo teste vencido só volta com o pagamento, e não pelo botão de ligar (a que já tinha sido religada assim sai do ar na publicação); o telefone só acha o cliente quando um dos dois não tem CNPJ ou CPF (documentos diferentes são clientes diferentes), e a venda sem documento num telefone de várias empresas cria cliente novo; cadastro com endereço de site no nome é recusado; cinco códigos errados ao ligar ou desligar o segundo fator bloqueiam como na entrada; aviso do Pagar.me ou da D4Sign que falha volta a ser tentado por cerca de 4 horas, e a operadora recebe um e-mail quando ele sai da fila; o acréscimo do parcelamento de uma venda feita junto com outras é dividido pelo valor de cada uma, e o cancelamento de uma devolve a parte dela. |
 | 27/10/2026 | Tabela larga rola dentro do cartão em qualquer tela - a coluna de ações (Editar e "⋯") fica sempre à vista; o painel usa até 1280 px de largura com o menu lateral. |
 | 27/10/2026 | Texto alinhado ao código - ação principal da linha à vista e o resto no "⋯"; Início com o Financeiro do mês; entrada só com o logo do Pagar.me; só o revendedor renova (6.5 repetia a regra antiga); encerramento pedido em Configurações; Gotenberg sem a promessa de contêiner sem rede. |
 | 27/10/2026 | Placa em branco lida sem sessão aberta - depois de entrar, o vendedor volta para a Nova venda com o código da placa preenchido. |

@@ -43,7 +43,7 @@ public sealed class GestorDeAparelhos(BancoDeDados banco, FilaDeEmails emails, I
                 Se foi você, ignore este e-mail. Se não foi, troque a senha agora.
 
                 Trocar a senha: {plataforma.Value.UrlDoPainel.TrimEnd('/')}/esqueci
-                """);
+                """, destaques: [$"{plataforma.Value.UrlDoPainel.TrimEnd('/')}/esqueci"]);
         }
 
         await banco.SaveChangesAsync(ct);

@@ -169,10 +169,39 @@ public sealed class CancelamentoETesteTest(ApiDeTeste api)
         var lista = (await revenda.Dono.PegarItens("/vendas")).EnumerateArray().Single(v => v.GetProperty("id").GetGuid() == venda);
         Assert.NotEqual(JsonValueKind.Null, lista.GetProperty("testeExpiradoEm").ValueKind);
 
+        // Fora do ar pelo teste vencido, o botão de ligar não a devolve: só o pagamento.
+        var recusa = await revenda.Dono.Postar($"/placas/{codigo}/alternar", new { }, HttpStatusCode.UnprocessableEntity);
+        Assert.Contains("teste vencido", recusa.GetProperty("detail").GetString(), StringComparison.Ordinal);
+        Assert.Equal(1, await banco.Contar($"select count(*) from placas where codigo = '{codigo}' and situacao = 'Suspensa'"));
+
         // Pagou depois: a placa volta e os 12 meses contam do pagamento.
         await revenda.Dono.Postar($"/vendas/{venda}/recebimento", new { meio = "Dinheiro" }, HttpStatusCode.NoContent);
         Assert.Equal(1, await banco.Contar($"select count(*) from placas where codigo = '{codigo}' and situacao = 'Ativa' and vence_em > now() + interval '11 months 25 days'"));
         Assert.Equal(1, await banco.Contar($"select count(*) from vendas where id = '{venda}' and teste_convertido_em is not null"));
+        // Paga, ela volta a ser placa comum: suspender e ligar valem de novo.
+        await revenda.Dono.Postar($"/placas/{codigo}/alternar", new { });
+        await revenda.Dono.Postar($"/placas/{codigo}/alternar", new { });
+        Assert.Equal(1, await banco.Contar($"select count(*) from placas where codigo = '{codigo}' and situacao = 'Ativa' and not suspensa_por_teste"));
+    }
+
+    [Fact]
+    public async Task Teste_gratuito_pedido_ao_mesmo_tempo_para_o_mesmo_cliente_sai_uma_vez()
+    {
+        var revenda = await api.RevendaComEstoque("Revenda do Teste Concorrente");
+        // O cliente já existe (uma venda de serviço): as quatro vendas o acham, e só a trava separa os testes.
+        await revenda.Dono.Postar("/vendas", Cenarios.Servico(await Cenarios.ProdutoDoCatalogo(revenda.Dono, "cardapio-digital-profissional", 100_000L), "11977770061", documento: "11222333000181"), HttpStatusCode.Created);
+        using var largada = new ManualResetEventSlim(false);
+        var tarefas = Enumerable.Range(1, 4).Select(i => Task.Run(async () =>
+        {
+            largada.Wait(Ct);
+            return await revenda.Dono.PostAsJsonAsync("/vendas", Cenarios.Venda(revenda.Codigos[i], revenda.ProdutoId, "11977770061", testeGratuito: true), Ct);
+        }, Ct)).ToArray();
+        largada.Set();
+        var respostas = await Task.WhenAll(tarefas);
+
+        Assert.Single(respostas, r => r.StatusCode == HttpStatusCode.Created);
+        await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
+        Assert.Equal(1, await banco.Contar($"select count(*) from vendas where revendedor_id = '{revenda.Id}' and teste_ate is not null"));
     }
 
     [Fact]

@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Json;
 using AvaliaSales.Tests.Apoio;
 
 namespace AvaliaSales.Tests.Revendedores;
@@ -40,6 +41,31 @@ public sealed class LimiteDeDestinosTest(ApiDeTeste api)
         await revenda.Dono.Postar("/links", Link(12), HttpStatusCode.Created);
         await revenda.Dono.Postar("/links", Link(13), HttpStatusCode.Created);
         await revenda.Dono.Postar("/links", Link(14), HttpStatusCode.UnprocessableEntity);
+    }
+
+    [Fact]
+    public async Task Vendas_ao_mesmo_tempo_nao_passam_do_limite_do_dia()
+    {
+        var revenda = await api.RevendaComEstoque("Revenda do Limite Concorrente");
+        for (var n = 1; n <= 7; n++)
+        {
+            await revenda.Dono.Postar("/links", Link(300 + n), HttpStatusCode.Created);
+        }
+
+        // Sobram 3 cadastros; 6 vendas de placa saem juntas, cada uma conferindo o limite.
+        using var largada = new ManualResetEventSlim(false);
+        var ct = TestContext.Current.CancellationToken;
+        var tarefas = Enumerable.Range(0, 6).Select(i => Task.Run(async () =>
+        {
+            largada.Wait(ct);
+            return await revenda.Dono.PostAsJsonAsync("/vendas", Cenarios.Venda(revenda.Codigos[i], revenda.ProdutoId, $"1197777{1100 + i}", documento: null), ct);
+        }, ct)).ToArray();
+        largada.Set();
+        var respostas = await Task.WhenAll(tarefas);
+
+        Assert.Equal(3, respostas.Count(r => r.StatusCode == HttpStatusCode.Created));
+        Assert.Equal(3, respostas.Count(r => r.StatusCode == HttpStatusCode.UnprocessableEntity));
+        Assert.Equal(10, (await revenda.Dono.Pegar("/limite-de-destinos")).GetProperty("usados").GetInt32());
     }
 
     [Fact]

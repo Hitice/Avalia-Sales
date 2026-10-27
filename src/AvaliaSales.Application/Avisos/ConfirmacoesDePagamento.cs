@@ -23,7 +23,7 @@ public sealed class ConfirmacoesDePagamento(IBancoDeDados banco, FilaDeEmails em
                 A Avalia vai produzir e despachar o lote. Você recebe outro aviso com o número dele para ativar.
 
                 Acompanhar o pedido: {painel}/painel/pedidos
-                """);
+                """, destaques: [$"{painel}/painel/pedidos"]);
         }
     }
 
@@ -74,7 +74,7 @@ public sealed class ConfirmacoesDePagamento(IBancoDeDados banco, FilaDeEmails em
                 Total cobrado: {Financeiro.RecebimentosPorFora.Reais(cobranca.ValorCents)}
 
                 Ver as vendas: {painel}/painel/vendas
-                """);
+                """, destaques: [$"{painel}/painel/vendas"]);
         }
     }
 }

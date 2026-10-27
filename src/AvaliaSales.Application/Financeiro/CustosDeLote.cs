@@ -20,8 +20,9 @@ public sealed record NovoCustoDoLote(Guid LoteId, long GraficaCents, long Acrili
 
 /// <summary>
 /// O custo de produção por lote, com criar, editar e excluir. O custo por placa é o total dividido
-/// pela quantidade do lote. É cadastro da operadora, não lançamento: a tabela é fechada às revendas
-/// e a mudança vale para o resultado do grupo dos meses ainda não fechados (ADR 0025).
+/// pela quantidade do lote. É cadastro da operadora, não lançamento: a tabela é fechada às revendas.
+/// O resultado do grupo lê o custo vigente do lote do mês da ativação em diante, então o custo de lote
+/// ativado em mês fechado da operadora, ou antes de um, não muda até a reabertura (ADR 0025).
 /// </summary>
 public sealed class CustosDeLote(IBancoDeDados banco, Fornecedores fornecedores, TimeProvider relogio)
 {
@@ -68,6 +69,7 @@ public sealed class CustosDeLote(IBancoDeDados banco, Fornecedores fornecedores,
             throw new RegraDeNegocioException($"Lote {lote.Rotulo} já com custo. Edite o custo.");
         }
 
+        await ExigirSemMesFechado(lote, ct);
         var custo = new CustoDoLote(lote.Id, lote.Quantidade, pedido.GraficaCents, pedido.AcrilicoCents, relogio.GetUtcNow());
         await fornecedores.ExigirAtivo(pedido.FornecedorId, ct);
         custo.DefinirFornecedor(pedido.FornecedorId);
@@ -81,6 +83,7 @@ public sealed class CustosDeLote(IBancoDeDados banco, Fornecedores fornecedores,
         var lote = await AcharLote(loteId, ct);
         var custo = await banco.CustosDeLote.SingleOrDefaultAsync(c => c.LoteId == loteId, ct)
             ?? throw new RegraDeNegocioException($"Lote {lote.Rotulo} sem custo. Informe o custo.");
+        await ExigirSemMesFechado(lote, ct);
         custo.Alterar(lote.Quantidade, pedido.GraficaCents, pedido.AcrilicoCents, relogio.GetUtcNow());
         if (custo.FornecedorId != pedido.FornecedorId)
         {
@@ -96,8 +99,29 @@ public sealed class CustosDeLote(IBancoDeDados banco, Fornecedores fornecedores,
     {
         var custo = await banco.CustosDeLote.SingleOrDefaultAsync(c => c.LoteId == loteId, ct)
             ?? throw new RegraDeNegocioException("Custo não encontrado.");
+        await ExigirSemMesFechado(await AcharLote(loteId, ct), ct);
         banco.CustosDeLote.Remove(custo);
         await banco.SaveChangesAsync(ct);
+    }
+
+    /// <summary>
+    /// O custo do lote entra no mês da ativação (coluna da operadora) e no das placas vendidas ou perdidas, sempre
+    /// da ativação em diante: com um mês fechado nesse intervalo, mudar o custo mudaria um resultado fechado.
+    /// </summary>
+    private async Task ExigirSemMesFechado(Lote lote, CancellationToken ct)
+    {
+        if (lote.AtivadoEm is not { } ativadoEm)
+        {
+            return;
+        }
+
+        var desde = Lancamento.CompetenciaDe(ativadoEm);
+        var fechados = await banco.FechamentosDaOperadora.AsNoTracking().Where(f => f.ReabertoEm == null).Select(f => f.Competencia).ToListAsync(ct);
+        var fechado = fechados.Where(f => string.CompareOrdinal(f, desde) >= 0).Order(StringComparer.Ordinal).FirstOrDefault();
+        if (fechado is not null)
+        {
+            throw new RegraDeNegocioException($"Lote {lote.Rotulo} em mês fechado ({Fechamentos.Nome(fechado)}). Reabra o mês.");
+        }
     }
 
     private async Task<Lote> AcharLote(Guid loteId, CancellationToken ct)

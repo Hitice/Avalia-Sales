@@ -67,6 +67,10 @@ public sealed class Placa : IDoRevendedor
     public Guid? ConsignadaA { get; private set; }
 
     public string? Destino { get; private set; }
+
+    /// <summary>Fora do ar porque o teste gratuito venceu sem pagamento: só o pagamento devolve, e não o botão de ligar.</summary>
+    public bool SuspensaPorTeste { get; private set; }
+
     public Guid? VendaId { get; private set; }
     public DateTimeOffset? VendidaEm { get; private set; }
     public DateTimeOffset? VenceEm { get; private set; }
@@ -236,18 +240,23 @@ public sealed class Placa : IDoRevendedor
         }
 
         VenceEm = pagoEm.AddMonths(ValidadeMeses);
+        SuspensaPorTeste = false;
         if (voltarAoAr && Situacao == SituacaoDaPlaca.Suspensa)
         {
             Situacao = SituacaoDaPlaca.Ativa;
         }
     }
 
-    /// <summary>O teste venceu sem pagamento: a placa sai do ar até pagar ou voltar.</summary>
+    /// <summary>
+    /// O teste venceu sem pagamento: a placa sai do ar até pagar ou voltar. Já suspensa à mão, ela fica marcada também,
+    /// senão o botão de ligar a devolveria ao ar sem pagamento.
+    /// </summary>
     public void TirarDoArPorTeste()
     {
-        if (Situacao == SituacaoDaPlaca.Ativa)
+        if (Situacao is SituacaoDaPlaca.Ativa or SituacaoDaPlaca.Suspensa)
         {
             Situacao = SituacaoDaPlaca.Suspensa;
+            SuspensaPorTeste = true;
         }
     }
 
@@ -279,6 +288,7 @@ public sealed class Placa : IDoRevendedor
         }
 
         Situacao = SituacaoDaPlaca.EmEstoque;
+        SuspensaPorTeste = false;
         VendaId = null;
         VendidaEm = null;
         VenceEm = null;
@@ -312,6 +322,8 @@ public sealed class Placa : IDoRevendedor
         VenceEm = antiga.VenceEm;
         Destino = antiga.Destino;
         Situacao = antiga.Situacao == SituacaoDaPlaca.Suspensa ? SituacaoDaPlaca.Suspensa : SituacaoDaPlaca.Ativa;
+        SuspensaPorTeste = antiga.SuspensaPorTeste;
+        antiga.SuspensaPorTeste = false;
         ConsignadaA = null;
         // A antiga guarda a venda de onde saiu: a ficha conta a história, e a baixa dela não se desfaz.
         antiga.Situacao = SituacaoDaPlaca.Baixada;
@@ -359,9 +371,10 @@ public sealed class Placa : IDoRevendedor
     /// <summary>Volta ao lote em que foi impressa, quando veio de outro sistema num lote só.</summary>
     public void MoverParaOLote(Guid loteId) => LoteId = loteId;
 
-    /// <summary>Suspender não apaga nada: a placa volta exatamente como estava.</summary>
+    /// <summary>Suspender não apaga nada: a placa volta exatamente como estava. A suspensa pelo teste vencido só volta pelo pagamento.</summary>
     public void Alternar() => Situacao = Situacao switch
     {
+        SituacaoDaPlaca.Suspensa when SuspensaPorTeste => throw new RegraDeNegocioException($"Placa {Codigo} fora do ar pelo teste vencido. Receba o pagamento."),
         SituacaoDaPlaca.Ativa => SituacaoDaPlaca.Suspensa,
         SituacaoDaPlaca.Suspensa => SituacaoDaPlaca.Ativa,
         _ => throw new RegraDeNegocioException("Só placa vendida se liga e desliga."),

@@ -38,7 +38,7 @@ public sealed class GestorDeSenhas(BancoDeDados banco, UserManager<Usuario> usua
             Criar minha senha: {endereco}
 
             O link vale 24 horas.
-            """, revenda, sensivel: true);
+            """, revenda, sensivel: true, destaques: [endereco]);
         await banco.SaveChangesAsync(ct);
         return endereco;
     }
@@ -71,7 +71,7 @@ public sealed class GestorDeSenhas(BancoDeDados banco, UserManager<Usuario> usua
             Criar senha nova: {endereco}
 
             O link vale 1 hora. Se não foi você que pediu, ignore este e-mail.
-            """, sensivel: true);
+            """, sensivel: true, destaques: [endereco]);
         await banco.SaveChangesAsync(ct);
     }
 
@@ -107,7 +107,7 @@ public sealed class GestorDeSenhas(BancoDeDados banco, UserManager<Usuario> usua
             Confirmar e-mail: {endereco}
 
             Vale 2 dias. Se não foi você, ignore este e-mail.
-            """, sensivel: true);
+            """, sensivel: true, destaques: [endereco, codigo]);
         await banco.SaveChangesAsync(ct);
     }
 
@@ -139,7 +139,7 @@ public sealed class GestorDeSenhas(BancoDeDados banco, UserManager<Usuario> usua
 
             O link vale 2 dias e só funciona uma vez. Sem a confirmação, o cadastro é descartado.
             Se não foi você, ignore este e-mail.
-            """);
+            """, sensivel: true, destaques: [endereco]);
         await banco.SaveChangesAsync(ct);
     }
 
@@ -155,7 +155,7 @@ public sealed class GestorDeSenhas(BancoDeDados banco, UserManager<Usuario> usua
             Esqueci a senha: {painel}/esqueci
 
             Se não foi você, ignore este e-mail: nada foi alterado.
-            """);
+            """, destaques: [$"{painel}/entrar", $"{painel}/esqueci"]);
         await banco.SaveChangesAsync(ct);
     }
 
@@ -170,7 +170,7 @@ public sealed class GestorDeSenhas(BancoDeDados banco, UserManager<Usuario> usua
             Se você é o dono, entre ou recupere a senha: {painel}/entrar
 
             Se não foi você, ignore este e-mail: nada foi criado.
-            """);
+            """, destaques: [$"{painel}/entrar"]);
         await banco.SaveChangesAsync(ct);
     }
 
@@ -297,7 +297,7 @@ public sealed class GestorDeSenhas(BancoDeDados banco, UserManager<Usuario> usua
             A senha da sua conta na Avalia Sales foi alterada agora. Os outros aparelhos saíram da conta.
 
             Se não foi você, use "Esqueci a senha" em {plataforma.Value.UrlDoPainel}/esqueci e fale com o suporte.
-            """);
+            """, destaques: [$"{plataforma.Value.UrlDoPainel}/esqueci"]);
         await banco.SaveChangesAsync(ct);
         await transacao.CommitAsync(ct);
         return usuario;

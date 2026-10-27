@@ -586,6 +586,40 @@ public sealed class ResultadoDoGrupoTest(ApiDeTeste api)
     }
 
     [Fact]
+    public async Task Custo_de_lote_ativado_ate_um_mes_fechado_da_operadora_nao_muda_ate_reabrir()
+    {
+        var operadora = await Operadora();
+        await api.RevendaComEstoque("Revenda do Custo em Mês Fechado");
+        await api.RevendaComEstoque("Revenda do Custo em Mês Aberto");
+        var loteAntigo = (await operadora.PegarItens("/operadora/financeiro/custos-de-lote?pendentes=true&busca=Revenda%20do%20Custo%20em%20M%C3%AAs%20Fechado")).EnumerateArray().Single().GetProperty("loteId").GetGuid();
+        var loteRecente = (await operadora.PegarItens("/operadora/financeiro/custos-de-lote?pendentes=true&busca=Revenda%20do%20Custo%20em%20M%C3%AAs%20Aberto")).EnumerateArray().Single().GetProperty("loteId").GetGuid();
+        await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
+        await banco.Contar($"update lotes set ativado_em = '2019-07-15T12:00:00Z' where id = '{loteAntigo}' returning 1");
+        await operadora.Postar("/operadora/financeiro/custos-de-lote", new { loteId = loteAntigo, graficaCents = 6_000, acrilicoCents = 4_000 }, HttpStatusCode.Created);
+
+        // Agosto fechado: o lote ativado em julho tem placas que entram no resultado de agosto.
+        await operadora.Postar("/operadora/financeiro/fechamentos", new { competencia = "2019-08" }, HttpStatusCode.NoContent);
+        try
+        {
+            var recusa = await operadora.Colocar($"/operadora/financeiro/custos-de-lote/{loteAntigo}", new { graficaCents = 7_000, acrilicoCents = 4_000 }, HttpStatusCode.UnprocessableEntity);
+            Assert.Contains("08/2019", recusa.GetProperty("detail").GetString());
+            Assert.Equal(HttpStatusCode.UnprocessableEntity, (await operadora.DeleteAsync($"/operadora/financeiro/custos-de-lote/{loteAntigo}", Ct)).StatusCode);
+            Assert.Equal(10_000, await banco.Contar($"select grafica_cents + acrilico_cents from custos_de_lote where lote_id = '{loteAntigo}'"));
+
+            // O lote ativado depois do mês fechado não entra em resultado fechado e segue editável.
+            await operadora.Postar("/operadora/financeiro/custos-de-lote", new { loteId = loteRecente, graficaCents = 1_000, acrilicoCents = 1_000 }, HttpStatusCode.Created);
+            await operadora.Colocar($"/operadora/financeiro/custos-de-lote/{loteRecente}", new { graficaCents = 2_000, acrilicoCents = 1_000 });
+        }
+        finally
+        {
+            await operadora.Postar("/operadora/financeiro/fechamentos/2019-08/reabertura", new { motivo = "Fim do teste" }, HttpStatusCode.NoContent);
+        }
+
+        await operadora.Colocar($"/operadora/financeiro/custos-de-lote/{loteAntigo}", new { graficaCents = 7_000, acrilicoCents = 4_000 });
+        Assert.Equal(HttpStatusCode.NoContent, (await operadora.DeleteAsync($"/operadora/financeiro/custos-de-lote/{loteAntigo}", Ct)).StatusCode);
+    }
+
+    [Fact]
     public async Task Custo_real_da_placa_vendida_vai_ao_consolidado_junto_com_a_venda_e_nao_na_compra_da_revenda()
     {
         var operadora = await Operadora();

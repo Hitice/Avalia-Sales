@@ -86,7 +86,10 @@ public interface IBancoDeDados
     /// <summary>Trava de aplicação, até o fim da transação, pelos acertos da revenda: dois acertos juntos não passam do saldo devido.</summary>
     Task TravarAcertosDaRevenda(Guid revendedorId, CancellationToken ct);
 
-    /// <summary>Trava de aplicação, até o fim da transação, pelos links da revenda: "este destino já tem link" não vale para duas criações juntas.</summary>
+    /// <summary>
+    /// Trava de aplicação, até o fim da transação, pelos destinos da revenda (links e placas): "este destino já tem link"
+    /// e o limite diário de destinos não valem para duas gravações juntas. Reentrante na mesma transação.
+    /// </summary>
     Task TravarLinksDaRevenda(Guid revendedorId, CancellationToken ct);
 
     Task<Lote?> TravarLote(int numero, CancellationToken ct);

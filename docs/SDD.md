@@ -290,7 +290,7 @@ do `Up`.
 | `fechamentos` | Mês fechado: competência, fechado em e por, reaberto em e por, motivo | RLS; um em vigor por mês (índice único com `reaberto_em is null`) |
 | `contratos` | Tipo (`ContratoDoRevendedor`, `Distrato`), PDF, hash SHA-256, signatário, documento na D4Sign, etapa do envio, tentativas, situação, `conferido_em`, `reenviado_em` | RLS; `documento_na_assinatura` único |
 | `vinculos_externos` | Código no Pagar.me ou documento na D4Sign, e a revenda dona | Sem RLS; chave (origem, id_externo); só identificadores |
-| `eventos_externos` | Webhook cru, chave do vínculo, tentativas, último erro, processado em | Sem RLS; único (origem, id_externo) |
+| `eventos_externos` | Webhook cru, chave do vínculo, tentativas, próxima tentativa, último erro, processado em | Sem RLS; único (origem, id_externo) |
 | `emails` | Fila de e-mails com chave única, nome do remetente, resposta, cor da marca, tentativas, próxima tentativa e id no Resend; no e-mail `sensivel`, o assunto vira `(conteúdo protegido)` e o texto guarda assunto e texto cifrados (ver ADR 0024) | Sem RLS |
 | `envios_ao_erp` | Pedido pago a caminho do Protheus: cliente, CNPJ, quantidade, valor, situação, número no ERP, tentativas, erro | Sem RLS (fila da operadora); um por pedido |
 | `links` | Link curto da revenda: código, destino, título, cliente, ativo, cliques | RLS |
@@ -386,6 +386,9 @@ testes, sem validade jurídica.
 
 - Endereço e chave - `https://sandbox.d4sign.com.br/api/v1/` por padrão; a
   produção (`secure.d4sign.com.br`) só por configuração (`D4Sign__UrlBase`).
+  Em Production, a API e o Worker não sobem com a URL do sandbox sem
+  `D4Sign__SandboxEmProducao=true` (`ValidadorDasOpcoesD4Sign`): a variável
+  esquecida não leva a produção ao sandbox em silêncio.
   `tokenAPI` e `cryptKey` vão na URL, por isso a URL nunca entra em erro nem em
   log (`System.Net.Http.HttpClient` em Warning).
 - Envio em quatro passos - `uploadbinary` (PDF em base64 no cofre),
@@ -459,13 +462,22 @@ sales.avaliaone.com.br verificado (SPF, DKIM e DMARC) e as variáveis
   da plataforma responde para `Resend:ResponderPara`. Nome, resposta e cor da
   marca são copiados para a fila na hora (`nome_do_remetente`,
   `responder_para`, `cor_da_marca`).
-- O HTML (`ModeloDeEmail`) sai do texto escapado: a linha
-  `Rótulo: https://...` vira botão com esse rótulo, na cor da marca, com a
-  letra escolhida pelo contraste WCAG; a linha `Rótulo: 123456` mostra o
-  código em destaque. E-mail da plataforma leva o logo em PNG
-  (`web/public/marca/avaliasales-email.png`, pelo `Plataforma:UrlDoPainel`) e
-  a faixa no traço da marca. Quem escreve e-mail novo usa essas duas linhas,
-  sem HTML.
+- O HTML (`ModeloDeEmail`) sai do texto escapado e dos destaques que o
+  servidor marcou: quem enfileira passa em `destaques` os endereços e códigos
+  que ele montou, e `DestaquesDoEmail` guarda o hash deles numa marca no fim
+  do texto, depois de tudo o que veio do usuário (a última marca vale; vai
+  cifrada junto no e-mail sensível). A linha `Rótulo: https://...` com
+  endereço marcado vira botão com esse rótulo, na cor da marca, com a letra
+  escolhida pelo contraste WCAG; a linha `Rótulo: 123456` com código marcado
+  mostra o código em destaque; só endereço marcado é clicável. Texto do
+  usuário (nome do cadastro, mensagem de chamado) nunca vira botão nem link. E-mail da plataforma leva o logo em PNG
+  de 96 px (`web/public/marca/avaliasales-email.png`, pelo
+  `Plataforma:UrlDoPainel`) e a faixa de 3 px no traço da marca. Texto em
+  15/24 px, peso 400, cinza escuro; botão de 14 px. Rodapé fora do cartão -
+  "Mensagem automática da Avalia Sales." ou "Enviado por {revenda} pela
+  plataforma Avalia Sales." (a resposta vai ao dono), e o endereço da
+  plataforma. Quem escreve e-mail novo usa essas duas linhas, sem HTML, e não
+  põe id interno no texto (usa quantidade, revenda e o código do Pagar.me).
 - O e-mail entra na tabela `emails` na mesma transação do fato que o motiva,
   com chave única (por exemplo `pedido:{id}:operadora`). O Worker envia com a
   chave no cabeçalho `Idempotency-Key` (até 256 caracteres, vale 24 horas):
@@ -571,8 +583,12 @@ recusam subir com eles em outro ambiente.
 3. Abre um escopo já isolado na revenda, trava o evento com
    `for update skip locked` e aplica o efeito e a marca de processado na mesma
    transação. Dois Workers no mesmo evento: um aplica, o outro não acha linha.
-4. A falha soma tentativa e guarda o erro; depois de 10 tentativas o evento
-   fica parado. Evento de pedido ou documento que não é da plataforma é
+4. A falha soma tentativa, guarda o erro e adia a próxima em
+   `proxima_tentativa_em` (30 s, dobrando, até 2 horas: as 10 tentativas
+   cobrem cerca de 4 horas). Na décima o evento sai da fila e a operadora
+   recebe um e-mail (chave `evento-desistido:<id>`, na mesma transação); a
+   conferência das cobranças e dos contratos nas Retomadas aplica o que a
+   fonte disser. Evento de pedido ou documento que não é da plataforma é
    encerrado com nota.
 
 ### Retomadas
@@ -889,6 +905,8 @@ As mudanças de 21 a 24/10/2026 estão em [historico/sdd-ate-24-10.md](historico
 
 | Data | Mudança |
 | --- | --- |
+| 27/10/2026 | Travas de dinheiro, concorrência e e-mail - `CustosDeLote` recusa criar, editar e excluir custo de lote ativado até um mês fechado da operadora; o limite diário de destinos é conferido sob a trava dos destinos da revenda (`TravarLinksDaRevenda`, reentrante), dentro da transação da venda e da troca de destino, o que também põe em fila o "um teste por cliente"; `Placa.SuspensaPorTeste` (migration `SuspensaoPorTesteEEsperaDosEventos`, com a marca das placas fora do ar pelo teste e a volta para fora do ar das religadas pelo botão) e `Alternar` recusa a placa assim; `eventos_externos.proxima_tentativa_em` com espera exponencial e e-mail à operadora na desistência; acréscimo do parcelamento rateado pelo valor de cada venda do grupo (só pagamento novo; o estorno usa o que foi lançado); o telefone só acha cliente quando um dos dois não tem documento, e sem documento na venda vale o cadastro sem documento ou o único documento do telefone; `IdempotenciaDaRequisicao` grava a chave mesmo com o cliente desconectado, e a cobrança depois do commit da venda não usa o cancelamento da requisição; e-mail de cobrança paga depois de cancelada com a origem, a revenda e o pedido no Pagar.me; `DestaquesDoEmail` (botão, código e link só do que o servidor marcou) e o cadastro público recusa nome com endereço de site; link de cadastro cifrado na fila (`sensivel`); ligar e desligar o segundo fator contam erro para o bloqueio; Worker - tempo esgotado do HttpClient é falha da rotina (filtro pela parada pedida), o conversor de PDF devolve `IntegracaoException`, e-mails antes das retomadas; auditoria da operadora grava sem o cancelamento da requisição e loga a falha; `ValidadorDasOpcoesD4Sign`. Front - chave de idempotência por tentativa de cobrança na Nova venda (`balcao/tentativa.ts`), `Protegida` renova o token vencido pelo cookie, marca e logo não somem quando o painel da marca fecha, câmera desligada quando o leitor falha, Sentry sem consulta nas URLs, Início e gráfico de 30 dias no dia de Brasília; a ficha da placa conta a janela de leituras do dia de Brasília. |
+| 27/10/2026 | Modelo de e-mail mais leve - texto 15 px peso 400, logo de 96 px, faixa de 3 px, cartão com borda, rodapé com a origem e o endereço da plataforma. E-mails da operadora sobre pedido estornado ou pago de novo sem o id interno e sem a situação crua: trazem quantidade, revenda e o pedido no Pagar.me. |
 | 27/10/2026 | Job `semgrep` no CI (regras abertas p/default, csharp, typescript, react, github-actions e dockerfile; falha em severidade ERROR, `.semgrepignore` para o que não é código de produção, `nosemgrep` com motivo nos falsos positivos conferidos). Ações do GitHub fixadas por commit (checkout v7.0.1, setup-dotnet v6.0.0, setup-node v7.1.0, upload-artifact v7.0.2). |
 | 27/10/2026 | Revisão antes do push - cobrança cancelada que o Pagar.me confirma paga avisa a operadora para devolver (`EfeitosDaCobranca.PagaDepoisDeCancelada`, chave `cobranca:<id>:paga-depois-de-cancelada`); distrato assinado sem receptora não derruba a rodada das `Retomadas` (marca a conferência e segue); o Início fecha pela receita reconhecida, com perdas; destino antigo que não normaliza continua redirecionando (a recusa vale no cadastro); `destinoDaVolta` valida pelo parser de URL e recusa caractere de controle. Fica para depois - o aviso sem vínculo usa a chave do evento (order.paid e charge.paid do mesmo pagamento geram dois e-mails) e o `error_log` do Nginx ainda grava a URL do webhook em erro de upstream. |
 | 27/10/2026 | Revisão de segurança e dinheiro - ligar o segundo fator encerra as outras sessões do login, mantida a de quem ligou; ligar, desligar e o desligamento pelo suporte (`--desligar-segundo-fator`, com o motivo) vão à auditoria da revenda ou à trilha da operadora; destino bloqueado com host normalizado (IDN, minúsculas, sem `www.` nem ponto final), host que não normaliza recusado no cadastro e bloqueado na leitura; excluir acerto, trocar a renovação e marcar o grupo pedem o segundo fator; registrar acerto trava a revenda (`pg_advisory_xact_lock`); o distrato calcula o devido por fora pelo razão (parte da Avalia das cobranças por fora, com estornos); revenda suspensa não vira receptora, receptora suspensa não conta e a receptora não é suspensa; tipo da linha do livro sem depender da descrição (só a taxa antiga da plataforma é `TaxaDaPlataforma`); leitura do grupo em sessão somente leitura (`default_transaction_read_only`); pagamento do Pagar.me sem vínculo avisa a operadora por e-mail; hub de avisos cai quando o token vence (`CloseOnAuthenticationExpiration`); `Idempotency-key` com o código da cobrança no POST de pedido e de link do Pagar.me; Nginx sem log de acesso em `/webhooks/`. |

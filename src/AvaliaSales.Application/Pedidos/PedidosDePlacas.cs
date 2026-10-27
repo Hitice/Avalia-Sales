@@ -126,7 +126,7 @@ public sealed class PedidosDePlacas(
             Registre o pagamento e despache um lote de {pedido.Quantidade} placas.
 
             Abrir pedidos: {site.UrlDoPainel.TrimEnd('/')}/operadora/pedidos
-            """);
+            """, destaques: [$"{site.UrlDoPainel.TrimEnd('/')}/operadora/pedidos"]);
         await banco.SaveChangesAsync(ct);
         await transacao.CommitAsync(ct);
         return (await Dtos([pedido], ct))[0];
@@ -217,12 +217,21 @@ public sealed class PedidosDePlacas(
                 """);
         }
 
+        var paga = await banco.Cobrancas.AsNoTracking()
+            .Where(c => c.Origem == Domain.Pagamentos.OrigemDaCobranca.PedidoDePlacas && c.OrigemId == id && c.Situacao == Domain.Pagamentos.SituacaoDaCobranca.Paga)
+            .OrderByDescending(c => c.PagaEm).FirstOrDefaultAsync(ct);
+        var comoDevolver = paga switch
+        {
+            { PedidoNoGateway: { } noGateway } => $"Estorne o pedido {noGateway} no painel do Pagar.me.",
+            { PorFora: true } => "Foi pago por fora: devolva pelo mesmo meio.",
+            _ => "Estorne no painel do Pagar.me ou devolva por fora, conforme foi pago.",
+        };
         var site = plataforma.Value;
         avisos.Enfileirar($"pedido:{pedido.Id:N}:estornado:operadora", site.EmailDaOperadora, $"Devolver pagamento - pedido de {pedido.Quantidade} placas - {revendedor}",
             $"""
-            O pedido {pedido.Id} de {revendedor} foi estornado: devolva {Reais(valor)}.{porque}
+            O pedido de {pedido.Quantidade} placas de {revendedor} foi estornado. Devolva {Reais(valor)}.{porque}
 
-            Pago pelo Pagar.me: estorne a cobrança no painel do Pagar.me. Pago por fora: devolva por fora.
+            {comoDevolver}
             Se o pedido já foi ao Protheus, cancele o pedido de venda lá.
             """);
         await banco.SaveChangesAsync(ct);
@@ -318,7 +327,7 @@ public sealed class PedidosDePlacas(
                 {corpo}
 
                 Ativar o lote: {plataforma.Value.UrlDoPainel.TrimEnd('/')}/painel/estoque
-                """);
+                """, destaques: [$"{plataforma.Value.UrlDoPainel.TrimEnd('/')}/painel/estoque"]);
         }
 
         await banco.SaveChangesAsync(ct);

@@ -42,5 +42,6 @@ A terceira.
 - Cada leitura e cada clique ganham uma consulta à lista (tabela pequena, índice
   único); se o volume crescer, a lista vai para memória com validade curta.
 - O limite conta por auditoria, então a contagem acompanha o relógio de Brasília e
-  não precisa de rotina para zerar. Duas requisições simultâneas podem passar do
-  limite por uma ou duas unidades: é freio, e não garantia.
+  não precisa de rotina para zerar. Desde 27/10/2026 a conferência roda dentro da transação que grava o destino, sob a trava
+  de aplicação dos destinos da revenda (a mesma dos links): gravações simultâneas contam uma depois
+  da outra, e o limite é garantia.

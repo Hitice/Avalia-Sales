@@ -193,7 +193,7 @@ public sealed class Revendedores(IBancoDeDados banco, IRevendedorAtual atual, IU
                 {texto}
 
                 Entrar: {plataforma.Value.UrlDoPainel.TrimEnd('/')}/entrar
-                """);
+                """, destaques: [$"{plataforma.Value.UrlDoPainel.TrimEnd('/')}/entrar"]);
         }
     }
 

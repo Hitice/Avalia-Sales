@@ -5,8 +5,10 @@ using AvaliaSales.Infrastructure.Manutencao;
 namespace AvaliaSales.Worker;
 
 /// <summary>
-/// A cada volta: processa a caixa de entrada dos webhooks, retoma o que
-/// ficou pela metade, envia os e-mails da fila e leva os pedidos pagos ao ERP.
+/// A cada volta: processa a caixa de entrada dos webhooks, envia os e-mails da
+/// fila, retoma o que ficou pela metade e leva os pedidos pagos ao ERP. Os
+/// e-mails vêm antes das retomadas porque o código do segundo fator e o link de
+/// senha não podem esperar o PDF de um contrato (até 60 s por documento).
 /// De tempos em tempos, apaga o que venceu (chaves de idempotência, sessões,
 /// links de senha, e-mails antigos).
 /// Cada rotina roda no próprio escopo e no próprio try: uma que falha (o ERP
@@ -38,8 +40,8 @@ public sealed partial class Rotinas(IServiceScopeFactory escopos, ILogger<Rotina
         do
         {
             var eventos = await Rodar("eventos", (sp, ct) => sp.GetRequiredService<ProcessadorDeEventos>().ProcessarPendentes(EventosPorVolta, ct), stoppingToken);
-            var retomados = await Rodar("retomadas", (sp, ct) => sp.GetRequiredService<Retomadas>().Executar(ContratosPorVolta, ct), stoppingToken);
             var emails = await Rodar("e-mails", (sp, ct) => sp.GetRequiredService<EnvioDeEmails>().Executar(EmailsPorVolta, ct), stoppingToken);
+            var retomados = await Rodar("retomadas", (sp, ct) => sp.GetRequiredService<Retomadas>().Executar(ContratosPorVolta, ct), stoppingToken);
             var erp = await Rodar("ERP", (sp, ct) => sp.GetRequiredService<EnvioAoErpRotina>().Executar(EmailsPorVolta, ct), stoppingToken);
             var limpos = await Limpar(stoppingToken);
             if (eventos + retomados + emails + erp + limpos > 0)
@@ -93,14 +95,18 @@ public sealed partial class Rotinas(IServiceScopeFactory escopos, ILogger<Rotina
         });
     }
 
-    private async Task<int> Rodar(string rotina, Func<IServiceProvider, CancellationToken, Task<int>> fazer, CancellationToken ct)
+    /// <summary>
+    /// Só a parada do Worker interrompe a volta. O tempo esgotado de um HttpClient chega como
+    /// <see cref="TaskCanceledException"/> sem a parada pedida: vira falha da rotina, e não do host.
+    /// </summary>
+    public async Task<int> Rodar(string rotina, Func<IServiceProvider, CancellationToken, Task<int>> fazer, CancellationToken ct)
     {
         try
         {
             using var escopo = escopos.CreateScope();
             return await fazer(escopo.ServiceProvider, ct);
         }
-        catch (Exception erro) when (erro is not OperationCanceledException)
+        catch (Exception erro) when (!ct.IsCancellationRequested)
         {
             LogFalha(log, rotina, erro);
             return 0;

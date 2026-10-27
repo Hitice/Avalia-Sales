@@ -36,7 +36,8 @@ public sealed partial class EnvioDeEmails(BancoDeDados banco, IEnvioDeEmail envi
             {
                 var remetente = email.NomeDoRemetente is { } nome ? new RemetenteDoEmail(nome, email.ResponderPara, email.CorDaMarca) : null;
                 var (assunto, texto) = email.Sensivel && cifra.EstaCifrado(email.Texto) ? cifra.Abrir(email.Chave, email.Texto) : (email.Assunto, email.Texto);
-                email.MarcarEnviado(await envio.Enviar(new MensagemDeEmail(email.Chave, email.Para, assunto, texto, remetente), ct), relogio.GetUtcNow());
+                var (limpo, destaques) = DestaquesDoEmail.Separar(texto);
+                email.MarcarEnviado(await envio.Enviar(new MensagemDeEmail(email.Chave, email.Para, assunto, limpo, remetente, destaques), ct), relogio.GetUtcNow());
                 enviados++;
             }
             catch (CifraDeEmailInvalidaException)

@@ -38,14 +38,23 @@ public sealed class EfeitosDaCobranca(IBancoDeDados banco, FilaDeEmails avisos, 
     }
 
     /// <summary>A cobrança cancelada que o Pagar.me diz paga: aviso único à operadora para devolver o dinheiro.</summary>
-    public void PagaDepoisDeCancelada(Cobranca cobranca, string pedidoNoGateway) =>
+    public async Task PagaDepoisDeCancelada(Cobranca cobranca, string pedidoNoGateway, CancellationToken ct)
+    {
+        var revendedor = await banco.Revendedores.Where(r => r.Id == cobranca.RevendedorId).Select(r => r.Nome).SingleAsync(ct);
+        var origem = cobranca.Origem switch
+        {
+            OrigemDaCobranca.PedidoDePlacas => "pedido de placas",
+            OrigemDaCobranca.Renovacao => "renovação",
+            _ => "venda",
+        };
         avisos.Enfileirar($"cobranca:{cobranca.Id:N}:paga-depois-de-cancelada", plataforma.Value.EmailDaOperadora,
-            "Pagamento a devolver - cobrança cancelada",
+            $"Pagamento a devolver - cobrança cancelada - {revendedor}",
             $"""
-            A cobrança {cobranca.Codigo} ({cobranca.Origem}, {Financeiro.RecebimentosPorFora.Reais(cobranca.ValorCents)}) estava cancelada e foi paga no Pagar.me (pedido {pedidoNoGateway}).
+            A cobrança de {origem} de {revendedor}, {Financeiro.RecebimentosPorFora.Reais(cobranca.ValorCents)}, estava cancelada e foi paga no Pagar.me.
 
-            Estorne pelo painel do Pagar.me ou fale com a revenda.
+            Estorne o pedido {pedidoNoGateway} no painel do Pagar.me ou fale com a revenda.
             """);
+    }
 
     private async Task PedidoPago(Cobranca cobranca, DateTimeOffset agora, CancellationToken ct)
     {
@@ -58,9 +67,11 @@ public sealed class EfeitosDaCobranca(IBancoDeDados banco, FilaDeEmails avisos, 
         if (pedido.Situacao != SituacaoDoPedido.AguardandoPagamento)
         {
             // Pago por fora antes, ou cancelado: o dinheiro entrou duas vezes ou sem pedido, e a operadora devolve.
+            var dono = await banco.Revendedores.Where(r => r.Id == pedido.RevendedorId).Select(r => r.Nome).SingleAsync(ct);
+            var situacao = pedido.Situacao == SituacaoDoPedido.Cancelado ? "cancelado" : "já pago";
             avisos.Enfileirar($"pedido:{pedido.Id:N}:pago-de-novo:{cobranca.Id:N}", plataforma.Value.EmailDaOperadora,
-                $"Pagamento a devolver - pedido de {pedido.Quantidade} placas",
-                $"O pedido {pedido.Id} está {pedido.Situacao} e recebeu o pagamento {cobranca.PedidoNoGateway} pelo Pagar.me. Estorne pelo painel do Pagar.me.");
+                $"Pagamento a devolver - pedido de {pedido.Quantidade} placas - {dono}",
+                $"O pedido de {pedido.Quantidade} placas de {dono} estava {situacao} e recebeu outro pagamento pelo Pagar.me. Estorne o pedido {cobranca.PedidoNoGateway} no painel do Pagar.me.");
             return;
         }
 
@@ -76,7 +87,7 @@ public sealed class EfeitosDaCobranca(IBancoDeDados banco, FilaDeEmails avisos, 
             Despache um lote de {pedido.Quantidade} placas.
 
             Abrir pedidos: {site.UrlDoPainel.TrimEnd('/')}/operadora/pedidos
-            """);
+            """, destaques: [$"{site.UrlDoPainel.TrimEnd('/')}/operadora/pedidos"]);
         notificacoes.ParaOperadora(pedido.RevendedorId, "Pedido pago", $"{revendedor} pagou {pedido.Quantidade} placas.", "/operadora/pedidos");
         notificacoes.ParaDono(pedido.RevendedorId, "Pedido pago", $"Recebemos o pagamento das {pedido.Quantidade} placas.", "/painel/pedidos");
         await confirmacoes.PedidoPago(pedido, ct);
@@ -86,7 +97,9 @@ public sealed class EfeitosDaCobranca(IBancoDeDados banco, FilaDeEmails avisos, 
     /// Receita bruta, parte da Avalia nos serviços retida no split e a comissão
     /// que passa a ser devida, de cada venda que a cobrança paga: a sozinha, ou
     /// as do grupo (as que seguem de pé). No grupo, cada venda recebe o valor
-    /// dela, e a última fica com o que sobra (o custo do parcelamento). A parte
+    /// dela mais a fatia do acréscimo do parcelamento proporcional a esse valor,
+    /// e a última fica com os centavos do rateio: o estorno de uma venda do grupo
+    /// devolve a parte dela do acréscimo, e não a de todas. A parte
     /// da Avalia é rateada só entre as vendas de serviço, pela parte de cada
     /// uma, e a última delas fica com os centavos do rateio: a venda de placa
     /// não manda nada à Avalia.
@@ -98,12 +111,15 @@ public sealed class EfeitosDaCobranca(IBancoDeDados banco, FilaDeEmails avisos, 
             .Where(v => v.GrupoId is null || v.Situacao == SituacaoDaVenda.Registrada)
             .OrderBy(v => v.VendidaEm).ThenBy(v => v.Id).ToList();
         var somaDasPartes = vendas.Sum(v => v.ParteDaAvaliaCents);
+        var somaDosValores = vendas.Sum(v => v.ValorCents);
+        var acrescimo = cobranca.ValorCents - somaDosValores;
         var ultimaComParte = vendas.FindLastIndex(v => v.ParteDaAvaliaCents > 0);
         var (receitaQueSobra, parteQueSobra) = (cobranca.ValorCents, cobranca.ParteDaAvaliaCents);
         for (var i = 0; i < vendas.Count; i++)
         {
             var venda = vendas[i];
-            var receita = i == vendas.Count - 1 ? receitaQueSobra : venda.ValorCents;
+            var receita = i == vendas.Count - 1 ? receitaQueSobra
+                : venda.ValorCents + (somaDosValores > 0 ? checked(acrescimo * venda.ValorCents) / somaDosValores : 0);
             var parte = i == ultimaComParte ? parteQueSobra
                 : venda.ParteDaAvaliaCents > 0 ? cobranca.ParteDaAvaliaCents * venda.ParteDaAvaliaCents / somaDasPartes : 0;
             (receitaQueSobra, parteQueSobra) = (receitaQueSobra - receita, parteQueSobra - parte);
