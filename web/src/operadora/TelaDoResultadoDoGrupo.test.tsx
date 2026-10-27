@@ -16,14 +16,14 @@ const resultado: ResultadoDoGrupo = {
   revendasDoGrupo: 1,
   linhas: [
     linha('receita-das-vendas', 'Receita das vendas ao cliente final', 'Receita', 124_900, 0, 0),
-    linha('taxa-da-plataforma', 'Taxa da plataforma', 'Receita', 0, 59_600, -29_800),
+    linha('parte-da-avalia', 'Parte da Avalia nos serviços', 'Receita', 0, 59_600, -29_800),
     linha('total-da-receita', 'Receita', 'Total', 124_900, 59_600, -29_800),
-    linha('taxa-da-plataforma-paga', 'Taxa da plataforma paga pela revenda', 'Custo', 29_800, 0, -29_800),
+    linha('parte-da-avalia-paga', 'Parte da Avalia paga pela revenda', 'Custo', 29_800, 0, -29_800),
     linha('total-dos-custos', 'Custos e despesas', 'Total', 29_800, 0, -29_800),
     linha('resultado', 'Resultado', 'Resultado', 95_100, 59_600, 0),
   ],
   conciliacao: [
-    { chave: 'taxa-da-plataforma', rotulo: 'Taxa da plataforma: paga pela revenda do grupo e recebida pela operadora', naRevendaCents: 29_800, naOperadoraCents: 29_800, diferencaCents: 0 },
+    { chave: 'parte-da-avalia', rotulo: 'Parte da Avalia: paga pela revenda do grupo e recebida pela operadora', naRevendaCents: 29_800, naOperadoraCents: 29_800, diferencaCents: 0 },
   ],
   diferencaDaConciliacaoCents: 0,
   aindaNaoReconhecido: { totalCents: 1_500_000, pedidos: 2, daRevendaDoGrupoCents: 500_000 },
@@ -54,9 +54,9 @@ describe('TelaDoResultadoDoGrupo', () => {
       expect(screen.getAllByText(coluna).length).toBeGreaterThan(0)
     }
 
-    const linhaDaTaxa = screen.getByText('Taxa da plataforma').closest('tr')!
-    expect(within(linhaDaTaxa).getByText(/596,00/)).toBeInTheDocument()
-    expect(within(linhaDaTaxa).getByText(/-R\$\s?298,00/)).toBeInTheDocument()
+    const linhaDaParte = screen.getByText('Parte da Avalia nos serviços').closest('tr')!
+    expect(within(linhaDaParte).getByText(/596,00/)).toBeInTheDocument()
+    expect(within(linhaDaParte).getByText(/-R\$\s?298,00/)).toBeInTheDocument()
     expect(screen.getByText('Fecha em zero')).toBeInTheDocument()
     expect(screen.getByText(/2 pedidos pagos esperando ativação: R\$\s?15\.000,00/)).toBeInTheDocument()
     expect(screen.getByText(/1 lote despachado sem custo informado/)).toBeInTheDocument()
@@ -74,7 +74,7 @@ describe('TelaDoResultadoDoGrupo', () => {
       : new Response(JSON.stringify({ title: 'Falhou', detail: 'Não foi possível ler o resultado.' }), { status: 500 }))
 
     await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument())
-    expect(screen.queryByText('Resultado do mês')).not.toBeInTheDocument()
+    expect(screen.queryByText('Demonstrativo')).not.toBeInTheDocument()
   })
 
   it('mostra o estado de carregamento antes da resposta', () => {

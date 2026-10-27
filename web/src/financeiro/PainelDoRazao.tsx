@@ -15,16 +15,16 @@ const nomeDoMes = (competencia: string) => {
   return new Date(ano, mes - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
 }
 
-/** A aba Lançamentos do Financeiro, o razão do mês: receita, taxa da plataforma, comissão e o líquido. Estorno é linha nova, nunca apagada. */
+/** A aba Lançamentos do Financeiro, o razão do mês: receita, parte da Avalia nos serviços, comissão e o líquido. Estorno é linha nova, nunca apagada. */
 export function PainelDoRazao() {
   const meses = useMesesDoRazao()
   const [competencia, setCompetencia] = useState<string | undefined>()
   const razao = useRazao(competencia)
   const r = razao.bruto
-  // Sem taxa nem serviço da Avalia no mês, o cartão dela não aparece.
+  // Sem serviço da Avalia no mês, o cartão dela não aparece.
   const totais = r ? [
     { rotulo: 'Receita', valor: r.receitaCents },
-    ...(r.taxaAvaliaCents ? [{ rotulo: 'Parte da Avalia', valor: -r.taxaAvaliaCents }] : []),
+    ...(r.parteDaAvaliaCents ? [{ rotulo: 'Parte da Avalia', valor: -r.parteDaAvaliaCents }] : []),
     { rotulo: 'Comissão', valor: -r.comissaoCents },
     { rotulo: 'Líquido', valor: r.liquidoCents },
   ] : []

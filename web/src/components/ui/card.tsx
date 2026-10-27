@@ -61,12 +61,17 @@ function CardDescription({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
+/**
+ * A ação no cabeçalho do cartão (link "Ver todas", botão Editar): sempre um
+ * botão `size="sm"`, centrado na linha do título e com margem negativa para o
+ * cabeçalho continuar com 20 px, igual ao dos cartões vizinhos.
+ */
 function CardAction({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card-action"
       className={cn(
-        "col-start-2 row-span-2 row-start-1 self-start justify-self-end",
+        "col-start-2 row-span-2 row-start-1 self-center justify-self-end has-data-[slot=button]:-my-2.5 md:has-data-[slot=button]:-my-1.5",
         className
       )}
       {...props}

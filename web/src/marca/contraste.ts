@@ -24,8 +24,8 @@ export const textoSobre = (cor: string) => (razao(cor, BRANCO) >= razao(cor, ESC
 /** O que a API exige: texto legível na primária (4,5:1) e destaque visível no branco (3:1). */
 export function problemasDaMarca(primaria: string, destaque: string): string[] {
   const problemas: string[] = []
-  if (!corValida(primaria) || !corValida(destaque)) return ['Use a cor em hexadecimal, como #120C2B.']
-  if (razao(primaria, textoSobre(primaria)) < 4.5) problemas.push('A cor primária não dá contraste com texto.')
-  if (razao(destaque, BRANCO) < 3) problemas.push('A cor de destaque some no fundo branco.')
+  if (!corValida(primaria) || !corValida(destaque)) return ['Cor inválida. Use hexadecimal, como #120C2B.']
+  if (razao(primaria, textoSobre(primaria)) < 4.5) problemas.push('Cor primária sem contraste com o texto. Escolha uma mais escura ou mais clara.')
+  if (razao(destaque, BRANCO) < 3) problemas.push('Cor de destaque sem contraste no fundo branco. Escolha outra.')
   return problemas
 }

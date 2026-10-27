@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { chamarApi, chamarResposta, enviarJson } from '@/api/cliente'
-import type { CategoriaDoLote, Cupom, EnvioAoErp, Lote, Pacote, Pagina, PaginaDeLotes, Pedido, Revendedor } from '@/api/tipos'
+import type { CategoriaDoLote, Cupom, EnvioAoErp, IntegracaoDoErp, Lote, Pacote, Pagina, PaginaDeLotes, Pedido, Revendedor } from '@/api/tipos'
 import { useListaPaginada } from '@/lib/paginacao'
 
 const chaves = {
@@ -43,6 +43,8 @@ export const useSuspensao = () => useGravar(({ id, suspender, motivo }: { id: st
   chamarApi(`/operadora/revendedores/${id}/suspensao`, suspender ? enviarJson('POST', { motivo: motivo ?? null }) : { method: 'DELETE' }))
 /** A marca de revenda do grupo da operadora: decisão explícita dela, que libera a leitura do DRE da revenda no resultado do grupo. */
 export const useDefinirGrupo = () => useGravar(({ id, doGrupo }: { id: string; doGrupo: boolean }) => chamarApi(`/operadora/revendedores/${id}/grupo`, enviarJson('PUT', { doGrupo })))
+/** A revenda que recebe os clientes de quem encerra; marcar uma tira a marca da anterior. */
+export const useDefinirReceptora = () => useGravar(({ id, receptora }: { id: string; receptora: boolean }) => chamarApi(`/operadora/revendedores/${id}/receptora`, enviarJson('PUT', { receptora })))
 export const useContratoAssinado = () => useGravar((id: string) => chamarApi(`/operadora/revendedores/${id}/contrato-assinado`, enviarJson('POST', {})))
 
 /** Aprova ou recusa a reabertura da revenda encerrada pelo distrato. */
@@ -70,5 +72,7 @@ export const useAlterarCupom = () => useGravar(({ id, ...c }: GravarCupom & { id
 export const useAtivarCupom = () => useGravar(({ id, ativo }: { id: string; ativo: boolean }) => chamarApi(`/operadora/cupons/${id}/ativo`, enviarJson('PUT', { ativo })))
 export const useExcluirCupom = () => useGravar((id: string) => chamarApi(`/operadora/cupons/${id}`, { method: 'DELETE' }))
 
+/** Desligada sem o endereço do Protheus: nenhum pedido pago entra na fila. */
+export const useIntegracaoDoErp = () => useQuery({ queryKey: ['operadora', 'erp', 'integracao'], queryFn: () => chamarApi<IntegracaoDoErp>('/operadora/erp/integracao') })
 export const useFilaDoErp = () => useListaPaginada<EnvioAoErp>(['operadora', 'erp'], '/operadora/erp')
 export const useReenviarAoErp = () => useGravar((pedidoId: string) => chamarApi(`/operadora/erp/${pedidoId}/reenvio`, enviarJson('POST', {})))

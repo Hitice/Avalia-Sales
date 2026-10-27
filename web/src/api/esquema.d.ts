@@ -2911,6 +2911,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/operadora/erp/integracao": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["IntegracaoDoErp"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/operadora/erp": {
         parameters: {
             query?: never;
@@ -3235,6 +3270,45 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": components["schemas"]["DefinirGrupo"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/operadora/revendedores/{id}/receptora": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["DefinirReceptora"];
                 };
             };
             responses: {
@@ -8088,7 +8162,7 @@ export interface components {
             /** Format: int64 */
             valorCents: number;
             /** Format: int64 */
-            taxaAvaliaCents: number;
+            parteDaAvaliaCents: number;
             pixCopiaECola: null | string;
             pixQrCodeUrl: null | string;
             /** Format: date-time */
@@ -8222,6 +8296,9 @@ export interface components {
         DefinirRecebedor: {
             recebedor: string;
         };
+        DefinirReceptora: {
+            receptora: boolean;
+        };
         DefinirRenovacao: {
             /** Format: int32 */
             renovacaoBps: number;
@@ -8315,7 +8392,8 @@ export interface components {
         /**
          * @description O resultado do mês. Vendido é o valor das vendas registradas no mês que
          *     seguem de pé; recebido é o caixa (pagamentos menos estornos); receita
-         *     reconhecida é a parte do mês. Taxa, comissão, custo, perda e despesa vêm
+         *     reconhecida é a parte do mês. Parte da Avalia nos serviços, comissão,
+         *     custo, perda e despesa vêm
          *     em positivo e saem da receita reconhecida; retirada de sócio fica abaixo
          *     do resultado, porque não é despesa.
          */
@@ -8335,7 +8413,7 @@ export interface components {
             /** Format: int64 */
             aReconhecerCents: number;
             /** Format: int64 */
-            taxaCents: number;
+            parteDaAvaliaCents: number;
             /** Format: int64 */
             comissoesCents: number;
             /** Format: int64 */
@@ -8531,6 +8609,9 @@ export interface components {
             descontoDaRevendaBps?: null | number;
             /** Format: int32 */
             quantidadeMinima?: null | number;
+        };
+        IntegracaoDoErp: {
+            ligada: boolean;
         };
         /** @description Uma linha da venda feita junto com outras: placa pelo código, com o destino, ou serviço pela quantidade. */
         ItemDaVenda: {
@@ -9479,8 +9560,6 @@ export interface components {
             revendedor: string;
             doGrupo: boolean;
             /** Format: int64 */
-            taxaDaPlataformaCents: number;
-            /** Format: int64 */
             parteDaAvaliaCents: number;
             /** Format: int64 */
             pedidosDePlacasCents: number;
@@ -9605,7 +9684,7 @@ export interface components {
             /** Format: int64 */
             receitaCents: number;
             /** Format: int64 */
-            taxaAvaliaCents: number;
+            parteDaAvaliaCents: number;
             /** Format: int64 */
             comissaoCents: number;
             /** Format: int64 */
@@ -9646,8 +9725,6 @@ export interface components {
             nome: string;
             cnpj: null | string;
             /** Format: int32 */
-            taxaAvaliaBps: number;
-            /** Format: int32 */
             comissaoPadraoBps: number;
             recebedorPagarme: null | string;
             /** Format: date-time */
@@ -9669,6 +9746,8 @@ export interface components {
             motivoDaSuspensao?: null | string;
             /** @default false */
             doGrupoDaOperadora: boolean;
+            /** @default false */
+            receptoraNoEncerramento: boolean;
         };
         /** @description Uma revenda com o que deve à Avalia por venda recebida por fora, o que já quitou e o que falta. */
         SaldoAAcertarDto: {

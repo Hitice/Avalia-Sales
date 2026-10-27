@@ -69,7 +69,7 @@ export function TelaDoVendedor() {
       <Card className="mt-3 md:mt-4">
         <CardHeader>
           <CardTitle>Últimas vendas</CardTitle>
-          {(r?.total ?? 0) > 5 && <CardAction><Button asChild variant="link" size="sm" className="-my-2 -mr-2.5"><Link to="/vendedor/vendas">Ver todas</Link></Button></CardAction>}
+          {(r?.total ?? 0) > 5 && <CardAction><Button asChild variant="link" size="sm" className="-mr-2.5"><Link to="/vendedor/vendas">Ver todas</Link></Button></CardAction>}
         </CardHeader>
         <CardContent>
           {recentes.isPending ? <Carregando linhas={3} /> : validas.length === 0
@@ -125,7 +125,7 @@ function MetaDoMes({ metaCents, vendidoCents, className }: { metaCents: number |
 function Ranking({ linhas, className }: { linhas: { posicao: number; nome: string; vendas: number; voce: boolean }[]; className?: string }) {
   return (
     <Card className={className}>
-      <CardHeader><CardTitle>Ranking do mês, por vendas pagas</CardTitle></CardHeader>
+      <CardHeader><CardTitle>Ranking do mês</CardTitle></CardHeader>
       <CardContent>
         {linhas.length === 0 ? <p className="text-sm text-muted-foreground">A equipe ainda não tem vendedores.</p> : (
           <ol className="grid gap-1.5 text-sm">

@@ -5,7 +5,7 @@ import { FUSO_DE_BRASILIA } from '@/lib/data'
 export const ROTULO_DO_ESTADO: Record<EstadoDaPlaca, string> = {
   EmEstoque: 'Em estoque',
   Ativa: 'Ativa',
-  Carencia: 'Na carência',
+  Carencia: 'Carência',
   Vencida: 'Vencida',
   Suspensa: 'Suspensa',
   Baixada: 'Encerrada',
@@ -36,7 +36,7 @@ export const ROTULO_DO_CANCELAMENTO: Record<MotivoDoCancelamento, string> = {
 }
 
 export const ROTULO_DO_PEDIDO: Record<SituacaoDoPedido, string> = {
-  AguardandoPagamento: 'Aguardando pagamento',
+  AguardandoPagamento: 'Aguardando',
   Pago: 'Pago',
   EmProducao: 'Em produção',
   Despachado: 'Enviado',
@@ -46,7 +46,7 @@ export const ROTULO_DO_PEDIDO: Record<SituacaoDoPedido, string> = {
 
 /** O pedido despachado para retirada espera a revenda buscar a caixa na Avalia. */
 export const rotuloDoPedido = (p: Pick<Pedido, 'situacao' | 'retirada'>) =>
-  p.situacao === 'Despachado' && p.retirada ? 'Pronto para retirada' : ROTULO_DO_PEDIDO[p.situacao]
+  p.situacao === 'Despachado' && p.retirada ? 'Para retirar' : ROTULO_DO_PEDIDO[p.situacao]
 
 export const ROTULO_DO_LANCAMENTO: Record<TipoDeLancamento, string> = {
   Receita: 'Receita',
@@ -79,7 +79,7 @@ export const ROTULO_DA_ORDEM: Record<SituacaoDaOrdem, string> = {
 export const ROTULO_DO_PRODUTO: Record<SituacaoDoProduto, string> = {
   Disponivel: 'Disponível',
   Esgotado: 'Esgotado',
-  ForaDeLinha: 'Fora de linha',
+  ForaDeLinha: 'Descontinuado',
 }
 
 export const ROTULO_DO_TIPO: Record<TipoDeProduto, string> = {
@@ -97,8 +97,8 @@ export const ROTULO_DO_PAGAMENTO: Record<SituacaoDaCobranca, string> = {
 }
 
 export const ROTULO_DO_CONTRATO: Record<SituacaoDoContrato, string> = {
-  Rascunho: 'Sendo enviado',
-  AguardandoAssinatura: 'Esperando sua assinatura',
+  Rascunho: 'Enviando',
+  AguardandoAssinatura: 'Aguardando',
   Assinado: 'Assinado',
   Cancelado: 'Cancelado',
 }

@@ -1,16 +1,15 @@
-import { ROTULO_DO_CANCELAMENTO, ROTULO_DO_PAGAMENTO, TOM_DO_PAGAMENTO, type Tom, formatarData } from '@/api/rotulos'
+import { ROTULO_DO_PAGAMENTO, TOM_DO_PAGAMENTO, type Tom, formatarData } from '@/api/rotulos'
 import type { VendaDaLista } from '@/api/tipos'
 
 /** O que o selo da venda diz: cancelamento, cortesia, teste, recebido por fora ou a situação da cobrança. */
 export function rotuloDaVenda(v: VendaDaLista): string {
-  if (v.situacao === 'Cancelada') return v.motivoDoCancelamento ? `Cancelada: ${ROTULO_DO_CANCELAMENTO[v.motivoDoCancelamento]}` : 'Venda cancelada'
+  if (v.situacao === 'Cancelada') return 'Cancelada'
   if (v.cortesia) return 'Cortesia'
   if (v.testeAte && !v.testeConvertidoEm && v.pagamento !== 'Paga') {
-    return v.testeExpiradoEm ? 'Teste vencido: receber ou devolver' : `Teste até ${formatarData(v.testeAte)}`
+    return v.testeExpiradoEm ? 'Teste vencido' : `Teste até ${formatarData(v.testeAte).slice(0, 5)}`
   }
-  if (v.doSistemaAnterior) return 'Paga no sistema anterior'
-  if (v.pagamento === 'Paga' && v.pagoPor === 'Dinheiro') return 'Paga em dinheiro'
-  if (v.pagamento === 'Paga' && v.pagoPor === 'OutroPix') return 'Paga por outro Pix'
+  if (v.doSistemaAnterior) return 'Importada'
+  if (v.pagamento === 'Paga' && (v.pagoPor === 'Dinheiro' || v.pagoPor === 'OutroPix')) return 'Por fora'
   return v.pagamento ? ROTULO_DO_PAGAMENTO[v.pagamento] : 'Sem cobrança'
 }
 

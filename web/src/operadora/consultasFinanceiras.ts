@@ -22,7 +22,7 @@ function useGravar<T>(fazer: (dados: T) => Promise<unknown>) {
   return useMutation({ mutationFn: fazer, meta: { sucesso: 'Alteração salva.' }, onSuccess: () => cliente.invalidateQueries({ queryKey: ['operadora'] }) })
 }
 
-export type GravarDespesaDaOperadora = { data: string; descricao: string; categoria: CategoriaDeDespesaDaOperadora; valorCents: number; fornecedorId: string | null }
+export type GravarDespesaDaOperadora = { data: string; descricao: string; categoria: CategoriaDeDespesaDaOperadora; valorCents: number; fornecedorId?: string | null }
 export const useSalvarDespesaDaOperadora = () =>
   useGravar(({ id, ...d }: GravarDespesaDaOperadora & { id?: string }) =>
     chamarApi<DespesaDaOperadora>(id ? `/operadora/financeiro/despesas/${id}` : '/operadora/financeiro/despesas', enviarJson(id ? 'PUT' : 'POST', d)))

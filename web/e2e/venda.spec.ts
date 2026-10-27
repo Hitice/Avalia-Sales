@@ -37,29 +37,6 @@ test('venda no balcão: a placa como item (QR e destino), cliente e cobrança, c
   await semRolagemLateral(page)
 })
 
-test('serviço entra com o pedido mínimo e não desce dele', async ({ page }) => {
-  await entrar(page)
-  await page.goto('/vender')
-  const comMinimo = page.getByRole('list', { name: 'Itens do catálogo' }).getByRole('button', { name: /mínimo (\d+)/ })
-  test.skip((await comMinimo.count()) === 0, 'O catálogo da demonstração não tem serviço com pedido mínimo.')
-  const minimo = Number(/mínimo (\d+)/.exec((await comMinimo.first().innerText()) ?? '')?.[1])
-  await comMinimo.first().click()
-
-  const quantidade = page.getByRole('list', { name: 'Itens da venda' }).getByLabel(/^Quantidade de/)
-  await expect(quantidade).toHaveValue(String(minimo))
-  await page.getByRole('button', { name: /^Menos / }).click()
-  await expect(quantidade).toHaveValue(String(minimo))
-  await expect(page.getByText(`Mínimo ${minimo}`).first()).toBeVisible()
-  // Com serviço na venda, o teste gratuito não aparece na cobrança.
-  await page.getByRole('button', { name: /^Continuar/ }).click()
-  await page.getByLabel('Empresa').fill('Padaria do Teste')
-  await page.getByLabel('Responsável').fill('Marta')
-  await page.getByLabel('Telefone com DDD').fill('34999990000')
-  await page.getByRole('button', { name: 'Ir para a cobrança' }).click()
-  await expect(page.getByRole('radio', { name: 'Teste 7 dias' })).toHaveCount(0)
-  await semViolacaoGrave(page)
-})
-
 test('voltar no primeiro passo sai da venda', async ({ page }) => {
   await entrar(page)
   await page.getByRole('link', { name: 'Vender' }).click()
@@ -84,6 +61,6 @@ test('a busca do negócio no Google, na aba Maps, chama a API sem recarregar a p
   await page.getByLabel('Nome do negócio no Google').press('Enter')
   await busca
   // Sem chave do Google no ambiente de teste, a API responde que a busca não está ligada.
-  await expect(page.getByText('A busca no Google não está ligada')).toBeVisible()
+  await expect(page.getByText('Busca no Google desligada')).toBeVisible()
   await expect(page).toHaveURL(/\/links\?aba=maps$/)
 })

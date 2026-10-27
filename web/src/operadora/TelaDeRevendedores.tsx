@@ -13,7 +13,7 @@ import { Field, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { digitos, mascaraCnpj, mascaraTelefone } from '@/lib/mascaras'
-import { useContratoAssinado, useDefinirGrupo, useDefinirRecebedor, useDefinirRenovacao, useReabertura, useRevendedores, useSuspensao } from './consultas'
+import { useContratoAssinado, useDefinirGrupo, useDefinirRecebedor, useDefinirReceptora, useDefinirRenovacao, useReabertura, useRevendedores, useSuspensao } from './consultas'
 import { useCadastroDoRevendedor, useLiberarDestinos } from './consultasDeEntregaEAcerto'
 
 const formatarCnpj = (c: string | null) => c ? c.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5') : '-'
@@ -34,11 +34,13 @@ export function TelaDeRevendedores() {
   const reabertura = useReabertura()
   const suspensao = useSuspensao()
   const grupo = useDefinirGrupo()
+  const receptora = useDefinirReceptora()
+  const [receptoraDe, setReceptoraDe] = useState<Revendedor | null>(null)
   const [grupoDe, setGrupoDe] = useState<Revendedor | null>(null)
   const [editando, setEditando] = useState<Revendedor | null>(null)
   const [suspendendo, setSuspendendo] = useState<Revendedor | null>(null)
   const [liberando, setLiberando] = useState<Revendedor | null>(null)
-  const erro = contrato.error ?? reabertura.error ?? suspensao.error ?? (grupoDe ? null : grupo.error)
+  const erro = contrato.error ?? reabertura.error ?? suspensao.error ?? (grupoDe ? null : grupo.error) ?? (receptoraDe ? null : receptora.error)
 
   return (
     <>
@@ -56,11 +58,10 @@ export function TelaDeRevendedores() {
                       <TableHead tipo="situacao">Situação</TableHead>
                       <TableHead>CNPJ</TableHead>
                       <TableHead>Celular</TableHead>
-                      <TableHead tipo="numero">Taxa</TableHead>
                       <TableHead tipo="numero">Renovação</TableHead>
                       <TableHead tipo="situacao">Contrato</TableHead>
                       <TableHead>Assinado em</TableHead>
-                      <TableHead>Recebedor no Pagar.me</TableHead>
+                      <TableHead>Recebedor</TableHead>
                       <TableHead tipo="acoes" />
                     </TableRow>
                   </TableHeader>
@@ -74,6 +75,7 @@ export function TelaDeRevendedores() {
                             <span className="flex flex-wrap items-center gap-1.5">
                               {r.nome}
                               {r.doGrupoDaOperadora && <Badge variant="info">Do grupo</Badge>}
+                              {r.receptoraNoEncerramento && <Badge variant="info">Receptora</Badge>}
                             </span>
                           </TableCell>
                           <TableCell>
@@ -82,19 +84,19 @@ export function TelaDeRevendedores() {
                           </TableCell>
                           <TableCell className="tabular-nums">{formatarCnpj(r.cnpj)}</TableCell>
                           <TableCell className="tabular-nums">{r.celular ? mascaraTelefone(r.celular) : '-'}</TableCell>
-                          <TableCell>{formatarBps(r.taxaAvaliaBps)}</TableCell>
                           <TableCell>{formatarBps(r.renovacaoBps)}</TableCell>
                           <TableCell>
                             <Badge variant={r.contratoAssinadoEm ? 'sucesso' : 'atencao'}>{r.contratoAssinadoEm ? 'Assinado' : 'Sem assinatura'}</Badge>
                           </TableCell>
                           <TableCell className="tabular-nums">{r.contratoAssinadoEm ? formatarData(r.contratoAssinadoEm) : '-'}</TableCell>
-                          <TableCell className="font-mono text-xs">{r.recebedorPagarme ?? '-'}</TableCell>
+                          <TableCell className="font-mono text-xs"><span className="block max-w-36 truncate" title={r.recebedorPagarme ?? undefined}>{r.recebedorPagarme ?? '-'}</span></TableCell>
                           <TableCell>
                             <AcoesDaLinha nome={r.nome} principal={{ rotulo: 'Editar', aoClicar: () => setEditando(r) }} outras={[
-                              ativa && !r.encerramentoPedidoEm && !r.contratoAssinadoEm && { rotulo: 'Registrar contrato assinado', desabilitada: contrato.isPending, aoClicar: () => contrato.mutate(r.id) },
+                              ativa && !r.encerramentoPedidoEm && !r.contratoAssinadoEm && { rotulo: 'Contrato assinado', desabilitada: contrato.isPending, aoClicar: () => contrato.mutate(r.id) },
                               !!r.encerradaEm && !!r.reaberturaPedidaEm && { rotulo: 'Aprovar reabertura', desabilitada: reabertura.isPending, aoClicar: () => reabertura.mutate({ id: r.id, aprovar: true }) },
                               !!r.encerradaEm && !!r.reaberturaPedidaEm && { rotulo: 'Recusar reabertura', destrutiva: true, desabilitada: reabertura.isPending, aoClicar: () => reabertura.mutate({ id: r.id, aprovar: false }) },
-                              ativa && { rotulo: r.doGrupoDaOperadora ? 'Tirar do grupo da operadora' : 'Marcar como do grupo da operadora', aoClicar: () => { grupo.reset(); setGrupoDe(r) } },
+                              ativa && { rotulo: r.doGrupoDaOperadora ? 'Tirar do grupo' : 'Marcar como do grupo', aoClicar: () => { grupo.reset(); setGrupoDe(r) } },
+                              ativa && (r.receptoraNoEncerramento || !r.encerramentoPedidoEm) && { rotulo: r.receptoraNoEncerramento ? 'Tirar de receptora' : 'Marcar como receptora', aoClicar: () => { receptora.reset(); setReceptoraDe(r) } },
                               ativa && { rotulo: 'Liberar cadastros', aoClicar: () => setLiberando(r) },
               ativa && !!r.suspensaEm && { rotulo: 'Reativar', desabilitada: suspensao.isPending, aoClicar: () => suspensao.mutate({ id: r.id, suspender: false }) },
                               ativa && !r.suspensaEm && { rotulo: 'Suspender', destrutiva: true, aoClicar: () => { suspensao.reset(); setSuspendendo(r) } },
@@ -113,6 +115,10 @@ export function TelaDeRevendedores() {
       {grupoDe && (
         <MarcaDoGrupo revendedor={grupoDe} ocupado={grupo.isPending} erro={grupo.error} aoFechar={() => setGrupoDe(null)}
           aoConfirmar={() => grupo.mutate({ id: grupoDe.id, doGrupo: !grupoDe.doGrupoDaOperadora }, { onSuccess: () => setGrupoDe(null) })} />
+      )}
+      {receptoraDe && (
+        <MarcaDeReceptora revendedor={receptoraDe} ocupado={receptora.isPending} erro={receptora.error} aoFechar={() => setReceptoraDe(null)}
+          aoConfirmar={() => receptora.mutate({ id: receptoraDe.id, receptora: !receptoraDe.receptoraNoEncerramento }, { onSuccess: () => setReceptoraDe(null) })} />
       )}
       {editando && <EdicaoDoRevendedor key={editando.id} revendedor={editando} aoFechar={() => setEditando(null)} />}
       {liberando && <LiberacaoDeCadastros key={liberando.id} revendedor={liberando} aoFechar={() => setLiberando(null)} />}
@@ -154,10 +160,9 @@ function EdicaoDoRevendedor({ revendedor, aoFechar }: { revendedor: Revendedor; 
 
   return (
     <Dialog open onOpenChange={(aberto) => !aberto && aoFechar()}>
-      <DialogContent>
+      <DialogContent aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>Editar {revendedor.nome}</DialogTitle>
-          <DialogDescription>Taxa da Avalia {formatarBps(revendedor.taxaAvaliaBps)}.</DialogDescription>
         </DialogHeader>
         <form className="grid gap-4" onSubmit={(e) => { e.preventDefault(); void salvar() }}>
           <Erro erro={erro ? mensagemDoErro(erro) : null} />
@@ -246,6 +251,36 @@ function MarcaDoGrupo({ revendedor, ocupado, erro, aoFechar, aoConfirmar }: {
         <DialogFooter>
           <Button type="button" variant="ghost" onClick={aoFechar}>Voltar</Button>
           <Button type="button" disabled={ocupado} onClick={aoConfirmar}>{tirar ? 'Tirar do grupo' : 'Marcar como do grupo'}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+/** A receptora recebe os clientes ativos de quem encerra a conta; só uma por vez, e marcar outra tira a marca desta. */
+function MarcaDeReceptora({ revendedor, ocupado, erro, aoFechar, aoConfirmar }: {
+  revendedor: Revendedor
+  ocupado: boolean
+  erro: unknown
+  aoFechar: () => void
+  aoConfirmar: () => void
+}) {
+  const tirar = revendedor.receptoraNoEncerramento
+  return (
+    <Dialog open onOpenChange={(aberto) => !aberto && aoFechar()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{tirar ? `Tirar ${revendedor.nome} de receptora` : `Marcar ${revendedor.nome} como receptora`}</DialogTitle>
+          <DialogDescription>
+            {tirar
+              ? 'Sem receptora, nenhuma revenda encerra a conta.'
+              : 'Recebe os clientes de quem encerrar a conta. A receptora atual perde a marca.'}
+          </DialogDescription>
+        </DialogHeader>
+        <Erro erro={erro ? mensagemDoErro(erro) : null} />
+        <DialogFooter>
+          <Button type="button" variant="ghost" onClick={aoFechar}>Voltar</Button>
+          <Button type="button" disabled={ocupado} onClick={aoConfirmar}>{tirar ? 'Tirar de receptora' : 'Marcar como receptora'}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

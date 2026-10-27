@@ -33,7 +33,7 @@ describe('PainelDeAcertos', () => {
     expect(await screen.findByText('Loja Centro')).toBeInTheDocument()
     expect(screen.getAllByText(/600,00/).length).toBeGreaterThan(0)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Registrar acerto' }))
+    fireEvent.click(screen.getAllByRole('button', { name: 'Registrar acerto' })[0])
 
     const valor = await screen.findByLabelText('Valor')
     expect(valor).toHaveValue('600,00')

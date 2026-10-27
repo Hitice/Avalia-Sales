@@ -135,7 +135,7 @@ function Formularios({ dados }: { dados: DadosDaConta }) {
 
       {dados.recebimento && (
         <Card>
-          <CardHeader><CardTitle>Recebimento da comissão</CardTitle></CardHeader>
+          <CardHeader><CardTitle>Comissão</CardTitle></CardHeader>
           <CardContent className="grid gap-4">
             <Field>
               <FieldLabel htmlFor="telefone">Telefone com DDD</FieldLabel>

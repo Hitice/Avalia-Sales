@@ -80,7 +80,7 @@ export function TelaDePedidosDePlacas() {
                                     else aba?.close()
                                   },
                                 }}
-                                outras={[!p.urlDePagamento && { rotulo: 'Cancelar', destrutiva: true, aoClicar: () => cancelar.mutate(p.id) }]} />
+                                outras={[{ rotulo: 'Cancelar', destrutiva: true, desabilitada: cancelar.isPending, aoClicar: () => cancelar.mutate(p.id) }]} />
                             )}
                           </TableCell>
                         </TableRow>

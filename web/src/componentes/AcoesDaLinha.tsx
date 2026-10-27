@@ -9,7 +9,7 @@ export type Acao = { rotulo: string; aoClicar?: () => void; para?: string; href?
 type Props = {
   /** Nome da linha, para o leitor de tela: "Ações de Ju Gomes". */
   nome: string
-  /** A ação de todo dia (Editar): no celular, botão à vista; no computador, a primeira do menu. */
+  /** A ação de todo dia (Editar, Pagar): botão à vista em qualquer tela. */
   principal?: Acao | false | null
   /** Ações que não valem para a linha entram como false e somem. */
   outras?: (Acao | false | null | undefined)[]
@@ -22,28 +22,26 @@ function ItemDoMenu({ acao }: { acao: Acao }) {
   return <DropdownMenuItem variant={variante} disabled={acao.desabilitada} onSelect={acao.aoClicar}>{acao.rotulo}</DropdownMenuItem>
 }
 
-/** Botão da ação no cartão do celular; a destrutiva fica discreta, em vermelho. */
-function BotaoDaAcao({ acao }: { acao: Acao }) {
+/** Botão da ação: no cartão do celular, do tamanho normal; na linha do computador, `sm`. A destrutiva fica discreta, em vermelho. */
+function BotaoDaAcao({ acao, compacto = false }: { acao: Acao; compacto?: boolean }) {
   const variant = acao.destrutiva ? 'ghost' : 'outline'
+  const size = compacto ? 'sm' : 'default'
   const className = acao.destrutiva ? 'text-destructive' : undefined
-  if (acao.para && !acao.desabilitada) return <Button asChild variant={variant} className={className}><Link to={acao.para}>{acao.rotulo}</Link></Button>
-  if (acao.href && !acao.desabilitada) return <Button asChild variant={variant} className={className}><a href={acao.href} target="_blank" rel="noreferrer noopener">{acao.rotulo}</a></Button>
-  return <Button variant={variant} className={className} disabled={acao.desabilitada} onClick={acao.aoClicar}>{acao.rotulo}</Button>
+  if (acao.para && !acao.desabilitada) return <Button asChild variant={variant} size={size} className={className}><Link to={acao.para}>{acao.rotulo}</Link></Button>
+  if (acao.href && !acao.desabilitada) return <Button asChild variant={variant} size={size} className={className}><a href={acao.href} target="_blank" rel="noreferrer noopener">{acao.rotulo}</a></Button>
+  return <Button variant={variant} size={size} className={className} disabled={acao.desabilitada} onClick={acao.aoClicar}>{acao.rotulo}</Button>
 }
 
 /**
- * Coluna de ações da tabela (a última, TableHead tipo="acoes"). No
- * computador, toda linha tem o mesmo "⋯" com todas as ações, a principal
- * primeiro: a coluna fica estreita e alinhada. No celular a linha já é um
- * cartão (table.tsx): a primeira ação vira botão e, com uma só a mais, ela
- * fica ao lado; com mais, vão para o "⋯", que lado a lado não cabem e um
- * toque errado dá baixa.
+ * Coluna de ações da tabela (a última, TableHead tipo="acoes", presa à
+ * direita). A ação de todo dia (principal) é um botão à vista em qualquer
+ * tamanho de tela; as outras vão no "⋯". No celular a linha já é um cartão
+ * (table.tsx): com uma só a mais, ela fica ao lado; com mais, vão para o "⋯",
+ * que lado a lado não cabem e um toque errado dá baixa.
  */
 export function AcoesDaLinha({ nome, principal, outras = [] }: Props) {
   const resto = outras.filter((a): a is Acao => !!a)
-  const todas = principal ? [principal, ...resto] : resto
-  if (todas.length === 0) return null
-  const [primeira, ...demais] = todas
+  if (!principal && resto.length === 0) return null
 
   const menu = (acoes: Acao[]) => (
     <DropdownMenu>
@@ -55,6 +53,8 @@ export function AcoesDaLinha({ nome, principal, outras = [] }: Props) {
       </DropdownMenuContent>
     </DropdownMenu>
   )
+  // Sem principal, a primeira das outras toma o lugar dela.
+  const [primeira, ...demais] = principal ? [principal, ...resto] : resto
 
   return (
     <>
@@ -63,7 +63,10 @@ export function AcoesDaLinha({ nome, principal, outras = [] }: Props) {
         <BotaoDaAcao acao={primeira} />
         {demais.length === 1 ? <BotaoDaAcao acao={demais[0]} /> : demais.length > 1 && menu(demais)}
       </div>
-      <span className="flex items-center justify-end max-md:hidden">{menu(todas)}</span>
+      <span className="flex items-center justify-end gap-1 max-md:hidden">
+        <BotaoDaAcao acao={primeira} compacto />
+        {demais.length > 0 && menu(demais)}
+      </span>
     </>
   )
 }

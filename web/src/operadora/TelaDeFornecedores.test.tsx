@@ -37,7 +37,7 @@ describe('TelaDeFornecedores', () => {
     const envios = abrir()
     await screen.findByText('Gráfica Alfa')
 
-    fireEvent.click(screen.getByRole('button', { name: /Editar/ }))
+    fireEvent.click(screen.getAllByRole('button', { name: /Editar/ })[0])
     expect(await screen.findByLabelText('CNPJ ou CPF')).toHaveValue('11.222.333/0001-81')
     fireEvent.click(screen.getByRole('button', { name: 'Salvar fornecedor' }))
 

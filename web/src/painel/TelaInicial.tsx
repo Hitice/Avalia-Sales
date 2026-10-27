@@ -9,6 +9,8 @@ import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/componen
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { formatarCentavos } from '@/dinheiro/dinheiro'
 import { useContaEncerrada } from '@/app/contaEncerrada'
+import { useDre } from '@/financeiro/consultas'
+import { LinhaDaDre } from '@/financeiro/LinhaDaDre'
 import { usePlacas, useResumoDasVendas, useVendasRecentes } from './consultas'
 import { porDiaDe, VendasEm30Dias } from './VendasEm30Dias'
 import { nomeDoProduto, rotuloDaVenda, tomDaVenda } from './situacaoDaVenda'
@@ -33,6 +35,7 @@ export function TelaInicial() {
   const placas = usePlacas({ pagina: 1, tamanho: 1 })
   const recentes = useVendasRecentes()
   const resumo = useResumoDasVendas()
+  const dre = useDre(undefined)
   // Fixado na abertura da tela: o relógio não muda entre uma renderização e outra.
   const [agora] = useState(() => Date.now())
   const dados = useMemo(() => montar(recentes.data?.itens ?? [], resumo.data, agora), [recentes.data, resumo.data, agora])
@@ -53,18 +56,35 @@ export function TelaInicial() {
         {/* No computador a Nova venda está no topo do painel lateral. */}
         {!encerrada && <Button asChild className="lg:hidden"><Link to="/vender">Nova venda</Link></Button>}
       </Cabecalho>
-      <Erro erro={recentes.error ?? resumo.error} />
+      <Erro erro={recentes.error ?? resumo.error ?? dre.error} />
       <Indicadores>{numeros.map((n) => <Indicador key={n.rotulo} rotulo={n.rotulo} valor={n.valor} />)}</Indicadores>
       <div className="mt-3 grid gap-3 md:mt-4 md:gap-4 lg:grid-cols-12">
         <VendasEm30Dias className="lg:col-span-7" porDia={dados.porDia} carregando={resumo.isPending} />
         <Card className="lg:col-span-5">
-          <CardHeader><CardTitle>Financeiro</CardTitle></CardHeader>
-          <CardContent><Button asChild variant="outline"><Link to="/painel/financeiro">Ver o financeiro</Link></Button></CardContent>
+          <CardHeader>
+            <CardTitle>Financeiro</CardTitle>
+            <CardAction><Button asChild variant="link" size="sm" className="-mr-2.5"><Link to="/painel/financeiro">Abrir</Link></Button></CardAction>
+          </CardHeader>
+          <CardContent>
+            {/* O mês corrente como o Financeiro fecha: recebido, as saídas e o resultado. */}
+            {dre.isPending ? <Carregando linhas={4} /> : dre.data && (
+              <dl className="text-sm">
+                {/* Mesma conta do Demonstrativo: o resultado parte da receita reconhecida (a placa em 12 meses), não do recebido no caixa. */}
+                <LinhaDaDre rotulo="Receita reconhecida" cents={dre.data.receitaReconhecidaCents} />
+                <LinhaDaDre rotulo="Comissões" cents={dre.data.comissoesCents} saida />
+                <LinhaDaDre rotulo="Custo das placas" cents={dre.data.custoDasPlacasCents} saida />
+                {dre.data.parteDaAvaliaCents !== 0 && <LinhaDaDre rotulo="Parte da Avalia" cents={dre.data.parteDaAvaliaCents} saida />}
+                {dre.data.perdasCents !== 0 && <LinhaDaDre rotulo="Perdas de placa" cents={dre.data.perdasCents} saida />}
+                <LinhaDaDre rotulo="Despesas" cents={dre.data.despesasCents} saida />
+                <LinhaDaDre rotulo="Resultado" cents={dre.data.resultadoCents} total />
+              </dl>
+            )}
+          </CardContent>
         </Card>
         <Card className="lg:col-span-12">
           <CardHeader>
-            <CardTitle>Vendas de hoje</CardTitle>
-            <CardAction><Button asChild variant="link" size="sm" className="-my-2 -mr-2.5"><Link to="/painel/vendas">Ver todas</Link></Button></CardAction>
+            <CardTitle>Hoje</CardTitle>
+            <CardAction><Button asChild variant="link" size="sm" className="-mr-2.5"><Link to="/painel/vendas">Ver todas</Link></Button></CardAction>
           </CardHeader>
           <CardContent>
             {recentes.isPending ? <Carregando linhas={3} /> : dados.hoje.length === 0 ? <Vazio texto="Nenhuma venda hoje." acao={novaVenda} /> : (

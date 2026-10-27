@@ -53,6 +53,25 @@ export function sessaoValida(estado: Pick<Sessao, 'token' | 'expiraEm'>, agora =
   return estado.token !== null && estado.expiraEm !== null && estado.expiraEm > agora
 }
 
+/**
+ * Para onde voltar depois de entrar: a tela que pediu login (ex.: a Nova venda
+ * aberta pela leitura da placa em branco). Só caminho interno, para o parâmetro
+ * não virar redirecionamento para outro site.
+ */
+export function destinoDaVolta(volta: string | null | undefined): string | null {
+  // Só barra simples no começo; o parser de URL decide o resto (ele ignora tab e quebra de linha, e "/\\" vira "//").
+  if (!volta || !volta.startsWith('/') || /[\u0000-\u001f\\]/.test(volta)) return null
+  const base = 'https://interno.invalid'
+  let url: URL
+  try {
+    url = new URL(volta, base)
+  } catch {
+    return null
+  }
+  if (url.origin !== base || url.pathname.startsWith('/entrar')) return null
+  return url.pathname + url.search + url.hash
+}
+
 /** A primeira tela de cada papel. */
 export function inicioDoPapel(papel: Papel | undefined): string {
   switch (papel) {

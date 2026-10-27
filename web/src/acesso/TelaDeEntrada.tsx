@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { Link, Navigate, useNavigate } from 'react-router'
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router'
 import { z } from 'zod'
 import { ErroDaApi, chamarApi } from '@/api/cliente'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -11,7 +11,7 @@ import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field
 import { Input } from '@/components/ui/input'
 import { PassoDoCodigo } from './PassoDoCodigo'
 import { type SegundoFatorExigido, exigeCodigo } from './segundoFator'
-import { type TokenEmitido, inicioDoPapel, sessaoValida, useSessao } from './sessao'
+import { type TokenEmitido, destinoDaVolta, inicioDoPapel, sessaoValida, useSessao } from './sessao'
 import { MarcaAvalia } from '@/componentes/MarcaAvalia'
 import { Rodape } from '@/componentes/Rodape'
 
@@ -25,17 +25,19 @@ type Entrada = z.infer<typeof esquema>
 export function TelaDeEntrada() {
   const sessao = useSessao()
   const navegar = useNavigate()
+  const [parametros] = useSearchParams()
+  const volta = destinoDaVolta(parametros.get('volta'))
   const formulario = useForm<Entrada>({ resolver: zodResolver(esquema), defaultValues: { email: '', senha: '' } })
   const { errors, isSubmitting } = formulario.formState
   const [desafio, setDesafio] = useState<SegundoFatorExigido | null>(null)
 
   if (sessaoValida(sessao)) {
-    return <Navigate to={inicioDoPapel(sessao.perfil?.papel)} replace />
+    return <Navigate to={volta ?? inicioDoPapel(sessao.perfil?.papel)} replace />
   }
 
   function concluir(resposta: TokenEmitido) {
     sessao.entrar(resposta)
-    navegar(inicioDoPapel(resposta.perfil?.papel), { replace: true })
+    navegar(volta ?? inicioDoPapel(resposta.perfil?.papel), { replace: true })
   }
 
   async function entrar(dados: Entrada) {

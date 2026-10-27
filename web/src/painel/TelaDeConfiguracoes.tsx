@@ -28,7 +28,7 @@ export function TelaDeConfiguracoes() {
 }
 
 /** Geral (regras da venda, contrato e encerramento) e Marca; a aba abre pelo parâmetro `aba`. */
-function Abas({ r }: { r: { comissaoPadraoBps: number; renovacaoBps: number; taxaAvaliaBps: number } }) {
+function Abas({ r }: { r: { comissaoPadraoBps: number; renovacaoBps: number } }) {
   const encerrada = useContaEncerrada()
   const [parametros, setParametros] = useSearchParams()
   // A conta encerrada só consulta e exporta: sem a aba Marca.
@@ -42,7 +42,7 @@ function Abas({ r }: { r: { comissaoPadraoBps: number; renovacaoBps: number; tax
           {!encerrada && <TabsTrigger value="marca">Marca</TabsTrigger>}
         </TabsList>
         <TabsContent value="geral">
-          <Formulario key={`${r.comissaoPadraoBps}-${r.renovacaoBps}`} comissaoBps={r.comissaoPadraoBps} renovacaoBps={r.renovacaoBps} taxaBps={r.taxaAvaliaBps} />
+          <Formulario key={`${r.comissaoPadraoBps}-${r.renovacaoBps}`} comissaoBps={r.comissaoPadraoBps} renovacaoBps={r.renovacaoBps} />
         </TabsContent>
         <TabsContent value="marca"><PainelDaMarca /></TabsContent>
       </Tabs>
@@ -52,7 +52,7 @@ function Abas({ r }: { r: { comissaoPadraoBps: number; renovacaoBps: number; tax
 
 const paraTexto = (bps: number) => String(bps / 100).replace('.', ',')
 
-function Formulario({ comissaoBps, renovacaoBps, taxaBps }: { comissaoBps: number; renovacaoBps: number; taxaBps: number }) {
+function Formulario({ comissaoBps, renovacaoBps }: { comissaoBps: number; renovacaoBps: number }) {
   const comissao = useComissaoPadrao()
   const [textoDaComissao, setTextoDaComissao] = useState(paraTexto(comissaoBps))
   const novaComissao = paraBps(textoDaComissao)
@@ -75,7 +75,6 @@ function Formulario({ comissaoBps, renovacaoBps, taxaBps }: { comissaoBps: numbe
               <FieldDescription>Vendedor e produto sem comissão própria.</FieldDescription>
             </Field>
             <p className="text-sm">Renovação: <span className="font-medium tabular-nums">{formatarBps(renovacaoBps)}</span> da venda, por mais um ano da placa. Não paga comissão.</p>
-            {taxaBps > 0 && <p className="text-sm text-muted-foreground">Taxa da plataforma por venda paga: {formatarBps(taxaBps)}.</p>}
             <Button type="submit" className="justify-self-start" disabled={novaComissao === null || comissao.isPending}>Salvar</Button>
           </form>
         </CardContent>

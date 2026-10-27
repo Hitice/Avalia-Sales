@@ -7,12 +7,13 @@ import type { Caixa } from '@/api/tipos'
 import { Campo } from '@/componentes/Campo'
 import { Carregando, Erro } from '@/componentes/Tela'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Field, FieldLabel } from '@/components/ui/field'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { formatarCentavos, paraCentavos } from '@/dinheiro/dinheiro'
 import { reais } from '@/lib/esquemas'
+import { cn } from '@/lib/utils'
 import { useCaixa, useExcluirSaldoInicial, useSalvarSaldoInicial } from './consultas'
 import { mesCorrente, mesSomado, nomeDoMes } from './fatias'
 
@@ -89,7 +90,7 @@ function FormularioDoSaldoInicial({ caixa, aoFechar }: { caixa: Caixa; aoFechar:
 
 /**
  * O caixa da revenda: o saldo inicial do mês em que começa, mais o que entrou
- * (vendas recebidas e aportes) e menos o que saiu (taxa, comissão repassada,
+ * (vendas recebidas e aportes) e menos o que saiu (parte da Avalia, comissão repassada,
  * despesas, retiradas e pedidos de placas). Não muda com o mês escolhido.
  */
 export function CartaoDoCaixa() {
@@ -99,15 +100,15 @@ export function CartaoDoCaixa() {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between gap-3">
+      <CardHeader>
         <CardTitle>Caixa</CardTitle>
-        {c && <Button variant="outline" size="sm" onClick={() => setAberto(true)}>{c.inicio ? 'Editar' : 'Definir saldo inicial'}</Button>}
+        {c && <CardAction><Button variant="outline" size="sm" onClick={() => setAberto(true)}>{c.inicio ? 'Editar' : 'Definir'}</Button></CardAction>}
       </CardHeader>
       <CardContent>
         <Erro erro={caixa.error} />
         {!c ? <Carregando linhas={2} /> : !c.inicio ? <p className="text-sm text-muted-foreground">Sem saldo inicial.</p> : (
           <>
-            <p className={`text-2xl font-semibold tabular-nums ${c.saldoCents < 0 ? 'text-destructive' : ''}`}>{formatarCentavos(c.saldoCents)}</p>
+            <p className={cn('text-2xl font-medium tracking-tight tabular-nums', c.saldoCents < 0 && 'text-destructive')}>{formatarCentavos(c.saldoCents)}</p>
             <dl className="mt-2 grid gap-1 text-sm">
               <div className="flex justify-between gap-3"><dt className="text-muted-foreground">Saldo inicial, {nomeDoMes(c.inicio)}</dt><dd className="tabular-nums">{formatarCentavos(c.saldoInicialCents)}</dd></div>
               <div className="flex justify-between gap-3"><dt className="text-muted-foreground">Entradas</dt><dd className="tabular-nums">{formatarCentavos(c.entradasCents)}</dd></div>

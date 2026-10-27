@@ -55,7 +55,7 @@ describe('TelaDeComissoes', () => {
 
   it('o dinheiro recebido pelo vendedor é confirmado por linha ou todo de uma vez', async () => {
     const envios = abrir([pendente])
-    expect(await screen.findByText('Dinheiro recebido pelo vendedor, a confirmar')).toBeInTheDocument()
+    expect(await screen.findByText('A confirmar')).toBeInTheDocument()
     expect(screen.getByText('Dinheiro')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Confirmar todos (1)' }))
@@ -65,7 +65,7 @@ describe('TelaDeComissoes', () => {
 
   it('a ação da linha confirma só aquele recebimento', async () => {
     const envios = abrir([pendente])
-    fireEvent.click(await screen.findByRole('button', { name: /Confirmei o dinheiro/ }))
+    fireEvent.click((await screen.findAllByRole('button', { name: /Confirmei o dinheiro/ }))[0])
     await waitFor(() => expect(envios).toHaveLength(1))
     expect(envios[0]).toEqual({ cobrancaIds: ['c1'] })
   })

@@ -4,7 +4,7 @@ import {
   ChevronDown, ChevronsUpDown, LogOut, Settings, PlusCircle, Receipt, Server, ShieldCheck, Store, TicketPercent, UserRound, Users,
   UsersRound, Wrench, Factory, ShieldBan,
 } from 'lucide-react'
-import { ChartPie } from 'lucide-react'
+import { ChartPie, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { useState } from 'react'
 import { NavLink, Navigate, Outlet, useLocation, useNavigate, useNavigation } from 'react-router'
 import { ConfirmeOEmail } from '@/acesso/ConfirmeOEmail'
@@ -65,7 +65,7 @@ const MENU: Record<Papel, Grupo[]> = {
     ] },
     { titulo: 'Revendas', itens: [
       { para: '/operadora/revendedores', rotulo: 'Revendedores', icone: Store },
-      { para: '/operadora/financeiro', rotulo: 'Resultado do grupo', icone: Scale },
+      { para: '/operadora/financeiro', rotulo: 'Resultados', icone: Scale },
       { para: '/operadora/atendimento', rotulo: 'Atendimento', icone: Headset },
       { para: '/operadora/destinos-bloqueados', rotulo: 'Bloqueados', icone: ShieldBan },
       { para: '/operadora/erp', rotulo: 'ERP', icone: Server },
@@ -117,6 +117,25 @@ const MENU: Record<Papel, Grupo[]> = {
 }
 
 /** A moldura de todas as áreas logadas: marca, menu do papel e sair. */
+const CHAVE_DO_MENU = 'avalia.menu-recolhido'
+
+/** O menu lateral recolhido a só ícones é escolha de quem usa, guardada no navegador; sem armazenamento, abre largo. */
+function menuRecolhido() {
+  try {
+    return localStorage.getItem(CHAVE_DO_MENU) === '1'
+  } catch {
+    return false
+  }
+}
+
+function guardarMenu(recolhido: boolean) {
+  try {
+    localStorage.setItem(CHAVE_DO_MENU, recolhido ? '1' : '0')
+  } catch {
+    // Navegador sem armazenamento: o menu só não lembra a escolha.
+  }
+}
+
 export function Moldura() {
   const perfil = useSessao((s) => s.perfil)
   const navegar = useNavigate()
@@ -133,6 +152,7 @@ export function Moldura() {
   const outros = itens.filter((i) => !principais.some((p) => p.para === i.para))
   const inicio = principais[0]?.para ?? itens[0]?.para ?? '/'
   const [mais, setMais] = useState(false)
+  const [recolhido, setRecolhido] = useState(menuRecolhido)
   // A Nova venda tem o botão dela no pé, logo acima da barra de baixo.
   const caminho = useLocation().pathname
   const naVenda = caminho === '/vender'
@@ -149,6 +169,11 @@ export function Moldura() {
   const gruposDoLateral = grupos.map((g) => ({ ...g, itens: g.itens.filter((i) => i !== novaVenda) })).filter((g) => g.itens.length > 0)
   const contexto = contextoDoPerfil(perfil, marca?.nomeExibido)
 
+  function alternarMenu() {
+    guardarMenu(!recolhido)
+    setRecolhido(!recolhido)
+  }
+
   async function sair() {
     await sairDaSessao()
     navegar('/entrar', { replace: true })
@@ -164,16 +189,16 @@ export function Moldura() {
           <NavLink
             to={inicio}
             aria-label={!logo && marca?.nomeExibido ? `${marca.nomeExibido}, início` : 'Início'}
-            className={cn('flex min-w-0 shrink-0 items-center rounded-md', lateral && 'lg:h-14.25 lg:w-60 lg:self-start lg:rounded-none lg:border-r lg:border-b lg:border-b-card lg:px-5')}
+            className={cn('flex min-w-0 shrink-0 items-center rounded-md', lateral && 'lg:h-14.25 lg:self-start lg:rounded-none lg:border-r lg:border-b lg:border-b-card', lateral && (recolhido ? 'lg:w-15 lg:justify-center' : 'lg:w-60 lg:px-5'))}
           >
             {logo
-              ? <img src={logo} alt="" className={cn('h-8 w-auto max-w-32 object-contain lg:max-w-48', naCor && 'rounded-md bg-card px-1.5 py-0.5')} />
+              ? <img src={logo} alt="" className={cn('h-8 w-auto max-w-32 object-contain', recolhido ? 'lg:max-w-10' : 'lg:max-w-48', naCor && 'rounded-md bg-card px-1.5 py-0.5')} />
               : marca?.nomeExibido
-                ? <span className="min-w-0 truncate text-md font-medium">{marca.nomeExibido}</span>
+                ? <span className={cn('min-w-0 truncate text-md font-medium', recolhido && 'lg:sr-only')}>{marca.nomeExibido}</span>
                 : (
                     <span className={cn('flex items-center', naCor && 'rounded-md bg-card px-1.5 py-0.5')}>
-                      <img src="/marca/gauge.svg" alt="" width={61} height={32} className={cn('h-8 w-auto', lateral && 'lg:hidden')} />
-                      {lateral && <MarcaAvalia className="hidden h-9 w-auto lg:block" />}
+                      <img src="/marca/gauge.svg" alt="" width={61} height={32} className={cn('h-8 w-auto', lateral && !recolhido && 'lg:hidden')} />
+                      {lateral && !recolhido && <MarcaAvalia className="hidden h-9 w-auto lg:block" />}
                     </span>
                   )}
           </NavLink>
@@ -191,33 +216,37 @@ export function Moldura() {
           {itens.map((item) => <ItemDoMenu key={item.para} item={item} />)}
         </nav>
       </header>
-      <div className={cn(lateral && 'lg:grid lg:lateral-e-lista-60')}>
+      <div className={cn(lateral && 'lg:grid', lateral && (recolhido ? 'lg:lateral-e-lista-15' : 'lg:lateral-e-lista-60'))}>
         {/* Abaixo do cabeçalho (h-14 e o traço), da altura do resto da janela: o menu rola por dentro e a conta fica no pé. */}
         <div className={cn('sticky top-14.25 hidden altura-sob-cabecalho flex-col border-r bg-card', lateral && 'lg:flex')}>
-          {contexto && (
+          {contexto && !recolhido && (
             <div className="mx-3 mt-2 rounded-md border px-2.5 py-1.5">
               <p className="text-2xs text-muted-foreground">{contexto.rotulo}</p>
               <p className="truncate text-sm" title={contexto.nome}>{contexto.nome}</p>
             </div>
           )}
-          <nav aria-label="Menu lateral" className="min-h-0 flex-1 overflow-y-auto px-3 pt-3 pb-4">
+          <nav aria-label="Menu lateral" className={cn('min-h-0 flex-1 overflow-y-auto pt-3 pb-4', recolhido ? 'px-2' : 'px-3')}>
             {novaVenda && (
-              <Button asChild className="mb-4 w-full">
-                <NavLink to={novaVenda.para}>
+              <Button asChild size={recolhido ? 'icon' : 'default'} className="mb-4 w-full">
+                <NavLink to={novaVenda.para} title={recolhido ? novaVenda.rotulo : undefined}>
                   <novaVenda.icone aria-hidden />
-                  {novaVenda.rotulo}
+                  <span className={cn(recolhido && 'sr-only')}>{novaVenda.rotulo}</span>
                 </NavLink>
               </Button>
             )}
             {gruposDoLateral.map((grupo, i) => (
               <div key={grupo.titulo ?? i} className="mb-4 grid gap-0.5 last:mb-0">
-                {grupo.titulo && <p className="px-2 pb-1 text-2xs font-medium text-muted-foreground">{grupo.titulo}</p>}
-                {grupo.itens.map((item) => <ItemDoMenu key={item.para} item={item} />)}
+                {grupo.titulo && !recolhido && <p className="px-2 pb-1 text-2xs font-medium text-muted-foreground">{grupo.titulo}</p>}
+                {grupo.itens.map((item) => <ItemDoMenu key={item.para} item={item} compacto={recolhido} />)}
               </div>
             ))}
           </nav>
-          <div className="border-t px-3 py-2">
-            <MenuDaConta aoSair={sair} noRodape />
+          <div className={cn('grid gap-1 border-t py-2', recolhido ? 'px-2' : 'px-3')}>
+            <MenuDaConta aoSair={sair} noRodape compacto={recolhido} />
+            <Button variant="ghost" size="sm" onClick={alternarMenu} title={recolhido ? 'Expandir menu' : 'Recolher menu'} className={cn('text-muted-foreground', recolhido ? 'justify-center px-0' : 'justify-start')}>
+              {recolhido ? <PanelLeftOpen aria-hidden /> : <PanelLeftClose aria-hidden />}
+              <span className={cn(recolhido && 'sr-only')}>{recolhido ? 'Expandir menu' : 'Recolher menu'}</span>
+            </Button>
           </div>
         </div>
         <div className="min-w-0">
@@ -293,7 +322,7 @@ function iniciais(nome: string | undefined) {
 }
 
 /** O menu da conta: no cabeçalho até o tablet; no computador, no pé do painel lateral, abrindo para cima. */
-function MenuDaConta({ aoSair, noRodape = false }: { aoSair: () => void; noRodape?: boolean }) {
+function MenuDaConta({ aoSair, noRodape = false, compacto = false }: { aoSair: () => void; noRodape?: boolean; compacto?: boolean }) {
   const perfil = useSessao((s) => s.perfil)
   const navegar = useNavigate()
   const circulo = <span aria-hidden className="flex size-7 shrink-0 items-center justify-center rounded-full border bg-muted text-2xs font-medium text-foreground">{iniciais(perfil?.nome)}</span>
@@ -303,15 +332,19 @@ function MenuDaConta({ aoSair, noRodape = false }: { aoSair: () => void; noRodap
       <DropdownMenuTrigger asChild>
         {noRodape
           ? (
-              <button type="button" className="flex min-h-11 w-full items-center gap-2.5 rounded-md px-2 text-left transition-colors duration-150 hover:bg-muted aria-expanded:bg-muted">
+              <button type="button" className={cn('flex min-h-11 w-full items-center gap-2.5 rounded-md text-left transition-colors duration-150 hover:bg-muted aria-expanded:bg-muted', compacto ? 'justify-center px-0' : 'px-2')} title={compacto ? perfil?.nome : undefined}>
                 {circulo}
                 {/* O nome lido é "Conta de Fulano" e contém o nome visível, como pede a WCAG 2.5.3. */}
-                <span className="sr-only">Conta de </span>
-                <span className="grid min-w-0 flex-1">
-                  <span className="truncate text-xs font-medium">{perfil?.nome}</span>
-                  <span aria-hidden className="truncate text-2xs text-muted-foreground">{perfil?.email}</span>
-                </span>
-                <ChevronsUpDown aria-hidden className="size-4 shrink-0 text-muted-foreground" />
+                <span className="sr-only">Conta de {compacto && perfil?.nome}</span>
+                {!compacto && (
+                  <>
+                    <span className="grid min-w-0 flex-1">
+                      <span className="truncate text-xs font-medium">{perfil?.nome}</span>
+                      <span aria-hidden className="truncate text-2xs text-muted-foreground">{perfil?.email}</span>
+                    </span>
+                    <ChevronsUpDown aria-hidden className="size-4 shrink-0 text-muted-foreground" />
+                  </>
+                )}
               </button>
             )
           : (
@@ -339,17 +372,19 @@ function MenuDaConta({ aoSair, noRodape = false }: { aoSair: () => void; noRodap
 }
 
 /** Item do menu lateral e do de cima: ícone e rótulo; no ativo, fundo neutro, texto escuro e o ícone na cor da marca. */
-function ItemDoMenu({ item }: { item: Item }) {
+function ItemDoMenu({ item, compacto = false }: { item: Item; compacto?: boolean }) {
   return (
     <NavLink
       to={item.para}
+      title={compacto ? item.rotulo : undefined}
       className={({ isActive }) => cn(
-        'group flex min-h-9 shrink-0 items-center gap-2.5 rounded-md px-2 text-sm transition-colors duration-150 lg:min-h-8',
+        'group flex min-h-9 shrink-0 items-center gap-2.5 rounded-md text-sm transition-colors duration-150',
+        compacto ? 'justify-center px-0 lg:min-h-9' : 'px-2 lg:min-h-8',
         isActive ? 'bg-accent font-medium text-accent-foreground' : 'text-cinza-700 hover:bg-muted hover:text-foreground',
       )}
     >
       <item.icone aria-hidden className="size-4 shrink-0 group-aria-[current=page]:text-primary-texto" />
-      {item.rotulo}
+      <span className={cn(compacto && 'sr-only')}>{item.rotulo}</span>
     </NavLink>
   )
 }

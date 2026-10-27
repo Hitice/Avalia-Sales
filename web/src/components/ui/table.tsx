@@ -9,7 +9,7 @@ import { Input } from "./input"
  * O que a coluna guarda, declarado só no cabeçalho (TableHead). No
  * computador (index.css): número à direita e data, selo e ações na largura do
  * conteúdo, para o texto ficar com o resto; selos da coluna com a largura do
- * maior; ações sempre no "⋯" (AcoesDaLinha), na última coluna.
+ * maior; ações (AcoesDaLinha) na última coluna, presa à direita.
  */
 export type TipoDaColuna = "texto" | "numero" | "data" | "situacao" | "acoes"
 

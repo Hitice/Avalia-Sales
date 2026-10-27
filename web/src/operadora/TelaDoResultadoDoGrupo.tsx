@@ -1,21 +1,14 @@
 import { useState } from 'react'
-import { mensagemDoErro } from '@/api/cliente'
-import { formatarData } from '@/api/rotulos'
 import type { LinhaDoResultado, ResultadoDoGrupo } from '@/api/tipos'
 import { Indicador, Indicadores } from '@/componentes/Indicador'
 import { ListaPaginada } from '@/componentes/ListaPaginada'
 import { Aviso, Cabecalho, Carregando, Erro, Rolagem } from '@/componentes/Tela'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Field, FieldLabel } from '@/components/ui/field'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Textarea } from '@/components/ui/textarea'
 import { formatarCentavos } from '@/dinheiro/dinheiro'
-import { mesCorrente, nomeDoMes } from '@/financeiro/fatias'
+import { Fechamento, MesFechado, SeletorDoMes } from '@/financeiro/MesDoFinanceiro'
 import { cn } from '@/lib/utils'
 import { PainelDeAcertos } from './PainelDeAcertos'
 import { PainelDeCustosDeLote } from './PainelDeCustosDeLote'
@@ -42,7 +35,7 @@ function LinhaDaTabela({ linha }: { linha: LinhaDoResultado }) {
 function Demonstrativo({ resultado }: { resultado: ResultadoDoGrupo }) {
   return (
     <Card>
-      <CardHeader><CardTitle>Resultado do mês</CardTitle></CardHeader>
+      <CardHeader><CardTitle>Demonstrativo</CardTitle></CardHeader>
       <CardContent>
         <Rolagem>
           <Table semBusca>
@@ -122,7 +115,7 @@ function Resultado({ competencia }: { competencia: string | undefined }) {
       <Indicadores>
         <Indicador rotulo="Resultado consolidado" valor={formatarCentavos(consolidado)} />
         <Indicador rotulo="Receita consolidada" valor={formatarCentavos(receita)} />
-        <Indicador rotulo="Recebido e ainda não reconhecido" valor={formatarCentavos(r.aindaNaoReconhecido.totalCents)} />
+        <Indicador rotulo="A reconhecer" valor={formatarCentavos(r.aindaNaoReconhecido.totalCents)} />
         <Indicador rotulo="Pendências de custo" valor={String(pendencias)} />
       </Indicadores>
       {pendencias > 0 && (
@@ -136,7 +129,7 @@ function Resultado({ competencia }: { competencia: string | undefined }) {
       <div className="grid items-start gap-4 lg:grid-cols-2">
         <Conciliacao resultado={r} />
         <Card>
-          <CardHeader><CardTitle>Recebido e ainda não reconhecido</CardTitle></CardHeader>
+          <CardHeader><CardTitle>A reconhecer</CardTitle></CardHeader>
           <CardContent className="grid gap-1 text-sm">
             <p>
               {r.aindaNaoReconhecido.pedidos === 0
@@ -167,7 +160,6 @@ function PorRevenda({ competencia }: { competencia: string | undefined }) {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Revenda</TableHead>
-                    <TableHead tipo="numero">Taxa da plataforma</TableHead>
                     <TableHead tipo="numero">Parte da Avalia</TableHead>
                     <TableHead tipo="numero">Pedidos de placas</TableHead>
                     <TableHead tipo="numero">Total</TableHead>
@@ -182,7 +174,6 @@ function PorRevenda({ competencia }: { competencia: string | undefined }) {
                           {r.doGrupo && <Badge variant="info">Do grupo</Badge>}
                         </span>
                       </TableCell>
-                      <TableCell>{valor(r.taxaDaPlataformaCents)}</TableCell>
                       <TableCell>{valor(r.parteDaAvaliaCents)}</TableCell>
                       <TableCell>{valor(r.pedidosDePlacasCents)}</TableCell>
                       <TableCell>{valor(r.totalCents)}</TableCell>
@@ -198,53 +189,6 @@ function PorRevenda({ competencia }: { competencia: string | undefined }) {
   )
 }
 
-/** Fechar o mês do livro da operadora, com confirmação; reabrir pede o motivo. */
-function Fechamento({ competencia, fechado }: { competencia: string; fechado: boolean }) {
-  const fechar = useFecharMesDaOperadora()
-  const reabrir = useReabrirMesDaOperadora()
-  const [aberto, setAberto] = useState(false)
-  const [motivo, setMotivo] = useState('')
-  const gravacao = fechado ? reabrir : fechar
-  // Só mês que já acabou se fecha.
-  if (!fechado && competencia >= mesCorrente()) return null
-
-  async function confirmar() {
-    try {
-      if (fechado) await reabrir.mutateAsync({ competencia, motivo })
-      else await fechar.mutateAsync(competencia)
-      setAberto(false)
-      setMotivo('')
-    } catch {
-      // O erro aparece no diálogo.
-    }
-  }
-
-  return (
-    <>
-      <Button variant="outline" onClick={() => { gravacao.reset(); setAberto(true) }}>{fechado ? 'Reabrir mês' : 'Fechar mês'}</Button>
-      <Dialog open={aberto} onOpenChange={setAberto}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{fechado ? 'Reabrir' : 'Fechar'} {nomeDoMes(competencia)}</DialogTitle>
-            <DialogDescription>{fechado ? 'Lançamentos voltam a entrar no mês.' : 'Correções depois vão para o mês corrente.'}</DialogDescription>
-          </DialogHeader>
-          <Erro erro={gravacao.error ? mensagemDoErro(gravacao.error) : null} />
-          {fechado && (
-            <Field>
-              <FieldLabel htmlFor="motivo-da-reabertura">Motivo</FieldLabel>
-              <Textarea id="motivo-da-reabertura" maxLength={200} value={motivo} onChange={(e) => setMotivo(e.target.value)} />
-            </Field>
-          )}
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setAberto(false)}>Cancelar</Button>
-            <Button disabled={gravacao.isPending || (fechado && !motivo.trim())} onClick={confirmar}>{fechado ? 'Reabrir mês' : 'Fechar mês'}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
-  )
-}
-
 /**
  * O financeiro da operadora: o resultado consolidado do grupo (a Avalia empresa, revenda do grupo mais operadora),
  * a receita por revenda, as despesas da operadora, o custo de produção por lote e o fechamento do mês do livro dela.
@@ -253,23 +197,18 @@ export function TelaDoResultadoDoGrupo() {
   const meses = useMesesDaOperadora()
   const [competencia, setCompetencia] = useState<string | undefined>()
   const resultado = useResultadoDoGrupo(competencia)
+  const fechar = useFecharMesDaOperadora()
+  const reabrir = useReabrirMesDaOperadora()
   const d = resultado.data
   const mes = competencia ?? d?.competencia
 
   return (
     <>
-      <Cabecalho titulo="Resultado do grupo">
-        <Select value={mes ?? ''} onValueChange={setCompetencia}>
-          <SelectTrigger aria-label="Mês" className="w-48"><SelectValue placeholder="Mês" /></SelectTrigger>
-          <SelectContent>
-            {(meses.data ?? (d ? [{ competencia: d.competencia, fechado: d.fechado }] : [])).map((m) => (
-              <SelectItem key={m.competencia} value={m.competencia}>{nomeDoMes(m.competencia)}{m.fechado ? ' (fechado)' : ''}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {d && <Fechamento competencia={d.competencia} fechado={d.fechado} />}
+      <Cabecalho titulo="Resultados">
+        <SeletorDoMes meses={meses.data} atual={d} valor={mes} aoTrocar={setCompetencia} />
+        {d && <Fechamento competencia={d.competencia} fechado={d.fechado} fechar={fechar} reabrir={reabrir} />}
       </Cabecalho>
-      {d?.fechado && d.fechadoEm && <p className="mb-3 text-sm text-muted-foreground"><Badge variant="neutro">Fechado</Badge> em {formatarData(d.fechadoEm)}</p>}
+      {d?.fechado && d.fechadoEm && <MesFechado fechadoEm={d.fechadoEm} />}
       <Tabs defaultValue="resultado">
         <TabsList className="mb-3 w-full sm:w-auto">
           <TabsTrigger value="resultado">Resultado</TabsTrigger>

@@ -139,8 +139,8 @@ export function PainelDeSocios({ competencia }: { competencia: string | undefine
       {erro && <div className="lg:col-span-2"><Erro erro={mensagemDoErro(erro)} /></div>}
       <Card>
         <CardHeader>
-          <CardTitle>Retiradas do mês</CardTitle>
-          <CardAction><Button disabled={lista.length === 0} onClick={() => setRetirada('nova')}>Nova retirada</Button></CardAction>
+          <CardTitle>Retiradas</CardTitle>
+          <CardAction><Button size="sm" disabled={lista.length === 0} onClick={() => setRetirada('nova')}>Nova retirada</Button></CardAction>
         </CardHeader>
         <CardContent>
           <ListaPaginada lista={retiradas} textoVazio={lista.length === 0 ? 'Cadastre os sócios do contrato para lançar retirada.' : 'Nenhuma retirada no mês.'} nomeDaBusca="Buscar nas retiradas" placeholder="Sócio ou observação">
@@ -177,8 +177,8 @@ export function PainelDeSocios({ competencia }: { competencia: string | undefine
       </Card>
       <Card>
         <CardHeader>
-          <CardTitle>Sócios do contrato</CardTitle>
-          <CardAction><Button variant="outline" onClick={() => setSocio('novo')}>Cadastrar sócio</Button></CardAction>
+          <CardTitle>Sócios</CardTitle>
+          <CardAction><Button variant="outline" size="sm" onClick={() => setSocio('novo')}>Novo sócio</Button></CardAction>
         </CardHeader>
         <CardContent>
           <EstadoDaConsulta carregando={socios.isPending} erro={socios.error} vazio={lista.length === 0} textoVazio="Nenhum sócio cadastrado." />

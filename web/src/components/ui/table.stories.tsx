@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 const PLACAS = [
   { codigo: 'K7M2PX', situacao: 'Ativa', com: '-', vence: '11/09/2027', leituras: 76 },
   { codigo: '3GKD93', situacao: 'Em estoque', com: 'Bruna Lima', vence: '-', leituras: 0 },
-  { codigo: 'T0DK9J', situacao: 'Na carência', com: '-', vence: '04/10/2026', leituras: 1203 },
+  { codigo: 'T0DK9J', situacao: 'Carência', com: '-', vence: '04/10/2026', leituras: 1203 },
 ]
 
 /**
@@ -33,7 +33,7 @@ function Estoque({ linhas = 1 }: { linhas?: number }) {
         {lista.map((p) => (
           <TableRow key={p.codigo}>
             <TableCell className="font-medium">{p.codigo}</TableCell>
-            <TableCell><Badge variant={p.situacao === 'Ativa' ? 'sucesso' : p.situacao === 'Na carência' ? 'atencao' : 'neutro'}>{p.situacao}</Badge></TableCell>
+            <TableCell><Badge variant={p.situacao === 'Ativa' ? 'sucesso' : p.situacao === 'Carência' ? 'atencao' : 'neutro'}>{p.situacao}</Badge></TableCell>
             <TableCell>{p.com}</TableCell>
             <TableCell>{p.vence}</TableCell>
             <TableCell>{p.leituras}</TableCell>

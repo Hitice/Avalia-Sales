@@ -360,6 +360,20 @@
   :is([data-slot="table-head"], [data-slot="table-cell"]):is([data-tipo="numero"], [data-tipo="acoes"]) {
     text-align: right;
   }
+  /* A coluna de ações fica presa à direita e por cima do que rola: Editar nunca sai da tela. */
+  :is([data-slot="table-head"], [data-slot="table-cell"])[data-tipo="acoes"] {
+    position: sticky;
+    right: 0;
+    z-index: 1;
+    background: var(--card);
+  }
+  [data-slot="table-head"][data-tipo="acoes"] {
+    z-index: 2;
+    background: var(--cinza-50);
+  }
+  [data-slot="table-row"]:is(:hover, :has([aria-expanded="true"])) > [data-slot="table-cell"][data-tipo="acoes"] {
+    background: var(--cinza-50);
+  }
   [data-slot="table-cell"][data-tipo="situacao"] > [data-slot="badge"] {
     width: 100%;
   }

@@ -30,7 +30,7 @@ describe('TelaDeCupons', () => {
     const corpos = abrir()
     await screen.findByText('OUTUBRO')
 
-    fireEvent.click(screen.getByRole('button', { name: /Editar/ }))
+    fireEvent.click(screen.getAllByRole('button', { name: /Editar/ })[0])
 
     const campo = await screen.findByLabelText('Vale até')
     expect(campo).toHaveValue('2026-10-31')

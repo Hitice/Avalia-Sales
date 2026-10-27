@@ -2,23 +2,25 @@ import { mensagemDoErro } from '@/api/cliente'
 import { formatarDataHora } from '@/api/rotulos'
 import { AcoesDaLinha } from '@/componentes/AcoesDaLinha'
 import { ListaPaginada } from '@/componentes/ListaPaginada'
-import { Cabecalho, Erro, Rolagem } from '@/componentes/Tela'
+import { Aviso, Cabecalho, Erro, Rolagem } from '@/componentes/Tela'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { formatarCentavos } from '@/dinheiro/dinheiro'
-import { useFilaDoErp, useReenviarAoErp } from './consultas'
+import { useFilaDoErp, useIntegracaoDoErp, useReenviarAoErp } from './consultas'
 
 const ROTULO = { Pendente: 'Na fila', Enviado: 'No ERP', Parado: 'Parado' } as const
 
 /** Os pedidos de placas pagos a caminho do Protheus, como pedido de venda. */
 export function TelaDoErp() {
   const fila = useFilaDoErp()
+  const integracao = useIntegracaoDoErp()
   const reenviar = useReenviarAoErp()
 
   return (
     <>
       <Cabecalho titulo="ERP" />
+      {integracao.data?.ligada === false && <Aviso>Integração com o Protheus desligada. Pedido pago não entra na fila.</Aviso>}
       <Erro erro={reenviar.error ? mensagemDoErro(reenviar.error) : null} />
       <Card className="mt-3">
         <CardContent>

@@ -9,7 +9,7 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-const revenda = { revendedor: { comissaoPadraoBps: 1000, renovacaoBps: 6000, taxaAvaliaBps: 0, encerradaEm: null }, contrato: 'Assinado' }
+const revenda = { revendedor: { comissaoPadraoBps: 1000, renovacaoBps: 6000, encerradaEm: null }, contrato: 'Assinado' }
 
 function abrir(tela: React.ReactNode, endereco: string) {
   vi.stubGlobal('fetch', vi.fn(async (url: string) => new Response(JSON.stringify(url.endsWith('/revenda') ? revenda : url.includes('/razao') ? { itens: [], total: 0, proxima: null } : []), { status: 200 })))

@@ -25,12 +25,6 @@ function abrir() {
 }
 
 describe('TelaDeDestinosBloqueados', () => {
-  it('lista o domínio com o motivo', async () => {
-    abrir()
-    expect(await screen.findByText('golpe.exemplo.com')).toBeInTheDocument()
-    expect(screen.getByText('Phishing')).toBeInTheDocument()
-  })
-
   it('bloqueia com o endereço digitado e o motivo', async () => {
     const envios = abrir()
     await screen.findByText('golpe.exemplo.com')
@@ -46,9 +40,10 @@ describe('TelaDeDestinosBloqueados', () => {
     expect(envios[0]).toMatchObject({ metodo: 'POST', corpo: { dominio: 'https://novo.exemplo.com/x', motivo: 'Fraude' } })
   })
 
-  it('desbloqueia pela linha', async () => {
+  it('lista o domínio com o motivo e desbloqueia pela linha', async () => {
     const envios = abrir()
-    await screen.findByText('golpe.exemplo.com')
+    expect(await screen.findByText('golpe.exemplo.com')).toBeInTheDocument()
+    expect(screen.getByText('Phishing')).toBeInTheDocument()
     fireEvent.click(screen.getAllByRole('button', { name: 'Desbloquear' })[0])
     await waitFor(() => expect(envios).toHaveLength(1))
     expect(envios[0]).toMatchObject({ metodo: 'DELETE', url: expect.stringContaining('/operadora/destinos-bloqueados/d1') })

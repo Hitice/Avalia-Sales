@@ -46,7 +46,7 @@ export function TelaDeComissoes() {
         {pendentes.data && pendentes.data.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle>Dinheiro recebido pelo vendedor, a confirmar</CardTitle>
+              <CardTitle>A confirmar</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-3">
               <Erro erro={conferir.error ? mensagemDoErro(conferir.error) : null} />
@@ -127,7 +127,7 @@ export function TelaDeComissoes() {
           </CardContent>
         </Card>
         <Card>
-          <CardHeader><CardTitle>Repasses feitos</CardTitle></CardHeader>
+          <CardHeader><CardTitle>Repasses</CardTitle></CardHeader>
           <CardContent>
             <ListaPaginada lista={repasses} textoVazio="Nenhum repasse registrado." nomeDaBusca="Buscar nos repasses" placeholder="Vendedor ou comprovante">
               {(itens) => (

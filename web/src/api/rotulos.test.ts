@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { cnpjValido } from '@/acesso/documentos'
-import { formatarBps, formatarData, formatarDataHora, formatarTelefone, paraBps, telefoneMascarado } from './rotulos'
+import {
+  ROTULO_DA_ORDEM, ROTULO_DO_CONTRATO, ROTULO_DO_ESTADO, ROTULO_DO_PAGAMENTO, ROTULO_DO_PEDIDO, ROTULO_DO_PRODUTO,
+  formatarBps, formatarData, formatarDataHora, formatarTelefone, paraBps, rotuloDoPedido, telefoneMascarado,
+} from './rotulos'
 
 describe('percentual em pontos base', () => {
   it('lê vírgula e ponto sem ponto flutuante', () => {
@@ -52,5 +55,17 @@ describe('telefone mascarado', () => {
     expect(telefoneMascarado('(11) *****-7777')).toBe(true)
     expect(telefoneMascarado('11988887777')).toBe(false)
     expect(telefoneMascarado(null)).toBe(false)
+  })
+})
+
+describe('selo de situação', () => {
+  /** Régua da seção Texto do DESIGN.md: o selo é uma ou duas palavras; data e número não contam. */
+  const palavras = (texto: string) => texto.split(/\s+/).filter((p) => !/\d/.test(p)).length
+
+  it('tem no máximo duas palavras em todo mapa de situação', () => {
+    const mapas = { ROTULO_DO_ESTADO, ROTULO_DO_PEDIDO, ROTULO_DA_ORDEM, ROTULO_DO_PRODUTO, ROTULO_DO_PAGAMENTO, ROTULO_DO_CONTRATO }
+    const longos = Object.entries(mapas).flatMap(([mapa, rotulos]) => Object.values(rotulos).filter((r) => palavras(r) > 2).map((r) => `${mapa}: ${r}`))
+    expect(longos).toEqual([])
+    expect(palavras(rotuloDoPedido({ situacao: 'Despachado', retirada: true }))).toBeLessThanOrEqual(2)
   })
 })

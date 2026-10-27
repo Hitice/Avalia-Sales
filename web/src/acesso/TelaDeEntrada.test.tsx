@@ -1,14 +1,19 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { createMemoryRouter, RouterProvider } from 'react-router'
+import { createMemoryRouter, RouterProvider, useLocation } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { TelaDeEntrada } from './TelaDeEntrada'
 import { useSessao } from './sessao'
 
-function abrir() {
+function NovaVenda() {
+  const local = useLocation()
+  return <p>Nova venda{local.search}</p>
+}
+
+function abrir(inicio = '/entrar') {
   const roteador = createMemoryRouter(
-    [{ path: '/entrar', element: <TelaDeEntrada /> }, { path: '/painel', element: <p>Painel aberto</p> }],
-    { initialEntries: ['/entrar'] },
+    [{ path: '/entrar', element: <TelaDeEntrada /> }, { path: '/painel', element: <p>Painel aberto</p> }, { path: '/vender', element: <NovaVenda /> }],
+    { initialEntries: [inicio] },
   )
   render(<RouterProvider router={roteador} />)
   return userEvent.setup()
@@ -63,5 +68,16 @@ describe('TelaDeEntrada', () => {
     const [caminho, opcoes] = fetch.mock.calls[0] as [string, RequestInit]
     expect(caminho).toBe('/api/auth/entrar')
     expect(JSON.parse(opcoes.body as string)).toEqual({ email: 'cliente@a.dev', senha: 'demo-1234567' })
+  })
+
+  it('depois de entrar, volta para a Nova venda da placa lida, com o código', async () => {
+    vi.stubGlobal('fetch', respostaDaApi(200, { token: 'token-de-teste', expiraEm: new Date(Date.now() + 900_000).toISOString() }))
+    const usuario = abrir(`/entrar?volta=${encodeURIComponent('/vender?codigo=K7M2PX')}`)
+
+    await usuario.type(screen.getByLabelText('E-mail'), 'vendedor@a.dev')
+    await usuario.type(screen.getByLabelText('Senha'), 'demo-1234567')
+    await usuario.click(screen.getByRole('button', { name: 'Entrar' }))
+
+    expect(await screen.findByText('Nova venda?codigo=K7M2PX')).toBeInTheDocument()
   })
 })

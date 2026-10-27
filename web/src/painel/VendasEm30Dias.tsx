@@ -20,7 +20,7 @@ export function porDiaDe(contagens: { dia: string; total: number }[], agora: num
  * O cartão do gráfico de 30 dias: vendas (a do revendedor mostra a revenda
  * inteira; a do vendedor, só as dele, que a API já filtra) ou leituras da placa.
  */
-export function VendasEm30Dias({ porDia, carregando, className, titulo = 'Vendas nos últimos 30 dias', serie = 'Vendas', detalhe }: {
+export function VendasEm30Dias({ porDia, carregando, className, titulo = 'Últimos 30 dias', serie = 'Vendas', detalhe }: {
   porDia: ReturnType<typeof porDiaDe>; carregando: boolean; className?: string; titulo?: string; serie?: string; detalhe?: ReactNode
 }) {
   const config = { total: { label: serie, color: 'var(--chart-1)' } } satisfies ChartConfig

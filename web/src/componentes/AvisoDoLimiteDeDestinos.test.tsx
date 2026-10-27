@@ -20,13 +20,14 @@ function abrir(papel: 'Dono' | 'Vendedor', situacao: { usados: number; limite: n
     }
     return new Response(JSON.stringify(situacao), { status: 200 })
   }))
-  render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><AvisoDoLimiteDeDestinos /></QueryClientProvider>)
-  return envios
+  const cliente = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  render(<QueryClientProvider client={cliente}><AvisoDoLimiteDeDestinos /></QueryClientProvider>)
+  return { envios, cliente }
 }
 
 describe('AvisoDoLimiteDeDestinos', () => {
   it('esgotado, o dono pede a liberação com o motivo e vê o pedido enviado', async () => {
-    const envios = abrir('Dono', { usados: 10, limite: 10, esgotado: true })
+    const { envios } = abrir('Dono', { usados: 10, limite: 10, esgotado: true })
     expect(await screen.findByText('Hoje: 10 de 10 cadastros de destino')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Solicitar liberação' }))
     const dialogo = await screen.findByRole('dialog')
@@ -51,8 +52,9 @@ describe('AvisoDoLimiteDeDestinos', () => {
   })
 
   it('com folga, não aparece', async () => {
-    abrir('Dono', { usados: 2, limite: 10, esgotado: false })
-    await waitFor(() => expect(vi.mocked(fetch)).toHaveBeenCalled())
+    const { cliente } = abrir('Dono', { usados: 2, limite: 10, esgotado: false })
+    // A consulta tem de ter chegado: antes dela a tela também fica vazia.
+    await waitFor(() => expect(cliente.getQueryCache().getAll().map((q) => q.state.status)).toEqual(['success']))
     expect(screen.queryByText(/cadastros de destino/)).toBeNull()
   })
 })

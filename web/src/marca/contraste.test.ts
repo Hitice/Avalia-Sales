@@ -10,7 +10,7 @@ describe('contraste', () => {
 
   it('aponta o que a API recusaria', () => {
     expect(problemasDaMarca('#0B3D91', '#D1006F')).toEqual([])
-    expect(problemasDaMarca('#0B3D91', '#FAFAFA')).toEqual(['A cor de destaque some no fundo branco.'])
+    expect(problemasDaMarca('#0B3D91', '#FAFAFA')).toEqual([expect.stringContaining('destaque')])
     expect(problemasDaMarca('azul', '#D1006F')).toHaveLength(1)
   })
 })

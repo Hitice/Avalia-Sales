@@ -72,8 +72,6 @@ export const total = (linhas: LinhaDaVenda[]) => linhas.reduce((soma, l) => soma
 /** Teste gratuito é de uma placa de avaliação no Google só: com outro item ou outro destino, a opção some. */
 export const cabeTeste = (linhas: LinhaDaVenda[]) => linhas.length === 1 && usaPlaca(linhas[0].item) && linhas[0].destino?.tipo === 'Google'
 
-export const temPlaca = (linhas: LinhaDaVenda[]) => linhas.some((l) => usaPlaca(l.item))
-
 export const codigosNaVenda = (linhas: LinhaDaVenda[]) => linhas.map((l) => l.codigo).filter((c): c is string => !!c)
 
 /** Como vai na NovaVendaComItens: placa com código e destino, serviço com a quantidade. */

@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { AcoesDaLinha } from './AcoesDaLinha'
 
-/** Linha da Equipe: no computador, tudo no "⋯", Editar primeiro; no celular, Editar à vista e o resto no "⋯" do cartão. */
+/** Linha da Equipe: Editar à vista e o resto no "⋯", no computador e no cartão do celular. */
 function Exemplo({ convidado, comVenda }: { convidado: boolean; comVenda: boolean }) {
   const nada = () => {}
   return (

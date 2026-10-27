@@ -151,7 +151,7 @@ export function TelaDaPlaca() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <VendasEm30Dias titulo="Leituras nos últimos 30 dias" serie="Leituras" carregando={false} porDia={porDiaDe(f.leituras, agora)}
+      <VendasEm30Dias titulo="Leituras em 30 dias" serie="Leituras" carregando={false} porDia={porDiaDe(f.leituras, agora)}
         detalhe={<p className="mb-3 text-sm">{f.totalLeituras} leituras no total. Última: {formatarDataHora(f.ultimaLeituraEm)}.</p>} />
       <Card>
         <CardHeader><CardTitle>Histórico</CardTitle></CardHeader>

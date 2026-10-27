@@ -40,11 +40,9 @@ test('jornada entre operadora, revenda e vendedora, e cada um vê só o que é d
     await operador.goto('/operadora/pedidos')
     await expect(doPedido().filter({ hasText: 'Aguardando' }).first()).toBeVisible({ timeout: 2_000 })
   }).toPass({ timeout: 20_000 })
-  // No computador, as ações da linha ficam no "⋯".
-  await doPedido().filter({ hasText: 'Aguardando' }).first().getByRole('button', { name: /^Ações de/ }).click()
-  await operador.getByRole('menuitem', { name: 'Registrar pagamento' }).click()
-  await doPedido().filter({ hasText: 'Pago' }).first().getByRole('button', { name: /^Ações de/ }).click()
-  await operador.getByRole('menuitem', { name: 'Despachar' }).click()
+  // A ação principal da linha é botão à vista; só o resto fica no "⋯".
+  await doPedido().filter({ hasText: 'Aguardando' }).first().getByRole('button', { name: 'Registrar pagamento' }).click()
+  await doPedido().filter({ hasText: 'Pago' }).first().getByRole('button', { name: 'Despachar' }).click()
   const despacho = operador.getByRole('dialog')
   await despacho.getByLabel('Lote').click()
   await operador.getByRole('option', { name: lote }).click()

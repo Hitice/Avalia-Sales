@@ -1,10 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { chamarApi, enviarJson } from '@/api/cliente'
 import type { components } from '@/api/esquema'
-import type { DestinoInformado, Ficha, Lugar, NovaVendaComItens, RenovacaoAberta, VendaRegistrada, VendasRegistradas } from '@/api/tipos'
+import type { DestinoInformado, Ficha, Lugar, NovaVendaComItens, RenovacaoAberta, VendasRegistradas } from '@/api/tipos'
 import type { ConfiguracaoDoCartao } from '@/lib/cartao'
 
-export type NovaVenda = components['schemas']['NovaVenda']
 
 /** A ficha da placa; refeita a cada 5 s enquanto `acompanhar` estiver ligado (esperando o Pix). */
 export function useFicha(codigo: string | undefined, acompanhar = false) {
@@ -25,14 +24,6 @@ export function usePagamentoDaVenda(vendaId: string, acompanhar: boolean) {
     queryKey: ['vendas', vendaId, 'pagamento'],
     queryFn: () => chamarApi<PagamentoDaVenda>(`/vendas/${vendaId}/pagamento`),
     refetchInterval: acompanhar ? 5_000 : false,
-  })
-}
-
-export function useVender() {
-  const cliente = useQueryClient()
-  return useMutation({
-    mutationFn: (venda: NovaVenda) => chamarApi<VendaRegistrada>('/vendas', enviarJson('POST', venda)),
-    onSuccess: () => Promise.all(['vendas', 'placas', 'placa'].map((c) => cliente.invalidateQueries({ queryKey: [c] }))),
   })
 }
 

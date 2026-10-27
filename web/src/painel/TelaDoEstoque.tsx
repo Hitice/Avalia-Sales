@@ -199,7 +199,7 @@ function Consignacao() {
 
   return (
     <Card>
-      <CardHeader><CardTitle>Consignar ao vendedor</CardTitle></CardHeader>
+      <CardHeader><CardTitle>Consignar</CardTitle></CardHeader>
       <CardContent>
         <form
           className="grid gap-4"

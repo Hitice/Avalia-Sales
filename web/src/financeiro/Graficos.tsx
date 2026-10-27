@@ -81,13 +81,13 @@ const configDoHistorico = {
 } satisfies ChartConfig
 
 /** Recebido e resultado dos últimos seis meses, lado a lado. Resultado negativo desce abaixo da linha do zero. */
-export function Historico({ meses }: { meses: MesDoHistorico[] }) {
+export function Historico({ meses, className }: { meses: MesDoHistorico[]; className?: string }) {
   const dados = meses.map((m) => ({ mes: mesCurto(m.competencia), recebido: m.recebidoCents / 100, resultado: m.resultadoCents / 100 }))
   return (
-    <Card>
-      <CardHeader><CardTitle>Últimos 6 meses</CardTitle></CardHeader>
+    <Card className={className}>
+      <CardHeader><CardTitle>Histórico</CardTitle></CardHeader>
       <CardContent>
-        <ChartContainer config={configDoHistorico} className="aspect-auto h-40 w-full">
+        <ChartContainer config={configDoHistorico} className="aspect-auto h-48 w-full">
           <BarChart accessibilityLayer data={dados} margin={{ left: 4, right: 4 }}>
             <CartesianGrid vertical={false} />
             <XAxis dataKey="mes" tickLine={false} axisLine={false} tickMargin={8} />
