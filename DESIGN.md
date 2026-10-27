@@ -22,7 +22,12 @@ que está no código; se discordarem, vale o código e este documento é corrigi
   mais de 1 px na lateral de cartão ou item, texto em degradê, sobretítulo
   acima do título.
 - Texto de tela curto, em português, sem travessão. O título diz o que a tela
-  faz, o botão é verbo, o erro diz o que corrigir.
+  faz, o botão é verbo, o erro diz o que corrigir (seção Texto).
+- A ação de todo dia fica à vista: Editar, Pagar e Abrir são botão, não item
+  de menu. O "⋯" guarda só o resto.
+- Cartão mostra dado. Cartão cujo único conteúdo é um botão ou um link não
+  existe: o link vai no cabeçalho (`CardAction`) e o conteúdo é o número, a
+  lista ou o gráfico.
 
 ## Tokens
 
@@ -120,7 +125,10 @@ Tailwind estão desligados em `index.css` (`--color-*: initial` e os outros):
   só), o bloco do papel e da revenda em borda, Nova venda primária, grupos com
   título em 11 px, item de 32 px com ícone de 16 px (ativo - fundo
   `--accent`, texto escuro, ícone em `--primary-texto`), conta no pé abrindo
-  para cima. Cabeçalho de 56 px com fio e o sino. Tablet - menu de cima
+  para cima, e o botão Recolher menu abaixo dela: recolhido, o painel fica
+  com 60 px, só ícones com `title` e rótulo para o leitor de tela, a marca
+  vira o ícone e a escolha fica no navegador (`avalia.menu-recolhido`).
+  Cabeçalho de 56 px com fio e o sino. Tablet - menu de cima
   quebrando linha, item de 36 px. Celular - cabeçalho compacto, barra de baixo
   com 4 destinos e "Mais" (folha que sobe de baixo), alvo de 52 px, ícone ativo
   na cor da marca e traço de 2 px em cima.
@@ -133,7 +141,12 @@ Tailwind estão desligados em `index.css` (`--color-*: initial` e os outros):
   sem anel nem fundo.
 - Cartão (`components/ui/card.tsx`) - borda de 1 px, raio de 8 px, sem
   sombra. Cartão dentro de cartão não existe: lista dentro de cartão é linha
-  com fio (`divide-y`).
+  com fio (`divide-y`), e seção à parte (as retiradas de sócio na DRE) é fio
+  em cima (`border-t`), nunca caixa em `bg-muted`. A ação do cabeçalho vai em
+  `CardAction`, sempre um botão `size="sm"` (link, contorno ou primário): o
+  componente centra na linha do título e desconta a altura, para o cabeçalho
+  continuar com 20 px e os títulos dos cartões vizinhos ficarem na mesma
+  linha. Cabeçalho com `flex` próprio para pôr o botão não entra.
 - Tabela (`components/ui/table.tsx` dentro de `Rolagem`) - no computador,
   encosta nas bordas do cartão, cabeçalho de 36 px em 12 px sobre o cinza-50
   (vira o topo do cartão), linha de 44 px com fio cinza-100 e cinza-50 sob o
@@ -142,13 +155,16 @@ Tailwind estão desligados em `index.css` (`--color-*: initial` e os outros):
   `numero` em algarismos de mesma largura, `situacao` com os selos da coluna
   na largura do maior e o texto de apoio embaixo, `acoes` na última coluna;
   número, data, situação e ações ficam na largura do conteúdo e o resto vai
-  para o texto. Ação da linha é sempre `AcoesDaLinha`: no computador, o
-  mesmo "⋯" em toda linha, com a principal primeiro; botão e formulário
-  dentro da célula não entram (a ação abre um modal). Lista longa rola dentro
-  da tabela com o cabeçalho fixo e, a partir de sete linhas, ganha a busca.
-  No celular, cada linha vira um cartão com o rótulo da coluna à esquerda,
-  a primeira ação em botão e o resto no "⋯"; a lista corre com a página,
-  sem rolagem própria. A área que rola só vira parada de tabulação quando
+  para o texto. A coluna de ações fica presa à direita (`position: sticky`,
+  fundo do cartão): quando a tabela é mais larga que o cartão e rola, a ação
+  continua na tela. Ação da linha é sempre `AcoesDaLinha`: a principal
+  (Editar, Pagar) em botão `sm` à vista e o resto no "⋯"; botão e formulário
+  dentro da célula não entram (a ação abre um modal). Texto opaco e longo
+  (id de recebedor) fica em `truncate` com `title`, para não alargar a
+  tabela. Lista longa rola dentro da tabela com o cabeçalho fixo e, a partir
+  de sete linhas, ganha a busca. No celular, cada linha vira um cartão com o
+  rótulo da coluna à esquerda, a primeira ação em botão e o resto no "⋯"; a
+  lista corre com a página, sem rolagem própria. A área que rola só vira parada de tabulação quando
   rola e não tem link nem botão (`useRegiaoRolavel`).
 - Lista paginada pela API (`componentes/ListaPaginada.tsx`, `lib/paginacao.ts`) -
   toda lista que cresce com o uso: o campo de busca no alto (o termo vai à API
@@ -159,7 +175,7 @@ Tailwind estão desligados em `index.css` (`--color-*: initial` e os outros):
   erro (`Erro`). Número que resume a lista inteira vem de rota própria, e não
   da soma da página.
 - Selo (`components/ui/badge.tsx`) - 22 px, raio cheio, 12 px em 500, ponto
-  de 6 px na cor do texto. Variantes `sucesso`, `atencao`, `erro`, `info` e
+  de 6 px na cor do texto (no `neutro`, cinza-400). Variantes `sucesso`, `atencao`, `erro`, `info` e
   `neutro` para situação; `default` (cor da marca) só para contagem, como itens
   na venda e mensagens não lidas; `outline` e `secondary` para rótulo sem
   situação (tipo, categoria, mínimo).
@@ -192,11 +208,45 @@ Tailwind estão desligados em `index.css` (`--color-*: initial` e os outros):
   sempre em `--chart-1` com o percentual no centro, e sem ela no mês a cor da
   marca não vai para outra parte.
 - Início do dono (`painel/TelaInicial.tsx`) - o esboço aprovado: quatro
-  indicadores, vendas dos últimos 30 dias (7 de 12 colunas) ao lado de para
-  onde foi o dinheiro do mês (5 colunas; resultado, custo das placas,
-  comissões e taxas) e a tabela das vendas de hoje (hora, cliente, item,
-  valor, situação). No celular, uma coluna e as vendas de hoje em lista de
-  extrato.
+  indicadores, os últimos 30 dias de vendas (7 de 12 colunas) ao lado do
+  Financeiro do mês (5 colunas; recebido, comissões, custo das placas, parte
+  da Avalia no mês com serviço, despesas e resultado, as mesmas linhas da DRE em `financeiro/LinhaDaDre`,
+  com Abrir no cabeçalho) e a tabela de hoje (hora, cliente, item, valor,
+  situação). No celular, uma coluna e a lista de hoje em extrato.
+- Financeiro do dono (`financeiro/TelaDoFinanceiro.tsx`) - quatro
+  indicadores; depois, em 12 colunas, o Demonstrativo (5), as Saídas em rosca
+  (4) e o Caixa com as Despesas (3); o Histórico de seis meses ocupa a linha
+  de baixo inteira. O saldo do caixa tem o mesmo tipo do indicador (24 px,
+  500).
+
+## Texto
+
+Rótulo, selo, menu, coluna, botão e título de cartão:
+
+- Uma palavra quando basta ("Aguardando", "Paga", "Bloqueados", "Caixa",
+  "Saídas"); duas ou três quando uma só tira o sentido ("Custo das placas").
+  Sem frase, sem artigo, sem a pergunta no lugar do nome ("Para onde foi o
+  dinheiro" é "Saídas").
+- Botão é verbo no infinitivo ("Pagar", "Editar", "Abrir"); o objeto só
+  quando a tela tem mais de um ("Fechar mês", "Nova retirada").
+- Selo de situação é uma palavra do mapa de `rotulos.ts`.
+- Sem subtítulo explicativo, ajuda de campo ou parágrafo que só descreva a
+  tela. Texto de apoio existe quando muda a decisão de quem lê ("Sem
+  pagamento em 7 dias, a placa sai do ar.").
+
+Mensagem de erro, da API (`RegraDeNegocioException`) ou da tela:
+
+- Fato primeiro, sem artigo e sem "está": "Mês fechado.", "Código não
+  confere.", "Pedido com link aberto."
+- Depois, se houver saída, uma frase no imperativo: "Use outra data.",
+  "Ligue em Segurança.", "Fale com o suporte."
+- Até duas frases, cerca de 80 caracteres. Sem o porquê da regra, sem "sua
+  conta", "você", "por favor", "tente de novo", "não foi possível".
+- Nome do objeto quando identifica (lote 12, placa K7M2PX, outubro), nunca
+  id interno. Valor e limite no formato da tela (R$ 1.234,56).
+- A mesma palavra para a mesma coisa em todas: revenda, vendedor, cliente,
+  placa, pedido, lote, venda, cobrança, pagamento por fora, segundo fator,
+  operadora, suporte.
 
 ## White label e contraste
 
@@ -258,13 +308,17 @@ Tudo dentro de `web/`:
 | --- | --- |
 | `npm run lint` | oxlint com `eslint-plugin-better-tailwindcss` (classe desconhecida pelo `index.css`, classe repetida, e `no-restricted-classes` - degradê, `blur` e `backdrop-blur`, sombra fora de `shadow-sm/md/lg`, roxo, violeta, fúcsia e índigo, valor solto `-[...]` e propriedade solta `[prop:valor]`) e a regra própria `design-system/sem-cor-solta` (`web/lint/design-system.js` - cor em `style={{}}` e hex, `rgb`, `hsl` ou `oklch` em texto de `.tsx`, fora de `src/marca`, histórias e testes). Zero erros para passar |
 | `npm test` | Vitest em dois projetos - `unidade` (jsdom) e `historias` (cada história do Storybook no Chromium com o axe em modo erro, contraste incluído) |
-| `npx storybook build` | O catálogo compila (o CI também compila) |
-| `npx playwright test` | Ponta a ponta com `@axe-core/playwright` (WCAG 2.2 AA, violação séria ou crítica falha) em todas as telas do dono e da operadora a 390 e 1440 px, sem rolagem lateral, e os fluxos de venda, cartão, convite, jornada, segurança e encerramento |
+| `npm run build-storybook` | O catálogo compila (o CI também compila) |
+| `npm run e2e` | Ponta a ponta com `@axe-core/playwright` (WCAG 2.2 AA, violação séria ou crítica falha) em todas as telas do dono, do vendedor e da operadora a 390 e 1440 px, sem rolagem lateral, e os fluxos de venda, cartão, convite, jornada, segurança e encerramento a 390 px. Precisa da API local com a demonstração (`CLAUDE.md`, Rodar e testar) |
 
-Do topo do repositório, o detector do impeccable lê os padrões de template:
-`~/.claude/skills/impeccable/scripts/impeccable detect --json web/src`. Ele
-aponta a Geist como fonte comum demais; a escolha é deliberada (o padrão da
-categoria, decidido pelo dono em 24/10/2026) e fica registrada aqui.
+`npm test` e `npm run e2e` usam o Chromium do Playwright: `npm run navegador`
+instala uma vez.
+
+Opcional, para quem tem a skill impeccable instalada na própria máquina (ela
+não fica no repositório): do topo,
+`~/.claude/skills/impeccable/scripts/impeccable detect --json web/src` lê os
+padrões de template. Ele aponta a Geist como fonte comum demais; a escolha é
+deliberada (o padrão da categoria) e fica registrada aqui.
 
 ## Como acrescentar
 

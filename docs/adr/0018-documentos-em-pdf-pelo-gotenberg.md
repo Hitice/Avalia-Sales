@@ -20,14 +20,18 @@ Chromium.
 ## Decisão
 
 Gotenberg 8 (`gotenberg/gotenberg:8.38.1-chromium`, licença MIT) no Compose de
-produção, sem porta publicada, sem saída para a rede
-(`CHROMIUM_DENY_PRIVATE_IPS` e `CHROMIUM_DENY_PUBLIC_IPS`) e sem JavaScript.
+produção, sem porta publicada e sem JavaScript. O contêiner está na rede do
+Compose, mas o Chromium recusa endereço público e privado
+(`CHROMIUM_DENY_PRIVATE_IPS` e `CHROMIUM_DENY_PUBLIC_IPS`): o documento só usa
+os arquivos que o Worker manda junto.
 Os modelos ficam em `src/AvaliaSales.Infrastructure/Impressao/Modelos`,
-embutidos no assembly; `DocumentosEmPdf` troca `{{campo}}` pelo valor escapado
+embutidos no assembly. `DocumentosEmPdf` troca `{{campo}}` pelo valor escapado
+e `{{{campo}}}` pelo HTML montado no código (a tabela de clientes do distrato),
 e manda o HTML, o rodapé, o CSS, o logo e as fontes (Charis SIL, licença OFL)
-para `POST /forms/chromium/convert/html`. Só o Worker gera documento: a falha
-do conversor não derruba tela, e a próxima volta tenta de novo. Em Development
-e nos testes, `Pdf:Simulado` gera um PDF mínimo sem o contêiner.
+para `POST /forms/chromium/convert/html`. Só o Worker gera documento
+(`DocumentosDaRevenda`, na rotina de retomadas): a falha do conversor não
+derruba tela, e a próxima volta tenta de novo. Em Development e nos testes,
+`Pdf:Simulado` gera um PDF mínimo sem o contêiner.
 
 ## Consequências
 

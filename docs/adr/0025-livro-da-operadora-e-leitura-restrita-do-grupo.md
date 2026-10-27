@@ -3,6 +3,9 @@
 - Situação - Aceita
 - Data - 26/10/2026
 - Complementa - 0008, 0011, 0015, 0020
+- Revista - 27/10/2026, a taxa da plataforma saiu (ADR 0003). O livro guarda a parte da Avalia
+  nos serviços e o pedido de placas; o tipo `TaxaDaPlataforma` fica só para as linhas antigas e
+  os estornos delas
 
 ## Contexto
 
@@ -12,8 +15,8 @@ transações internas (CPC 36 / IFRS 10), receita reconhecida quando o controle 
 cliente (CPC 47 / IFRS 15) e informação por segmento (CPC 22 / IFRS 8). O preço do pacote da
 revenda Avalia é o mesmo das outras revendas.
 
-O que a operadora ganha de cada revenda (a taxa da plataforma, a parte da Avalia nos serviços e
-os pedidos de placas) não tem onde ficar: o razão é de revendedor, e a operadora não tem
+O que a operadora ganha de cada revenda (a parte da Avalia nos serviços, os pedidos de placas e,
+até 27/10/2026, a taxa da plataforma) não tem onde ficar: o razão é de revendedor, e a operadora não tem
 revendedor (ADR 0008). Para consolidar, a operadora também precisa ler o DRE da revenda do
 mesmo grupo, sem abrir o das outras.
 
@@ -41,13 +44,15 @@ Para ler o DRE da revenda do grupo:
 
 Livro próprio, `lancamentos_da_operadora`, só de inserção (`REVOKE UPDATE, DELETE` do papel da
 aplicação), com `revendedor_origem_id` (de quem veio o ganho), tipo, valor com sinal, origem,
-venda, competência em Brasília, `por_fora` (taxa "a acertar") e `estorna_id`. Os índices únicos
+venda, competência em Brasília, `por_fora` (parte "a acertar") e `estorna_id`. Os índices únicos
 são os do razão: o mesmo fato não é lançado duas vezes, e a mesma linha não é estornada duas vezes.
 
-- A taxa da plataforma e a parte da Avalia são lançadas no mesmo ponto em que o razão da revenda
-  lança `TaxaAvalia` (`EfeitosDaCobranca`), com o mesmo Id da linha do razão, e o estorno do razão
+- A parte da Avalia nos serviços é lançada no mesmo ponto em que o razão da revenda lança
+  `TaxaAvalia` (`EfeitosDaCobranca`), com o mesmo Id da linha do razão, e o estorno do razão
   estorna a linha do livro no mesmo `SaveChanges`. O Id comum é o que deixa a revenda estornar sem ler
-  o livro. A taxa de recebido por fora entra marcada.
+  o livro. A parte de recebido por fora entra marcada. Até 27/10/2026 a taxa da plataforma era
+  lançada do mesmo jeito, com o tipo `TaxaDaPlataforma`; o tipo da linha do livro é escolhido pelo
+  começo da descrição da linha do razão ("Parte da Avalia"), em `LivroDaOperadora`.
 - O pedido de placas é receita da operadora na ativação do lote (`PedidosDePlacas.Ativar`), e não no
   pagamento. Antes disso é adiantamento de cliente, mostrado como "recebido e ainda não reconhecido".
 - Despesas da operadora (CRUD) e o fechamento do mês dela seguem o ADR 0020: editar estorna e lança de
@@ -80,7 +85,7 @@ marcada, mesmo com o id certo, e o escopo só serve a quem entra como operadora.
 - Nenhuma regra pergunta se a revenda é a Avalia. A revenda Avalia é marcada como qualquer outra.
 - Risco aceito - a operadora, ao marcar uma revenda, autoriza a leitura agregada do DRE dela. Marcar revenda
   de terceiro seria expor o resultado dela; por isso a marca é decisão explícita, pede confirmação na tela e
-  fica na trilha da operadora. Dentro do escopo, o código da leitura vê a sessão inteira da revenda marcada;
+  fica na trilha da operadora. Ela não pede o segundo fator (ADR 0027). Dentro do escopo, o código da leitura vê a sessão inteira da revenda marcada;
   o que impede o vazamento é a leitura só devolver agregados, o que o teste cobre.
 - Revenda fora do grupo aparece só pelo que paga à operadora; o DRE dela nunca é lido, e o teste prova isso
   mesmo com o id dela.

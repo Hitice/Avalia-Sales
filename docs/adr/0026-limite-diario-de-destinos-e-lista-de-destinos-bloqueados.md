@@ -27,16 +27,18 @@ A terceira.
   `LinkCriado`, `LinkAlterado`), sem tabela nova. A revenda pede liberação num
   chamado, e a operadora soma mais cadastros ao limite de hoje
   (`revendedores.destinos_liberados` e `destinos_liberados_em`).
-- Lista - `destinos_bloqueados` guarda domínios, vale também para subdomínios, tem
-  leitura aberta (a leitura do QR roda na sessão da revenda dona) e escrita só da
-  operadora. Quem cria destino recusa domínio bloqueado. A leitura do QR e o clique
-  do link consultam a lista antes de redirecionar e mostram a página "Endereço
-  bloqueado".
+- Lista - `destinos_bloqueados` guarda domínios em minúsculas e sem "www.", vale
+  também para subdomínios, tem leitura aberta (a leitura do QR roda na sessão da
+  revenda dona) e escrita só da operadora, com criar e excluir. Quem cria destino
+  recusa domínio bloqueado. A leitura do QR e o clique do link consultam a lista
+  antes de redirecionar e mostram a página "Endereço bloqueado".
 
 ## Consequências
 
 - O bloqueio vale na hora para tudo o que já aponta para o domínio, sem a operadora
   escrever em tabela de revenda.
+- A lista é reativa: o domínio só entra depois que alguém o denuncia, e um endereço
+  que redireciona para outro (encurtador, redirecionamento aberto) passa por ela.
 - Cada leitura e cada clique ganham uma consulta à lista (tabela pequena, índice
   único); se o volume crescer, a lista vai para memória com validade curta.
 - O limite conta por auditoria, então a contagem acompanha o relógio de Brasília e

@@ -23,9 +23,15 @@ A segunda. O cadastro cria revenda e dono sem senha, com `EmailConfirmed = false
 um link `CadastroPendente` em `links_de_senha`; o marcador é um valor novo do campo
 de texto, sem migration. Pendente não entra, não recupera senha e expira em 48 horas,
 quando o Worker libera o e-mail e o CNPJ. A resposta é a mesma (202) para e-mail e
-CNPJ novos ou já cadastrados, e quem já tem conta recebe o aviso por e-mail. Captcha
-Turnstile, desligado até o dono configurar as chaves, e limites por IP, por e-mail,
-por CNPJ e por dia.
+CNPJ novos ou já cadastrados, e quem já tem conta recebe o aviso por e-mail.
+
+Contra abuso:
+
+- Captcha Turnstile - desligado enquanto `Turnstile__ChaveSecreta` estiver vazia.
+- Limites - por IP (limitador da rota), por CNPJ (5 por hora), por endereço de
+  e-mail (contado na tabela `emails`) e um teto diário de e-mails do cadastro
+  para todos (`Cadastro:EmailsPorDia`, 300). Com o teto atingido, a resposta é
+  "Muitos cadastros no momento" para qualquer pedido.
 
 ## Consequências
 
@@ -37,3 +43,5 @@ por CNPJ e por dia.
   provado; os limites contêm o abuso.
 - Donos anteriores a esta regra continuam entrando, inclusive os que nunca confirmaram
   o e-mail, no fluxo de confirmação que já existia.
+- Os limites por IP e por CNPJ ficam na memória da API e zeram quando ela reinicia;
+  o limite por endereço e o teto diário vêm da tabela `emails` e não zeram.

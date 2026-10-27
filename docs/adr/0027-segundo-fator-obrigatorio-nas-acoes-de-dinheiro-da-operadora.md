@@ -20,16 +20,25 @@ opcional.
 ## Decisão
 
 A terceira. `AcoesSensiveisDaOperadora.Exigir` recusa a ação quando o login não tem o
-segundo fator ligado, com a mensagem para ligar em Segurança. As ações são trocar
-nome e CNPJ da revenda, trocar o recebedor, registrar pagamento por fora, estornar
-pedido e registrar acerto. A troca de recebedor avisa o dono no sino e por e-mail.
-A exigência é a opção `Plataforma:ExigirSegundoFatorDaOperadora`, ligada por padrão;
-só o desenvolvimento local e os testes a desligam.
+segundo fator ligado, com a mensagem para ligar em Segurança. As ações são:
+
+- trocar nome e CNPJ da revenda;
+- trocar o recebedor do Pagar.me;
+- trocar a revenda receptora (ADR 0029);
+- registrar pagamento por fora de pedido;
+- estornar pedido;
+- registrar acerto (ADR 0028).
+
+A troca de recebedor avisa o dono no sino e por e-mail. A exigência é a opção
+`Plataforma:ExigirSegundoFatorDaOperadora`, ligada por padrão; só o desenvolvimento
+local e os testes a desligam.
 
 ## Consequências
 
 - A operadora segue entrando sem segundo fator e não perde o acesso; só não faz
   essas ações até ligá-lo.
+- A regra confere se o login tem o segundo fator ligado, e não pede código a cada
+  ação. Vale porque toda entrada com o fator ligado passa pelo código.
 - Quem roubar a senha da operadora não troca o recebedor sem o segundo fator, e o dono
   da revenda é avisado de toda troca.
 - Quando houver uma segunda pessoa na operadora, a dupla aprovação passa a ser

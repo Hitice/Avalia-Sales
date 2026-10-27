@@ -4,11 +4,11 @@ O que a plataforma faz, para quem, e as regras de negócio. A construção fica
 no [SDD](SDD.md). Toda mudança de regra atualiza este documento no mesmo
 commit, com uma linha no registro de mudanças do fim.
 
-Situação em 25/10/2026 - em produção em sales.avaliaone.com.br, versão 2.7.0.
+Situação em 27/10/2026 - em produção em sales.avaliaone.com.br, versão 2.7.0.
 A cobrança pelo Pagar.me roda em produção desde 23/10/2026, e as placas da
 Avalia leem pela plataforma desde 24/10/2026. O contrato pela D4Sign ainda
-usa o ambiente de testes, e o pedido de venda ao Protheus espera o serviço do
-Protheus (seção 12).
+usa o ambiente de testes, e a conexão com o Protheus fica desligada até o
+serviço do Protheus ter endereço (seção 12).
 
 ## 1. Visão
 
@@ -34,7 +34,7 @@ Termos usados neste documento:
   o valor interno do papel é `Dono`.
 
 A plataforma tem uma operadora só, a Avalia. A revenda Avalia vende como
-qualquer outra, com o mesmo peso: mesmo fluxo, mesma taxa, usuários separados
+qualquer outra, com o mesmo peso: mesmo fluxo, mesmos preços, usuários separados
 dos da operadora e CNPJ próprio (39.914.870/0001-01), distinto do da operadora.
 Nenhuma regra pergunta se a revenda é a Avalia. Para o resultado
 da empresa, a operadora marca no cadastro as revendas que são do mesmo grupo
@@ -67,12 +67,11 @@ dela (seção 7.5); a marca é decisão dela e não sai do CNPJ nem do nome.
   R$ 719,20 para a Avalia; a revenda que vende a R$ 899,00 fica com
   R$ 179,80. A operadora muda o desconto por produto no Catálogo da Avalia. A
   placa avulsa não tem parte: a revenda já pagou no pedido de placas.
-- Taxa da Avalia - zero. A Avalia ganha nas placas e nos serviços, e a revenda
-  paga a tarifa do Pagar.me. A taxa continua um campo por revenda, gravado na
-  cobrança no momento dela, para voltar a ser cobrada sem mudar o sistema
-  (contrato, cláusulas 5.4 e 5.7). Venda feita guarda a taxa dela. O razão e
-  as Configurações só mostram a taxa quando ela existe.
-- Receita da operadora - a taxa da plataforma e a parte da Avalia entram no pagamento; o pedido de
+- Sem taxa sobre a venda - a Avalia ganha na venda dos produtos: no pedido de
+  placas e na parte dela nos serviços. A venda e a renovação de placa não
+  mandam nada à Avalia, e a revenda paga a tarifa do Pagar.me. A taxa
+  percentual por revenda saiu em 27/10/2026 (contrato, cláusulas 1.6 e 5.4).
+- Receita da operadora - a parte da Avalia nos serviços entra no pagamento; o pedido de
   placas entra na ativação do lote (seção 7.5).
 - Serviço vendido - a venda paga de serviço (Perfil no Google, cardápio,
   landing page, sistema, kit mesa, QR dinâmico) vira ordem de serviço para a
@@ -110,9 +109,10 @@ dela (seção 7.5); a marca é decisão dela e não sai do CNPJ nem do nome.
 ## 5. Telas
 
 Todas no mesmo app, liberadas pelo papel do usuário. No computador, toda
-tabela rola dentro dela, com o cabeçalho fixo, e as ações da linha ficam no
-menu "⋯" da última coluna. No celular, cada linha é um cartão que corre com a
-página, e a primeira ação vira botão. A partir de sete linhas, a lista ganha
+tabela rola dentro dela, com o cabeçalho fixo; a ação de todo dia da linha
+(Editar, Pagar) fica em botão à vista e o resto no menu "⋯" da última coluna,
+presa à direita. No celular, cada linha é um cartão que corre com a página, e
+a primeira ação vira botão. A partir de sete linhas, a lista ganha
 uma busca pelo texto da linha, sem acento. Gravar confirma na tela. A busca
 que a API faz nas listas paginadas também acha sem acento e sem diferença de
 maiúscula ("otica" acha "Ótica").
@@ -121,7 +121,7 @@ maiúscula ("otica" acha "Ótica").
 
 | Tela | Quem usa | O que faz |
 | --- | --- | --- |
-| Entrada, cadastro e senha | Todos | Entrar, cadastrar a revenda (o CNPJ preenche razão social e endereço), confirmar o e-mail, criar e recuperar a senha. Senha com o botão de mostrar. No pé da entrada, os logos do Pagar.me e da Stone |
+| Entrada, cadastro e senha | Todos | Entrar, cadastrar a revenda (o CNPJ preenche razão social e endereço), confirmar o e-mail, criar e recuperar a senha. Senha com o botão de mostrar. No pé da entrada, o logo do Pagar.me |
 | Meus dados | Todos | No menu da conta. Só dados pessoais: nome de todos; nome da empresa, celular e endereço da revenda (o CNPJ é o do contrato; só a operadora o corrige); telefone e chave Pix do vendedor. O e-mail muda pelo Suporte |
 | Segurança | Todos | Troca de senha, para todos os papéis, e o segundo fator por app autenticador ou por código no e-mail, com códigos de recuperação, para o revendedor e a operadora. A tela convida a ligar o fator |
 | Notificações | Todos | O sino do cabeçalho. Pendências da revenda (contrato, recebimento, celular, endereço, distrato) e avisos ao vivo; o vendedor vê os dele (venda paga, venda cancelada, comissão repassada, placas com ele) |
@@ -130,7 +130,7 @@ maiúscula ("otica" acha "Ótica").
 
 | Tela | Quem usa | Pensada para | O que faz |
 | --- | --- | --- | --- |
-| Início do revendedor | Revendedor | Computador e celular | Quatro números do mês (placas em estoque, placas no ar, vendas e recebido), vendas por dia nos últimos 30 dias, o link para o Financeiro (onde está para onde foi o dinheiro do mês) e as vendas de hoje com a situação |
+| Início do revendedor | Revendedor | Computador e celular | Quatro números do mês (placas em estoque, placas no ar, vendas e recebido), vendas por dia nos últimos 30 dias, o Financeiro do mês (recebido, comissões, custo das placas, parte da Avalia quando há serviço, despesas e resultado, com Abrir para o Financeiro) e as vendas de hoje com a situação |
 | Início do vendedor | Vendedor | Celular | Vendas do mês, comissão a receber, esperando pagamento e recebida, placas com ele; meta do mês com a barra de progresso, ranking da equipe, vendas dos últimos 30 dias e a rosca da comissão |
 | Nova venda | Revendedor e vendedor | Celular | Itens (a placa abre a leitura do QR e o destino; o serviço entra com a quantidade, a partir do pedido mínimo), cliente, cobrança de tudo numa vez e gravação do NFC de cada placa |
 | Vendas | Revendedor e vendedor | Computador e celular | Lista das vendas, com a quantidade do serviço ("10x Kit Mesa") e as vendas feitas juntas marcadas. Ações - gerar cobrança, receber por fora, trocar a placa, corrigir valor e vendedor, cortesia e cancelamento. O vendedor vê só as dele |
@@ -159,11 +159,11 @@ maiúscula ("otica" acha "Ótica").
 | Pacotes e Cupons | Cadastro dos pacotes de placas e dos cupons |
 | Catálogo da Avalia | Cadastrar e editar produto, foto com recorte, preço sugerido, desconto da revenda (e a parte da Avalia que sai dele), pedido mínimo, ordem e situação |
 | Serviços | Fila de ordens de serviço - iniciar, entregar, cancelar e reabrir |
-| Revendedores | Revendas, nome e CNPJ, recebedor no Pagar.me, percentual da renovação, contrato em papel, suspensão, encerramento, pedido de reabertura, liberação de cadastros de destino do dia e a marca de revenda do grupo da operadora |
+| Revendedores | Revendas, nome e CNPJ, recebedor no Pagar.me, percentual da renovação, contrato em papel, suspensão, encerramento, pedido de reabertura, liberação de cadastros de destino do dia, a marca de revenda do grupo da operadora e a marca de revenda receptora |
 | Fornecedores | Cadastro de quem produz e entrega para a operadora (gráfica, acrílico, confecção com dado variável, logística), com criar, editar, desativar e excluir |
 | Destinos bloqueados | Domínios que a plataforma recusa como destino de QR e de link curto, e que deixam de redirecionar |
 | Atendimento | Fila de chamados pelo prazo, com o atrasado em vermelho |
-| ERP | Envios ao Protheus e reenvio |
+| ERP | Envios ao Protheus e reenvio; aviso de integração desligada |
 | Auditoria da operadora | O que a operadora mudou na plataforma, com o que foi enviado, busca, 20 por página e exportação em JSON |
 | Resultado do grupo | Resultado do mês por revenda do grupo, operadora, eliminações e consolidado, a conciliação das eliminações, o recebido e ainda não reconhecido, a receita por revenda, o a acertar das vendas recebidas por fora, as despesas da operadora, o custo de produção por lote e o fechamento do mês (seção 7.5) |
 
@@ -242,6 +242,7 @@ maiúscula ("otica" acha "Ótica").
 - Destinos bloqueados - a operadora bloqueia um domínio, e os subdomínios dele
   também. Ninguém cria destino nele, e a placa ou o link que já apontava para
   ele deixa de redirecionar e mostra "Endereço bloqueado", sem mexer na placa.
+  O domínio é a chave do registro: corrigir é desbloquear e bloquear o certo.
 - Só vende placa de lote ativado pela própria revenda. Código de outra revenda
   responde como inexistente, porque o código está impresso e qualquer um lê.
 - Placa consignada a um vendedor e vendida por outro vale para quem vendeu.
@@ -301,11 +302,12 @@ maiúscula ("otica" acha "Ótica").
 - Recebido por fora - pagamento em dinheiro ou por outro Pix, confirmado pelo
   vendedor ou pelo revendedor, só sem Pix em aberto e sem pagamento. O razão
   recebe a venda como se o Pix tivesse caído, com a comissão devida. O que
-  seria da Avalia pelo split (taxa e parte do serviço) fica "a acertar"; com
-  a taxa zero, a placa recebida por fora não deixa nada a acertar. A
+  seria da Avalia pelo split (a parte dela no serviço) fica "a acertar"; a
+  placa e a renovação recebidas por fora não deixam nada a acertar. A
 operadora quita o a acertar de cada revenda em Resultado do grupo, na aba A
 acertar, registrando o que a revenda pagou por fora; o acerto não passa do
-devido e o distrato desconta o que já foi quitado (ADR 0028). O dinheiro que o
+devido e o distrato desconta o que já foi quitado (ADR 0028). Acerto é
+dinheiro, como o razão: corrigir é excluir e lançar de novo, com auditoria. O dinheiro que o
 vendedor recebeu em mãos só vira comissão em repasse depois de o revendedor
 confirmar, em Comissões, que ele chegou. Só o
   revendedor desfaz, e só antes do repasse da comissão. A renovação é anual e
@@ -322,8 +324,8 @@ confirmar, em Comissões, que ele chegou. Só o
 
 - Pagamento pelo checkout do Pagar.me (Pix, cartão ou boleto, tudo para a
   Avalia). O link vale 3 dias e aceita um pagamento só. Pedir o link de novo
-  devolve o mesmo enquanto ele valer. Com link em aberto, o pedido não é
-  cancelado, porque o dinheiro ainda pode entrar.
+  devolve o mesmo enquanto ele valer. Cancelar o pedido com link em aberto
+  cancela o link no Pagar.me junto: ele deixa de abrir o checkout.
 - A operadora também pode registrar um pagamento recebido por fora.
 - Pagamento confirmado - o dono recebe um e-mail a cada pagamento que entra,
   do pedido de placas e da venda, com o cliente, os itens e o valor.
@@ -346,7 +348,9 @@ confirmar, em Comissões, que ele chegou. Só o
   devolver.
 - Pedido de placas pago vira pedido de venda no Protheus da Avalia, uma vez
   só. O envio que falhou volta para a fila; depois de 8 tentativas para, e a
-  operadora reenvia pela tela ERP.
+  operadora reenvia pela tela ERP. Sem o endereço do Protheus configurado a
+  integração fica desligada: o pedido pago não entra na fila, e a tela ERP
+  avisa.
 
 ### 6.5 Lote e placa
 
@@ -397,8 +401,8 @@ confirmar, em Comissões, que ele chegou. Só o
   e-mail), com o contato dela. Cada vencimento recebe cada aviso uma vez; a
   renovação paga recomeça a série.
 - A renovação conta a partir do vencimento antigo, mesmo paga com atraso. Uma
-  renovação em aberto por placa; pedir de novo devolve o mesmo Pix. Renova
-  quem vendeu a placa ou o revendedor.
+  renovação em aberto por placa; pedir de novo devolve o mesmo Pix. Só o
+  revendedor renova (seção 6.3).
 
 ### 6.6 Link curto
 
@@ -494,13 +498,14 @@ confirmar, em Comissões, que ele chegou. Só o
 
 ### 6.13 Encerramento da conta (distrato)
 
-- O revendedor pede em Meus dados (Encerrar conta). A plataforma gera o
+- O revendedor pede em Configurações, aba Geral (Encerrar conta). A plataforma gera o
   distrato com os dados da revenda e manda à D4Sign, como o contrato. Até
   assinar, ele reenvia o e-mail, baixa a cópia ou desiste (o distrato é
   cancelado na D4Sign).
 - Preenchido pela plataforma - data do contrato; data efetiva igual à da
   assinatura do distrato; exportação por 30 dias depois dela; saldo devido à
-  Avalia igual à taxa das vendas e renovações recebidas por fora, com
+  Avalia igual à parte da Avalia nos serviços recebidos por fora, menos o que
+  a revenda já acertou, com
   vencimento em 10 dias da data efetiva; saldo devido pela Avalia zero (o
   split paga a revenda direto); estoque e lotes; Anexo I com os clientes
   ativos e Anexo II com a conciliação, na posição da emissão.
@@ -508,9 +513,15 @@ confirmar, em Comissões, que ele chegou. Só o
   baixa na data efetiva (opção "manterá as placas, mas não poderá ativá-las").
 - Assinado o distrato - vendas, pedidos e qualquer escrita param, e a equipe
   perde o acesso. As placas no ar (dentro da carência), os clientes delas e os
-  links curtos desses clientes passam para a revenda da Avalia (a do CNPJ da
-  Avalia), que renova pelo valor da venda antiga. O QR continua respondendo. A
-  venda e o razão ficam com a revenda antiga.
+  links curtos desses clientes passam para a revenda receptora, que renova
+  pelo valor da venda antiga. O QR continua respondendo. A venda e o razão
+  ficam com a revenda antiga.
+- Revenda receptora - a operadora marca em Revendedores qual revenda recebe os
+  clientes de quem encerra (hoje a revenda Avalia). Só uma por vez: marcar
+  outra tira a marca da anterior. Sem receptora, o revendedor não consegue
+  pedir o encerramento, e a operadora não tira a marca com encerramento em
+  andamento. A receptora não encerra a própria conta, e revenda encerrada ou
+  com encerramento pedido não vira receptora.
 - O revendedor entra só para consultar, exportar os dados (arquivo JSON com
   clientes, vendas, placas e razão) e baixar o distrato, por 30 dias; depois o
   login é desligado. Os registros que a lei exige continuam guardados.
@@ -599,13 +610,18 @@ vendedor.
 
 - Só inserção. Correção é uma linha nova com o valor contrário, que aponta
   para a corrigida, na competência do dia do estorno.
-- Venda paga lança a receita bruta, a taxa da Avalia e a comissão devida.
-  Renovação paga lança receita e taxa, sem comissão. Repasse lança a comissão
-  paga. O mesmo pagamento nunca é lançado duas vezes.
+- Venda paga lança a receita bruta, a comissão devida e, na venda de
+  serviço, a parte da Avalia. Renovação paga lança só a receita, sem
+  comissão. Repasse lança a comissão paga. O mesmo pagamento nunca é lançado
+  duas vezes.
 - Na venda em grupo, o razão lança cada venda pelo valor dela; a última do
-  grupo fica com o custo do parcelamento e os centavos do rateio da tarifa.
-- Competência no fuso de Brasília. O líquido do mês é receita menos taxa
-  menos comissão; a tarifa do Pagar.me sai no extrato do Pagar.me.
+  grupo fica com o custo do parcelamento. A parte da Avalia é dividida só
+  entre as vendas de serviço, e a última delas fica com os centavos do rateio.
+- Competência no fuso de Brasília. O líquido do mês é receita menos parte da
+  Avalia menos comissão; a tarifa do Pagar.me sai no extrato do Pagar.me.
+- Mês de antes de 27/10/2026 pode ter linha da taxa da plataforma, que saiu:
+  ela soma junto com a parte da Avalia no razão, no DRE e no resultado do
+  grupo.
 - Também vão ao razão a despesa, a retirada de sócio, a perda de placa e o
   custo da placa dada em cortesia (seção 7.4).
 - Mês fechado não muda e não recebe linha: a que chega para ele entra no mês
@@ -631,7 +647,7 @@ vendedor.
   na revenda. Entra no caixa e fica fora do resultado e das retiradas do DRE.
 - Caixa - começa no primeiro dia de um mês, com o saldo inicial informado pelo
   revendedor (o capital de giro). Daí em diante soma o recebido das vendas e
-  renovações e os aportes, e tira a taxa da plataforma, a comissão repassada,
+  renovações e os aportes, e tira a parte da Avalia, a comissão repassada,
   as despesas, as retiradas e os pedidos de placas pagos. A tarifa do Pagar.me
   fica de fora. O que é de antes do saldo inicial continua no razão e no DRE
   dos meses dele, fora do caixa. Um saldo inicial vale por vez: trocar ou
@@ -648,13 +664,14 @@ vendedor.
   (o acrílico volta com outro QR), lote arquivado, código não impresso e
   encerramento da conta.
 - DRE do mês - vendido (vendas registradas no mês que seguem de pé), recebido
-  (pagamentos menos estornos), receita reconhecida, menos taxa da plataforma,
-  comissões, custo das placas, perdas e despesas por categoria, igual a
+  (pagamentos menos estornos), receita reconhecida, menos parte da Avalia
+  (só no mês com venda de serviço), comissões, custo das placas, perdas e
+  despesas por categoria, igual a
   resultado. Retiradas de sócio, por natureza, ficam abaixo do resultado.
 - Receita reconhecida - a placa vendida ou renovada é uma obrigação de 12
   meses (o QR passa pela plataforma). A receita entra em 12 partes a partir do
   mês do pagamento, e o custo da placa vendida acompanha. Serviço entra
-  inteiro no mês. Comissão e taxa entram no mês do pagamento. O que já entrou
+  inteiro no mês. Comissão e parte da Avalia entram no mês do pagamento. O que já entrou
   no caixa e ainda não no resultado aparece como "a reconhecer". Estorno para
   a apropriação e devolve no mês dele o que já tinha entrado. A venda trazida
   do sistema anterior é reconhecida inteira no mês dela, com o custo, como era
@@ -666,16 +683,16 @@ vendedor.
 
 ### 7.5 Financeiro da operadora e resultado do grupo
 
-O dono quer o resultado da Avalia empresa, que é a revenda Avalia mais a operadora. O desenho
+O resultado da Avalia empresa é a revenda Avalia mais a operadora. O desenho
 segue a consolidação com eliminação das transações internas (CPC 36 / IFRS 10), a receita
 reconhecida quando o controle passa ao cliente (CPC 47 / IFRS 15) e a informação por
 segmento (CPC 22 / IFRS 8). O preço do pacote da revenda Avalia é o das outras revendas.
 
 - Livro da operadora - o que a operadora ganha de cada revenda, só de inserção, como o
   razão. Estorno é linha contrária que aponta para a estornada.
-  - Taxa da plataforma e parte da Avalia nos serviços - lançadas junto com o pagamento e
-    estornadas junto com o estorno. A taxa "a acertar" de venda recebida por fora entra
-    marcada como tal.
+  - Parte da Avalia nos serviços - lançada junto com o pagamento e estornada junto com o
+    estorno. A parte "a acertar" de venda recebida por fora entra marcada como tal. A linha
+    antiga da taxa da plataforma, que saiu em 27/10/2026, soma na parte da Avalia.
   - Pedido de placas - receita da operadora na ativação do lote, quando a revenda passa a
     ter o controle das placas. Pago e ainda não ativado é adiantamento: a tela mostra
     "recebido e ainda não reconhecido". Pedido com cupom de 100% não lança.
@@ -692,7 +709,7 @@ segmento (CPC 22 / IFRS 8). O preço do pacote da revenda Avalia é o das outras
   ele, e o despacho do pedido usa o de logística como transportadora.
   Fornecedor com despesa ou custo apontando para ele não se exclui: desativa.
 - A acertar - o que cada revenda deve à Avalia pelas vendas recebidas por fora
-  (a taxa da plataforma e a parte da Avalia nos serviços, líquidas de estorno),
+  (a parte da Avalia nos serviços, líquida de estorno),
   o que já quitou e o saldo. A quitação é caixa e não passa pelo resultado.
 - Custo de produção do lote - a operadora informa, por lote, o que a gráfica cobrou e o
   que o acrílico custou, com criar, editar e excluir. O custo por placa é o total dividido
@@ -708,7 +725,7 @@ segmento (CPC 22 / IFRS 8). O preço do pacote da revenda Avalia é o das outras
     da operadora que vem de revendas de fora do grupo; menos comissões, o custo real de
     produção das placas, as despesas da revenda do grupo e as da operadora. Retiradas de
     sócio ficam fora do resultado.
-  - Eliminações - a taxa da plataforma, a parte da Avalia nos serviços e o pedido de placas
+  - Eliminações - a parte da Avalia nos serviços e o pedido de placas
     que a revenda do grupo paga à operadora saem dos dois lados. O custo da placa pelo preço
     da operadora sai da revenda, e entra o custo real de produção.
   - Custo real da placa vendida - acompanha a receita da venda, nas mesmas doze partes. A
@@ -767,9 +784,11 @@ revenda leva o nome e a cor dela (seção 6.11).
   chamados, dentro da plataforma. O WhatsApp aparece só como link com a
   mensagem pronta (convite, Pix em aberto, renovação).
 - Domínio próprio por revenda. Todas usam o mesmo domínio.
+- Cobrança por aproximação no celular (tap to pay). Exige app nativo com o SDK
+  do Pagar.me; o app do vendedor é PWA.
 - Nota fiscal (NF-e e NFS-e): a plataforma ainda não emite nem coleta os dados
   para ela. Hoje ninguém emite nota ao cliente final pela plataforma, e o
-  pedido de venda ao Protheus fica na fila. Entra quando a operação escalar.
+  pedido de venda ao Protheus espera o serviço do Protheus. Entra quando a operação escalar.
 
 ## 11. A Avalia na plataforma
 
@@ -831,7 +850,7 @@ porque está impresso nas placas vendidas.
 | 0. Base | Solução em camadas, login, isolamento entre revendas, CI e publicação | Em produção |
 | 1. Revenda | Cadastro, contrato, pedido, lote, equipe, venda, NFC e QR | Em produção |
 | 2. Pagamento | Cobrança da venda por Pix e cartão com split, checkout do pedido de placas, cupom, comissão, razão | Em produção desde 23/10/2026 |
-| 3. Serviços | Chamados, avisos ao vivo, mapa, Worker, conexão com o Protheus, marca da revenda, serviços vendidos | Em produção; o pedido de venda ao Protheus espera na fila até o serviço do Protheus ser configurado |
+| 3. Serviços | Chamados, avisos ao vivo, mapa, Worker, conexão com o Protheus, marca da revenda, serviços vendidos | Em produção; a conexão com o Protheus fica desligada até o serviço do Protheus ter endereço |
 | 4. Avalia | Placas do Sales na plataforma e repasse do endereço antigo | Em produção desde 24/10/2026, com os totais conferidos; falta desligar o módulo de vendas do sistema anterior |
 | 5. Encerramento | Distrato gerado pela plataforma, transferência dos clientes ativos, exportação | Em produção |
 
@@ -844,10 +863,10 @@ porque está impresso nas placas vendidas.
 | Google Places | Em produção, com a chave do servidor restrita ao IP do VPS | `Google__ChaveDoServidor` |
 | Google Maps no navegador | Em produção, com a chave do navegador; o Map ID próprio está a conferir (sem ele, vale `DEMO_MAP_ID`) | `Google__ChaveDoMapa`, `Google__IdDoMapa` |
 | BrasilAPI | Em produção, sem chave | - |
-| Gotenberg | Em produção, em contêiner sem rede | `Pdf__UrlDoConversor` |
-| Protheus | Conexão REST pronta. Sem endereço configurado, o pedido de venda espera na fila do Worker | `Protheus__UrlBase`, `Protheus__Usuario`, `Protheus__Senha` |
+| Gotenberg | Em produção, com o Chromium sem acesso a endereço interno ou externo | `Pdf__UrlDoConversor` |
+| Protheus | Conexão REST pronta. Sem endereço configurado, a integração fica desligada e o pedido pago não entra na fila | `Protheus__UrlBase`, `Protheus__Usuario`, `Protheus__Senha` |
 | Sentry | Em produção, com monitor de disponibilidade e check-in do Worker | `Sentry__Dsn` |
-| SonarCloud | Projeto `Hitice_Avalia-Sales` analisado pelo CI desde 25/10/2026 (C#, TypeScript e cobertura da API); falta desligar a análise automática no painel. O token vence em 24/11/2026 | `SONAR_TOKEN`, `SONAR_ORGANIZACAO`, `SONAR_PROJETO` |
+| SonarCloud | Projeto `Hitice_Avalia-Sales` analisado pelo CI desde 25/10/2026 (C#, TypeScript e cobertura da API), com a análise automática do painel desligada. O token vence em 24/11/2026 | `SONAR_TOKEN`, `SONAR_ORGANIZACAO`, `SONAR_PROJETO` |
 
 ## 13. Decisões de negócio
 
@@ -861,7 +880,7 @@ Sem decisão em aberto. A política de privacidade espera a revisão jurídica.
 | Tarifa do Pagar.me no consolidado | Guardar a tarifa no razão ou ler do extrato | Decidido: despesa mensal manual da operadora, na categoria "Tarifa do gateway", lançada com o valor do extrato do Pagar.me. O razão não guarda a tarifa por pagamento |
 | Termo do cliente final | Texto e assinatura do comprador ou nenhum documento | Decidido: o comprador não assina documento. O modelo do termo saiu da plataforma |
 | Nota fiscal | Emitir já ou quando a operação escalar | Decidido: depois. Hoje ninguém emite nota pela plataforma |
-| CNPJ da revenda Avalia | O mesmo da operadora ou outro | Decidido: outro, 39.914.870/0001-01. A operadora corrige nome e CNPJ em Revendedores, e `Plataforma__CnpjDaRevendaDaAvalia` leva o mesmo valor |
+| CNPJ da revenda Avalia | O mesmo da operadora ou outro | Decidido: outro, 39.914.870/0001-01. A operadora corrige nome e CNPJ em Revendedores. Quem recebe os clientes no encerramento é a revenda marcada como receptora, não o CNPJ |
 | Política de privacidade | Texto | Texto final publicado em `/privacidade` (versão 1), a revisão jurídica ainda vai ocorrer |
 
 ## 14. Registro de mudanças
@@ -870,6 +889,13 @@ As mudanças de 21 a 24/10/2026 estão em [historico/pdd-ate-24-10.md](historico
 
 | Data | Mudança |
 | --- | --- |
+| 27/10/2026 | Texto alinhado ao código - ação principal da linha à vista e o resto no "⋯"; Início com o Financeiro do mês; entrada só com o logo do Pagar.me; só o revendedor renova (6.5 repetia a regra antiga); encerramento pedido em Configurações; Gotenberg sem a promessa de contêiner sem rede. |
+| 27/10/2026 | Placa em branco lida sem sessão aberta - depois de entrar, o vendedor volta para a Nova venda com o código da placa preenchido. |
+| 27/10/2026 | Taxa da plataforma excluída - a Avalia ganha no pedido de placas e na parte dela nos serviços; venda e renovação de placa não mandam nada à Avalia, nem pelo split nem no a acertar. Sai a coluna Taxa em Revendedores, a linha na DRE (a parte da Avalia aparece só no mês com venda de serviço), no Início e no Resultado do grupo, e o texto em Configurações. Contrato (cláusulas 1.6 e 5.3 a 5.7) e distrato (4.1 e 4.2) falam da parte da Avalia. Linha antiga da taxa soma na parte da Avalia (ADR 0003). |
+| 27/10/2026 | Revenda receptora marcada pela operadora em Revendedores (selo "Receptora"), no lugar do CNPJ em configuração: sem ela o encerramento é recusado, e a receptora não encerra (ADR 0029). Fila do ERP desligada sem o endereço do Protheus: o pedido pago não entra na fila, e a tela ERP avisa. |
+| 27/10/2026 | Selos de situação com até duas palavras (Carência, Descontinuado, Para retirar, Cancelada, Teste vencido, Importada, Por fora); o motivo do cancelamento fica no detalhe da venda. Recuperação de conta sem os códigos do segundo fator pela operadora, com identidade conferida fora da plataforma. |
+| 27/10/2026 | Tela de entrada só com o logo do Pagar.me; tap to pay fora do escopo; correção de acerto e de domínio bloqueado é excluir e lançar de novo. |
+| 27/10/2026 | Ação de todo dia à vista em toda tabela (Editar, Pagar) e a coluna de ações sempre na tela; Pedidos de placas com Cancelar também com link de pagamento aberto (a cobrança é cancelada junto); Início mostra o Financeiro do mês no lugar de um botão; Financeiro em Demonstrativo, Saídas, Caixa, Despesas e Histórico; menu lateral recolhível; rótulos de uma palavra (Aguardando, Enviando, Resultados, Bloqueados, Saídas, Hoje, Comissão, A confirmar, Repasses, Consignar, Sócios, Retiradas). Régua de texto de rótulo e de erro na seção Texto do DESIGN.md. |
 | 27/10/2026 | Textos de tela sem explicação genérica: grupo da operadora, marca, clientes, caixa, repasse, configurações, segurança, placa e Nova venda ficam com o rótulo e o fato. |
 | 26/10/2026 | Revendedores da operadora: a data de assinatura do contrato ganha coluna própria; textos da tela de Segurança mais curtos. |
 | 26/10/2026 | Aviso por e-mail ao dono quando o segundo fator é ligado ou desligado; o item de menu da operadora passa a se chamar Bloqueados. |

@@ -30,6 +30,7 @@ continua `strpos`, então `%` e `_` seguem como letras.
 
 - Coluna e termo passam pela mesma regra, sem divergência entre C# e Postgres.
 - A comparação não usa índice (`strpos` sobre expressão). As listas já filtram por revenda
-  antes, e não houve medição que pedisse trigram; `pg_trgm` só entra se uma lista crescer a
-  ponto de medir ganho e se a extensão for "trusted" na versão em uso.
+  antes, e não houve medição que pedisse trigram. `pg_trgm` também é "trusted" desde o PG 13
+  e entra quando uma lista crescer a ponto de a medição mostrar ganho, com índice GIN sobre
+  `avalia_normalizar(coluna)`.
 - Enum buscado pelo nome (situação do ERP, ação da auditoria) continua comparado em C#, sem acento.

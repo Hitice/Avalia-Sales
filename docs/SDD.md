@@ -18,22 +18,24 @@ aparece como Revendedor na interface.
 | --- | --- | --- | --- |
 | API | C#, ASP.NET Core Web API (minimal APIs) | .NET 10 LTS | Em produção |
 | Jobs | Worker Service | .NET 10 LTS | Em produção |
-| Banco | PostgreSQL com EF Core e Npgsql | Postgres 17, EF Core 10.0.13, Npgsql 10.0.3 | Em produção |
-| Acesso | ASP.NET Identity e JWT (HMAC-SHA256) | 10.0.13 | Em produção |
-| Integrações | Pagar.me v5, D4Sign v1, Resend, Google Places (New), BrasilAPI (CNPJ e CEP), Gotenberg 8 (PDF) | Gotenberg 8.38.1 | Em produção; a D4Sign no ambiente de testes |
-| ERP | Protheus por contrato REST próprio | - | Conexão pronta; espera o serviço REST do Protheus |
-| QR da impressão | QRCoder (MIT), SVG e PNG sem System.Drawing | 1.8.0 | Em produção |
-| Resiliência | Microsoft.Extensions.Http.Resilience (Polly) | 10.11.0 | Em produção |
-| Tempo real | SignalR, com o LISTEN/NOTIFY do Postgres levando os avisos do Worker à API | ASP.NET Core 10, `@microsoft/signalr` 10.0.11 | Em produção |
-| Front | React 19 + Vite, React Router, TanStack Query, Zustand, React Hook Form + Zod, Tailwind 4, shadcn/ui (Radix), Recharts, Sonner | React 19.3, Vite 8.3, Router 8.5, Tailwind 4.3, Zod 4.6, TypeScript 6.0, Recharts 3.10.1 | Em produção |
-| Leitura de QR e Pix no front | `BarcodeDetector` nativo; sem ele, o polyfill `barcode-detector` sobre o ZXing C++ em WebAssembly (`zxing-wasm`), servido pelo app; `qrcode` para o QR do Pix | barcode-detector 3.2.2, zxing-wasm 3.1.3, qrcode 1.5.4 | Em produção |
-| Mapa | Google Maps JavaScript pelo `@googlemaps/js-api-loader`, marcador avançado | loader 2.1.3, tipos 3.66.5 | Em produção |
-| Documentação da API | OpenAPI do ASP.NET Core em `/openapi/v1.json` e Swagger UI em `/swagger` | OpenApi 10.0.13, Swashbuckle.AspNetCore.SwaggerUI 10.3.0 | Só em Development |
-| Infra | Linux, Docker Compose, Nginx, Let's Encrypt (certbot) | nginx 1.28, certbot 5.8.0, postgres 17 | Em produção no VPS |
-| CI e CD | GitHub Actions, runner próprio no deploy, SonarCloud, Sentry | sonarscanner 11.3.0, Sentry 6.12.0 e 11.5.0 | Em uso |
+| Banco | PostgreSQL com EF Core e Npgsql | Postgres 17, EF Core 10 | Em produção |
+| Acesso | ASP.NET Identity e JWT (HMAC-SHA256) | ASP.NET Core 10 | Em produção |
+| Integrações | Pagar.me v5, D4Sign v1, Resend, Google Places (New), BrasilAPI (CNPJ e CEP), Gotenberg (PDF) | Gotenberg 8 | Em produção; a D4Sign no ambiente de testes |
+| ERP | Protheus por contrato REST próprio | - | Conexão pronta; desligada sem `Protheus:UrlBase` |
+| QR da impressão | QRCoder (MIT), SVG e PNG sem System.Drawing | 1 | Em produção |
+| Resiliência | Microsoft.Extensions.Http.Resilience (Polly) | 10 | Em produção |
+| Tempo real | SignalR, com o LISTEN/NOTIFY do Postgres levando os avisos do Worker à API | ASP.NET Core 10, `@microsoft/signalr` 10 | Em produção |
+| Front | React 19 + Vite, React Router, TanStack Query, Zustand, React Hook Form + Zod, Tailwind 4, shadcn/ui (Radix), Recharts, Sonner | React 19, Vite 8, Router 8, Tailwind 4, Zod 4, TypeScript 6, Recharts 3 | Em produção |
+| Leitura de QR e Pix no front | `BarcodeDetector` nativo; sem ele, o polyfill `barcode-detector` sobre o ZXing C++ em WebAssembly (`zxing-wasm`), servido pelo app; `qrcode` para o QR do Pix | - | Em produção |
+| Mapa | Google Maps JavaScript pelo `@googlemaps/js-api-loader`, marcador avançado | loader 2 | Em produção |
+| Documentação da API | OpenAPI do ASP.NET Core em `/openapi/v1.json` e Swagger UI em `/swagger` | ASP.NET Core 10, Swashbuckle.AspNetCore.SwaggerUI 10 | Só em Development |
+| Infra | Linux, Docker Compose, Nginx, Let's Encrypt (certbot) | nginx 1.28, postgres 17 | Em produção no VPS |
+| CI e CD | GitHub Actions (runner próprio só no Deploy), SonarCloud, Sentry | - | Em uso |
 
-A versão do .NET e a de cada pacote moram só em `Directory.Build.props` e
-`Directory.Packages.props`; as do front, em `web/package.json`.
+A tabela leva só a versão maior. A exata de cada pacote mora em
+`Directory.Build.props` e `Directory.Packages.props`; as do front, em
+`web/package.json`; as das imagens, no `docker-compose.producao.yml` e nos
+Dockerfiles.
 
 ## 2. Arquitetura
 
@@ -41,7 +43,7 @@ A versão do .NET e a de cada pacote moram só em `Directory.Build.props` e
 Front (React) ──┐
 Página do QR ───┼── Nginx ── Api ──┬── PostgreSQL 17
                 │                  ├── Pagar.me, D4Sign, Resend, Google Places, BrasilAPI
-Webhooks ───────┘   Worker ────────┴── Gotenberg (PDF, rede interna), Protheus
+Webhooks ───────┘   Worker ────────┴── Gotenberg (PDF), Protheus
 ```
 
 | Projeto | Responsabilidade | Não pode |
@@ -73,6 +75,44 @@ mensagem. Pedido abortado por quem chamou responde 499 e não vira erro.
 - A conexão de escuta que cai tenta de novo com espera crescente até 60 s, e o
   front reconecta sozinho. Perder um aviso só atrasa a tela até a próxima
   consulta.
+
+### Listagens paginadas
+
+Toda rota GET que devolve uma lista que cresce com o uso responde no mesmo
+formato, com o limite aplicado no servidor (`Application/Pagina.cs`):
+
+```json
+{ "itens": [ ... ], "total": 230, "proxima": 2 }
+```
+
+- Parâmetros: `pagina` (a partir de 1) e `tamanho`. Sem `tamanho`, 50; acima
+  de 100, vale 100; abaixo de 1, 50; `pagina` abaixo de 1 vale 1. Valor fora
+  da faixa é corrigido, e não recusado. Página depois da última devolve
+  `itens` vazio, o `total` certo e `proxima` nulo.
+- `total` é o do filtro (`busca` e filtros da rota), e não só da página.
+  `proxima` é o número da próxima página, ou nulo na última.
+- Ordem total: o último critério é sempre o `Id`, para o Postgres não
+  repetir nem pular item entre uma página e a outra quando o horário empata.
+- `busca` (texto livre) ignora caixa e acento ("otica" acha "Ótica"), pela função
+  `avalia_normalizar` do banco sobre a extensão `unaccent`, criada pela migration `BuscaSemAcento`
+  com o dono do banco; `%` e `_` valem como letra. Vale antes da página. O front manda o termo à API; a busca local da tabela fica ligada só
+  em tabela que não é paginada (`<Table semBusca>` nas outras).
+- Rotas: `/vendas`, `/clientes`, `/carteira`, `/placas`, `/lotes`, `/pedidos`,
+  `/chamados`, `/links`, `/servicos`, `/repasses`, `/razao` (os lançamentos
+  do mês, em `lancamentos`), `/financeiro/despesas`, `/financeiro/retiradas`,
+  `/auditoria`, e da operadora `/operadora/pedidos`, `/lotes`, `/erp`,
+  `/cupons`, `/revendedores`, `/servicos`, `/chamados`, `/auditoria`,
+  `/operadora/financeiro/receita-por-revenda`, `/despesas` e `/custos-de-lote`.
+  `/placas` e `/operadora/lotes` trazem campos a mais (`porEstado`,
+  `arquivados`). `GET /chamados/{id}` devolve as mensagens mais novas e
+  `antes={idDaMensagemMaisAntiga}` busca as anteriores (`haAnteriores`).
+- Números que a tela mostra sobre a lista inteira vêm de rota própria, e não
+  da soma da página: `/vendas/resumo`, `/operadora/chamados/resumo`,
+  `?situacao=AFazer&tamanho=1` em `/servicos`.
+- Não paginam, por serem limitadas pelo desenho: `/notificacoes` (as 30 mais
+  recentes e a contagem exata de não lidas), `/equipe`, `/pacotes`,
+  `/catalogo`, `/financeiro/socios`, `/financeiro/meses` e os selos de
+  mês, `/razao/meses`, `/mapa` (tem tela própria).
 
 ## 3. Isolamento entre revendas
 
@@ -193,8 +233,9 @@ independentes (ADR 0001):
   compilado (vite preview) e a API local com a demonstração: entrada, venda no
   balcão até o link curto, cartão, convite do vendedor, jornada entre
   operadora, revenda e vendedora, segundo fator, encerramento de conta e todas
-  as telas do revendedor e da operadora, a 390 px e a 1440 px. Cada tela passa
-  no axe (WCAG 2.2 AA; violação séria ou crítica falha) e sem rolagem lateral.
+  as telas do revendedor e da operadora. Os fluxos rodam a 390 px; o
+  `acessibilidade.spec.ts` roda a 390 px e a 1440 px. Cada tela passa no axe
+  (WCAG 2.2 AA; violação séria ou crítica falha) e sem rolagem lateral.
   Roda com movimento reduzido, para o axe não medir botão no meio da
   transição. No CI, o job `e2e` sobe Postgres, migra, semeia e liga a API
   pelo `web/e2e/api.sh`.
@@ -214,7 +255,7 @@ do `Up`.
 
 | Tabela | Guarda | Regra |
 | --- | --- | --- |
-| `revendedores` | A revenda - nome, CNPJ, celular (só dígitos, com DDD), endereço (`endereco_logradouro`, `_numero`, `_complemento`, `_bairro`, `_cidade`, `_uf`, `_cep`), recebedor no Pagar.me (`recebedor_pagarme`), taxa da Avalia (`taxa_avalia_bps`, padrão 0), comissão padrão (`comissao_padrao_bps`, 2000 = 20%), renovação (`renovacao_bps`, 6000 = 60%), marca (`nome_exibido`, `cor_primaria`, `cor_destaque`, `cabecalho_na_cor`, `marca_alterada_em`), `contrato_assinado_em`, encerramento (`encerramento_pedido_em`, `encerrada_em`, `reabertura_pedida_em`, `reaberta_em`), suspensão (`suspensa_em`, `motivo_da_suspensao`), liberação de destinos do dia (`destinos_liberados`, `destinos_liberados_em`) e a marca de revenda do grupo da operadora (`do_grupo_da_operadora`, `grupo_definido_em`, `grupo_definido_por`) | Sem RLS; CNPJ único |
+| `revendedores` | A revenda - nome, CNPJ, celular (só dígitos, com DDD), endereço (`endereco_logradouro`, `_numero`, `_complemento`, `_bairro`, `_cidade`, `_uf`, `_cep`), recebedor no Pagar.me (`recebedor_pagarme`), `taxa_avalia_bps` (sem uso desde 27/10/2026: o código não lê nem grava, e a coluna sai numa migration posterior; até lá o EF a mapeia como propriedade de sombra), comissão padrão (`comissao_padrao_bps`, 2000 = 20%), renovação (`renovacao_bps`, 6000 = 60%), marca (`nome_exibido`, `cor_primaria`, `cor_destaque`, `cabecalho_na_cor`, `marca_alterada_em`), `contrato_assinado_em`, encerramento (`encerramento_pedido_em`, `encerrada_em`, `reabertura_pedida_em`, `reaberta_em`), suspensão (`suspensa_em`, `motivo_da_suspensao`), liberação de destinos do dia (`destinos_liberados`, `destinos_liberados_em`) a marca de revenda do grupo da operadora (`do_grupo_da_operadora`, `grupo_definido_em`, `grupo_definido_por`) e a marca de revenda receptora no encerramento (`receptora_no_encerramento`) | Sem RLS; CNPJ único; no máximo uma receptora (índice único parcial) |
 | `usuarios`, `papeis` e demais do Identity | Login, `papel` (Operadora, Dono, Vendedor), `ativo`, revenda e `segundo_fator_por_email` | Sem RLS; e-mail único na plataforma; check: operadora sem revenda, os outros com |
 | `sessoes` | Refresh token pelo hash SHA-256, família do login, validade de 14 dias | Sem RLS; hash único |
 | `links_de_senha` | Convite, redefinição e confirmação de e-mail: hash do token, finalidade, validade, `hash_do_codigo` e `erros_do_codigo` | Sem RLS |
@@ -232,10 +273,10 @@ do `Up`.
 | `leituras` | Leituras por placa e dia | RLS; chave (placa, dia), soma por `on conflict` |
 | `clientes` | Negócio que comprou: nome, responsável, documento, telefone, e-mail, lugar no Google (só o id), `anonimizado_em` | RLS; documento único por revenda |
 | `vendas` | Placa (nula na venda de serviço), cliente, produto, vendedor, quantidade, grupo (`grupo_id`), valor, tabela, custo, parte da Avalia (`parte_da_avalia_cents`), comissão, cortesia, repasse que pagou a comissão, cancelamento (`motivo_do_cancelamento`, `observacao_do_cancelamento`, `cancelada_em`), teste gratuito (`teste_ate`, `teste_avisado_em`, `teste_expirado_em`, `teste_convertido_em`) e `do_sistema_anterior` | RLS; uma venda registrada por placa (o índice único de `placa_id` só vale para venda registrada, e a placa da venda cancelada vende de novo); índice parcial nos testes em curso |
-| `cobrancas` | Cobrança: origem (venda, pedido de placas, renovação) e id da origem, meio, valor, taxa da Avalia com a parte do serviço (`taxa_avalia_cents`), `estornado_cents`, situação, pedido e link no Pagar.me, URL do checkout, Pix (copia e cola, QR, vencimento), `conferida_em` | RLS; `pedido_no_gateway` único; taxa copiada na criação |
+| `cobrancas` | Cobrança: origem (venda, pedido de placas, renovação) e id da origem, meio, valor, o que o split manda à Avalia (`taxa_avalia_cents`, `Cobranca.ParteDaAvaliaCents` no código: a parte dela nos serviços, ou o pedido de placas inteiro; zero na venda de placa e na renovação), `estornado_cents`, situação, pedido e link no Pagar.me, URL do checkout, Pix (copia e cola, QR, vencimento), `conferida_em` | RLS; `pedido_no_gateway` único; parte da Avalia copiada na criação |
 | `renovacoes` | Placa, venda, valor, situação, de, até, paga em | RLS; uma aberta por placa |
-| `lancamentos` | Razão da revenda: tipo (`Receita`, `TaxaAvalia`, `ComissaoDevida`, `ComissaoPaga`, `CustoDaPlaca`, `Perda`, `Despesa`, `RetiradaDeSocio`, `AporteDeSocio`, `SaldoInicialDoCaixa`), origem, venda, vendedor, valor com sinal, competência, `categoria` (da despesa ou natureza da retirada), `placa_id` e a linha estornada (`estorna_id`) | RLS; só inserção, com `REVOKE UPDATE, DELETE` do papel da aplicação (ADR 0011); único (origem, tipo, venda, vendedor), com nulos iguais, na linha original e único `estorna_id` no estorno; gatilho `lancamento_em_mes_aberto` passa ao mês corrente a linha de mês fechado (ADR 0020). Despesa, retirada e perda usam origem nova por versão, para o índice aceitar a correção |
-| `lancamentos_da_operadora` | Livro da operadora: tipo (`TaxaDaPlataforma`, `ParteDaAvaliaNosServicos`, `PedidoDePlacas`, `Despesa`), revenda de origem (`revendedor_origem_id`, nula na despesa), origem (cobrança, pedido ou versão da despesa), venda, valor com sinal, competência, `por_fora`, `categoria` e a linha estornada (`estorna_id`). O Id da taxa é o da linha `TaxaAvalia` do razão que ela espelha | RLS só da operadora, com inserção também da revenda de origem; só inserção (`REVOKE UPDATE, DELETE`); único (origem, tipo, venda), com nulos iguais, na linha original e único `estorna_id` no estorno; gatilho `lancamento_da_operadora_em_mes_aberto` (ADR 0025) |
+| `lancamentos` | Razão da revenda: tipo (`Receita`, `TaxaAvalia` - a parte da Avalia nos serviços; a linha anterior a 27/10/2026 pode ser da taxa da plataforma, que saiu -, `ComissaoDevida`, `ComissaoPaga`, `CustoDaPlaca`, `Perda`, `Despesa`, `RetiradaDeSocio`, `AporteDeSocio`, `SaldoInicialDoCaixa`), origem, venda, vendedor, valor com sinal, competência, `categoria` (da despesa ou natureza da retirada), `placa_id` e a linha estornada (`estorna_id`) | RLS; só inserção, com `REVOKE UPDATE, DELETE` do papel da aplicação (ADR 0011); único (origem, tipo, venda, vendedor), com nulos iguais, na linha original e único `estorna_id` no estorno; gatilho `lancamento_em_mes_aberto` passa ao mês corrente a linha de mês fechado (ADR 0020). Despesa, retirada e perda usam origem nova por versão, para o índice aceitar a correção |
+| `lancamentos_da_operadora` | Livro da operadora: tipo (`TaxaDaPlataforma` - só histórico, não gravado desde 27/10/2026; o estorno de linha antiga sai com ele -, `ParteDaAvaliaNosServicos`, `PedidoDePlacas`, `Despesa`), revenda de origem (`revendedor_origem_id`, nula na despesa), origem (cobrança, pedido ou versão da despesa), venda, valor com sinal, competência, `por_fora`, `categoria` e a linha estornada (`estorna_id`). O Id da parte da Avalia é o da linha `TaxaAvalia` do razão que ela espelha | RLS só da operadora, com inserção também da revenda de origem; só inserção (`REVOKE UPDATE, DELETE`); único (origem, tipo, venda), com nulos iguais, na linha original e único `estorna_id` no estorno; gatilho `lancamento_da_operadora_em_mes_aberto` (ADR 0025) |
 | `despesas_da_operadora` | Data, descrição, categoria (`GraficaEMaterial`, `ExecucaoDeServico`, `Frete`, `SoftwareEFerramentas`, `Impostos`, `Outros`, `TarifaDoGateway`), valor, fornecedor (`fornecedor_id`, opcional) e a linha do livro em vigor | RLS só da operadora |
 | `fornecedores` | Nome, documento (CNPJ ou CPF, único), contato, funções (bits: Gráfica 1, Acrílico 2, Confecção 4, Logística 8, Outros 16), observação, ativo | RLS só da operadora; despesa e custo de lote apontam para ele (`Restrict`) |
 | `acertos_de_revenda` | Quitação do a acertar: revenda, valor, data e observação (ADR 0028) | RLS: a operadora lê e escreve; a revenda só lê os dela |
@@ -300,13 +341,14 @@ conferidos na referência oficial em 21/10/2026.
   vista, a parte da Avalia sai do split já sem a fatia dela no custo
   (`Parcelamento.ParteLiquida`). Condição nova do Pagar.me muda a tabela no
   código.
-- Split - regras `flat` em centavos: a revenda e, quando há taxa ou parte do
-  serviço, a Avalia (ADR 0003). O tipo `percentage` não aceita 1,99. A revenda
-  tem `liable`, `charge_processing_fee` e `charge_remainder_fee`. Regra de
-  valor zero não é enviada. Revenda com o recebedor igual ao da Avalia vai
-  numa regra só, com o valor inteiro, porque o split não repete recebedor; a
-  taxa continua gravada na cobrança e no razão. Os recebedores aceitam `re_`
-  e `rp_`.
+- Split - regras `flat` em centavos: a revenda e, quando há parte da Avalia
+  no serviço, a Avalia (ADR 0003). Não há taxa percentual sobre a venda:
+  venda de placa e renovação vão inteiras para a revenda. A revenda tem
+  `liable`, `charge_processing_fee` e `charge_remainder_fee`. Regra de valor
+  zero não é enviada. Revenda com o recebedor igual ao da Avalia vai numa
+  regra só, com o valor inteiro, porque o split não repete recebedor; a parte
+  da Avalia continua gravada na cobrança e no razão. Os recebedores aceitam
+  `re_` e `rp_`.
 - Checkout do pedido de placas - `POST /paymentlinks` com `type` order,
   `order_code` igual ao id da cobrança, `max_paid_sessions` 1, validade de 3
   dias (`expires_in` em minutos), Pix, cartão e boleto, sem `split_settings`:
@@ -316,7 +358,9 @@ conferidos na referência oficial em 21/10/2026.
   pode sair.
 - Cancelamento e estorno - `IGatewayDePagamento.CancelarPedido` lê o pedido
   (`GET /orders/{id}`) e chama `DELETE /charges/{id}` em cada cobrança
-  pendente ou paga. `EstornarParte` faz o mesmo `DELETE` com `amount`, para o
+  pendente ou paga. Link ainda sem pagamento não tem pedido lá:
+  `Cobrancas.Cancelar` chama `CancelarLink` (`PATCH
+  /paymentlinks/{id}/cancel`, sem corpo, 204), e o checkout deixa de abrir. `EstornarParte` faz o mesmo `DELETE` com `amount`, para o
   estorno parcial da venda dentro de um grupo. A recusa 4xx do Pagar.me (por
   exemplo `412 action_forbidden`, saldo insuficiente) vira
   `RegraDeNegocioException`; 5xx e tempo esgotado seguem como erro.
@@ -389,9 +433,6 @@ testes, sem validade jurídica.
   no Compose). `Plataforma:RepresentanteDaAvalia` e
   `Plataforma:CargoDoRepresentante` saem no bloco de assinatura da Avalia e
   vêm das variáveis do ambiente `producao` do GitHub.
-  `Plataforma:CnpjDaRevendaDaAvalia` (padrão 39914870000101) diz para qual
-  revenda vão os clientes de quem encerra; ao mudar o CNPJ da revenda em
-  Revendedores, a variável leva o mesmo valor.
   `Plataforma:ExigirSegundoFatorDaOperadora` (padrão ligado) exige o segundo
   fator da conta da operadora nas ações de dinheiro (ADR 0027).
 
@@ -483,8 +524,10 @@ Conferido na referência oficial em 21/10/2026.
   fila `envios_ao_erp` na mesma transação do pagamento. O Worker envia; a
   falha soma tentativa e, depois de 8, o envio para e a operadora reenvia.
 - Configuração - `Protheus__UrlBase`, `Protheus__Usuario` e
-  `Protheus__Senha`. Sem endereço, o envio espera na fila. Em produção o
-  endereço ainda não está configurado.
+  `Protheus__Senha`. Sem endereço, a integração fica desligada: `FilaDoErp`
+  não grava nada, o Worker não envia e a tela ERP da operadora avisa
+  (`GET /operadora/erp/integracao`, `{ ligada }`). Em produção o endereço
+  ainda não está configurado. O que já estava na fila espera o endereço.
 
 ## 7. Ambientes de teste e simuladores
 
@@ -496,7 +539,7 @@ Conferido nas páginas oficiais em 21/10/2026.
 | D4Sign | `sandbox.d4sign.com.br`, cadastro próprio | Sem validade jurídica; mesmo limite de 10 requisições por hora até a D4Sign aumentar |
 | Resend | Endereços de teste `delivered@resend.dev`, `bounced@resend.dev`, `complained@resend.dev` | Plano gratuito com 3.000 e-mails por mês e 100 por dia; o teste conta na cota |
 | Google Maps e Places | Sem ambiente de testes: toda chamada conta na cota | Cota gratuita por SKU por mês (10.000 carregamentos de mapa dinâmico, 10.000 Place Details Essentials); exige conta de faturamento no Google Cloud |
-| Protheus | Sem ambiente público | Simulador próprio, só em Development |
+| Protheus | Sem ambiente público | Simulador próprio, só em Development; os testes usam um dublê (`ErpFalso`) |
 | Sentry | Plano Developer gratuito | 1 usuário, 5 mil erros, 30 dias de histórico |
 | SonarCloud | Gratuito para repositório público | Privado: gratuito até 50 mil linhas |
 
@@ -566,7 +609,7 @@ Revenda por revenda, a cada volta:
 
 - `EfeitosDaCobranca` roda quando a situação da cobrança muda, antes do mesmo
   `SaveChanges`: pedido de placas pago (com a entrada na fila do ERP), razão
-  da venda paga (receita, taxa, comissão devida), venda paga de serviço
+  da venda paga (receita, parte da Avalia no serviço, comissão devida), venda paga de serviço
   virando ordem de serviço, renovação estendendo a placa, estorno com as
   linhas contrárias.
 - Estorno (`EfeitosDaCobranca.Estornar`) - cancela as ordens de serviço
@@ -576,7 +619,7 @@ Revenda por revenda, a cada volta:
   da mesma venda.
 - Recebido por fora (`MeioDePagamento.Dinheiro` e `OutroPix`) é uma cobrança
   que nasce paga, sem pedido no Pagar.me, e passa pelos mesmos efeitos no
-  mesmo `SaveChanges`; a linha da taxa diz "a acertar". Desfazer leva a
+  mesmo `SaveChanges`; a linha da parte da Avalia diz "a acertar". Desfazer leva a
   cobrança a estornada, e os efeitos lançam o contrário.
 - Cancelamento (`Vendas.Cancelar`) - a venda se cancela antes da cobrança,
   depois cada cobrança viva é cancelada ou estornada (`Cobrancas.Cancelar`,
@@ -585,8 +628,9 @@ Revenda por revenda, a cada volta:
 - Troca de placa - trava a placa nova (`FOR UPDATE`) e encerra a antiga com o
   motivo (`Placa.ReceberVendaDe`).
 - Livro da operadora (`LivroDaOperadora`) - o mesmo `SaveChanges` que lança a linha
-  `TaxaAvalia` no razão lança a linha do livro (taxa da plataforma ou parte da Avalia, pelo
-  começo da descrição), com o Id da linha do razão; o estorno do razão estorna a do livro
+  `TaxaAvalia` no razão lança a linha do livro (`ParteDaAvaliaNosServicos`; a linha antiga da
+  taxa da plataforma, pelo começo da descrição, é estornada como `TaxaDaPlataforma`), com o Id
+  da linha do razão; o estorno do razão estorna a do livro
   (`EfeitosDaCobranca.Estornar` e `Cobrancas.EstornarVenda`). `PedidosDePlacas.Ativar`
   lança o pedido pago como receita da operadora. Tudo na sessão da revenda, que só insere.
 - Custo da placa vendida e apropriação da receita são lidos do razão na DRE
@@ -604,8 +648,8 @@ Revenda por revenda, a cada volta:
   `Fechamentos`, para rodar numa sessão que não é do usuário da requisição.
 - `ResultadoDoGrupo` junta o livro do mês (separado pela marca do grupo), o `Dre` de cada revenda
   marcada, lido pelo `IEscopoDeRevenda`, e o custo dos lotes. Cada linha traz as quatro colunas; a
-  conciliação lê a taxa da plataforma, a parte da Avalia e o pedido de placas do razão da revenda e do
-  livro. O custo real da placa vendida usa `Reconhecimento` com o custo por placa do lote. A
+  conciliação lê a parte da Avalia e o pedido de placas do razão da revenda e do livro; o
+  `TaxaDaPlataforma` antigo soma na parte da Avalia, nos dois lados. O custo real da placa vendida usa `Reconhecimento` com o custo por placa do lote. A
   receita por revenda lista só o que cada uma paga à operadora.
 - Migration `FinanceiroDaOperadora`: tabelas, colunas de `revendedores`, políticas, gatilho e o
   backfill (`BackfillDoLivroDaOperadora`), idempotente.
@@ -618,8 +662,18 @@ Revenda por revenda, a cada volta:
 - Distrato assinado (webhook e reconsulta, como o contrato) aplica
   `EfeitosDoEncerramento` na transação do evento: `encerrada_em`, baixa do
   estoque, vendedores e logins de vendedor desligados e
-  `transferir_clientes_da_revenda` para a revenda da Avalia. Distrato
+  `transferir_clientes_da_revenda` para a revenda receptora. Distrato
   cancelado na D4Sign desfaz o pedido.
+- Revenda receptora (ADR 0029) - marca `revendedores.receptora_no_encerramento`,
+  dada pela operadora em `PUT /operadora/revendedores/{id}/receptora`
+  (`{ receptora }`, segundo fator pela ADR 0027, trilha da operadora). Marcar
+  uma tira a marca da anterior na mesma transação, com trava de aplicação;
+  revenda encerrada ou com encerramento pedido não vira receptora; tirar a
+  marca com encerramento em andamento é recusado. Sem receptora, o pedido de
+  encerramento é recusado, e o distrato assinado sem ela não encerra: o evento
+  volta para a fila com "Nenhuma revenda receptora. Marque uma em
+  Revendedores." e encerra quando houver uma. A receptora não pede o próprio
+  encerramento.
 - O middleware `ContaEncerrada` recusa com 409 toda escrita da revenda
   encerrada e a busca no Google (`/lugares`); passam `/auth`, o aviso ao vivo,
   `/notificacoes`, `/chamados`, `/conta/senha`, `/conta/segundo-fator` e
@@ -695,11 +749,14 @@ Revisão pela skill `seguranca` (OWASP ASVS 5.0).
   Healthcheck pela própria API (`--saude`), porque a imagem `aspnet` não tem
   wget nem curl.
 - Backup - `pg_dump` diário às 02:00 de Brasília, guardado por `BACKUP_DIAS`
-  dias, com cópia por e-mail pelo Resend quando há `BACKUP_PARA`. O
-  `backup.sh` grava em `.parcial` e só aceita a cópia que o
-  `pg_restore --list` lê com os dados de `lancamentos`. O Deploy faz uma cópia
-  antes de subir (`backup.sh agora`), e a cópia que falha segura a
-  publicação.
+  dias no disco, em claro; cópia cifrada no bucket (Cloudflare R2) e, com
+  `BACKUP_PARA`, por e-mail pelo Resend. O `backup.sh` grava em `.parcial` e só
+  aceita a cópia que o `pg_restore --list` lê com os dados de `lancamentos`. O
+  Deploy faz uma cópia antes de subir (`backup.sh agora`); com o contêiner
+  `backup` de pé, a cópia que falha segura a publicação, e com ele parado o
+  Deploy só avisa. Cópia que falha e disco acima de `DISCO_ALERTA` mandam
+  e-mail (conferidos uma vez por dia, só com `BACKUP_PARA`, `BACKUP_SENHA` e o
+  Resend); falha do bucket fica só no log.
 - Modos de linha de comando da API - `--migrar` (com `ConnectionStrings__Dono`),
   `--demonstracao` (só em Development: operadora, pacotes, lotes, duas
   revendas, pedidos em cada etapa, equipe, vendas pagas e pendentes e
@@ -718,14 +775,17 @@ Revisão pela skill `seguranca` (OWASP ASVS 5.0).
   documento (`docs/`, Markdown e `.claude/`) não roda o CI nem abre deploy.
   O front tem um job próprio no Node 24 LTS: `npm ci`, tipos, lint (oxlint,
   com as travas do design system), testes e build, mais o Storybook
-  compilado. Os jobs `e2e` (Playwright com axe), `segredos` (gitleaks) e
-  `qualidade` (SonarCloud) completam o CI.
-- Documentação - em pull request, o job `documentacao` recusa mudança de
-  código sem `docs/PDD.md` ou `docs/SDD.md`, salvo com o rótulo
-  `sem-mudanca-de-doc`.
+  compilado. Os jobs `e2e` (Playwright com axe), `vulnerabilidades` (NuGet e
+  npm de produção), `segredos` (gitleaks), `documentacao` e `qualidade`
+  (SonarCloud) completam o CI.
+- Documentação - no push ao `main` e em pull request, o job `documentacao`
+  recusa mudança de código sem `docs/PDD.md` ou `docs/SDD.md`, salvo com
+  `[sem-doc]` na mensagem do commit ou o rótulo `sem-mudanca-de-doc` no pull
+  request.
 - Build trata aviso como erro, com `AnalysisMode=Recommended` e as regras de
   código sem uso (IDE0051, IDE0052, IDE0060, IDE0005) ligadas no
-  `.editorconfig`; knip no front.
+  `.editorconfig`. O knip do front roda à mão (skill `codigo-morto`), fora do
+  CI.
 - Testes da API - xUnit v3 na Microsoft.Testing.Platform. Unidade (regras de
   cobrança, parcelamento, contrato, código da placa, destino, link de
   avaliação, ciclo da placa, lote, venda, comissão, documentos), contrato HTTP
@@ -751,14 +811,14 @@ Revisão pela skill `seguranca` (OWASP ASVS 5.0).
   fork de colaborador externo pede aprovação antes de rodar workflow. As
   imagens levam o commit (`VERSAO`); o Deploy faz o backup, sobe e confere
   `/api/health` pelo domínio. Voltar é publicar o commit anterior.
-- Sentry - `Sentry.AspNetCore` e `Sentry.Extensions.Logging` 6.12.0 e
-  `@sentry/react` 11.5.0, ligados só com DSN e sem dado pessoal; no front, o
+- Sentry - `Sentry.AspNetCore`, `Sentry.Extensions.Logging` e
+  `@sentry/react`, ligados só com DSN e sem dado pessoal; no front, o
   SDK é carregado à parte só quando há DSN. A versão publicada vai como
   `avalia-sales@<commit>` (`Sentry__Release`, `VITE_SENTRY_RELEASE`). A API
   ignora `RegraDeNegocioException` (422) e `OperationCanceledException`.
-  Monitor de disponibilidade em `/api/health` a cada 60 s e check-in do
-  Worker a cada 5 minutos (monitor `avalia-sales-worker`, alerta com 2
-  faltas).
+  Monitor de disponibilidade em `/api/health` a cada 60 s, configurado no
+  painel do Sentry e fora do repositório, e check-in do Worker a cada 5
+  minutos (`Rotinas.cs`, monitor `avalia-sales-worker`, alerta com 2 faltas).
 
 ## 12. Decisões técnicas
 
@@ -770,7 +830,7 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
 | 21/10/2026 | .NET 10 LTS | O .NET 8 sai de suporte em 10/11/2026; o código é o mesmo |
 | 21/10/2026 | Tenant no banco único com filtro do EF Core e RLS | Duas travas independentes contra vazamento entre revendas |
 | 21/10/2026 | Front único em React | Um design system, um build, um conjunto de componentes |
-| 21/10/2026 | Split em `flat` calculado pela plataforma | `percentage` não aceita 1,99 |
+| 21/10/2026 | Split em `flat` calculado pela plataforma | `percentage` não aceita centavo; desde 27/10/2026 leva só a parte da Avalia no serviço |
 | 21/10/2026 | Cobrança gravada antes de chamar o Pagar.me, com o id como `code` | A API não documenta idempotência; o código acha o pedido depois de uma queda |
 | 21/10/2026 | Vendedor não é recebedor no Pagar.me | A revenda paga a comissão por Pix; a plataforma calcula o saldo |
 | 21/10/2026 | Webhook só grava; o Worker reconsulta a fonte | Nenhum dos dois webhooks assina o corpo |
@@ -790,11 +850,13 @@ Resumo. Contexto, opções e consequências de cada uma ficam nos ADRs, em
 | 21/10/2026 | Swagger UI sobre o OpenAPI nativo do ASP.NET Core | O documento é o do framework; o Swashbuckle entra só como página |
 | 21/10/2026 | `@hookform/resolvers` 5.9 e não 6.0 | A 6.0.0 declara versões conflitantes de uma dependência opcional e não instala sem forçar |
 | 21/10/2026 | Nenhuma biblioteca de idempotência pronta | A mais citada tinha 329 estrelas e nenhum commit desde 11/2024; o índice único do Postgres resolve a unicidade |
-| 22/10/2026 | Contrato e distrato em PDF pelo Gotenberg, a partir de HTML | O layout aprovado é HTML; o Chromium fica isolado, sem rede (ADR 0018) |
+| 22/10/2026 | Contrato e distrato em PDF pelo Gotenberg, a partir de HTML | O layout aprovado é HTML; o Chromium não abre endereço externo nem interno (ADR 0018) |
 | 22/10/2026 | Transferência de clientes por função e política de RLS próprias | Mudar a revenda de uma linha só dentro da função, sem depender de superusuário (ADR 0019) |
 | 24/10/2026 | Mês fechado garantido por gatilho no banco, que passa a linha atrasada ao mês corrente | Linhas do razão nascem em vários pontos; o pagamento de fim de mês processado depois do fechamento não pode travar o Worker (ADR 0020) |
 | 24/10/2026 | Custo da placa vendida e apropriação lidos do razão na DRE, e não lançados | A receita da venda já traz a venda e o estorno; nada a mais no caminho do pagamento |
 | 26/10/2026 | Livro próprio da operadora e leitura restrita das revendas marcadas como do grupo | A operadora não tem revenda e não lê o razão das outras; o consolidado lê só agregados da revenda marcada (ADR 0025) |
+| 27/10/2026 | Revenda receptora no encerramento por marca explícita, uma só | O CNPJ em configuração divergia do cadastro sem aviso; nenhuma regra pergunta qual revenda é a Avalia (ADR 0029) |
+| 27/10/2026 | Fila do ERP desligada sem `Protheus:UrlBase` | Sem serviço do Protheus, a fila crescia sem destino (ADR 0014) |
 
 ## 13. Pendências técnicas
 
@@ -827,6 +889,16 @@ As mudanças de 21 a 24/10/2026 estão em [historico/sdd-ate-24-10.md](historico
 
 | Data | Mudança |
 | --- | --- |
+| 27/10/2026 | Revisão antes do push - cobrança cancelada que o Pagar.me confirma paga avisa a operadora para devolver (`EfeitosDaCobranca.PagaDepoisDeCancelada`, chave `cobranca:<id>:paga-depois-de-cancelada`); distrato assinado sem receptora não derruba a rodada das `Retomadas` (marca a conferência e segue); o Início fecha pela receita reconhecida, com perdas; destino antigo que não normaliza continua redirecionando (a recusa vale no cadastro); `destinoDaVolta` valida pelo parser de URL e recusa caractere de controle. Fica para depois - o aviso sem vínculo usa a chave do evento (order.paid e charge.paid do mesmo pagamento geram dois e-mails) e o `error_log` do Nginx ainda grava a URL do webhook em erro de upstream. |
+| 27/10/2026 | Revisão de segurança e dinheiro - ligar o segundo fator encerra as outras sessões do login, mantida a de quem ligou; ligar, desligar e o desligamento pelo suporte (`--desligar-segundo-fator`, com o motivo) vão à auditoria da revenda ou à trilha da operadora; destino bloqueado com host normalizado (IDN, minúsculas, sem `www.` nem ponto final), host que não normaliza recusado no cadastro e bloqueado na leitura; excluir acerto, trocar a renovação e marcar o grupo pedem o segundo fator; registrar acerto trava a revenda (`pg_advisory_xact_lock`); o distrato calcula o devido por fora pelo razão (parte da Avalia das cobranças por fora, com estornos); revenda suspensa não vira receptora, receptora suspensa não conta e a receptora não é suspensa; tipo da linha do livro sem depender da descrição (só a taxa antiga da plataforma é `TaxaDaPlataforma`); leitura do grupo em sessão somente leitura (`default_transaction_read_only`); pagamento do Pagar.me sem vínculo avisa a operadora por e-mail; hub de avisos cai quando o token vence (`CloseOnAuthenticationExpiration`); `Idempotency-key` com o código da cobrança no POST de pedido e de link do Pagar.me; Nginx sem log de acesso em `/webhooks/`. |
+| 27/10/2026 | Revisão do documento contra o código e o CI - tabela da stack só com a versão maior; Gotenberg sem a promessa de rede isolada (o Compose não isola, o Chromium bloqueia endereço); backup com o bucket, a condição do contêiner de pé e o alerta só por e-mail configurado; CI com `vulnerabilidades` e `documentacao` no push; knip fora do CI; monitor de `/api/health` configurado no painel do Sentry; ponta a ponta a 390 px, axe também a 1440 px; seção Listagens paginadas trazida do `OPERACAO.md`. |
+| 27/10/2026 | `Protegida` manda para `/entrar?volta=<tela pedida>` e a entrada volta para ela depois do login, só com caminho interno (`destinoDaVolta`). Limpeza - saem `CustosDeLote.Pendentes`, `IContas.PedirConfirmacao` e `ProdutoDaPlataforma.DefinirFotoPadrao` (Roslynator), o clone do `Importar.cs` (`RevendedorEPlacas`) e os 9 apontamentos de manutenção do SonarCloud (regex gerada, testes sem asserção, `Program` público implícito); `financeiro/MesDoFinanceiro.tsx` (seletor de mês, fechamento) e `financeiro/DespesasDoMes.tsx` servem à revenda e à operadora, e a tabela de despesas da revenda ganha a `Rolagem`. |
+| 27/10/2026 | Taxa da plataforma excluída (ADR 0003 revista) - saem `Revendedor.TaxaAvaliaBps` e `DefinirTaxaAvalia`, `RevendedorDto.taxaAvaliaBps` e `DivisaoDaCobranca`; `Cobranca` recebe só a parte da Avalia (`Cobranca.ParteDaAvaliaCents`, mapeada na coluna `taxa_avalia_cents`; o pedido de placas passa o valor inteiro). `EfeitosDaCobranca` rateia a parte só entre as vendas de serviço e a renovação não lança linha da Avalia. `LivroDaOperadora.ParteDaAvalia` e `ParteDaAvaliaEstornada` no lugar de `Taxa` e `TaxaEstornada`. `DreDoMes.parteDaAvaliaCents` (era `taxaCents`), `ResumoDoMes.parteDaAvaliaCents` e `CobrancaDto.parteDaAvaliaCents` (eram `taxaAvaliaCents`), `Conciliacao.DevidoPorForaCents`; Resultado do grupo sem as linhas `taxa-da-plataforma`, `taxa-da-plataforma-paga` e a conciliação dela, `ReceitaDaRevenda` sem `taxaDaPlataformaCents`, e o `TaxaDaPlataforma` antigo somado na parte da Avalia. `revendedores.taxa_avalia_bps` fica como propriedade de sombra do EF até a migration que a remove. Contrato e distrato sem taxa percentual. Testes - `Venda_de_placa_paga_nao_manda_nada_para_a_avalia_no_split_nem_lanca_parte_da_avalia`, `Linha_antiga_da_taxa_da_plataforma_soma_na_parte_da_Avalia_e_o_estorno_sai_com_o_tipo_dela`; os da taxa passam a provar a parte da Avalia. |
+| 27/10/2026 | Revenda receptora (ADR 0029) - coluna `revendedores.receptora_no_encerramento` com índice único parcial (migration `RevendaReceptora`, que marca a revenda de CNPJ 39914870000101), `PUT /operadora/revendedores/{id}/receptora` com segundo fator, `Revendedores.DefinirReceptora`, `IBancoDeDados.TravarReceptora`, `RevendedorDto.receptoraNoEncerramento`. `EfeitosDoEncerramento` usa a marca e recusa sem ela; `Encerramento.Pedir` recusa sem receptora e a receptora não encerra. Sai `Plataforma:CnpjDaRevendaDaAvalia`. Tela Revendedores com o selo "Receptora" e "Marcar como receptora"/"Tirar de receptora". `RevendaReceptoraTest`, `Sem_receptora_o_pedido_e_recusado_e_o_distrato_assinado_espera_a_marca`. |
+| 27/10/2026 | ERP - sem `Protheus:UrlBase`, `FilaDoErp.Enfileirar` não grava (a integração fica desligada); `GET /operadora/erp/integracao` e o aviso na tela ERP. A API de teste sobe com endereço (o Worker de teste usa o `ErpFalso`); `FluxoDoErpTest` tira o endereço numa API derivada. |
+| 27/10/2026 | Contêiner `backup` alerta por e-mail a cópia que falha e o disco acima de `DISCO_ALERTA` (85%); comando `--desligar-segundo-fator --email= --motivo=` para recuperar a conta sem os códigos (encerra sessões e avisa o e-mail); job `documentacao` do CI também no push ao `main`, com `[sem-doc]` para refatoração; hook `PreToolUse` `migration-aditiva.sh` recusa editar migration já commitada; regras por pasta em `.claude/rules` e agente `revisor` em `.claude/agents`; testes de régua de texto (`TextoDasMensagensTest` no C#, selo de até duas palavras no Vitest). Selos curtos: Carência, Descontinuado, Para retirar, Cancelada, Teste vencido, Importada, Por fora. |
+| 27/10/2026 | Log do Docker com teto de 5 arquivos de 10 MB por serviço (`x-registro` no compose de produção); job `vulnerabilidades` no CI (NuGet com transitivas e npm de produção, falha em alta ou crítica), sem Dependabot para não abrir branch; a trava de documentação do CI e do hook passa a cobrar também o `docker-compose.producao.yml`; `CancelarLink` no gateway (`PATCH /paymentlinks/{id}/cancel`) usado pelo cancelamento do pedido de placas; tela de entrada só com o Pagar.me. |
+| 27/10/2026 | `AcoesDaLinha` mostra a principal em botão `sm` e o resto no "⋯"; coluna `acoes` presa à direita por `position: sticky` (`index.css`); `CardAction` centra e desconta a altura do botão `sm`; `financeiro/LinhaDaDre` compartilhada pelo Financeiro e pelo Início (`useDre` do mês corrente); menu lateral recolhido em `localStorage` (`avalia.menu-recolhido`, só no navegador, nada na API); `PedidosDePlacas.Cancelar` cancela as cobranças pendentes pelo `Cobrancas.Cancelar` em vez de recusar; `knip` ignora `public/now` (referência por HTML) e saem `useVender`, `temPlaca` e três tipos sem uso. Teste `Pedido_com_link_aberto_pode_ser_cancelado`. |
 | 26/10/2026 | `GestorDeSegundoFator` enfileira "Segundo fator ligado" e "Segundo fator desligado" para o e-mail confirmado do dono (chave `segundo-fator-<mudança>:<usuário>:<segundo>`, sem dado sensível), na mesma gravação da auditoria; o e-mail do código ganha o aviso de não repassar. Teste `Ligar_e_desligar_o_segundo_fator_avisam_o_email_do_dono`. |
 | 26/10/2026 | `Fornecedores` e `fornecedores`, `fornecedor_id` na despesa e no custo de lote, `transportadora` e `codigo_de_rastreio` no pedido (`FornecedoresEEntrega`); `PedidosDePlacas.Estornar` e `LembrarDaAtivacao` (`EstornoELembretesDoPedido`); `AcertosDeRevenda` e `acertos_de_revenda` (`AcertosDeRevenda`, ADR 0028); `AvisosDeVencimento` e colunas de aviso na placa (`AvisoDeVencimentoDaPlaca`); `ConfirmacoesDePagamento` (e-mail ao dono a cada pagamento); distrato desconta o acerto. |
 | 26/10/2026 | `LimiteDeDestinos` e `DestinosBloqueados` (`LimiteDeDestinos`, `DestinosBloqueados`, ADR 0026): `GET /limite-de-destinos`, `POST /revenda/limite-de-destinos/solicitacao`, `POST /operadora/revendedores/{id}/liberacao-de-destinos` e `/operadora/destinos-bloqueados`; a leitura do QR e do link consulta a lista. `AcoesSensiveisDaOperadora` e `Plataforma:ExigirSegundoFatorDaOperadora` (ADR 0027). `PUT /operadora/revendedores/{id}/cadastro` corrige nome e CNPJ. |

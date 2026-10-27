@@ -21,6 +21,11 @@ A segunda. O limite vigente é o último registro `LimiteDePorForaDefinido` do
 vendedor (JSON em `Depois`), e a conferência é um registro `RecebimentoConferido`
 com a cobrança como referência. O código fica isolado em `RecebimentosPorFora`.
 
+- Sem registro, vale o padrão - R$ 10.000,00 e 30 recebimentos por dia, e
+  R$ 5.000,00 por venda.
+- O dono não tem limite, e o que ele registra já nasce conferido.
+- A comissão de venda ainda não conferida fica fora do repasse (`Comissoes`).
+
 ## Consequências
 
 - Nenhuma migration, e cada ajuste de limite e cada conferência deixa rastro de
