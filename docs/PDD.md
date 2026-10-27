@@ -889,6 +889,7 @@ As mudanças de 21 a 24/10/2026 estão em [historico/pdd-ate-24-10.md](historico
 
 | Data | Mudança |
 | --- | --- |
+| 27/10/2026 | Tabela larga rola dentro do cartão em qualquer tela - a coluna de ações (Editar e "⋯") fica sempre à vista; o painel usa até 1280 px de largura com o menu lateral. |
 | 27/10/2026 | Texto alinhado ao código - ação principal da linha à vista e o resto no "⋯"; Início com o Financeiro do mês; entrada só com o logo do Pagar.me; só o revendedor renova (6.5 repetia a regra antiga); encerramento pedido em Configurações; Gotenberg sem a promessa de contêiner sem rede. |
 | 27/10/2026 | Placa em branco lida sem sessão aberta - depois de entrar, o vendedor volta para a Nova venda com o código da placa preenchido. |
 | 27/10/2026 | Taxa da plataforma excluída - a Avalia ganha no pedido de placas e na parte dela nos serviços; venda e renovação de placa não mandam nada à Avalia, nem pelo split nem no a acertar. Sai a coluna Taxa em Revendedores, a linha na DRE (a parte da Avalia aparece só no mês com venda de serviço), no Início e no Resultado do grupo, e o texto em Configurações. Contrato (cláusulas 1.6 e 5.3 a 5.7) e distrato (4.1 e 4.2) falam da parte da Avalia. Linha antiga da taxa soma na parte da Avalia (ADR 0003). |

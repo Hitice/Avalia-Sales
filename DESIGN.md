@@ -157,7 +157,10 @@ Tailwind estão desligados em `index.css` (`--color-*: initial` e os outros):
   número, data, situação e ações ficam na largura do conteúdo e o resto vai
   para o texto. A coluna de ações fica presa à direita (`position: sticky`,
   fundo do cartão): quando a tabela é mais larga que o cartão e rola, a ação
-  continua na tela. Ação da linha é sempre `AcoesDaLinha`: a principal
+  continua na tela. O contêiner da tabela tem `contain: inline-size`: a
+  largura das colunas não alarga o grid ou o flex de fora, e a rolagem fica
+  no cartão em qualquer tela. A área de conteúdo vai até 1280 px
+  (`max-w-7xl`), com ou sem o menu lateral. Ação da linha é sempre `AcoesDaLinha`: a principal
   (Editar, Pagar) em botão `sm` à vista e o resto no "⋯"; botão e formulário
   dentro da célula não entram (a ação abre um modal). Texto opaco e longo
   (id de recebedor) fica em `truncate` com `title`, para não alargar a

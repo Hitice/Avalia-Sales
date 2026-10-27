@@ -251,7 +251,7 @@ export function Moldura() {
         </div>
         <div className="min-w-0">
           <AvisoDeContaEncerrada />
-          <main className={cn('mx-auto min-w-0 max-w-7xl p-4 md:px-6 md:pt-6', lateral && 'lg:max-w-270 lg:px-8', naVenda ? 'pb-40 md:pb-24' : 'pb-24 md:pb-8')}>
+          <main className={cn('mx-auto min-w-0 max-w-7xl p-4 md:px-6 md:pt-6', lateral && 'lg:px-8', naVenda ? 'pb-40 md:pb-24' : 'pb-24 md:pb-8')}>
             {travado ? <ConfirmeOEmail email={perfil.email} /> : encerrada && soComAContaAtiva(caminho) ? <Navigate to="/painel/inicio" replace /> : <Outlet />}
           </main>
         </div>

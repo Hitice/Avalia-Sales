@@ -93,7 +93,7 @@ function Table({ className, semBusca = false, ...props }: React.ComponentProps<"
 
   const comBusca = !semBusca && (contagem.total >= LINHAS_PARA_BUSCA || termo.length > 0)
   return (
-    <div data-slot="table-container" className="relative w-full">
+    <div data-slot="table-container" className="relative w-full contain-inline-size">
       {comBusca && (
         <div className="mb-3 flex items-center gap-3 md:px-5 md:pt-1">
           <Input type="search" value={termo} onChange={(e) => setTermo(e.target.value)} placeholder="Buscar na lista" aria-label="Buscar na lista" className="md:max-w-xs" />
