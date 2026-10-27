@@ -52,7 +52,7 @@ x-integracoes: &integracoes
   Protheus__UrlBase: ${PROTHEUS_URL_BASE:-}
   Protheus__Usuario: ${PROTHEUS_USUARIO:-}
   Protheus__Senha: ${PROTHEUS_SENHA:-}
-  ConnectionStrings__Banco: Host=postgres;Database=avalia_sales;Username=avalia_app;Password=${PG_SENHA_APLICACAO}
+  ConnectionStrings__Banco: Host=postgres;Database=avalia_sales;Username=avalia_app;Password=${PG_SENHA_APLICACAO};GSS Encryption Mode=Disable
 
 services:
   postgres:
@@ -81,7 +81,7 @@ services:
       target: api
     command: ["--migrar"]
     environment:
-      ConnectionStrings__Dono: Host=postgres;Database=avalia_sales;Username=avalia_dono;Password=${PG_SENHA_DONO}
+      ConnectionStrings__Dono: Host=postgres;Database=avalia_sales;Username=avalia_dono;Password=${PG_SENHA_DONO};GSS Encryption Mode=Disable
     depends_on:
       postgres:
         condition: service_healthy
