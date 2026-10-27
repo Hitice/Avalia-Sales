@@ -62,7 +62,7 @@ internal static class Demonstracao
             await lotes.Gerar(20, ct);
         }
 
-        var a = await Revenda(servicos, "Revenda Demonstração A", "52601815000120", "cliente@a.dev", "rp_simuladoRevendaA", ct);
+        var a = await Revenda(servicos, "Revenda Demonstração A", "52601815000120", "cliente@a.dev", "rp_simuladoRevendaA", ct, receptora: true);
         var b = await Revenda(servicos, "Revenda Demonstração B", "90830166000128", "cliente@b.dev", "rp_simuladoRevendaB", ct);
         await PopularRevendaA(servicos, a, ct);
         await PopularRevendaB(servicos, b, ct);
@@ -118,11 +118,13 @@ internal static class Demonstracao
         }
     }
 
-    private static async Task<Guid> Revenda(IServiceProvider servicos, string nome, string cnpj, string email, string recebedor, CancellationToken ct)
+    /// <summary>A revenda A é a receptora: sem uma marcada, nenhuma revenda da demonstração consegue pedir o encerramento.</summary>
+    private static async Task<Guid> Revenda(IServiceProvider servicos, string nome, string cnpj, string email, string recebedor, CancellationToken ct, bool receptora = false)
     {
         using var escopo = servicos.CreateScope();
         var banco = escopo.ServiceProvider.GetRequiredService<BancoDeDados>();
         var revendedor = new Revendedor(nome, cnpj);
+        revendedor.DefinirReceptora(receptora);
         revendedor.DefinirRecebedorPagarme(recebedor);
         revendedor.RegistrarContratoAssinado(DateTimeOffset.UtcNow.AddDays(-60));
         revendedor.DefinirEndereco(new Endereco("Avenida Rondon Pacheco", "1000", null, "Tabajaras", "Uberlândia", "MG", "38400242"));
