@@ -62,6 +62,21 @@ public sealed partial class SegundoFatorTest(ApiDeTeste api)
         await dono.Postar("/conta/segundo-fator/desligar/codigo", new { }, HttpStatusCode.UnprocessableEntity);
     }
 
+    /// <summary>Ligar e desligar o segundo fator avisa o e-mail do dono, sem código nem link de entrada.</summary>
+    [Fact]
+    public async Task Ligar_e_desligar_o_segundo_fator_avisam_o_email_do_dono()
+    {
+        var (_, email) = await api.CriarRevendedor("Revenda 2FA Aviso");
+        var dono = await api.ClienteLogado(email);
+        var (chave, _) = await Ligar(dono);
+        await dono.Postar("/conta/segundo-fator/desligar", new { codigo = Totp.Codigo(chave) }, HttpStatusCode.NoContent);
+
+        await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
+        var assuntos = (await banco.Emails(email)).Select(e => e.Assunto).ToList();
+        Assert.Equal(1, assuntos.Count(a => a == "Segundo fator ligado"));
+        Assert.Equal(1, assuntos.Count(a => a == "Segundo fator desligado"));
+    }
+
     [Fact]
     public async Task Link_de_troca_de_senha_nao_pula_o_segundo_fator()
     {

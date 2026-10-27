@@ -194,6 +194,9 @@ maiúscula ("otica" acha "Ótica").
 - Entrada de aparelho novo gera um e-mail ao dono da conta, com navegador,
   sistema, horário e IP, e o link para trocar a senha. O primeiro aparelho
   entra sem aviso.
+- Ligar ou desligar o segundo fator gera um e-mail ao dono da conta, sem código
+  nem link de entrada, com o atalho para trocar a senha. O e-mail do código de
+  acesso lembra que a Avalia nunca pede o código por telefone ou mensagem.
 - Troca de senha logada, para todos os papéis - pede a senha atual, encerra
   os outros aparelhos e avisa por e-mail. Vale também com a conta encerrada.
 - Segundo fator opcional para o revendedor e a operadora. Desativar pede um
@@ -867,6 +870,7 @@ As mudanças de 21 a 24/10/2026 estão em [historico/pdd-ate-24-10.md](historico
 
 | Data | Mudança |
 | --- | --- |
+| 26/10/2026 | Aviso por e-mail ao dono quando o segundo fator é ligado ou desligado; o item de menu da operadora passa a se chamar Bloqueados. |
 | 26/10/2026 | Cada tela com uma responsabilidade, sem dado repetido: o cliente tem a casa dele em Clientes (Venda, Ficha da placa e Carteira só o apontam); a venda, no Detalhe da venda (a Ficha da placa leva a ele); o razão virou a aba Lançamentos do Financeiro; a marca virou a aba Marca de Configurações, com o encerramento da conta; a senha foi para Segurança, que abre para todos os papéis; Pedir placas só em Pedidos; o Início deixou de repetir o gráfico do Financeiro. Em Comissões, o que era "conferir" passou a "confirmar o dinheiro" que o vendedor recebeu. |
 | 26/10/2026 | Fornecedores da operadora (cadastro com várias funções, ligado à despesa e ao custo de lote), transportadora e código de rastreio no despacho, estorno do pedido pago antes do despacho, lembrete de lote não ativado, a acertar das vendas recebidas por fora com registro de acerto (ADR 0028), aviso automático de vencimento da placa e e-mail de pagamento confirmado ao dono. |
 | 26/10/2026 | Limite de 10 destinos novos por dia por revenda, com Solicitar liberação e liberação da operadora, e lista de destinos bloqueados que também para de redirecionar o que já existia (ADR 0026). Segundo fator exigido na conta da operadora para trocar recebedor, CNPJ e registrar dinheiro (ADR 0027), com aviso ao dono na troca de recebedor. |

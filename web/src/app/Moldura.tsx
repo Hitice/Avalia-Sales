@@ -67,7 +67,7 @@ const MENU: Record<Papel, Grupo[]> = {
       { para: '/operadora/revendedores', rotulo: 'Revendedores', icone: Store },
       { para: '/operadora/financeiro', rotulo: 'Resultado do grupo', icone: Scale },
       { para: '/operadora/atendimento', rotulo: 'Atendimento', icone: Headset },
-      { para: '/operadora/destinos-bloqueados', rotulo: 'Destinos bloqueados', icone: ShieldBan },
+      { para: '/operadora/destinos-bloqueados', rotulo: 'Bloqueados', icone: ShieldBan },
       { para: '/operadora/erp', rotulo: 'ERP', icone: Server },
       { para: '/operadora/auditoria', rotulo: 'Auditoria', icone: History },
     ] },
