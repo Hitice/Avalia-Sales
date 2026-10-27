@@ -13,7 +13,7 @@ public sealed class LeituraDoDia : IDoRevendedor
     public Guid RevendedorId { get; private set; }
     public int Total { get; private set; }
 
-    internal LeituraDoDia()
+    private LeituraDoDia()
     {
     }
 }
