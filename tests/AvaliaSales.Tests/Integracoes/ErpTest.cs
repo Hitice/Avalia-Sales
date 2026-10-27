@@ -67,7 +67,7 @@ public sealed class FluxoDoErpTest(ApiDeTeste api)
         var operadora = await api.ClienteLogado(await api.CriarOperadora());
         var (_, email) = await api.CriarRevendedor("Revenda do ERP");
         var dono = await api.ClienteLogado(email);
-        var pacote = (await operadora.Postar("/operadora/pacotes", new { quantidade = Random.Shared.Next(700, 750), precoCents = 70_000L }, HttpStatusCode.Created)).GetProperty("id").GetGuid();
+        var pacote = await Cenarios.PacoteDaQuantidade(operadora, Random.Shared.Next(700, 750), 70_000L);
         var pedido = (await dono.Postar("/pedidos", new { pacoteId = pacote }, HttpStatusCode.Created)).GetProperty("id").GetGuid();
         await operadora.Postar($"/operadora/pedidos/{pedido}/pagamento", new { }, HttpStatusCode.NoContent);
         var erp = new ErpFalso { Falhar = true };
