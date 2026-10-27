@@ -71,39 +71,58 @@ export function aplicarMarca(marca: Marca | null) {
   }
 }
 
-/** A marca do revendedor logado. A operadora fica com a da plataforma. */
+/** Quantos componentes montados usam a marca: só o último a desmontar devolve as cores da plataforma. */
+let usosDaMarca = 0
+
+/**
+ * A marca do revendedor logado. A operadora fica com a da plataforma. A Moldura
+ * e o painel da marca usam juntos: o painel que fecha não apaga as cores do app.
+ */
 export function useMarca() {
   const papel = useSessao((s) => s.perfil?.papel)
+  const daRevenda = papel === 'Dono' || papel === 'Vendedor'
   const consulta = useQuery({
     queryKey: ['marca'],
     queryFn: () => chamarApi<Marca>('/marca'),
-    enabled: papel === 'Dono' || papel === 'Vendedor',
+    enabled: daRevenda,
     staleTime: 5 * 60_000,
   })
 
   useEffect(() => {
-    aplicarMarca(papel === 'Operadora' ? null : consulta.data ?? null)
-    return () => aplicarMarca(null)
-  }, [consulta.data, papel])
+    usosDaMarca++
+    return () => {
+      usosDaMarca--
+      if (usosDaMarca === 0) aplicarMarca(null)
+    }
+  }, [])
+
+  useEffect(() => {
+    aplicarMarca(daRevenda ? consulta.data ?? null : null)
+  }, [consulta.data, daRevenda])
 
   return consulta.data
 }
 
-/** O logo vem com o token, então é lido pela chamada e mostrado como URL local, liberada quando a versão muda. */
+/** O endereço local do logo em uso, um para o app inteiro: o da versão anterior é liberado quando chega o novo. */
+let logoEmUso: string | null = null
+
+/**
+ * O logo vem com o token, então é lido pela chamada e mostrado como endereço
+ * local. O endereço é do cache, que a Moldura e o painel da marca dividem: o
+ * componente que desmonta não o libera, só a versão nova do logo.
+ */
 export function useLogo(marca: Marca | undefined) {
   const consulta = useQuery({
     queryKey: ['marca', 'logo', marca?.versao],
-    queryFn: async () => URL.createObjectURL(await (await chamarResposta(`/marca/logo?v=${marca?.versao}`)).blob()),
+    queryFn: async () => {
+      const endereco = URL.createObjectURL(await (await chamarResposta(`/marca/logo?v=${marca?.versao}`)).blob())
+      if (logoEmUso) URL.revokeObjectURL(logoEmUso)
+      logoEmUso = endereco
+      return endereco
+    },
     enabled: !!marca?.temLogo,
     staleTime: Infinity,
   })
-
-  useEffect(() => {
-    const url = consulta.data
-    return () => {
-      if (url) URL.revokeObjectURL(url)
-    }
-  }, [consulta.data])
 
   return marca?.temLogo ? consulta.data ?? null : null
 }

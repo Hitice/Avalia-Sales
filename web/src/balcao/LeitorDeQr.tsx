@@ -63,6 +63,9 @@ export function LeitorDeQr({ aoLer, aoFechar }: { aoLer: (codigo: string) => voi
         }
       } catch (e) {
         setErro(mensagemDaCamera(e))
+      } finally {
+        // Leu, falhou (o detector não carregou) ou fechou: a câmera não fica ligada atrás da mensagem.
+        fluxo?.getTracks().forEach((t) => t.stop())
       }
     }
 

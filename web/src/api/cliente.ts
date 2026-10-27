@@ -48,7 +48,9 @@ async function enviar(caminho: string, opcoes: RequestInit, chave: string | null
  * token da sessão renovado perto de vencer, e um 401 tenta renovar uma vez
  * antes de encerrar a sessão. Todo POST leva um `Idempotency-Key` próprio da
  * chamada: o reenvio depois do 401 usa a mesma chave, então a API não grava
- * duas vezes; cada ação do usuário é uma chamada nova, com chave nova.
+ * duas vezes; cada ação do usuário é uma chamada nova, com chave nova. Quem
+ * repete a mesma intenção depois de uma queda de rede (a cobrança da Nova
+ * venda, `balcao/tentativa.ts`) manda a própria chave em `opcoes.headers`.
  */
 export async function chamarResposta(caminho: string, opcoes: RequestInit = {}): Promise<Response> {
   const { token, expiraEm } = useSessao.getState()

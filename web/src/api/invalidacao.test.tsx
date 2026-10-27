@@ -40,7 +40,7 @@ describe('gravações que mudam outras telas refazem o que depende delas', () =>
   })
 
   it('registrar a venda cria o cliente e entra no vendido do mês', async () => {
-    const chaves = await chavesRefeitas(useVenderItens, { itens: [] } as never)
+    const chaves = await chavesRefeitas(useVenderItens, { venda: { itens: [] }, chave: 'k' } as never)
     expect(chaves).toEqual(expect.arrayContaining(['vendas', 'placas', 'placa', 'servicos', 'clientes', 'financeiro']))
   })
 

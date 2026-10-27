@@ -12,3 +12,9 @@ export const fimDoDiaEmBrasilia = (dia: string) => new Date(`${dia}T23:59:59-03:
 
 /** O dia (aaaa-mm-dd) em Brasília de um instante ISO: 2026-11-01T02:59:59Z é 2026-10-31. */
 export const diaEmBrasilia = (iso: string) => diaDeBrasilia.format(new Date(iso))
+
+/** O dia (aaaa-mm-dd) em Brasília de um instante em milissegundos: o "hoje" das telas, qualquer que seja o fuso do navegador. */
+export const diaDeBrasiliaEm = (instante: number) => diaDeBrasilia.format(instante)
+
+/** O instante (ms) da meia-noite de um dia (aaaa-mm-dd) em Brasília. */
+export const inicioDoDiaEmBrasilia = (dia: string) => Date.parse(`${dia}T00:00:00-03:00`)

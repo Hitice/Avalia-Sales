@@ -48,3 +48,26 @@ test('toque duplo em Cobrar no cartão envia a venda uma vez só: cada toque ger
   await expect(page.getByRole('heading', { name: 'Venda registrada' })).toBeVisible()
   expect(contagem.envios).toBe(1)
 })
+
+test('queda de rede depois de a API registrar: o segundo toque leva a mesma chave e recebe a mesma venda', async ({ page }) => {
+  const chaves: (string | undefined)[] = []
+  const repetidas: (string | undefined)[] = []
+  await page.route('**/api/vendas/itens', async (rota) => {
+    chaves.push(rota.request().headers()['idempotency-key'])
+    const resposta = await rota.fetch()
+    repetidas.push(resposta.headers()['idempotent-replayed'])
+    // A primeira chega à API e é registrada, mas a resposta se perde no caminho.
+    if (chaves.length === 1) await rota.abort('connectionreset')
+    else await rota.fulfill({ response: resposta })
+  })
+  await ateACobranca(page)
+
+  await page.getByRole('button', { name: 'Registrar venda' }).click()
+  await expect(page.getByText('Sem conexão com o servidor.')).toBeVisible()
+  await page.getByRole('button', { name: 'Registrar venda' }).click()
+
+  await expect(page.getByRole('heading', { name: 'Venda registrada' })).toBeVisible()
+  expect(chaves).toHaveLength(2)
+  expect(chaves[1]).toBe(chaves[0])
+  expect(repetidas).toEqual([undefined, 'true'])
+})

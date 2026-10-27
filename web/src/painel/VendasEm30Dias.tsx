@@ -3,16 +3,21 @@ import { Bar, BarChart, CartesianGrid, Cell, XAxis, YAxis } from 'recharts'
 import { Carregando } from '@/componentes/Tela'
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
+import { diaDeBrasiliaEm } from '@/lib/data'
 
-const diaCurto = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit' })
+const UM_DIA = 86_400_000
 
-/** Uma contagem por dia (dia em AAAA-MM-DD) nos últimos 30 dias até hoje; dia sem registro entra com zero. */
+/**
+ * Uma contagem por dia (dia em AAAA-MM-DD, de Brasília, como a API agrupa) nos últimos 30 dias até hoje em
+ * Brasília, qualquer que seja o fuso do navegador; dia sem registro entra com zero.
+ */
 export function porDiaDe(contagens: { dia: string; total: number }[], agora: number) {
-  const hoje = new Date(agora)
+  const [ano, mes, dia] = diaDeBrasiliaEm(agora).split('-').map(Number)
+  // Meio-dia em UTC: somar dias inteiros nunca cruza a virada, e a data em UTC é a de Brasília.
+  const hoje = Date.UTC(ano, mes - 1, dia, 12)
   return Array.from({ length: 30 }, (_, i) => {
-    const d = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() - (29 - i))
-    const chave = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-    return { dia: diaCurto.format(d), total: contagens.find((c) => c.dia === chave)?.total ?? 0 }
+    const chave = new Date(hoje - (29 - i) * UM_DIA).toISOString().slice(0, 10)
+    return { dia: `${chave.slice(8, 10)}/${chave.slice(5, 7)}`, total: contagens.find((c) => c.dia === chave)?.total ?? 0 }
   })
 }
 

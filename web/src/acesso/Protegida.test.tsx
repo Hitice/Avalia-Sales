@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { createMemoryRouter, RouterProvider, useLocation } from 'react-router'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Protegida } from './Protegida'
 import { type Papel, destinoDaVolta, useSessao } from './sessao'
 
@@ -28,14 +28,42 @@ function abrir(papel: Papel | null, iniciada = true, inicio = '/operadora') {
 }
 
 afterEach(() => {
+  vi.unstubAllGlobals()
   useSessao.getState().limpar()
   useSessao.setState({ iniciada: false })
 })
+
+const perfil = { id: '1', nome: 'X', email: 'x@teste.com.br', papel: 'Operadora' as const, revendedorId: null, revendedor: null, emailConfirmado: true }
+
+/** A aba ficou parada: o token de 15 minutos venceu, e o cookie de renovação pode ainda valer. */
+function abrirComTokenVencido(renovacao: Response) {
+  useSessao.setState({ iniciada: true })
+  useSessao.getState().entrar({ token: 'velho', expiraEm: new Date(Date.now() - 1_000).toISOString(), perfil })
+  vi.stubGlobal('fetch', vi.fn(async () => renovacao.clone()))
+  const roteador = createMemoryRouter([
+    { path: '/entrar', element: <Entrada /> },
+    { element: <Protegida papeis={['Operadora']} />, children: [{ path: '/operadora', element: <p>Operação</p> }] },
+  ], { initialEntries: ['/operadora'] })
+  render(<RouterProvider router={roteador} />)
+}
 
 describe('Protegida', () => {
   it('espera a renovação pelo cookie antes de mandar para a entrada', () => {
     abrir(null, false)
     expect(screen.getByRole('status')).toHaveTextContent('Carregando')
+  })
+
+  it('token vencido com o cookie valendo renova e fica na tela', async () => {
+    abrirComTokenVencido(new Response(JSON.stringify({ token: 'novo', expiraEm: new Date(Date.now() + 900_000).toISOString(), perfil }), { status: 200 }))
+
+    expect(await screen.findByText('Operação')).toBeInTheDocument()
+    expect(useSessao.getState().token).toBe('novo')
+  })
+
+  it('token vencido e o cookie recusado vai para a entrada', async () => {
+    abrirComTokenVencido(new Response(null, { status: 401 }))
+
+    expect(await screen.findByText(`Entrada?volta=${encodeURIComponent('/operadora')}`)).toBeInTheDocument()
   })
 
   it('sem sessão, vai para a entrada levando a tela pedida, com a busca', () => {

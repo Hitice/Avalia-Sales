@@ -27,11 +27,15 @@ export function usePagamentoDaVenda(vendaId: string, acompanhar: boolean) {
   })
 }
 
-/** A venda com vários itens numa cobrança só; cada placa ou serviço vira uma venda do mesmo grupo. */
+/**
+ * A venda com vários itens numa cobrança só; cada placa ou serviço vira uma venda do mesmo grupo. A chave vem da
+ * tentativa de cobrança (`tentativa.ts`): repetir depois de uma queda de rede não registra a venda duas vezes.
+ */
 export function useVenderItens() {
   const cliente = useQueryClient()
   return useMutation({
-    mutationFn: (venda: NovaVendaComItens) => chamarApi<VendasRegistradas>('/vendas/itens', enviarJson('POST', venda)),
+    mutationFn: ({ venda, chave }: { venda: NovaVendaComItens; chave: string }) =>
+      chamarApi<VendasRegistradas>('/vendas/itens', { ...enviarJson('POST', venda), headers: { 'Idempotency-Key': chave } }),
     onSuccess: () => Promise.all(['vendas', 'placas', 'placa', 'servicos', 'clientes', 'financeiro'].map((c) => cliente.invalidateQueries({ queryKey: [c] }))),
   })
 }

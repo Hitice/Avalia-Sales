@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { formatarCentavos } from '@/dinheiro/dinheiro'
+import { FUSO_DE_BRASILIA, diaDeBrasiliaEm, inicioDoDiaEmBrasilia } from '@/lib/data'
 import { useContaEncerrada } from '@/app/contaEncerrada'
 import { useDre } from '@/financeiro/consultas'
 import { LinhaDaDre } from '@/financeiro/LinhaDaDre'
@@ -15,9 +16,10 @@ import { usePlacas, useResumoDasVendas, useVendasRecentes } from './consultas'
 import { porDiaDe, VendasEm30Dias } from './VendasEm30Dias'
 import { nomeDoProduto, rotuloDaVenda, tomDaVenda } from './situacaoDaVenda'
 
-const hora = new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit' })
-const diaDaSemana = new Intl.DateTimeFormat('pt-BR', { weekday: 'long' })
-const diaEMes = new Intl.DateTimeFormat('pt-BR', { day: 'numeric', month: 'long' })
+// Hora e data de Brasília, como o resto das telas: o navegador em outro fuso não muda o "hoje".
+const hora = new Intl.DateTimeFormat('pt-BR', { timeZone: FUSO_DE_BRASILIA, hour: '2-digit', minute: '2-digit' })
+const diaDaSemana = new Intl.DateTimeFormat('pt-BR', { timeZone: FUSO_DE_BRASILIA, weekday: 'long' })
+const diaEMes = new Intl.DateTimeFormat('pt-BR', { timeZone: FUSO_DE_BRASILIA, day: 'numeric', month: 'long' })
 
 /** "Sexta, 24 de outubro". */
 function dataPorExtenso(agora: number) {
@@ -143,8 +145,7 @@ const item = (v: VendaDaLista) => (v.codigo ? `${nomeDoProduto(v)} ${v.codigo}` 
  * mais recentes, com a situação de cada uma. Venda cancelada não conta nos números.
  */
 function montar(recentes: VendaDaLista[], resumo: ResumoDasVendas | undefined, agora: number) {
-  const hoje = new Date(agora)
-  const inicioDoDia = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate()).getTime()
+  const inicioDoDia = inicioDoDiaEmBrasilia(diaDeBrasiliaEm(agora))
 
   return {
     porDia: porDiaDe((resumo?.porDia ?? []).map((d) => ({ dia: d.dia, total: d.total })), agora),

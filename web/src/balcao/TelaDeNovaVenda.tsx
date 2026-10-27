@@ -6,7 +6,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router'
 import { useSessao } from '@/acesso/sessao'
 import { mensagemDoErro } from '@/api/cliente'
 import { ROTULO_DO_PAGAMENTO, formatarData } from '@/api/rotulos'
-import type { ItemDoCatalogo, VendasRegistradas } from '@/api/tipos'
+import type { ItemDoCatalogo, NovaVendaComItens, VendasRegistradas } from '@/api/tipos'
 import { useCatalogo, usaPlaca } from '@/catalogo/produtos'
 import { useAtualizarLimiteDeDestinos } from '@/painel/consultasDoLimite'
 import { AvisoDoLimiteDeDestinos } from '@/componentes/AvisoDoLimiteDeDestinos'
@@ -31,6 +31,7 @@ import { extrairCodigo } from './codigo'
 import { useConfiguracaoDoCartao, usePagamentoDaVenda, useVenderItens } from './consultas'
 import { ListaDeItens } from './ListaDeItens'
 import { ModalDaPlaca } from './ModalDaPlaca'
+import { type Tentativa, tentativaContinua, tentativaPara } from './tentativa'
 
 type Passo = 'itens' | 'cliente' | 'cobranca'
 const PASSOS: { id: Passo; rotulo: string }[] = [
@@ -105,6 +106,7 @@ export function TelaDeNovaVenda() {
   const formularioDoCartao = useForm<Cartao>({ resolver: zodResolver(esquemaDoCartao), mode: 'onChange', defaultValues: CARTAO_VAZIO })
   const [tokenizando, setTokenizando] = useState(false)
   const [recusaDoCartao, setRecusaDoCartao] = useState<string | null>(null)
+  const tentativa = useRef<Tentativa<NovaVendaComItens> | null>(null)
 
   // Quem chega pela ficha (?codigo=) ou pelo catálogo (?produto=) já entra com o item escolhido, assim que o catálogo responde.
   const [chegadaTratada, setChegadaTratada] = useState(false)
@@ -157,6 +159,7 @@ export function TelaDeNovaVenda() {
     meioDoResolver.current = 'Pix'
     setMeio('Pix')
     formularioDoCartao.reset(CARTAO_VAZIO)
+    tentativa.current = null
     setVendidas(null)
   }
 
@@ -165,39 +168,47 @@ export function TelaDeNovaVenda() {
     else setLinhas((l) => adicionar(l, linhaDeServico(item)))
   }
 
-  /** No cartão, tokeniza antes: número e CVV vão ao Pagar.me, e a API recebe só o token. */
+  /**
+   * No cartão, tokeniza antes: número e CVV vão ao Pagar.me, e a API recebe só o token. O mesmo toque repetido
+   * depois de uma queda de rede reenvia a mesma tentativa (chave e token), e a API devolve a venda já registrada.
+   */
   async function registrar() {
     setRecusaDoCartao(null)
-    let tokenDoCartao: string | null = null
-    let parcelas = 1
-    if (meio === 'Cartao' && configDoCartao.data) {
-      setTokenizando(true)
-      try {
-        const cartao = formularioDoCartao.getValues()
-        tokenDoCartao = await tokenizarCartao(configDoCartao.data, cartao)
-        parcelas = Number(cartao.parcelas)
-      } catch (e) {
-        setRecusaDoCartao(e instanceof Error ? e.message : 'Não deu para usar o cartão.')
-        return
-      } finally {
-        setTokenizando(false)
-      }
-    }
-
     const enviadas = linhas
-    vender.mutate({
+    const cartao = formularioDoCartao.getValues()
+    const semCartao = {
       itens: paraItens(enviadas),
       ...clienteParaEnvio(formularioDoCliente.getValues()),
       // O teste gratuito é Pix depois: a cobrança sai quando o cliente decidir.
-      meio: meio === 'Teste' ? 'Pix' : meio,
+      meio: meio === 'Teste' ? 'Pix' as const : meio,
       testeGratuito: meio === 'Teste',
-      tokenDoCartao,
-      parcelas,
-    }, {
+    }
+    let atual: Tentativa<NovaVendaComItens>
+    try {
+      atual = await tentativaPara(tentativa.current, JSON.stringify([semCartao, meio === 'Cartao' ? cartao : null]), async () => {
+        if (meio !== 'Cartao' || !configDoCartao.data) return { ...semCartao, tokenDoCartao: null, parcelas: 1 }
+        setTokenizando(true)
+        try {
+          return { ...semCartao, tokenDoCartao: await tokenizarCartao(configDoCartao.data, cartao), parcelas: Number(cartao.parcelas) }
+        } finally {
+          setTokenizando(false)
+        }
+      })
+    } catch (e) {
+      setRecusaDoCartao(e instanceof Error ? e.message : 'Não deu para usar o cartão.')
+      return
+    }
+
+    tentativa.current = atual
+    vender.mutate({ venda: atual.corpo, chave: atual.chave }, {
       onSuccess: (registro) => {
+        tentativa.current = null
         formularioDoCartao.reset(CARTAO_VAZIO)
         void atualizarLimite()
         setVendidas({ registro, linhas: enviadas })
+      },
+      onError: (erro) => {
+        if (!tentativaContinua(erro)) tentativa.current = null
       },
     })
   }

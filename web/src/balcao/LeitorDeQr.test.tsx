@@ -45,4 +45,16 @@ describe('LeitorDeQr', () => {
 
     await waitFor(() => expect(faixas[0].stop).toHaveBeenCalled())
   })
+
+  it('detector que não carrega mostra o erro e desliga a câmera', async () => {
+    const { faixas, liberar } = camerasFalsas()
+    vi.stubGlobal('BarcodeDetector', class { static getSupportedFormats = () => Promise.reject(new Error('sem detector')) })
+    const tela = render(<LeitorDeQr aoLer={() => undefined} aoFechar={() => undefined} />)
+    await waitFor(() => expect(faixas).toHaveLength(1))
+
+    liberar()
+
+    expect(await tela.findByRole('alert')).toBeInTheDocument()
+    expect(faixas[0].stop).toHaveBeenCalled()
+  })
 })
