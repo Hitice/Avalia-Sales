@@ -294,6 +294,6 @@ app.MapearWebhooks();
 app.MapearSimulador();
 app.MapHub<HubDeAvisos>(HubDeAvisos.Rota);
 
-app.Run();
+await app.RunAsync();
 
 public partial class Program;

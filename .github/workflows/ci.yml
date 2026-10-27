@@ -168,13 +168,34 @@ jobs:
             echo "::notice::SONAR_TOKEN não configurado; análise do SonarCloud pulada."
             exit 0
           fi
+          # Falsos positivos conferidos: CSS do Tailwind (@utility aninhado), senha do
+          # Postgres efêmero do CI, scripts de migração rodados pela operadora com
+          # argumento dela, aleatório de teste e de demonstração (semente fixa), cookie
+          # Secure fora do desenvolvimento e imagens oficiais nginx/postgres no usuário padrão.
           dotnet tool install --global dotnet-sonarscanner --version 11.3.0
           dotnet tool install --global dotnet-coverage --version 18.12.0
           dotnet sonarscanner begin /o:"${{ vars.SONAR_ORGANIZACAO }}" /k:"${{ vars.SONAR_PROJETO }}" \
             /d:sonar.host.url=https://sonarcloud.io /d:sonar.token="$SONAR_TOKEN" \
             /d:sonar.cs.vscoveragexml.reportsPaths=coverage.xml \
             /d:sonar.exclusions="**/Migrations/**,**/bin/**,**/obj/**,web/node_modules/**,web/dist/**,web/storybook-static/**,web/public/**,web/src/api/esquema.d.ts,web/openapi.json,docs/contrato/**" \
-            /d:sonar.coverage.exclusions="web/**,tests/**,infra/**"
+            /d:sonar.coverage.exclusions="web/**,tests/**,infra/**" \
+            /d:sonar.issue.ignore.multicriteria=css1,css2,yaml1,py1,e2e1,demo1,cookie1,docker1 \
+            /d:sonar.issue.ignore.multicriteria.css1.ruleKey="css:S8776" \
+            /d:sonar.issue.ignore.multicriteria.css1.resourceKey="web/src/index.css" \
+            /d:sonar.issue.ignore.multicriteria.css2.ruleKey="css:S8767" \
+            /d:sonar.issue.ignore.multicriteria.css2.resourceKey="web/src/index.css" \
+            /d:sonar.issue.ignore.multicriteria.yaml1.ruleKey="yaml:S2068" \
+            /d:sonar.issue.ignore.multicriteria.yaml1.resourceKey=".github/workflows/ci.yml" \
+            /d:sonar.issue.ignore.multicriteria.py1.ruleKey="pythonsecurity:S8707" \
+            /d:sonar.issue.ignore.multicriteria.py1.resourceKey="infra/migracao/**" \
+            /d:sonar.issue.ignore.multicriteria.e2e1.ruleKey="typescript:S2245" \
+            /d:sonar.issue.ignore.multicriteria.e2e1.resourceKey="web/e2e/**" \
+            /d:sonar.issue.ignore.multicriteria.demo1.ruleKey="csharpsquid:S2245" \
+            /d:sonar.issue.ignore.multicriteria.demo1.resourceKey="src/AvaliaSales.Api/Demonstracao.cs" \
+            /d:sonar.issue.ignore.multicriteria.cookie1.ruleKey="csharpsquid:S2092" \
+            /d:sonar.issue.ignore.multicriteria.cookie1.resourceKey="src/AvaliaSales.Api/Rotas/RotasDeAcesso.cs" \
+            /d:sonar.issue.ignore.multicriteria.docker1.ruleKey="docker:S6471" \
+            /d:sonar.issue.ignore.multicriteria.docker1.resourceKey="infra/**"
           dotnet build -c Release --no-incremental
           dotnet-coverage collect "dotnet test --no-build -c Release" -f xml -o coverage.xml
           dotnet sonarscanner end /d:sonar.token="$SONAR_TOKEN"

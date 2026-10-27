@@ -39,5 +39,5 @@ public sealed class ChaveDeIdempotencia
 
     public DateTimeOffset ExpiraEm { get; private set; }
 
-    private ChaveDeIdempotencia() => Rota = Chave = HashDoCorpo = string.Empty;
+    internal ChaveDeIdempotencia() => Rota = Chave = HashDoCorpo = string.Empty;
 }
