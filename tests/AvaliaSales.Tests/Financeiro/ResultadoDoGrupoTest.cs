@@ -160,7 +160,7 @@ public sealed class ResultadoDoGrupoTest(ApiDeTeste api)
         var (revendedorId, email) = await api.CriarRevendedor("Revenda do Pedido Reconhecido");
         var dono = await api.ClienteLogado(email);
         var quantidade = Random.Shared.Next(701, 750);
-        var pacote = await operadora.Postar("/operadora/pacotes", new { quantidade, precoCents = quantidade * 1_000L }, HttpStatusCode.Created);
+        var pacote = await Cenarios.PacoteJson(operadora, quantidade, quantidade * 1_000L);
         var lote = await operadora.Postar("/operadora/lotes", new { quantidade }, HttpStatusCode.Created);
         var pedido = (await dono.Postar("/pedidos", new { pacoteId = pacote.GetProperty("id").GetGuid() }, HttpStatusCode.Created)).GetProperty("id").GetGuid();
         var valor = quantidade * 1_000L;

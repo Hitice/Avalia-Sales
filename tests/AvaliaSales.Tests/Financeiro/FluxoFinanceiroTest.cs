@@ -34,7 +34,7 @@ public sealed class FluxoFinanceiroTest(ApiDeTeste api)
         var operadora = await api.ClienteLogado(await api.CriarOperadora());
         var (_, email) = await api.CriarRevendedor("Revenda do Link");
         var dono = await api.ClienteLogado(email);
-        var pacote = (await operadora.Postar("/operadora/pacotes", new { quantidade = Random.Shared.Next(1_000 - 50, 1_000), precoCents = 90_000L }, HttpStatusCode.Created)).GetProperty("id").GetGuid();
+        var pacote = await Cenarios.PacoteDaQuantidade(operadora, Random.Shared.Next(1_000 - 50, 1_000), 90_000L);
         var pedido = (await dono.Postar("/pedidos", new { pacoteId = pacote }, HttpStatusCode.Created)).GetProperty("id").GetGuid();
 
         var url = (await dono.Postar($"/pedidos/{pedido}/pagamento", new { })).GetProperty("url").GetString();
@@ -64,7 +64,7 @@ public sealed class FluxoFinanceiroTest(ApiDeTeste api)
         var operadora = await api.ClienteLogado(await api.CriarOperadora());
         var (_, email) = await api.CriarRevendedor("Revenda do Cupom");
         var dono = await api.ClienteLogado(email);
-        var pacote = (await operadora.Postar("/operadora/pacotes", new { quantidade = Random.Shared.Next(800, 850), precoCents = 15_000L }, HttpStatusCode.Created)).GetProperty("id").GetGuid();
+        var pacote = await Cenarios.PacoteDaQuantidade(operadora, Random.Shared.Next(800, 850), 15_000L);
         var codigo = "TESTE" + Random.Shared.Next(1_000, 9_999);
         await operadora.Postar("/operadora/cupons", new { codigo, descontoBps = 10_000, usosMaximos = 1 }, HttpStatusCode.Created);
         var codigoParcial = "META" + Random.Shared.Next(1_000, 9_999);

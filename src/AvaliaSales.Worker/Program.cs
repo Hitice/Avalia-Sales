@@ -24,4 +24,4 @@ builder.Services.UsarProtheusSimuladoSeLigado(builder.Configuration, builder.Env
 builder.Services.UsarConversorSimuladoSeLigado(builder.Configuration, builder.Environment.IsDevelopment());
 builder.Services.AddHostedService<Rotinas>();
 
-builder.Build().Run();
+await builder.Build().RunAsync();

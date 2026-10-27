@@ -15,7 +15,7 @@ public sealed class AuditoriaDaOperadoraTest(ApiDeTeste api)
         // Faixa só deste teste: o banco é compartilhado e a quantidade do pacote é única (ErpTest usa 700 a 750, FluxoFinanceiroTest 800 a 850 e 950 a 1000).
         var quantidade = Random.Shared.Next(300, 400);
 
-        var pacote = await operadora.Postar("/operadora/pacotes", new { quantidade, precoCents = 99_900L }, HttpStatusCode.Created);
+        var pacote = await Cenarios.PacoteJson(operadora, quantidade, 99_900L);
         var id = pacote.GetProperty("id").GetGuid();
         await operadora.Colocar($"/operadora/pacotes/{id}/ativo", new { ativo = false }, HttpStatusCode.NoContent);
         await operadora.Postar("/operadora/pacotes", new { quantidade = 0, precoCents = 1L }, HttpStatusCode.UnprocessableEntity);

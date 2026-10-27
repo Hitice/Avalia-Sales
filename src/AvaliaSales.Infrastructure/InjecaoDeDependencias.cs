@@ -123,7 +123,7 @@ public static class InjecaoDeDependencias
         var protheus = servicos.AddHttpClient<Application.Erp.IErp, ClienteProtheus>((sp, http) =>
         {
             var url = sp.GetRequiredService<IOptions<OpcoesProtheus>>().Value.UrlBase;
-            http.BaseAddress = new Uri(string.IsNullOrWhiteSpace(url) ? "http://protheus.invalid/" : url.TrimEnd('/') + "/");
+            http.BaseAddress = new Uri(string.IsNullOrWhiteSpace(url) ? "https://protheus.invalid/" : url.TrimEnd('/') + "/");
             http.DefaultRequestHeaders.UserAgent.ParseAdd("AvaliaSales/1.0");
         });
         var resend = servicos.AddHttpClient<IEnvioDeEmail, ClienteResend>((sp, http) =>
