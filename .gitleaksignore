@@ -1,3 +1,4 @@
 # .env.example: D4SIGN_TOKEN_API vazio; a regra genérica casa pelo nome da variável.
-.env.example:generic-api-key:14
+# A primeira linha vale para "gitleaks dir" (linha atual do arquivo); a segunda, para "gitleaks git" (commit em que a linha era a 14).
+.env.example:generic-api-key:21
 c93d056d6ac54274142f1a398e771f2e0cbc176b:.env.example:generic-api-key:14

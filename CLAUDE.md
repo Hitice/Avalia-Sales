@@ -1,21 +1,33 @@
 # Avalia Sales: plataforma de revenda
 
 Plataforma multi-revendedor de placas com QR Code e NFC. Regra de negócio e
-escopo estão em `docs/PDD.md`; arquitetura em `docs/SDD.md`; cada decisão
-estrutural em `docs/adr` (MADR). O desenho técnico inicial
-(https://claude.ai/artifact/PhVBynCUBEJXdcWYNhzury) é só o registro da
-concepção: o repositório vale mais que ele.
+escopo estão em `docs/PDD.md`; arquitetura em `docs/SDD.md`; operação em
+`docs/OPERACAO.md`; cada decisão estrutural em `docs/adr` (MADR); design
+system em `DESIGN.md`. `AGENTS.md` e `.agents/skills` são links simbólicos para
+este arquivo e para `.claude/skills`: uma fonte só para Claude Code e Codex.
 
 Ler o documento certo antes de decidir arquitetura, regra ou escopo. Se o
-código e o documento discordarem, perguntar qual vale e atualizar o outro.
+código e o documento discordarem, vale o código e o documento é corrigido;
+se for regra de negócio, perguntar antes (seção Documentação).
+
+## Antes de mexer, ler
+
+- Entidade, tabela, rota, teste ou biblioteca - skill `padroes`.
+- Webhook, retentativa, Worker ou `Idempotency-Key` - skill `idempotencia`.
+- Tela, componente, cor ou texto de tela - skill `design-system` e `DESIGN.md`
+  (seção Texto para rótulo e mensagem de erro).
+- Pagar.me - skill `pagarme-checkout-order`.
+- Rota, tabela ou integração nova a publicar - skill `seguranca`.
+- Limpeza - skill `codigo-morto`.
+- Regras por pasta em `.claude/rules` (front e migrations); o agente `revisor`
+  (`.claude/agents`) confere o diff antes de subir.
 
 ## Stack
 
 - .NET 10 LTS: ASP.NET Core Web API, Worker Service, EF Core 10, ASP.NET
   Identity + JWT, SignalR. Solução em Api, Application, Domain, Infrastructure e
   Worker; Domain não depende de nenhum outro projeto. A versão mora só em
-  `Directory.Build.props` e `Directory.Packages.props`; o .NET 8 sai de suporte
-  em 10/11/2026.
+  `Directory.Build.props` e `Directory.Packages.props` (ADR 0002).
 - PostgreSQL 17, com `revendedor_id` em toda tabela de negócio, filtro global
   do EF Core e RLS. A API conecta com o papel `avalia_app`, sem superusuário e
   sem BYPASSRLS; quem migra é o dono do banco.
@@ -27,11 +39,12 @@ código e o documento discordarem, perguntar qual vale e atualizar o outro.
 - Integrações: Pagar.me v5 (checkout, split e cupom; marketplace na conta da
   Avalia), D4Sign, Resend, Google Maps JavaScript + Places (New), BrasilAPI
   (CNPJ e CEP no cadastro), Gotenberg (PDF do contrato e do distrato), Protheus
-  por simulador.
-- Infra: VPS Linux, Docker Compose, Nginx, Let's Encrypt; GitHub Actions com
-  self-hosted runner, SonarCloud, Sentry.
+  por REST, desligado sem URL.
+- Infra: VPS Linux de um núcleo, Docker Compose, Nginx, Let's Encrypt; GitHub
+  Actions (CI nos runners do GitHub, Deploy no runner próprio do VPS),
+  SonarCloud, Sentry.
 
-## Regras 
+## Regras
 
 - Revendedor é o tenant. A Avalia é operadora da plataforma e também uma
   revendedora comum: nenhuma regra do código pergunta se o revendedor é a
@@ -41,7 +54,15 @@ código e o documento discordarem, perguntar qual vale e atualizar o outro.
   (`_bps`). Preço, comissão e taxa ficam gravados na venda.
 - Razão só recebe inserção; correção é estorno.
 - Webhook grava o evento cru com chave única antes de processar e reconsulta a
-  API de origem.
+  API de origem (skill `idempotencia`).
+- Gravação POST autenticada aceita `Idempotency-Key` pelo middleware
+  `IdempotenciaDaRequisicao`; rota que devolve segredo ou escreve cookie leva
+  `SemIdempotencia()`.
+- Rota GET de lista que cresce com o uso nasce paginada (`PedidoDePagina`,
+  `Pagina<T>`, máximo 100; skill `padroes`).
+- Migration só aditiva: a versão anterior continua lendo o banco novo.
+- Ação da operadora que mexe em dinheiro de revenda passa por
+  `AcoesSensiveisDaOperadora.Exigir` (segundo fator ligado; ADR 0027).
 - `avaliaone.com.br/q/{codigo}` responde para sempre. O Sales do Avalia não é
   tocado até a virada.
 - Registro novo nasce com criar, editar e excluir na tela.
@@ -56,16 +77,23 @@ código e o documento discordarem, perguntar qual vale e atualizar o outro.
 - Tabela nova com `revendedor_id` precisa de `IsolarPorRevendedor` na
   migration; o teste `Toda_tabela_com_revendedor_tem_rls_ligado_e_forcado`
   falha sem ele.
-- Migration nova: `dotnet ef migrations add <Nome> -p src/AvaliaSales.Infrastructure -s src/AvaliaSales.Infrastructure -o Banco/Migrations`.
+- Migration nova: `dotnet tool restore` uma vez, depois
+  `dotnet ef migrations add <Nome> -p src/AvaliaSales.Infrastructure -s src/AvaliaSales.Infrastructure -o Banco/Migrations`.
+- Front, em `web/`: a lista de antes de entregar está em `.claude/rules/web.md`,
+  igual ao job `web` do CI. `npm run e2e` (Playwright com axe) usa a API local
+  de pé na 5199 com a demonstração (README), ou a que `web/e2e/api.sh` sobe
+  (`E2E_PG_ADMIN` para o Postgres do Homebrew); `npm run tipos` depois de mudar rota (o
+  `ContratoDaApiTest` regenera `web/openapi.json`). Comandos e variáveis de
+  ambiente no `README.md`.
 
 ## Avalia, o repositório vizinho
 
-`~/Documents/Avalia` é o sistema atual (Laravel 12). Para ler as regras do
-Sales, abrir a sessão com:
+`~/Documents/Development/Avalia` é o sistema atual (Laravel 12). Para ler as
+regras do Sales, abrir a sessão com:
 
 ```bash
-cd ~/Documents/development/Avalia-Sales
-claude --add-dir ~/Documents/Avalia
+cd ~/Documents/Development/Avalia-Sales
+claude --add-dir ~/Documents/Development/Avalia
 ```
 
 As regras de venda estão em `app/Actions/Etiquetas` e em
@@ -77,8 +105,8 @@ Avalia nem lê o banco de produção dele.
 - Português técnico e direto, sem travessão e sem metáfora. Em documento,
   rótulo e explicação separados por " - ".
 - Documento descreve o produto e as decisões técnicas, sem bastidor do
-  desenvolvimento: nada de falha passada de outro sistema nem de motivo pessoal
-  do projeto. A Avalia pode aparecer comercialmente.
+  desenvolvimento: nada de falha passada de outro sistema, de motivo pessoal
+  do projeto nem de quem pediu o quê. A Avalia pode aparecer comercialmente.
 - Commit em inglês, no formato Conventional Commits (`feat:`, `fix:`, `chore:`,
   `docs:`, `refactor:`, `test:`, `ci:`; escopo opcional), resumo no imperativo.
 - Mensagem de commit escrita em arquivo e enviada com `git commit -F`, só com o
@@ -100,6 +128,16 @@ Avalia nem lê o banco de produção dele.
   `docs/historico/`. Linha nova entra no topo da tabela do próprio documento.
 - Decisão estrutural nova (tecnologia, isolamento, integração, segurança)
   ganha um ADR em `docs/adr` e uma linha no índice dele.
-- Três travas cobram isso: o hook de fim de turno do Claude Code
-  (`.claude/hooks/documentacao.sh`), o passo "Documentação" do CI em pull
-  request e esta seção.
+- Três travas cobram isso: o hook de fim de turno
+  (`.claude/hooks/documentacao.sh`, chamado por `.claude/settings.json` e por
+  `.codex/hooks.json`), o job `documentacao` do CI no push ao `main` e em pull
+  request, e esta seção. Os dois conferem a mesma lista de caminhos.
+  Refatoração sem efeito visível passa com `[sem-doc]` na mensagem do commit.
+
+## Fluxo de trabalho
+
+- Trabalho direto no `main`, sem branch. Push só quando o dono mandar subir.
+- Pedidos que chegam no meio da execução entram numa fila; no fim do turno, a
+  fila com feito, pendente e não verificado.
+- Correção que o dono repetiu duas vezes vira linha aqui ou em `.claude/rules`;
+  na terceira, vira teste ou hook.

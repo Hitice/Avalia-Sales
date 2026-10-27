@@ -1,43 +1,69 @@
 ---
 name: pagarme-checkout-order
-description: Checkout de cobrança pontual do Pagar.me v5 (POST /paymentlinks, type order). Usar ao implementar o pedido de placas, a venda por link, a renovação ou qualquer chamada à API do Pagar.me no Avalia Sales.
+description: Pagar.me v5 no Avalia Sales - POST /paymentlinks (type order) no pedido de placas, POST /orders na venda e na renovação, estorno, reconsulta e webhook. Usar antes de qualquer chamada à API do Pagar.me.
 ---
 
 # Pagar.me: checkout de cobrança pontual
 
 Skill oficial do Pagar.me, baixada de
 https://docs.pagar.me/docs/checkout_pagarme_skill_order.md em 2026-10-21
-(updatedAt 2026-05-20). O conteúdo original está abaixo, sem alteração. As
-notas desta seção valem sobre ele.
+(updatedAt 2026-05-20). O conteúdo original está abaixo, sem alteração; ele
+traz exemplos em Next.js e Python, User-Agent e validação de assinatura que o
+projeto não usa. As notas desta seção valem sobre ele.
 
 ## Notas do Avalia Sales
 
-Conferidas na referência oficial em 2026-10-21.
+Conferidas na referência oficial em 2026-10-21. O que o código faz hoje:
 
-- **Base URL.** A página de autenticação manda usar
-  `https://api.pagar.me/core/v5` em teste e produção; a chave define o
-  ambiente. A skill cita `https://sdx-api.pagar.me/core/v5` para teste. Usar
-  `api.pagar.me` com `sk_test_` até um teste com chave real mostrar outra
-  coisa. Fonte: https://docs.pagar.me/reference/autentica%C3%A7%C3%A3o-2
+- **Onde.** `src/AvaliaSales.Infrastructure/Integracoes/Pagarme`
+  (`ClientePagarme`, `OpcoesPagarme`), chave em `Pagarme__ChaveSecreta`,
+  segredo do webhook em `Pagarme__SegredoDoWebhook`, recebedor da plataforma em
+  `Pagarme__RecebedorAvalia`, chave pública do cartão em
+  `Pagarme__ChavePublica` (vazia, a venda é só Pix). Em Development, com
+  `Pagarme__Simulado=true` (`appsettings.Development.json`), roda o simulador
+  sem estado (ADR 0009).
+- **Venda e renovação** usam `POST /orders` com Pix (a renovação só Pix) ou
+  cartão tokenizado no navegador, split
+  em centavos (`flat`, ADR 0003) e a cobrança gravada antes da chamada, com o
+  próprio id como `code` (ADR 0004). `GET /orders?code=` reconsulta;
+  `DELETE /charges/{id}` estorna, total ou parcial com `amount`.
+- **Pedido de placas** usa `POST /paymentlinks` com `type: order`,
+  `max_paid_sessions: 1` e sem split (ADR 0012): o conteúdo original abaixo
+  vale para esse caso. O cliente (`ClientePagarme.MontarLink`) manda também
+  `order_code` igual ao id da cobrança (liga o link ao `GET /orders?code=`,
+  ADR 0004), `expires_in` em minutos (3 dias, `Cobrancas.ValidadeDoLink`),
+  `pix_settings.expires_in` em segundos, `boleto_settings.due_in` 3, uma
+  parcela no cartão e `name` com até 64 caracteres.
+- **Cancelar o link** - `PATCH /paymentlinks/{payment_link_id}/cancel`, sem
+  corpo, responde 204 (docs.pagar.me/reference/cancelar-um-link-de-pagamento).
+  O pedido (`or_`) só existe depois do pagamento: o link não pago é cancelado
+  por aqui, o pago pelo `DELETE /charges/{id}`.
+- **Webhooks do conteúdo original** - o tipo do evento não decide nada aqui:
+  o Worker reconsulta pelo código em todo evento.
+- **Base URL.** `OpcoesPagarme.UrlBase` tem `https://api.pagar.me/core/v5/`
+  como padrão para teste e produção; a chave define o ambiente. A skill cita
+  `https://sdx-api.pagar.me/core/v5` para teste; não usar sem um teste com chave
+  real confirmar. Fonte: https://docs.pagar.me/reference/autentica%C3%A7%C3%A3o-2
 - **Prefixo da chave de produção.** A referência mostra `sk_`, e não
   `sk_live_`. Não validar a chave pelo prefixo.
 - **Split no link só com cartão.** `split_settings` no link de pagamento só é
   repassado quando o link é pago com `credit_card` ou carteira digital. Pix e
-  boleto pagos pelo link não dividem. Venda com Pix e split usa `POST /orders`
-  com a regra de split na cobrança. Fonte:
-  https://docs.pagar.me/reference/criar-link
+  boleto pagos pelo link não dividem. Por isso a venda com split vai por
+  `POST /orders`. Fonte: https://docs.pagar.me/reference/criar-link
 - **Link de assinatura.** `type: subscription` aceita só cartão e não faz
   split. Não usar no projeto.
 - **Header `User-Agent: pagarme-skill-generated/1.0`.** Só identifica código
   gerado pela skill. Não é exigido pela referência da API. O cliente HTTP usa
   um User-Agent próprio do Avalia Sales.
 - **Assinatura do webhook.** A skill manda validar a assinatura, mas a página
-  de webhooks não documenta assinatura. Seguir a regra do projeto: gravar o
-  evento cru com chave única e reconsultar a API antes de processar.
-- **Exemplos em Next.js e Python.** Servem só como referência do payload. A
-  implementação é em .NET 10, em
-  `src/AvaliaSales.Infrastructure/Integracoes/Pagarme`, com a chave lida da
-  configuração (`Pagarme__ChaveSecreta`).
+  de webhooks não documenta assinatura. O projeto põe o segredo na URL do
+  webhook (`/webhooks/pagarme/{segredo}`, 404 sem ele), grava o evento cru com
+  chave única e reconsulta a API antes de processar (skill `idempotencia`).
+- **Retentativa.** O cliente HTTP não repete POST (`DisableForUnsafeHttpMethods`).
+  O POST de `orders` e de `paymentlinks` leva `Idempotency-key` com o código da
+  cobrança (o Pagar.me guarda a chave por 24 horas, segundo a Stone); é proteção
+  extra, porque a garantia continua sendo a cobrança gravada antes (ADR 0004).
+- **Exemplos em Next.js e Python.** Servem só como referência do payload.
 - **Dinheiro.** O `amount` em centavos bate com as colunas `_cents` do
   projeto. Não converter de decimal.
 

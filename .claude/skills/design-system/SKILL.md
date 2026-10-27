@@ -6,15 +6,15 @@ description: Design system do Avalia Sales, o front React único (painel do reve
 # Design system do Avalia Sales
 
 O sistema publicado, com os valores, está em `DESIGN.md` na raiz: ler antes de
-criar tela ou componente. Direção escolhida pelo dono em 24/10/2026 - o padrão
-da categoria (Stripe Dashboard, Linear, Shopify Admin, apps PJ de banco),
-executado sem defeito; proibido o visual de template de IA e o que quebre a
-marca da revenda (`PRODUCT.md`).
+criar tela ou componente. Direção - o padrão da categoria (Stripe Dashboard,
+Linear, Shopify Admin, apps PJ de banco), executado sem defeito; proibido o
+visual de template de IA e o que quebre a marca da revenda (`PRODUCT.md`).
 
 Regra central: toda cor, fonte, raio e espaçamento sai de variável CSS.
 Componente não escreve hex nem número mágico. É o que permite trocar a marca do
-revendedor sem mexer em tela. O lint cobra (`npm run lint`, seção Travas do
-`DESIGN.md`).
+revendedor sem mexer em tela. O lint cobra cor solta e classe com valor solto
+(`npm run lint`, seção Travas do `DESIGN.md`); tamanho em `style={{}}` e
+duração fora de 150 a 200 ms passam no lint e ficam para a revisão.
 
 ## Um front só
 
@@ -76,7 +76,7 @@ Gráfico: série principal em `--chart-1`, nunca a primária crua, barras finas 
 ponta de 2 px, dia zerado num traço cinza de 2 px, grade só horizontal, tooltip ao
 passar e a mesma informação numa tabela `sr-only`. Rosca (`Rosca` em
 `financeiro/Graficos.tsx`) com até quatro partes; com `primeira`, essa parte fica
-sempre na cor da marca. Antes de mudar a cor, rodar o validador da skill dataviz.
+sempre na cor da marca.
 
 Carregando: barra no topo (`barra-de-carregando`, aparece depois de 300 ms)
 enquanto a tela baixa ou uma consulta roda; dentro da tela, `Carregando`
@@ -90,9 +90,8 @@ Logo da plataforma em `web/public/marca`, em SVG e com o texto em curvas:
 `avaliasales.svg` (gauge e "AvaliaSales") nas telas de entrada (entrar,
 cadastro, senha) e no topo do painel lateral de quem não tem logo nem nome
 próprio, pelo `MarcaAvalia`; `gauge.svg` no cabeçalho do celular e do tablet
-de quem não tem logo próprio; `favicon.svg` é o gauge com o ponteiro claro em aba escura. O
-"Avalia" e o gauge vêm do logo da Avalia; o "Sales" é Ubuntu Medium na escala do
-"One" original. Revenda com logo usa o dela no cabeçalho.
+de quem não tem logo próprio; `favicon.svg` é o gauge com o ponteiro claro em aba escura.
+Revenda com logo usa o dela no cabeçalho.
 
 As variáveis de base (marca da plataforma, escala de espaço, raio e tipo) ficam
 num arquivo só, `src/estilos/tokens.css`. Se um dia outro consumidor precisar
@@ -103,15 +102,16 @@ Até lá, um arquivo CSS basta.
 ## Componentes
 
 - No modelo do [shadcn/ui](https://github.com/shadcn-ui/ui): o componente é
-  copiado para `src/componentes/ui` pelo CLI e passa a ser nosso, sobre os
+  copiado para `web/src/components/ui` pelo CLI e passa a ser nosso, sobre os
   primitivos acessíveis do [Radix](https://github.com/radix-ui/primitives).
   Antes de escrever um componente, ver se o shadcn já tem.
-- Componente de negócio (cartão de venda, linha de placa) fica fora de `ui` e
-  só compõe os de `ui`.
+- Componente de negócio (cartão de venda, linha de placa) fica em
+  `web/src/componentes` e só compõe os de `components/ui`.
 - [Tailwind 4](https://github.com/tailwindlabs/tailwindcss) para estilo. Classe
   com valor solto, como `bg-[#123456]` ou `p-[13px]`, não entra.
-- Tabela do painel com o `DataTable` do shadcn (TanStack Table), paginação e
-  ordenação no servidor.
+- Tabela do painel com `components/ui/table.tsx`; lista que cresce com o uso
+  vai em `componentes/ListaPaginada.tsx` com `useListaPaginada`, paginada e
+  buscada na API (skill `padroes`, seção Listagem).
 - Formulário de cadastro com React Hook Form + Zod (`mode: 'onChange'`) e o
   componente `componentes/Campo.tsx`: erro embaixo do campo ao sair dele ou ao
   enviar, `aria-invalid`, e borda verde com o ícone de conferido quando o dado
@@ -127,10 +127,11 @@ Até lá, um arquivo CSS basta.
 Situação vai no `Badge` com tom semântico: `sucesso` (paga, entregue, ativa),
 `atencao` (aguardando, carência, a fazer), `erro` (falhou, cancelada,
 vencida), `info` (anda sozinho: pago, em produção, enviado) e `neutro` (o
-resto), cada um com ponto na cor do texto. O tom sai dos mapas de
+resto). O tom sai dos mapas de
 `api/rotulos.ts` (`TOM_DO_ESTADO`, `TOM_DO_PEDIDO`, `TOM_DA_ORDEM`,
 `TOM_DO_PRODUTO`, `TOM_DO_PAGAMENTO`, `TOM_DO_CONTRATO`) e, na venda, de
-`painel/situacaoDaVenda.ts`. `default` (cor da marca) é só contagem.
+`painel/situacaoDaVenda.ts`. `default` (cor da marca) é só contagem. O ponto
+fica na cor do texto, menos no `neutro`, que usa o cinza-400.
 
 ## Tipo e movimento
 
@@ -152,7 +153,7 @@ resto), cada um com ponto na cor do texto. O tom sai dos mapas de
 | --- | --- |
 | Celular (abaixo de 768 px) | Barra de baixo com 4 telas do papel (Início, Vender, Vendas e Estoque ou Placas; o Catálogo é a aba Catálogo de Vendas) e "Mais" em folha que sobe de baixo, ícone `size-5` (o ativo na cor da marca) e altura `min-h-13`; na Nova venda o botão da venda fica fixo acima dela |
 | Tablet (768 a 1023 px) | Menu de cima, quebrando linha |
-| Computador (1024 px ou mais) | Painel lateral da altura da janela (`bg-card`, borda à direita, 15rem) com a marca no topo, sobre o fio do cabeçalho de 56 px: a revenda e o papel num bloco com borda, Nova venda como botão primário, grupos com título em 11 px, item de 32 px com ícone (lucide) e, no ativo, fundo `accent`, texto escuro e ícone em `--primary-texto`, sem barra lateral; o menu rola por dentro e a conta fica no pé, abrindo para cima. A Nova venda do título da tela some aqui |
+| Computador (1024 px ou mais) | Painel lateral da altura da janela (`bg-card`, borda à direita, 15rem) com a marca no topo, sobre o fio do cabeçalho de 56 px: a revenda e o papel num bloco com borda, Nova venda como botão primário, grupos com título em 11 px, item de 32 px com ícone (lucide) e, no ativo, fundo `accent`, texto escuro e ícone em `--primary-texto`, sem barra lateral; o menu rola por dentro, a conta fica no pé, abrindo para cima, e abaixo dela o Recolher menu (painel de 60 px só com ícones, escolha guardada em `localStorage`). A Nova venda do título da tela some aqui |
 
 Tabela dentro do cartão vai em `Rolagem` (`componentes/Tela.tsx`). No
 computador ela encosta nas bordas do cartão, com o cabeçalho de 36 px em 12 px
@@ -171,18 +172,25 @@ apoio embaixo) e `"acoes"` (a última, sem texto). Célula não leva
 `text-right`, `tabular-nums` nem largura solta.
 
 No computador a tabela tem de caber no cartão:
-- Toda ação da linha usa `componentes/AcoesDaLinha`: no computador, o mesmo
-  "⋯" em toda linha, a principal primeiro; no celular, a primeira em botão e
-  o resto no "⋯". Botão, campo ou formulário dentro da célula não entram: a
-  ação abre um modal (Despachar, Editar, Suspender).
+- Toda ação da linha usa `componentes/AcoesDaLinha`: a principal (Editar,
+  Pagar) em botão à vista, no computador e no celular, e o resto no "⋯". A
+  coluna de ações é presa à direita pelo CSS (`index.css`): continua na tela
+  quando a tabela rola. Botão, campo ou formulário dentro da célula não
+  entram: a ação abre um modal (Despachar, Editar, Suspender).
 - Texto longo (nome de cliente, revenda, vendedor) quebra linha com
   `min-w-* whitespace-normal`; a célula padrão não quebra.
-- Formulário ao lado da tabela só a partir de `xl` (1280 px):
-  `xl:grid-cols-[minmax(0,1fr)_20rem]`.
+- Formulário ao lado da tabela só a partir de `xl` (1280 px), com o
+  utilitário `xl:lista-e-lateral-<n>` do `index.css` (largura da lateral em
+  passos de 4 px, como `xl:lista-e-lateral-80`). `grid-cols-[...]` com valor
+  solto o lint recusa.
 - O que ainda passar rola dentro do cartão, com a sombra `sombra-de-rolagem`
   na borda. Conferir a 1024 e a 1280 px.
 - Lista dentro de cartão é linha com fio (`divide-y`), nunca caixa com borda:
-  cartão dentro de cartão não existe.
+  cartão dentro de cartão não existe. Seção à parte é `border-t`, não
+  `bg-muted`.
+- Ação no cabeçalho do cartão é `CardAction` com botão `size="sm"`; o
+  cabeçalho não ganha `flex` próprio. Cartão sem dado, só com botão, não
+  existe: o link vai no `CardAction` e o conteúdo é o número ou a lista.
 
 ## Abas e escolha de opção
 
@@ -204,9 +212,11 @@ poucas, como o tipo de desconto ou a forma de pagamento, use
 
 ## Catálogo vivo e acessibilidade
 
-- [Storybook](https://github.com/storybookjs/storybook): cada componente nasce
-  com história nos estados padrão, foco, desabilitado, erro e carregando, e com
-  a marca de dois revendedores diferentes lado a lado.
+- [Storybook](https://github.com/storybookjs/storybook): componente novo nasce
+  com história, e `npm test` roda cada história no Chromium com o axe em modo
+  erro. A barra do Storybook alterna a marca da plataforma e a de uma revenda
+  (`.storybook/preview.tsx`). Em `components/ui`, só `badge`, `button`,
+  `table` e `toggle-group` têm história.
 - Acessibilidade por [axe-core](https://github.com/dequelabs/axe-core): no addon
   de acessibilidade do Storybook e nos testes de ponta a ponta com
   `@axe-core/playwright`. Violação séria ou crítica falha o CI.
@@ -215,45 +225,30 @@ poucas, como o tipo de desconto ou a forma de pagamento, use
 
 ## Texto de tela
 
-Curto, para quem está no balcão: o título diz o que a tela faz, o botão é verbo
-("Registrar venda", "Ativar lote") e o erro diz o que corrigir. Sem subtítulo
-explicativo nem ajuda de campo que não mude a decisão.
+Curto, para quem está no balcão: rótulo de uma palavra quando basta
+("Aguardando", "Saídas", "Caixa"), botão é verbo ("Pagar", "Ativar lote") e o
+erro diz o fato e a saída em até duas frases ("Mês fechado. Use outra data.").
+Sem subtítulo explicativo nem ajuda de campo que não mude a decisão. A régua
+completa, de rótulo e de erro, está na seção Texto do `DESIGN.md`.
 
 ## Como acrescentar
 
-1. Procurar no Storybook e no shadcn: o componente quase sempre existe.
-2. Cor, espaço ou raio novo entra como variável em `tokens.css`, com o papel no
-   nome, e vira classe no `@theme inline` de `index.css`; nunca valor solto.
-3. Componente novo nasce com história no Storybook e passa no axe
-   (`npm test` roda cada história no Chromium com o axe em modo erro).
-4. Situação nova ganha o tom no mapa de `api/rotulos.ts`.
-5. Antes de entregar: `npm run lint` com zero erros, `npm test`,
-   `npx storybook build`, os testes de ponta a ponta com axe e o detector do
-   impeccable (`DESIGN.md`, Travas).
+Os passos e as travas estão em `DESIGN.md` (seções Como acrescentar e Travas).
+A lista de antes de entregar está em `.claude/rules/web.md`.
 
 ## Bibliotecas
 
-Conferidas na API do GitHub e no npm em 21/10/2026, pelo critério da skill
-`padroes`:
+Pelo critério da skill `padroes`; a versão vale a do `web/package.json`.
 
-| Biblioteca | Papel | Estrelas | Versão |
-| --- | --- | --- | --- |
-| [shadcn/ui](https://github.com/shadcn-ui/ui) | Modelo e CLI dos componentes | 126 mil | copiado |
-| [Radix Primitives](https://github.com/radix-ui/primitives) | Base acessível dos componentes | 19,4 mil | |
-| [Tailwind CSS](https://github.com/tailwindlabs/tailwindcss) | Estilo | 98 mil | 4.x |
-| [culori](https://github.com/Evercoder/culori) | A cor da marca escurecida em OKLCH até o contraste | | 4.x |
-| [eslint-plugin-better-tailwindcss](https://github.com/schoero/eslint-plugin-better-tailwindcss) | Classe desconhecida e proibida no lint (plugin JS do oxlint) | | |
-| [Storybook](https://github.com/storybookjs/storybook) | Catálogo vivo | 91 mil | 10.6.3 |
-| [axe-core](https://github.com/dequelabs/axe-core) | Acessibilidade | 7,7 mil | `@axe-core/playwright` 4.14.0 |
-| [Playwright](https://github.com/microsoft/playwright) | Teste de ponta a ponta | 98 mil | |
-| [Recharts](https://github.com/recharts/recharts) | Gráficos, pelo `components/ui/chart.tsx` do shadcn | 27,6 mil | 3.10.1 |
-| [react-easy-crop](https://github.com/ValentinH/react-easy-crop) | Recorte do logo | 2,8 mil | 6.2.4 |
-| [Style Dictionary](https://github.com/style-dictionary/style-dictionary) | Tokens em JSON, só se surgir outro consumidor | 4,9 mil | 5.7.0 |
-
-Estado em 24/10/2026: o padrão da categoria aplicado no shell e em todas as
-telas do dono, do vendedor e da operadora (DESIGN.md); Início no esboço
-aprovado; selos com tons semânticos; tabela encostada no cartão; lint com as
-proibições do DESIGN.md; cada história do Storybook no Chromium com o axe em
-modo erro; axe no Playwright (`web/e2e`) em todas as telas do dono e da
-operadora a 390 e 1440 px e nos fluxos de venda e convite. Toque de 44 px nos
-tamanhos de `components/ui/button.tsx` e `input.tsx`.
+| Biblioteca | Papel |
+| --- | --- |
+| [shadcn/ui](https://github.com/shadcn-ui/ui) | Modelo e CLI dos componentes |
+| [Radix Primitives](https://github.com/radix-ui/primitives) | Base acessível dos componentes |
+| [Tailwind CSS](https://github.com/tailwindlabs/tailwindcss) | Estilo |
+| [culori](https://github.com/Evercoder/culori) | A cor da marca escurecida em OKLCH até o contraste |
+| [eslint-plugin-better-tailwindcss](https://github.com/schoero/eslint-plugin-better-tailwindcss) | Classe desconhecida e proibida no lint (plugin JS do oxlint) |
+| [Storybook](https://github.com/storybookjs/storybook) | Catálogo vivo |
+| [axe-core](https://github.com/dequelabs/axe-core) | Acessibilidade |
+| [Playwright](https://github.com/microsoft/playwright) | Teste de ponta a ponta |
+| [Recharts](https://github.com/recharts/recharts) | Gráficos, pelo `components/ui/chart.tsx` do shadcn |
+| [react-easy-crop](https://github.com/ValentinH/react-easy-crop) | Recorte do logo |

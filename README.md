@@ -110,7 +110,7 @@ isolamento entre revendas.
   `Idempotency-Key`: a resposta fica guardada por 24 horas, e repetir o pedido
   não cobra nem lança duas vezes.
 - **Migrations aditivas** - a versão anterior lê o banco novo, então voltar o
-  deploy não pede restauração.
+  deploy não pede restauração. É regra de revisão, sem checagem automática.
 - **Contrato da API versionado** - os tipos do front são gerados do OpenAPI, e o
   CI recusa divergência.
 
@@ -119,8 +119,10 @@ formato MADR.
 
 ## Integrações
 
-Cada integração fica atrás de uma interface, com simulador em desenvolvimento e
-teste de contrato HTTP contra servidor falso.
+Cada integração fica atrás de uma interface. Pagar.me, D4Sign, Resend, Google
+Places, BrasilAPI, Turnstile e Protheus têm teste de contrato HTTP contra
+servidor falso; Pagar.me, Protheus e o conversor de PDF têm simulador para o
+desenvolvimento.
 
 | Integração | Para quê | Situação |
 | --- | --- | --- |
@@ -129,21 +131,21 @@ teste de contrato HTTP contra servidor falso.
 | Resend | E-mails transacionais, com fila na transação e retentativa exponencial | Produção |
 | Google Places e Maps | Achar o negócio do cliente e o mapa das vendas por cidade | Produção |
 | BrasilAPI | Razão social e endereço pelo CNPJ e pelo CEP | Produção |
-| Gotenberg | Contrato e distrato em PDF, num contêiner sem rede | Produção |
+| Gotenberg | Contrato e distrato em PDF, com o Chromium sem acesso a endereço interno ou externo | Produção |
 | Sentry | Erros da API, do Worker e do front, com o commit publicado como versão, monitor de `/api/health` e check-in do Worker | Produção |
 | Cloudflare R2 | Cópia diária do banco, cifrada e conferida por ETag, com retenção de 30 dias | Produção |
-| Cloudflare Turnstile | Captcha do cadastro público | Em produção |
-| SonarCloud | Análise de código e cobertura dos testes da API, pelo CI | Em uso |
+| Cloudflare Turnstile | Captcha do cadastro público | Produção |
+| SonarCloud | Análise de código e cobertura dos testes da API, pelo CI | Produção |
 | Protheus | Pedido de placas pago vira pedido de venda no ERP, uma vez só | Conector com simulador |
 
 ## Stack
 
 | Camada | Tecnologias |
 | --- | --- |
-| Back-end | C# e .NET, ASP.NET Core (minimal APIs), Worker Service, EF Core, ASP.NET Identity com JWT, SignalR, Polly |
+| Back-end | C# e .NET, ASP.NET Core (minimal APIs), Worker Service, EF Core, ASP.NET Identity com JWT, SignalR, Microsoft.Extensions.Http.Resilience (Polly) |
 | Front-end | React, TypeScript, Vite, React Router, TanStack Query, Zustand, React Hook Form, Zod, Tailwind CSS, shadcn/ui, Recharts |
 | Dados | PostgreSQL com row-level security, LISTEN/NOTIFY |
-| Infraestrutura | Linux, Docker e Docker Compose, Nginx, Let's Encrypt, backup diário cifrado com cópia fora do servidor |
+| Infraestrutura | Linux, Docker e Docker Compose, Nginx, Let's Encrypt, backup diário no disco com cópia cifrada fora do servidor |
 | Entrega | GitHub Actions com runner self-hosted e aprovação de ambiente |
 | Qualidade | xUnit, Vitest, Playwright com axe, Storybook, gitleaks, SonarCloud, Sentry |
 
@@ -152,15 +154,13 @@ design system está descrito em [DESIGN.md](DESIGN.md).
 
 ## Qualidade
 
-- Testes automáticos por publicação: 519 na API, 223 no front (incluindo cada
-  história do Storybook com o axe) e 25 cenários ponta a ponta, no celular e no
-  computador.
+- Toda publicação roda a suíte da API, os testes do front (incluindo cada
+  história do Storybook com o axe) e os cenários ponta a ponta a 390 px, com o
+  axe de cada tela também a 1440 px.
 - Os testes da API rodam contra um PostgreSQL de verdade, com o mesmo papel e o
   mesmo RLS da produção.
-- A revisão de segurança cobriu quatro frentes: autorização e isolamento,
-  dinheiro e fila, sessão e entrada, e o front.
-- Erro em produção chega pelo Sentry com a versão publicada, vira um teste que
-  reproduz, e o commit da correção fecha o alerta.
+- Erro em produção chega pelo Sentry com o commit publicado como versão; a
+  correção leva um teste que reproduz o erro.
 
 ## Segurança e LGPD
 
@@ -187,6 +187,7 @@ design system está descrito em [DESIGN.md](DESIGN.md).
 | [docs/adr](docs/adr/README.md) | Cada decisão estrutural, no formato MADR |
 | [docs/OPERACAO.md](docs/OPERACAO.md) | Instalação no VPS, publicação, volta, backup, restauração e importação de placas |
 | [DESIGN.md](DESIGN.md) | Tokens, componentes, regras de white label, movimento e as travas de lint |
+| [CLAUDE.md](CLAUDE.md) | Regras do repositório para quem desenvolve, com ou sem agente; `AGENTS.md` aponta para ele, e as skills ficam em `.claude/skills` |
 
 Toda mudança de regra, tabela, integração ou configuração atualiza o PDD ou o
 SDD no mesmo commit, com uma linha no registro de mudanças do fim.
@@ -289,11 +290,12 @@ app abre o NFC Tools com o endereço copiado.
 ## Produção
 
 VPS Linux com Docker Compose (`docker-compose.producao.yml`): Nginx com
-Let's Encrypt, API, Worker, Gotenberg, PostgreSQL e backup diário, cifrado e
-enviado a um bucket fora do servidor. Só o Nginx publica porta.
+Let's Encrypt, API, Worker, Gotenberg, PostgreSQL e backup diário no disco, com
+a cópia cifrada enviada a um bucket fora do servidor. Só o Nginx publica porta.
 
 Publicação: push no `main`, CI verde (build, testes da API e do front, ponta a
-ponta com axe, segredos e qualidade) e o workflow Deploy, que espera a aprovação
-do ambiente `producao` no GitHub e roda no runner do próprio VPS. Voltar é
+ponta com axe, vulnerabilidades, segredos e documentação; o SonarCloud roda sem
+bloquear) e o workflow Deploy, que espera a aprovação do ambiente `producao` no
+GitHub e roda no runner do próprio VPS. Voltar é
 publicar o commit anterior. Passo a passo, segredos e backup em
 [docs/OPERACAO.md](docs/OPERACAO.md).

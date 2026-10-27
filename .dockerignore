@@ -1,6 +1,35 @@
-**/bin/
-**/obj/
+# O contexto é a raiz para as três imagens (Dockerfile: api e worker;
+# infra/nginx/Dockerfile: front e Nginx; infra/backup/Dockerfile). Entra só o
+# que elas copiam: global.json, Directory.*.props, .editorconfig, src/, web/
+# (sem saída de build) e infra/nginx e infra/backup.
 .git/
 .github/
+.claude/
+.agents/
+.codex/
+.impeccable/
 .env
+.env.*
+.gitignore
+.gitleaksignore
+.dockerignore
+*.md
+*.pem
+AvaliaSales.slnx
+dotnet-tools.json
+docker-compose*.yml
+docs/
 tests/
+infra/migracao/
+infra/postgres/
+TestResults/
+coverage*
+backups/
+**/bin/
+**/obj/
+web/README.md
+web/node_modules/
+web/dist/
+web/storybook-static/
+web/playwright-report/
+web/test-results/
