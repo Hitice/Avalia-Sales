@@ -111,7 +111,7 @@ function FormularioDoProduto({ produto, aoFechar, aoSalvar }: { produto: Produto
   const [tipo, setTipo] = useState<TipoDeProduto>(produto?.tipo ?? 'Servico')
   const [preco, setPreco] = useState(produto ? (produto.precoSugeridoCents / 100).toFixed(2).replace('.', ',') : '')
   const [ordem, setOrdem] = useState(String(produto?.ordem ?? 10))
-  const [desconto, setDesconto] = useState(formatarBps(produto?.descontoDaRevendaBps ?? 2_000).replace('%', ''))
+  const [desconto, setDesconto] = useState(formatarBps(produto?.descontoDaRevendaBps ?? 2_000).replaceAll('%', ''))
   // Pedido mínimo só do serviço vendido por quantidade (kit mesa, placa de cardápio); placa sai uma por código.
   const [minimo, setMinimo] = useState(String(produto?.quantidadeMinima ?? 1))
   const minimoValido = tipo !== 'Servico' || Number(minimo) >= 1

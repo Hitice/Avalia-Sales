@@ -32,7 +32,8 @@ public sealed class RevendedorNaConexao(IRevendedorAtual revendedor) : DbConnect
     private DbCommand Comando(DbConnection conexao)
     {
         var comando = conexao.CreateCommand();
-        comando.CommandText = $"select set_config('{Variavel}', @revendedor, false), set_config('{VariavelDaOperadora}', @operadora, false)";
+        // Só as constantes do nome da variável entram no texto; os valores vão por parâmetro.
+        comando.CommandText = $"select set_config('{Variavel}', @revendedor, false), set_config('{VariavelDaOperadora}', @operadora, false)"; // nosemgrep: csharp-sqli
         var parametro = comando.CreateParameter();
         parametro.ParameterName = "revendedor";
         parametro.Value = revendedor.RevendedorId?.ToString() ?? string.Empty;

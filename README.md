@@ -294,7 +294,7 @@ Let's Encrypt, API, Worker, Gotenberg, PostgreSQL e backup diário no disco, com
 a cópia cifrada enviada a um bucket fora do servidor. Só o Nginx publica porta.
 
 Publicação: push no `main`, CI verde (build, testes da API e do front, ponta a
-ponta com axe, vulnerabilidades, segredos e documentação; o SonarCloud roda sem
+ponta com axe, vulnerabilidades, Semgrep, segredos e documentação; o SonarCloud roda sem
 bloquear) e o workflow Deploy, que espera a aprovação do ambiente `producao` no
 GitHub e roda no runner do próprio VPS. Voltar é
 publicar o commit anterior. Passo a passo, segredos e backup em

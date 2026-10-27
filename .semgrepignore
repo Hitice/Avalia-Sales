@@ -1,0 +1,12 @@
+# Fora da análise do Semgrep: o que não é código da plataforma em produção.
+# Script de migração do sistema anterior, rodado uma vez pela operadora, sobre SQLite em memória.
+infra/migracao/
+# Página estática de apresentação.
+web/public/now/
+# Gerados.
+web/src/api/esquema.d.ts
+web/openapi.json
+src/AvaliaSales.Infrastructure/Banco/Migrations/
+**/bin/
+**/obj/
+**/node_modules/

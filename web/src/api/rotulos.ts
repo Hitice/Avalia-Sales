@@ -168,7 +168,7 @@ export const formatarBps = (bps: number) => `${(bps / 100).toLocaleString('pt-BR
 
 /** "20", "20,5" ou "20%" viram pontos base; null se não for um percentual de 0 a 100. */
 export function paraBps(texto: string): number | null {
-  const limpo = texto.replace('%', '').trim().replace(',', '.')
+  const limpo = texto.replaceAll('%', '').trim().replace(',', '.')
   if (!/^\d{1,3}(\.\d{1,2})?$/.test(limpo)) return null
   const [inteiro, fracao = ''] = limpo.split('.')
   const bps = Number(inteiro) * 100 + Number(fracao.padEnd(2, '0'))

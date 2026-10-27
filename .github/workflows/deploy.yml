@@ -49,7 +49,7 @@ jobs:
       TURNSTILE_CHAVE_SITE: ${{ vars.TURNSTILE_CHAVE_SITE }}
       TURNSTILE_CHAVE_SECRETA: ${{ secrets.TURNSTILE_CHAVE_SECRETA }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ env.VERSAO }}
 
