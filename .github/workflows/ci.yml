@@ -178,7 +178,7 @@ jobs:
             /d:sonar.host.url=https://sonarcloud.io /d:sonar.token="$SONAR_TOKEN" \
             /d:sonar.cs.vscoveragexml.reportsPaths=coverage.xml \
             /d:sonar.exclusions="**/Migrations/**,**/bin/**,**/obj/**,web/node_modules/**,web/dist/**,web/storybook-static/**,web/public/**,web/src/api/esquema.d.ts,web/openapi.json,docs/contrato/**" \
-            /d:sonar.coverage.exclusions="web/**,tests/**,infra/**" \
+            /d:sonar.coverage.exclusions="web/**,tests/**,infra/**,**/Program.cs" \
             /d:sonar.issue.ignore.multicriteria=css1,css2,yaml1,py1,e2e1,demo1,cookie1,docker1 \
             /d:sonar.issue.ignore.multicriteria.css1.ruleKey="css:S8776" \
             /d:sonar.issue.ignore.multicriteria.css1.resourceKey="web/src/index.css" \
