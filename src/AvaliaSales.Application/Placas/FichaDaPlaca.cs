@@ -96,10 +96,15 @@ public sealed class FichaDaPlaca(IBancoDeDados banco, IUsuarioAtual usuario, ICo
         await ExigirQuePodeMexer(placa, ct);
         var antes = placa.Destino;
         var novo = destino.Resolver(plataforma.Value.HostPublico);
+        if (novo != antes)
+        {
+            // Antes da transação: a consulta ao Web Risk não segura a trava dos destinos da revenda.
+            await destinosBloqueados.ExigirPermitido(novo, ct);
+        }
+
         await using var transacao = await banco.Database.BeginTransactionAsync(ct);
         if (novo != antes)
         {
-            await destinosBloqueados.ExigirPermitido(novo, ct);
             await limiteDeDestinos.Exigir(1, ct);
         }
 

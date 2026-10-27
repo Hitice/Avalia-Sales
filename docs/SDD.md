@@ -524,6 +524,24 @@ Conferido na referência oficial em 21/10/2026.
   abre com `colorScheme: 'DARK'`. Sem chave, a tela mostra a lista com o link
   do Google Maps.
 
+### Google Web Risk
+
+Conferido na documentação oficial em 27/10/2026 (ADR 0031).
+
+- Lookup API - `GET https://webrisk.googleapis.com/v1/uris:search` com
+  `threatTypes` MALWARE, SOCIAL_ENGINEERING e UNWANTED_SOFTWARE e `uri`
+  codificado; chave em `X-Goog-Api-Key`. Resposta `{}` é endereço fora das
+  listas; `threat.threatTypes` com item é perigoso.
+- `WebRisk:ChaveApi` restrita à Web Risk API e ao IP do VPS. Vazia, desligada.
+- Tempo limite de 3 segundos, sem retentativa, falha aberta com aviso no log.
+- Limite do dia conferido antes (`LimiteDeDestinos.ConferirAntes`); na venda,
+  uma consulta por endereço distinto, em paralelo; resposta guardada em
+  `IMemoryCache` (ameaça até o `expireTime`, no máximo 24 horas; limpo por 10
+  minutos).
+- Chamado por `DestinosBloqueados.ExigirPermitido` na venda, no link e na troca
+  de destino da placa, sempre antes da transação.
+- Até 100 mil consultas por mês sem custo.
+
 ### Protheus
 
 - Sem ambiente público. A plataforma fala um contrato REST próprio
@@ -736,9 +754,9 @@ Revenda por revenda, a cada volta:
 | Auditoria da operadora - o middleware `AuditoriaDaOperadoraNaRota` no grupo `/operadora` grava cada escrita com resposta abaixo de 400 (corpo JSON com buffer; arquivo não) | Em produção |
 | Aviso por e-mail quando a conta entra de um aparelho novo (`aparelhos_conhecidos`, cookie `avalia_aparelho` de 2 anos, só o hash; o primeiro entra calado) | Em produção |
 | Revendedor só opera com e-mail confirmado (claim `email_confirmado` nas políticas); sem ele, só `/conta` | Em produção |
-| Segundo fator (app TOTP ou código por e-mail) opcional para revendedor e operadora: entrada em dois passos com desafio de 5 minutos, 10 códigos de recuperação, erro de código conta para o bloqueio, link de senha não pula o fator (ADR 0017) | Em produção |
+| Segundo fator (app TOTP ou código por e-mail) opcional para revendedor e operadora: entrada em dois passos com desafio de 5 minutos, 10 códigos de recuperação, erro de código conta para o bloqueio, link de senha não pula o fator (ADR 0017); chave do app e códigos de recuperação cifrados em `usuarios_tokens` (`LojaDeUsuarios`, ADR 0030) | Em produção |
 | Operadora - trocar nome, CNPJ e recebedor de revenda, registrar pagamento por fora, estornar pedido e registrar acerto exigem o segundo fator ligado (`AcoesSensiveisDaOperadora`); a troca de recebedor avisa o dono no sino e por e-mail (ADR 0027) | Em produção |
-| Destino de QR e de link - até 10 cadastros novos por dia por revenda (contados na auditoria) e lista de domínios bloqueados, consultada ao cadastrar e a cada leitura e clique (ADR 0026) | Em produção |
+| Destino de QR e de link - até 10 cadastros novos por dia por revenda (contados na auditoria) e lista de domínios bloqueados, consultada ao cadastrar e a cada leitura e clique (ADR 0026); no cadastro, também o Google Web Risk, com falha aberta (ADR 0031) | Em produção; Web Risk desligado sem `WebRisk:ChaveApi` |
 | LGPD - exportação dos dados do cliente (`GET /clientes/{id}/dados`) e anonimização (`POST /clientes/{id}/anonimizacao`, recusada com cobrança em aberto), só pelo papel `Dono` e dentro da revenda; os valores ficam no razão. Logs e Sentry sem corpo, cookie nem IP | Em produção; depois do distrato, exportação por 30 dias e guarda do que a lei exige (PDD, seção 8) |
 
 Revisão pela skill `seguranca` (OWASP ASVS 5.0).
@@ -905,6 +923,7 @@ As mudanças de 21 a 24/10/2026 estão em [historico/sdd-ate-24-10.md](historico
 
 | Data | Mudança |
 | --- | --- |
+| 27/10/2026 | Chave do app autenticador e códigos de recuperação cifrados em `usuarios_tokens` (`LojaDeUsuarios` e `CifraDosSegredosDoUsuario`, subchave HKDF da `ChaveDosEmails`; rotina `RecifraDoSegundoFator` no Worker para o que estava em claro, para a rotação e, com `Seguranca:CifrarSegundoFator` desligada (padrão), para decifrar antes de voltar de versão; troca condicional por linha; ADR 0030). AES-GCM dos e-mails e dos segredos num núcleo só (`Aead`). Google Web Risk no cadastro do destino (`IReputacaoDeEnderecos`, `ClienteWebRisk`, `WebRisk:ChaveApi`, falha aberta, limite do dia conferido antes, uma consulta por endereço distinto em paralelo e resposta guardada na memória; ADR 0031); a conferência do destino em link e placa passou para antes da transação. |
 | 27/10/2026 | Conexões do compose de produção com `GSS Encryption Mode=Disable` - o Npgsql 10 tenta a cifra GSSAPI por padrão, a imagem `aspnet` não tem a `libgssapi_krb5` e o banco é alcançado pela rede interna do Docker, sem Kerberos. |
 | 27/10/2026 | Travas de dinheiro, concorrência e e-mail - `CustosDeLote` recusa criar, editar e excluir custo de lote ativado até um mês fechado da operadora; o limite diário de destinos é conferido sob a trava dos destinos da revenda (`TravarLinksDaRevenda`, reentrante), dentro da transação da venda e da troca de destino, o que também põe em fila o "um teste por cliente"; `Placa.SuspensaPorTeste` (migration `SuspensaoPorTesteEEsperaDosEventos`, com a marca das placas fora do ar pelo teste e a volta para fora do ar das religadas pelo botão) e `Alternar` recusa a placa assim; `eventos_externos.proxima_tentativa_em` com espera exponencial e e-mail à operadora na desistência; acréscimo do parcelamento rateado pelo valor de cada venda do grupo (só pagamento novo; o estorno usa o que foi lançado); o telefone só acha cliente quando um dos dois não tem documento, e sem documento na venda vale o cadastro sem documento ou o único documento do telefone; `IdempotenciaDaRequisicao` grava a chave mesmo com o cliente desconectado, e a cobrança depois do commit da venda não usa o cancelamento da requisição; e-mail de cobrança paga depois de cancelada com a origem, a revenda e o pedido no Pagar.me; `DestaquesDoEmail` (botão, código e link só do que o servidor marcou) e o cadastro público recusa nome com endereço de site; link de cadastro cifrado na fila (`sensivel`); ligar e desligar o segundo fator contam erro para o bloqueio; Worker - tempo esgotado do HttpClient é falha da rotina (filtro pela parada pedida), o conversor de PDF devolve `IntegracaoException`, e-mails antes das retomadas; auditoria da operadora grava sem o cancelamento da requisição e loga a falha; `ValidadorDasOpcoesD4Sign`. Front - chave de idempotência por tentativa de cobrança na Nova venda (`balcao/tentativa.ts`), `Protegida` renova o token vencido pelo cookie, marca e logo não somem quando o painel da marca fecha, câmera desligada quando o leitor falha, Sentry sem consulta nas URLs, Início e gráfico de 30 dias no dia de Brasília; a ficha da placa conta a janela de leituras do dia de Brasília. |
 | 27/10/2026 | Modelo de e-mail mais leve - texto 15 px peso 400, logo de 96 px, faixa de 3 px, cartão com borda, rodapé com a origem e o endereço da plataforma. E-mails da operadora sobre pedido estornado ou pago de novo sem o id interno e sem a situação crua: trazem quantidade, revenda e o pedido no Pagar.me. |

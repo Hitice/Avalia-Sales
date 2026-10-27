@@ -42,9 +42,12 @@ x-integracoes: &integracoes
   # Igual na API e no Worker: cifra assunto e texto dos e-mails com link de senha ou código na fila.
   Seguranca__ChaveDosEmails: ${CHAVE_DOS_EMAILS:?defina CHAVE_DOS_EMAILS, 32 bytes em base64 (openssl rand -base64 32)}
   Seguranca__ChaveAnteriorDosEmails: ${CHAVE_ANTERIOR_DOS_EMAILS:-}
+  # Cifra do segundo fator (ADR 0030): ligar só depois que a versão que lê os dois formatos estiver no ar.
+  Seguranca__CifrarSegundoFator: ${SEGURANCA_CIFRAR_SEGUNDO_FATOR:-false}
   Google__ChaveDoServidor: ${GOOGLE_CHAVE_DO_SERVIDOR:-}
   Google__ChaveDoMapa: ${GOOGLE_CHAVE_DO_MAPA:-}
   Google__IdDoMapa: ${GOOGLE_ID_DO_MAPA:-DEMO_MAP_ID}
+  WebRisk__ChaveApi: ${WEBRISK_CHAVE_API:-}
   # Captcha do cadastro público: sem a chave secreta fica desligado. A chave do site (pública) vai no build do front, abaixo.
   Turnstile__ChaveSecreta: ${TURNSTILE_CHAVE_SECRETA:-}
   # Teto de e-mails do cadastro público por 24 horas, somando todos os endereços.

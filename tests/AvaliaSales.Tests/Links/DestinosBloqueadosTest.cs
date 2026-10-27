@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Json;
 using AvaliaSales.Tests.Apoio;
 
 namespace AvaliaSales.Tests.Links;
@@ -48,6 +49,46 @@ public sealed class DestinosBloqueadosTest(ApiDeTeste api)
 
         // A revenda não gerencia a lista.
         Assert.Equal(HttpStatusCode.Forbidden, (await revenda.Dono.GetAsync("/operadora/destinos-bloqueados", Ct)).StatusCode);
+    }
+
+    [Fact]
+    public async Task Endereco_marcado_pelo_google_nao_entra_como_destino()
+    {
+        var revenda = await api.RevendaComEstoque("Revenda do Web Risk");
+        var perigoso = $"http://{ReputacaoFalsa.Host}/s/malware.html";
+
+        var recusa = await revenda.Dono.PostAsJsonAsync("/links", new { titulo = "Promo", destino = new { tipo = "Link", link = perigoso } }, Chamadas.Json, Ct);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, recusa.StatusCode);
+        Assert.Contains("perigoso pelo Google", await recusa.Content.ReadAsStringAsync(Ct), StringComparison.Ordinal);
+        await revenda.Dono.Postar("/links", new { titulo = "Promo", destino = new { tipo = "Link", link = "https://loja.exemplo.com.br/promo" } }, HttpStatusCode.Created);
+
+        // Na placa vendida, trocar o destino pelo endereço marcado também é recusado.
+        var codigo = revenda.Codigos[0];
+        await revenda.Dono.Postar("/vendas", Cenarios.Venda(codigo, revenda.ProdutoId, "11977770083"), HttpStatusCode.Created);
+        var troca = await revenda.Dono.PutAsJsonAsync($"/placas/{codigo}/destino", new { tipo = "Link", lugarNoGoogle = (string?)null, link = perigoso }, Chamadas.Json, Ct);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, troca.StatusCode);
+        Assert.Contains("perigoso pelo Google", await troca.Content.ReadAsStringAsync(Ct), StringComparison.Ordinal);
+
+        // Na venda também.
+        var venda = await revenda.Dono.PostAsJsonAsync("/vendas", Cenarios.Venda(revenda.Codigos[1], revenda.ProdutoId, "11977770084", link: perigoso), Chamadas.Json, Ct);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, venda.StatusCode);
+        Assert.Contains("perigoso pelo Google", await venda.Content.ReadAsStringAsync(Ct), StringComparison.Ordinal);
+    }
+
+    /// <summary>Com o limite do dia gasto, o pedido é recusado pelo limite, antes de ir ao Google (ADR 0031).</summary>
+    [Fact]
+    public async Task Limite_gasto_recusa_antes_da_consulta_ao_google()
+    {
+        var revenda = await api.RevendaComEstoque("Revenda do Limite antes do Google");
+        for (var i = 0; i < 10; i++)
+        {
+            await revenda.Dono.Postar("/links", new { titulo = $"Promo {i}", destino = new { tipo = "Link", link = $"https://loja.exemplo.com.br/limite-google-{i}" } }, HttpStatusCode.Created);
+        }
+
+        var recusa = await revenda.Dono.PostAsJsonAsync("/links", new { titulo = "Golpe", destino = new { tipo = "Link", link = $"http://{ReputacaoFalsa.Host}/s/phishing.html" } }, Chamadas.Json, Ct);
+
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, recusa.StatusCode);
+        Assert.Contains("Limite de 10 destinos", await recusa.Content.ReadAsStringAsync(Ct), StringComparison.Ordinal);
     }
 
     /// <summary>O ponto final do domínio ("golpe.com.") e as maiúsculas levam ao mesmo host: não contornam o bloqueio, nem no cadastro nem na leitura.</summary>

@@ -10,10 +10,12 @@ public sealed record BloquearDestino(string Dominio, string? Motivo);
 
 /// <summary>
 /// A lista de domínios que a plataforma não aceita como destino (ver <see cref="DestinoBloqueado"/>). Quem cria placa, destino ou link
-/// passa por <see cref="ExigirPermitido"/>; quem lê o QR ou clica no link passa por <see cref="Bloqueado"/> antes de redirecionar,
-/// o que protege também o que foi cadastrado antes do bloqueio.
+/// passa por <see cref="ExigirPermitido"/>, que consulta também o Google Web Risk (<see cref="IReputacaoDeEnderecos"/>); quem lê
+/// o QR ou clica no link passa por <see cref="Bloqueado"/> antes de redirecionar, o que protege também o que foi cadastrado
+/// antes do bloqueio.
 /// </summary>
-public sealed class DestinosBloqueados(IBancoDeDados banco, IUsuarioAtual usuario, TimeProvider relogio)
+public sealed class DestinosBloqueados(IBancoDeDados banco, IUsuarioAtual usuario, TimeProvider relogio, IReputacaoDeEnderecos reputacao,
+    Revendedores.LimiteDeDestinos limite)
 {
     public async Task<Pagina<DestinoBloqueadoDto>> Listar(string? busca, PedidoDePagina pedido, CancellationToken ct)
     {
@@ -64,16 +66,33 @@ public sealed class DestinosBloqueados(IBancoDeDados banco, IUsuarioAtual usuari
         return await banco.DestinosBloqueados.AsNoTracking().AnyAsync(d => candidatos.Contains(d.Dominio), ct);
     }
 
-    public async Task ExigirPermitido(string? endereco, CancellationToken ct)
+    public Task ExigirPermitido(string? endereco, CancellationToken ct) => ExigirPermitidos([endereco], ct);
+
+    /// <summary>
+    /// Cada endereço com domínio válido e fora da lista da operadora; depois, o limite do dia sem a trava e só então o
+    /// Google Web Risk, uma consulta por endereço distinto, em paralelo: o pedido que a lista ou o limite recusam não
+    /// chega ao Google, e a venda de várias placas espera uma consulta, e não a soma delas (ADR 0031).
+    /// </summary>
+    public async Task ExigirPermitidos(IReadOnlyCollection<string?> enderecos, CancellationToken ct)
     {
-        if (DestinoBloqueado.DominioDe(endereco) is null)
+        foreach (var endereco in enderecos)
         {
-            throw new RegraDeNegocioException("Endereço sem domínio válido. Confira o link.");
+            if (DestinoBloqueado.DominioDe(endereco) is null)
+            {
+                throw new RegraDeNegocioException("Endereço sem domínio válido. Confira o link.");
+            }
+
+            if (await Bloqueado(endereco, ct))
+            {
+                throw new RegraDeNegocioException("Destino bloqueado pela operadora. Use outro ou fale com o suporte.");
+            }
         }
 
-        if (await Bloqueado(endereco, ct))
+        await limite.ConferirAntes(enderecos.Count, ct);
+        var consultas = enderecos.OfType<string>().Distinct(StringComparer.Ordinal).Select(e => reputacao.Perigoso(e, ct));
+        if ((await Task.WhenAll(consultas)).Any(perigoso => perigoso))
         {
-            throw new RegraDeNegocioException("Destino bloqueado pela operadora. Use outro ou fale com o suporte.");
+            throw new RegraDeNegocioException("Endereço marcado como perigoso pelo Google. Use outro.");
         }
     }
 

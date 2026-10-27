@@ -220,10 +220,7 @@ public sealed class Vendas(
             linhas.Add((item, produto, doCatalogo, destino));
         }
 
-        foreach (var destino in linhas.Select(l => l.Destino).OfType<string>())
-        {
-            await destinosBloqueados.ExigirPermitido(destino, ct);
-        }
+        await destinosBloqueados.ExigirPermitidos(linhas.Select(l => l.Destino).OfType<string>().ToList(), ct);
 
         await using var transacao = await banco.Database.BeginTransactionAsync(ct);
         // Cada placa vendida cadastra um destino novo: o limite do dia conta antes de travar qualquer placa, sob a trava dos

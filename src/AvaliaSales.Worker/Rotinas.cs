@@ -71,6 +71,8 @@ public sealed partial class Rotinas(IServiceScopeFactory escopos, ILogger<Rotina
         }
 
         _ultimaLimpeza = agora;
+        // Na mesma cadência da limpeza, sem entrar na contagem dela.
+        await Rodar("recifra do segundo fator", (sp, c) => sp.GetRequiredService<RecifraDoSegundoFator>().Executar(c), ct);
         return await Rodar("limpeza das chaves de idempotência", (sp, c) => sp.GetRequiredService<LimpezaDeExpirados>().LimparChaves(c), ct)
             + await Rodar("limpeza das sessões", (sp, c) => sp.GetRequiredService<LimpezaDeExpirados>().LimparSessoes(c), ct)
             + await Rodar("limpeza dos links de senha", (sp, c) => sp.GetRequiredService<LimpezaDeExpirados>().LimparLinks(c), ct)

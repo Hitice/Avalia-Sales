@@ -37,3 +37,5 @@ linhas cifradas, e o ganho seria só a rotação automática, que o par de chave
 - A chave perdida ou diferente entre API e Worker faz o e-mail cifrado virar falha definitiva,
   com o conteúdo apagado; o usuário pede o link ou o código de novo.
 - O e-mail não sensível segue em claro.
+- A mesma chave, derivada por HKDF, cifra a chave do app autenticador e os códigos de
+  recuperação (ADR 0030): a rotação só termina depois que o Worker recifrou esses segredos.

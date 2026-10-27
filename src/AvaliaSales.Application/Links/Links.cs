@@ -64,6 +64,8 @@ public sealed class Links(IBancoDeDados banco, IRevendedorAtual atual, IUsuarioA
     public async Task<LinkDto> Criar(GravarLink comando, CancellationToken ct)
     {
         var destino = (comando.Destino ?? throw new RegraDeNegocioException("Escolha para onde o link leva.")).Resolver(plataforma.Value.HostPublico);
+        // Antes da transação: a consulta ao Web Risk não segura a trava dos destinos da revenda.
+        await destinosBloqueados.ExigirPermitido(destino, ct);
         await using var transacao = await banco.Database.BeginTransactionAsync(ct);
         await banco.TravarLinksDaRevenda(RevendedorDoToken(), ct);
         if (await banco.Links.AsNoTracking().FirstOrDefaultAsync(l => l.Destino == destino, ct) is { } existente)
@@ -74,7 +76,6 @@ public sealed class Links(IBancoDeDados banco, IRevendedorAtual atual, IUsuarioA
                 : "Destino já com link. Peça ao revendedor.");
         }
 
-        await destinosBloqueados.ExigirPermitido(destino, ct);
         await limiteDeDestinos.Exigir(1, ct);
         var link = await Novo(comando.Titulo, destino, null, ct);
         auditoria.Registrar(AcaoAuditada.LinkCriado, $"Link {link.Codigo}", link.Codigo, null, destino);
@@ -87,6 +88,11 @@ public sealed class Links(IBancoDeDados banco, IRevendedorAtual atual, IUsuarioA
     {
         var link = await Achar(id, ct);
         var destino = (comando.Destino ?? throw new RegraDeNegocioException("Escolha para onde o link leva.")).Resolver(plataforma.Value.HostPublico);
+        if (link.Destino != destino)
+        {
+            await destinosBloqueados.ExigirPermitido(destino, ct);
+        }
+
         await using var transacao = await banco.Database.BeginTransactionAsync(ct);
         await banco.TravarLinksDaRevenda(RevendedorDoToken(), ct);
         if (await banco.Links.AnyAsync(l => l.Id != id && l.Destino == destino, ct))
@@ -97,7 +103,6 @@ public sealed class Links(IBancoDeDados banco, IRevendedorAtual atual, IUsuarioA
         var antes = link.Destino;
         if (antes != destino)
         {
-            await destinosBloqueados.ExigirPermitido(destino, ct);
             await limiteDeDestinos.Exigir(1, ct);
         }
 

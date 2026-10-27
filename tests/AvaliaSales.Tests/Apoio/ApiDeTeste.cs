@@ -37,6 +37,8 @@ public sealed class ApiDeTeste : IAsyncLifetime
     /// <summary>Configuração falsa das integrações, igual na API e no Worker de teste.</summary>
     public static readonly IReadOnlyDictionary<string, string?> Integracoes = new Dictionary<string, string?>
     {
+        // A cifra do segundo fator ligada, como na produção depois de ligar (ADR 0030); o teste da volta a desliga no Worker.
+        ["Seguranca:CifrarSegundoFator"] = "true",
         ["Pagarme:ChaveSecreta"] = "sk_test_chave_de_teste",
         ["Pagarme:RecebedorAvalia"] = "rp_avaliaDeTeste",
         ["Pagarme:SegredoDoWebhook"] = SegredoDoWebhookPagarme,
@@ -134,6 +136,7 @@ public sealed class ApiDeTeste : IAsyncLifetime
             {
                 servicos.AddSingleton<IGatewayDePagamento>(Gateway);
                 servicos.AddSingleton<IAssinaturaEletronica>(Assinatura);
+                servicos.AddSingleton<Application.Links.IReputacaoDeEnderecos, ReputacaoFalsa>();
             });
         });
     }
@@ -218,7 +221,9 @@ public sealed class ApiDeTeste : IAsyncLifetime
     public ServiceProvider AmbienteDoWorker(GatewayFalso gateway, AssinaturaFalsa assinatura, TimeProvider? relogio = null, Application.Erp.IErp? erp = null, Application.Avisos.IEnvioDeEmail? email = null, IEnumerable<KeyValuePair<string, string?>>? configuracaoExtra = null)
     {
         var configuracao = new ConfigurationBuilder()
-            .AddInMemoryCollection(Integracoes.Append(new("ConnectionStrings:Banco", ConexaoDaAplicacao)).Concat(configuracaoExtra ?? []))
+            .AddInMemoryCollection(Integracoes.Append(new("ConnectionStrings:Banco", ConexaoDaAplicacao)).Concat(configuracaoExtra ?? [])
+                // A configuração extra do teste vale sobre a padrão.
+                .GroupBy(c => c.Key).Select(c => c.Last()))
             .Build();
         var servicos = new ServiceCollection();
         servicos.AddSingleton<IConfiguration>(configuracao);

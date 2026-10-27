@@ -47,6 +47,23 @@ public sealed class LimiteDeDestinos(IBancoDeDados banco, IRevendedorAtual atual
         }
 
         await banco.TravarLinksDaRevenda(atual.RevendedorId ?? throw new InvalidOperationException("Limite de destinos sem revenda na sessão."), ct);
+        await Recusar(novos, ct);
+    }
+
+    /// <summary>
+    /// A mesma conta sem a trava e fora da transação, antes da consulta ao Google Web Risk: o pedido que o limite já
+    /// recusa não chega ao Google (ADR 0031). Quem vale é <see cref="Exigir"/>, na transação.
+    /// </summary>
+    public async Task ConferirAntes(int novos, CancellationToken ct)
+    {
+        if (novos > 0)
+        {
+            await Recusar(novos, ct);
+        }
+    }
+
+    private async Task Recusar(int novos, CancellationToken ct)
+    {
         var situacao = await Situacao(ct);
         if (situacao.Usados + novos > situacao.Limite)
         {

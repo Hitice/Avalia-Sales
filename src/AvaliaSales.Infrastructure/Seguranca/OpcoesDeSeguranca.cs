@@ -21,6 +21,12 @@ public sealed class OpcoesDeSeguranca
 
     public string? ChaveAnteriorDosEmails { get; set; }
 
+    /// <summary>
+    /// Grava cifrados a chave do app autenticador e os códigos de recuperação (ADR 0030). Desligada, grava em claro, e o
+    /// Worker decifra o que estava cifrado: é o caminho para voltar a uma versão de antes da cifra. Ler, lê sempre os dois.
+    /// </summary>
+    public bool CifrarSegundoFator { get; set; }
+
     public static byte[]? Ler(string? base64)
     {
         if (string.IsNullOrWhiteSpace(base64))

@@ -120,7 +120,8 @@ public static class Cenarios
         meio = "Pix",
     };
 
-    public static object Venda(string codigo, Guid produtoId, string telefone, long? valor = null, string? documento = "11222333000181", bool testeGratuito = false) => new
+    public static object Venda(string codigo, Guid produtoId, string telefone, long? valor = null, string? documento = "11222333000181", bool testeGratuito = false,
+        string? link = null) => new
     {
         codigo,
         produtoId,
@@ -129,7 +130,9 @@ public static class Cenarios
         telefone,
         documento,
         email = "marta@padaria.com.br",
-        destino = new { tipo = "Google", lugarNoGoogle = "ChIJ0123456789abc", link = (string?)null },
+        destino = link is null
+            ? new { tipo = "Google", lugarNoGoogle = (string?)"ChIJ0123456789abc", link = (string?)null }
+            : new { tipo = "Link", lugarNoGoogle = (string?)null, link = (string?)link },
         valorCents = valor,
         meio = "Pix",
         testeGratuito,

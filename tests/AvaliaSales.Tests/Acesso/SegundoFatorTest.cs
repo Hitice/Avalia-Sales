@@ -1,7 +1,9 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.RegularExpressions;
+using AvaliaSales.Infrastructure.Identidade;
 using AvaliaSales.Tests.Apoio;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace AvaliaSales.Tests.Acesso;
 
@@ -201,6 +203,68 @@ public sealed partial class SegundoFatorTest(ApiDeTeste api)
         await revenda.Dono.Postar("/equipe", new { nome = "Lia", email, senha = ApiDeTeste.Senha }, HttpStatusCode.Created);
 
         await (await api.ClienteLogado(email)).Postar("/conta/segundo-fator/chave", new { }, HttpStatusCode.UnprocessableEntity);
+    }
+
+    [Fact]
+    public async Task Chave_do_app_e_codigos_de_recuperacao_ficam_cifrados_no_banco()
+    {
+        var (_, email) = await api.CriarRevendedor("Revenda 2FA Cifrada");
+        var (chave, codigos) = await Ligar(await api.ClienteLogado(email));
+        await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
+
+        var guardados = await banco.Texto($"""
+            select string_agg(t.value, '|') from usuarios_tokens t join usuarios u on u.id = t.user_id
+            where u.email = '{email}' and t.login_provider = '{LojaDeUsuarios.Provedor}'
+            """);
+
+        Assert.Equal(2, guardados.Split('|').Count(v => v.StartsWith("avalia-segredo:v1:", StringComparison.Ordinal)));
+        Assert.DoesNotContain(chave, guardados, StringComparison.Ordinal);
+        Assert.DoesNotContain(codigos[0], guardados, StringComparison.Ordinal);
+    }
+
+    /// <summary>O segredo gravado antes da cifra continua valendo, e a rotina do Worker cifra.</summary>
+    [Fact]
+    public async Task Segredo_gravado_em_claro_continua_entrando_e_a_rotina_cifra()
+    {
+        var (_, email) = await api.CriarRevendedor("Revenda 2FA em Claro");
+        var (chave, codigos) = await Ligar(await api.ClienteLogado(email));
+        await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
+        var doUsuario = $"user_id = (select id from usuarios where email = '{email}') and login_provider = '{LojaDeUsuarios.Provedor}'";
+        await banco.Contar($"update usuarios_tokens set value = '{chave}' where {doUsuario} and name = 'AuthenticatorKey' returning 1");
+        await banco.Contar($"update usuarios_tokens set value = '{string.Join(';', codigos)}' where {doUsuario} and name = 'RecoveryCodes' returning 1");
+
+        var anonimo = api.Fabrica.CreateClient();
+        await anonimo.Postar("/auth/entrar/codigo", new { desafio = await Desafio(email), codigo = Totp.Codigo(chave) });
+        using (var worker = api.AmbienteDoWorker(new GatewayFalso(), new AssinaturaFalsa()))
+        using (var escopo = worker.CreateScope())
+        {
+            // A rotina passa por todas as contas: as de outros testes também contam.
+            Assert.True(await escopo.ServiceProvider.GetRequiredService<RecifraDoSegundoFator>().Executar(Ct) >= 2);
+        }
+
+        Assert.Equal(2, await banco.Contar($"select count(*) from usuarios_tokens where {doUsuario} and value like 'avalia-segredo:v1:%'"));
+        await anonimo.Postar("/auth/entrar/codigo", new { desafio = await Desafio(email), codigo = codigos[1] });
+    }
+
+    /// <summary>Cifra desligada: o Worker decifra, e a versão de antes da cifra volta a ler a chave (ADR 0030).</summary>
+    [Fact]
+    public async Task Cifra_desligada_o_worker_decifra_para_a_volta_de_versao()
+    {
+        var (_, email) = await api.CriarRevendedor("Revenda 2FA Decifrada");
+        var (chave, codigos) = await Ligar(await api.ClienteLogado(email));
+        await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
+        var doUsuario = $"user_id = (select id from usuarios where email = '{email}') and login_provider = '{LojaDeUsuarios.Provedor}'";
+        Assert.Equal(2, await banco.Contar($"select count(*) from usuarios_tokens where {doUsuario} and value like 'avalia-segredo:v1:%'"));
+
+        using (var worker = api.AmbienteDoWorker(new GatewayFalso(), new AssinaturaFalsa(), configuracaoExtra: [new("Seguranca:CifrarSegundoFator", "false")]))
+        using (var escopo = worker.CreateScope())
+        {
+            Assert.True(await escopo.ServiceProvider.GetRequiredService<RecifraDoSegundoFator>().Executar(Ct) >= 2);
+        }
+
+        Assert.Equal(chave, await banco.Texto($"select value from usuarios_tokens where {doUsuario} and name = 'AuthenticatorKey'"));
+        Assert.Equal(string.Join(';', codigos), await banco.Texto($"select value from usuarios_tokens where {doUsuario} and name = 'RecoveryCodes'"));
+        await api.Fabrica.CreateClient().Postar("/auth/entrar/codigo", new { desafio = await Desafio(email), codigo = Totp.Codigo(chave) });
     }
 
     /// <summary>A chave do app e os códigos de recuperação, que a API mostra uma vez só.</summary>

@@ -35,3 +35,5 @@ apagada, ganha a situação Substituída e o número da que a substitui.
 | [0027](0027-segundo-fator-obrigatorio-nas-acoes-de-dinheiro-da-operadora.md) | Segundo fator obrigatório nas ações de dinheiro da operadora | Aceita |
 | [0028](0028-acerto-do-que-a-revenda-deve-por-venda-recebida-por-fora.md) | Acerto do que a revenda deve por venda recebida por fora | Aceita, revista em 27/10/2026 (sem taxa da plataforma) |
 | [0029](0029-revenda-receptora-no-encerramento-por-marca-explicita.md) | Revenda receptora no encerramento por marca explícita | Aceita |
+| [0030](0030-segredos-do-segundo-fator-cifrados-em-repouso.md) | Segredos do segundo fator cifrados em repouso | Aceita |
+| [0031](0031-google-web-risk-no-cadastro-do-destino.md) | Google Web Risk no cadastro do destino | Aceita |

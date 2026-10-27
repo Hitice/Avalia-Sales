@@ -166,6 +166,12 @@ abreviado falha no checkout. Pela linha de comando:
 O workflow sempre compila o commit pedido, com o cache de build dos últimos 7
 dias. O VPS guarda só a imagem no ar e a anterior.
 
+Voltar para antes do commit da cifra do segundo fator (ADR 0030), com
+`SEGURANCA_CIFRAR_SEGUNDO_FATOR=true`: primeiro ponha `false` no `.env`, suba
+a versão no ar e espere 10 minutos. O Worker decifra a chave do app e os
+códigos de recuperação, e a versão antiga volta a lê-los. Sem isso, ninguém
+entra pelo app autenticador na versão antiga.
+
 ## Backup e restauração
 
 - O contêiner `backup` grava `avalia_sales-AAAAMMDDTHHMMSSZ.dump` às 02:00 de
@@ -652,7 +658,20 @@ Rotação, sem perder e-mail na fila:
    (seção Pagar.me em produção, passo 2). O que já estava cifrado ainda abre
    pela anterior; o que entra agora usa a nova.
 3. Depois de 2 dias (a maior validade de link ou código) esvazie
-   `CHAVE_ANTERIOR_DOS_EMAILS` e suba de novo.
+   `CHAVE_ANTERIOR_DOS_EMAILS` e suba de novo. Antes, confira no log do Worker
+   que não há "não abre com as chaves configuradas": a mesma chave, derivada,
+   cifra a chave do app autenticador e os códigos de recuperação (ADR 0030), e
+   a rotina "recifra do segundo fator" passa esses segredos para a chave nova a
+   cada 10 minutos.
+
+Desfazer a rotação depois que o Worker recifrou: a chave nova vai para
+`CHAVE_ANTERIOR_DOS_EMAILS` e a antiga volta para `CHAVE_DOS_EMAILS`. Tirar a
+nova do `.env` tranca o app autenticador de todos.
+
+Chave perdida: os e-mails cifrados na fila viram falha, e ninguém entra com o
+app autenticador. O suporte desliga o segundo fator conta por conta
+(`--desligar-segundo-fator`, seção Recuperação de conta), e cada dono liga de
+novo.
 
 Se o Worker não conseguir abrir um e-mail (chave diferente da API, ou chave
 perdida), o e-mail vai para falha definitiva com o conteúdo apagado e o log
@@ -660,6 +679,38 @@ registra só o id; o usuário pede o link ou o código de novo. Conferir:
 
 ```sql
 select count(*) from emails where ultimo_erro like 'Conteúdo cifrado%';
+```
+
+### Google Web Risk
+
+Confere no Google o destino de placa e de link no cadastro (ADR 0031). Ligar:
+
+1. No Google Cloud, no mesmo projeto do Places, ative a Web Risk API.
+2. Crie uma chave de API restrita à Web Risk API e ao IP do VPS.
+3. No `/srv/avalia-sales/.env`, `WEBRISK_CHAVE_API=<chave>`, e suba a API.
+
+Sem a chave, a consulta fica desligada. Com o Google fora do ar, o destino
+entra e o log da API registra "Web Risk ... destino aceito sem a consulta".
+Até 100 mil consultas por mês não têm custo.
+
+### Cifra do segundo fator
+
+A chave do app autenticador e os códigos de recuperação ficam cifrados no banco
+com `SEGURANCA_CIFRAR_SEGUNDO_FATOR=true` (ADR 0030). A versão que traz a cifra
+lê os dois formatos e vem com ela desligada. Ligar, depois que essa versão
+estiver no ar sem volta prevista:
+
+```bash
+echo 'SEGURANCA_CIFRAR_SEGUNDO_FATOR=true' >> /srv/avalia-sales/.env
+```
+
+e suba de novo. Em até 10 minutos o Worker cifra o que estava em claro.
+Conferir (resultado 0):
+
+```sql
+select count(*) from usuarios_tokens
+where login_provider = '[AspNetUserStore]' and name in ('AuthenticatorKey', 'RecoveryCodes')
+  and value not like 'avalia-segredo:v1:%';
 ```
 
 ## Ações das mudanças de 26/10/2026

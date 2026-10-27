@@ -203,6 +203,15 @@ public sealed class AssinaturaFalsa : IAssinaturaEletronica
 }
 
 /// <summary>Servidor HTTP de mentira para testar o contrato dos clientes, sem rede.</summary>
+/// <summary>Web Risk de mentira: só o endereço de teste do próprio Google é perigoso.</summary>
+public sealed class ReputacaoFalsa : Application.Links.IReputacaoDeEnderecos
+{
+    public const string Host = "testsafebrowsing.appspot.com";
+
+    public Task<bool> Perigoso(string endereco, CancellationToken ct) =>
+        Task.FromResult(Uri.TryCreate(endereco, UriKind.Absolute, out var url) && url.Host == Host);
+}
+
 public sealed class HttpFalso(params (HttpStatusCode Status, string Corpo)[] respostas) : HttpMessageHandler
 {
     private readonly Queue<(HttpStatusCode Status, string Corpo)> _respostas = new(respostas);

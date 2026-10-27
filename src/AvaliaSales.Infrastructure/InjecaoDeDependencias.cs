@@ -50,6 +50,7 @@ public static class InjecaoDeDependencias
         servicos.AddOptions<OpcoesDeSeguranca>().BindConfiguration(OpcoesDeSeguranca.Secao).ValidateOnStart();
         servicos.AddSingleton<IValidateOptions<OpcoesDeSeguranca>, ValidadorDasOpcoesDeSeguranca>();
         servicos.AddSingleton<ICifraDeEmails, CifraDeEmails>();
+        servicos.AddSingleton<CifraDosSegredosDoUsuario>();
         servicos.AddScoped<ITransferenciaDeClientes, TransferenciaDeClientes>();
         servicos.AddScoped<AvaliaSales.Application.Financeiro.IEscopoDeRevenda, EscopoDeRevenda>();
         servicos.AdicionarCasosDeUso();
@@ -67,8 +68,9 @@ public static class InjecaoDeDependencias
                 o.Lockout.MaxFailedAccessAttempts = 5;
                 o.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
             })
-            .AddEntityFrameworkStores<BancoDeDados>()
-            // O do app autenticador (TOTP) não usa Data Protection: a chave fica em usuarios_tokens.
+            // A store do EF Core com a chave do app e os códigos de recuperação cifrados (ADR 0030).
+            .AddUserStore<LojaDeUsuarios>()
+            // O do app autenticador (TOTP) não usa Data Protection: a chave fica cifrada em usuarios_tokens.
             .AddTokenProvider<AuthenticatorTokenProvider<Usuario>>(TokenOptions.DefaultAuthenticatorProvider)
             // O do código por e-mail também não: TOTP sobre a marca de segurança, que a troca de senha renova.
             .AddTokenProvider<EmailTokenProvider<Usuario>>(TokenOptions.DefaultEmailProvider);
@@ -164,6 +166,19 @@ public static class InjecaoDeDependencias
             turnstile.ConfigurePrimaryHttpMessageHandler(manipuladorDeTeste);
         }
 
+        // Google Web Risk no cadastro do destino: desligado sem WebRisk:ChaveApi; ligado, uma tentativa só e falha aberta.
+        servicos.AddOptions<OpcoesWebRisk>().BindConfiguration(OpcoesWebRisk.Secao);
+        servicos.AddMemoryCache();
+        var webRisk = servicos.AddHttpClient<AvaliaSales.Application.Links.IReputacaoDeEnderecos, ClienteWebRisk>(http =>
+        {
+            http.Timeout = TimeSpan.FromSeconds(10);
+            http.DefaultRequestHeaders.UserAgent.ParseAdd("AvaliaSales/1.0");
+        });
+        if (manipuladorDeTeste is not null)
+        {
+            webRisk.ConfigurePrimaryHttpMessageHandler(manipuladorDeTeste);
+        }
+
         // O PDF do contrato e do distrato: o Gotenberg na rede interna, sem retentativa (a próxima volta do Worker tenta de novo).
         servicos.AddOptions<OpcoesDoConversor>().BindConfiguration(OpcoesDoConversor.Secao).ValidateDataAnnotations().ValidateOnStart();
         servicos.AddHttpClient<IConversorDePdf, ConversorGotenberg>((sp, http) =>
@@ -241,6 +256,7 @@ public static class InjecaoDeDependencias
         servicos.AddScoped<EnvioDeEmails>();
         servicos.AddScoped<EnvioAoErpRotina>();
         servicos.AddScoped<Manutencao.LimpezaDeExpirados>();
+        servicos.AddScoped<RecifraDoSegundoFator>();
         servicos.AddScoped<LimpezaDeCadastros>();
         return servicos;
     }

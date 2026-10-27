@@ -14,8 +14,6 @@ namespace AvaliaSales.Infrastructure.Seguranca;
 public sealed class CifraDeEmails : ICifraDeEmails
 {
     private const string Prefixo = "avalia-cifra:v1:";
-    private const int Nonce = 12;
-    private const int Tag = 16;
 
     private readonly byte[] _atual;
     private readonly byte[]? _anterior;
@@ -31,13 +29,9 @@ public sealed class CifraDeEmails : ICifraDeEmails
     public string Cifrar(string chaveDoEmail, string assunto, string texto)
     {
         var aberto = JsonSerializer.SerializeToUtf8Bytes(new[] { assunto, texto });
-        var saida = new byte[Nonce + Tag + aberto.Length];
-        var nonce = saida.AsSpan(0, Nonce);
-        RandomNumberGenerator.Fill(nonce);
-        using var aes = new AesGcm(_atual, Tag);
-        aes.Encrypt(nonce, aberto, saida.AsSpan(Nonce + Tag), saida.AsSpan(Nonce, Tag), Encoding.UTF8.GetBytes(chaveDoEmail));
+        var cifrado = Aead.Cifrar(_atual, aberto, Encoding.UTF8.GetBytes(chaveDoEmail));
         CryptographicOperations.ZeroMemory(aberto);
-        return Prefixo + Convert.ToBase64String(saida);
+        return Prefixo + Convert.ToBase64String(cifrado);
     }
 
     public (string Assunto, string Texto) Abrir(string chaveDoEmail, string cifrado)
@@ -52,26 +46,10 @@ public sealed class CifraDeEmails : ICifraDeEmails
             throw new CifraDeEmailInvalidaException();
         }
 
-        if (bytes.Length < Nonce + Tag)
-        {
-            throw new CifraDeEmailInvalidaException();
-        }
-
         var dadoAssociado = Encoding.UTF8.GetBytes(chaveDoEmail);
         foreach (var chave in new[] { _atual, _anterior })
         {
-            if (chave is null)
-            {
-                continue;
-            }
-
-            var aberto = new byte[bytes.Length - Nonce - Tag];
-            try
-            {
-                using var aes = new AesGcm(chave, Tag);
-                aes.Decrypt(bytes.AsSpan(0, Nonce), bytes.AsSpan(Nonce + Tag), bytes.AsSpan(Nonce, Tag), aberto, dadoAssociado);
-            }
-            catch (CryptographicException)
+            if (chave is null || Aead.Abrir(chave, bytes, dadoAssociado) is not { } aberto)
             {
                 continue;
             }
