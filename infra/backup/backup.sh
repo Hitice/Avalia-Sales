@@ -17,6 +17,10 @@
 # arquivo, e só depois de um envio conferido o script apaga do bucket o que passou de
 # BACKUP_DIAS_NO_BUCKET dias (30). Falha do bucket é avisada no log e não segura o deploy.
 # Para testar a conexão sem mandar dado de cliente: docker compose ... exec backup sh /backup.sh testar-bucket
+#
+# Alerta: com BACKUP_PARA e o Resend, a cópia que falha e o disco do VPS acima de DISCO_ALERTA por
+# cento (85) mandam um e-mail curto, sem dado de cliente. A pasta /backups é do disco do VPS, o mesmo
+# do Postgres e dos logs: disco cheio derruba o banco e a leitura das placas.
 set -eu
 
 # A cópia tem dado de cliente e hash de senha, e o contêiner roda como root: sem isto o arquivo
@@ -68,6 +72,31 @@ enviar() {
   rm -f "$corpo" "$anexo_cifrado"
 }
 
+# E-mail curto de alerta, sem anexo e sem dado de cliente. Sem destino ou sem Resend, só o log.
+alertar() {
+  assunto="$1"
+  texto="$2"
+  echo "ALERTA: $assunto - $texto" >&2
+  if [ -z "${BACKUP_PARA:-}" ] || [ -z "${RESEND_CHAVE_API:-}" ] || [ -z "${RESEND_REMETENTE:-}" ]; then
+    return 0
+  fi
+  dia=$(TZ=America/Sao_Paulo date +%Y%m%d)
+  printf '{"from":"%s","to":["%s"],"subject":"Avalia Sales - %s","text":"%s"}' "$RESEND_REMETENTE" "$BACKUP_PARA" "$assunto" "$texto" > /tmp/alerta.json
+  curl -fsS --retry 3 --retry-all-errors -o /dev/null https://api.resend.com/emails \
+    -H "Authorization: Bearer $RESEND_CHAVE_API" -H "Content-Type: application/json" \
+    -H "Idempotency-Key: alerta-$dia-$(printf '%s' "$assunto" | tr -cd 'a-z0-9')" --data-binary @/tmp/alerta.json \
+    || echo "envio do alerta falhou" >&2
+  rm -f /tmp/alerta.json
+}
+
+# Uso do disco onde fica /backups, em por cento; acima do limite, alerta uma vez por dia.
+conferir_disco() {
+  uso=$(df -P /backups | awk 'NR == 2 { sub("%", "", $5); print $5 }')
+  if [ -n "$uso" ] && [ "$uso" -ge "${DISCO_ALERTA:-85}" ]; then
+    alertar "disco em $uso por cento" "O disco do VPS passou de ${DISCO_ALERTA:-85} por cento. Libere espaço antes que o Postgres pare (docs/OPERACAO.md, Disco cheio)."
+  fi
+}
+
 bucket_ligado() {
   [ -n "${S3_ENDPOINT:-}" ] && [ -n "${S3_BUCKET:-}" ] && [ -n "${S3_KEY_ID:-}" ] && [ -n "${S3_APP_KEY:-}" ]
 }
@@ -113,6 +142,7 @@ guardar_no_bucket() {
     return 0
   fi
   echo "envio ao bucket falhou ou não conferiu (HTTP $codigo, ETag '$recebido', esperado '$esperado')" >&2
+  alertar "cópia fora do VPS falhou" "A cópia do banco não chegou ao bucket (HTTP $codigo). A cópia do disco foi feita; confira o bucket e as chaves S3 (docs/OPERACAO.md)."
   return 1
 }
 
@@ -169,6 +199,7 @@ copiar() {
   else
     rm -f "$arquivo.parcial"
     echo "backup falhou" >&2
+    alertar "cópia do banco falhou" "A cópia diária do banco falhou. Veja o log do contêiner backup e rode a cópia na hora (docs/OPERACAO.md)."
     return 1
   fi
   find /backups -name 'avalia_sales-*.dump' -mtime +"${BACKUP_DIAS:-14}" -delete
@@ -188,4 +219,5 @@ fi
 while true; do
   esperar
   copiar || true
+  conferir_disco
 done

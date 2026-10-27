@@ -4,6 +4,13 @@
 # voltar é subir de novo com a VERSAO anterior (docs/OPERACAO.md).
 name: avalia-sales
 
+# Log do Docker com teto: sem max-size o json-file cresce até encher o disco do VPS.
+x-registro: &registro
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
 x-integracoes: &integracoes
   ASPNETCORE_ENVIRONMENT: Production
   DOTNET_ENVIRONMENT: Production
@@ -62,6 +69,7 @@ services:
       timeout: 5s
       retries: 10
     restart: unless-stopped
+    logging: *registro
     cpu_shares: 2048
 
   migrar:
@@ -76,6 +84,7 @@ services:
       postgres:
         condition: service_healthy
     restart: "no"
+    logging: *registro
     cpu_shares: 512
 
   api:
@@ -94,6 +103,7 @@ services:
       retries: 5
       start_period: 20s
     restart: unless-stopped
+    logging: *registro
     cpu_shares: 2048
 
   worker:
@@ -109,11 +119,13 @@ services:
       gotenberg:
         condition: service_started
     restart: unless-stopped
+    logging: *registro
     cpu_shares: 512
 
   gotenberg:
-    # O PDF do contrato e do distrato (Chromium). Sem porta publicada e sem saída
-    # para a rede: o documento só usa os arquivos que o Worker manda junto.
+    # O PDF do contrato e do distrato (Chromium). Sem porta publicada; o Chromium
+    # recusa endereço público e privado (CHROMIUM_DENY_*) e roda sem JavaScript: o
+    # documento só usa os arquivos que o Worker manda junto.
     image: gotenberg/gotenberg:8.38.1-chromium
     environment:
       CHROMIUM_DENY_PRIVATE_IPS: "true"
@@ -121,6 +133,7 @@ services:
       CHROMIUM_DISABLE_JAVASCRIPT: "true"
       API_TIMEOUT: 60s
     restart: unless-stopped
+    logging: *registro
     cpu_shares: 256
 
   nginx:
@@ -144,6 +157,7 @@ services:
       api:
         condition: service_healthy
     restart: unless-stopped
+    logging: *registro
     cpu_shares: 2048
 
   # Renova o certificado duas vezes por dia; o Nginx relê a cada 6 horas.
@@ -154,6 +168,7 @@ services:
       - desafio-acme:/var/www/certbot
     entrypoint: ["/bin/sh", "-c", "trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 12h & wait $${!}; done"]
     restart: unless-stopped
+    logging: *registro
     cpu_shares: 128
 
   # Cópia às 02:00 de Brasília no disco e, com BACKUP_PARA, por e-mail pelo Resend.
@@ -179,12 +194,15 @@ services:
       S3_KEY_ID: ${S3_KEY_ID:-}
       S3_APP_KEY: ${S3_APP_KEY:-}
       BACKUP_DIAS_NO_BUCKET: ${BACKUP_DIAS_NO_BUCKET:-30}
+      # Alerta por e-mail (BACKUP_PARA) com o disco do VPS acima deste por cento.
+      DISCO_ALERTA: ${DISCO_ALERTA:-85}
     volumes:
       - ${PASTA_DE_BACKUP:-./backups}:/backups
     depends_on:
       postgres:
         condition: service_healthy
     restart: unless-stopped
+    logging: *registro
     cpu_shares: 128
 
 volumes:

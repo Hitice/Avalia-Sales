@@ -22,7 +22,7 @@ permissions:
 
 jobs:
   deploy:
-    # Desligado até o VPS existir: ligue com a variável DEPLOY_ATIVO=true no repositório.
+    # Ligado pela variável DEPLOY_ATIVO=true do repositório; false desliga a publicação automática.
     # O runner fica no servidor e o repositório é público: só publica o CI verde
     # de um push no main deste repositório. Um pull request de fork também gera
     # workflow_run do CI, com a branch que o fork quiser, e não pode chegar aqui.

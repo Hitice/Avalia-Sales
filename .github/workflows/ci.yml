@@ -117,6 +117,29 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
+  # Dependência com vulnerabilidade alta ou crítica conhecida falha aqui (NuGet, transitivas incluídas, e npm de produção).
+  # Atualização de rotina é rodada manual no main; esta trava pega o que não pode esperar a próxima rodada.
+  vulnerabilidades:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.402
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: web/.nvmrc
+      - run: dotnet restore
+      - name: NuGet
+        run: |
+          dotnet list package --vulnerable --include-transitive --format json > vulneraveis.json
+          graves=$(jq '[.projects[].frameworks[]?.[("topLevelPackages","transitivePackages")][]?.vulnerabilities[]? | select(.severity == "High" or .severity == "Critical")] | length' vulneraveis.json)
+          jq -r '.projects[].frameworks[]?.[("topLevelPackages","transitivePackages")][]? | select(.vulnerabilities) | "\(.id) \(.resolvedVersion): \([.vulnerabilities[].severity] | join(", "))"' vulneraveis.json
+          if [ "$graves" -gt 0 ]; then echo "::error::$graves vulnerabilidade(s) alta(s) ou crítica(s) em pacote NuGet."; exit 1; fi
+      - name: npm
+        working-directory: web
+        run: npm audit --audit-level=high --omit=dev
+
   # Segredo no código ou no histórico falha aqui. Falso positivo vai para o .gitleaksignore, com o motivo.
   segredos:
     runs-on: ubuntu-24.04
@@ -202,10 +225,10 @@ jobs:
           dotnet-coverage collect "dotnet test --no-build -c Release" -f xml -o coverage.xml
           dotnet sonarscanner end /d:sonar.token="$SONAR_TOKEN"
 
-  # Código que muda sem o PDD ou o SDD acompanhar não entra. Refatoração sem
-  # efeito visível passa com o rótulo sem-mudanca-de-doc.
+  # Código que muda sem o PDD ou o SDD acompanhar não entra, no push ao main e em pull request.
+  # Refatoração sem efeito visível passa com [sem-doc] na mensagem do commit (ou o rótulo
+  # sem-mudanca-de-doc no pull request). No push, a comparação é com o que estava no main antes.
   documentacao:
-    if: github.event_name == 'pull_request'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
@@ -213,14 +236,14 @@ jobs:
           fetch-depth: 0
       - name: Documentação acompanha o código
         env:
-          BASE: ${{ github.event.pull_request.base.sha }}
-          SEM_DOC: ${{ contains(github.event.pull_request.labels.*.name, 'sem-mudanca-de-doc') }}
+          BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          SEM_DOC: ${{ contains(github.event.pull_request.labels.*.name, 'sem-mudanca-de-doc') || contains(github.event.head_commit.message, '[sem-doc]') }}
         run: |
           mudou=$(git diff --name-only "$BASE"...HEAD)
-          codigo=$(printf '%s\n' "$mudou" | grep -E '^(src|tests|infra|web/src)/|^(Dockerfile|docker-compose\.yml|Directory\.(Build|Packages)\.props)$' || true)
+          codigo=$(printf '%s\n' "$mudou" | grep -E '^(src|tests|infra|web/src)/|^(Dockerfile|docker-compose(\.producao)?\.yml|Directory\.(Build|Packages)\.props)$' || true)
           docs=$(printf '%s\n' "$mudou" | grep -E '^docs/(PDD|SDD)\.md$' || true)
           if [ -n "$codigo" ] && [ -z "$docs" ] && [ "$SEM_DOC" != "true" ]; then
-            echo "::error::Código mudou sem atualizar docs/PDD.md ou docs/SDD.md. Atualize o documento certo ou aplique o rótulo sem-mudanca-de-doc."
+            echo "::error::Código mudou sem atualizar docs/PDD.md ou docs/SDD.md. Atualize o documento certo, ou use [sem-doc] no commit (rótulo sem-mudanca-de-doc no pull request) se não há efeito visível."
             printf '%s\n' "$codigo"
             exit 1
           fi
