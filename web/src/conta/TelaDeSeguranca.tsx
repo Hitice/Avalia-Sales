@@ -87,11 +87,11 @@ function SegundoFator() {
               <Alert variant="atencao">
                 <ShieldAlert aria-hidden />
                 <AlertTitle>Ative o segundo fator</AlertTitle>
-                <AlertDescription>Com ele, quem descobrir a sua senha ainda não entra: o acesso pede um código do seu celular. A conta mexe com vendas, clientes e o dinheiro da revenda.</AlertDescription>
+                <AlertDescription>Cada entrada pede um código do celular.</AlertDescription>
               </Alert>
               <Button onClick={() => preparar.mutate()} disabled={preparar.isPending}>Ativar com app autenticador</Button>
               <Button variant="outline" onClick={() => pedirCodigo.mutate()} disabled={pedirCodigo.isPending || !situacao.data?.emailConfirmado}>Ativar com código por e-mail</Button>
-              <p className="text-xs text-muted-foreground">O app protege mais: quem tem a senha às vezes tem o e-mail.</p>
+              <p className="text-xs text-muted-foreground">O app é mais seguro que o e-mail.</p>
             </div>
           )}
           {!ligado && pedirCodigo.isSuccess && !ligar.data && (

@@ -59,6 +59,7 @@ export function TelaDeRevendedores() {
                       <TableHead tipo="numero">Taxa</TableHead>
                       <TableHead tipo="numero">Renovação</TableHead>
                       <TableHead tipo="situacao">Contrato</TableHead>
+                      <TableHead>Assinado em</TableHead>
                       <TableHead>Recebedor no Pagar.me</TableHead>
                       <TableHead tipo="acoes" />
                     </TableRow>
@@ -85,8 +86,8 @@ export function TelaDeRevendedores() {
                           <TableCell>{formatarBps(r.renovacaoBps)}</TableCell>
                           <TableCell>
                             <Badge variant={r.contratoAssinadoEm ? 'sucesso' : 'atencao'}>{r.contratoAssinadoEm ? 'Assinado' : 'Sem assinatura'}</Badge>
-                            {r.contratoAssinadoEm && <span className="text-xs text-muted-foreground tabular-nums max-md:ml-2">{formatarData(r.contratoAssinadoEm)}</span>}
                           </TableCell>
+                          <TableCell className="tabular-nums">{r.contratoAssinadoEm ? formatarData(r.contratoAssinadoEm) : '-'}</TableCell>
                           <TableCell className="font-mono text-xs">{r.recebedorPagarme ?? '-'}</TableCell>
                           <TableCell>
                             <AcoesDaLinha nome={r.nome} principal={{ rotulo: 'Editar', aoClicar: () => setEditando(r) }} outras={[
