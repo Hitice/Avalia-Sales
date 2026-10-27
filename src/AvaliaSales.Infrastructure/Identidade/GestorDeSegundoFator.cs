@@ -1,3 +1,4 @@
+using AvaliaSales.Application;
 using AvaliaSales.Application.Avisos;
 using AvaliaSales.Domain;
 using AvaliaSales.Domain.Acesso;
@@ -5,6 +6,7 @@ using AvaliaSales.Domain.Auditoria;
 using AvaliaSales.Infrastructure.Banco;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace AvaliaSales.Infrastructure.Identidade;
 
@@ -28,7 +30,7 @@ public sealed record DesafioDaEntrada(string Desafio, MeioDoSegundoFator Meio, s
 /// bloqueio de 5 erros, como a senha.
 /// </summary>
 public sealed class GestorDeSegundoFator(BancoDeDados banco, UserManager<Usuario> usuarios, FilaDeEmails emails,
-    Application.Auditoria.Auditoria auditoria, TimeProvider relogio)
+    Application.Auditoria.Auditoria auditoria, TimeProvider relogio, IOptions<OpcoesDaPlataforma> plataforma)
 {
     public const int CodigosDeRecuperacao = 10;
     private const string Emissor = "Avalia Sales";
@@ -125,6 +127,7 @@ public sealed class GestorDeSegundoFator(BancoDeDados banco, UserManager<Usuario
         usuario.SegundoFatorPorEmail = false;
         await usuarios.UpdateAsync(usuario);
         Auditar(usuario, AcaoAuditada.SegundoFatorDesligado);
+        Avisar(usuario, "desligado", "O segundo fator da sua conta na Avalia Sales foi desligado.");
         await banco.SaveChangesAsync();
     }
 
@@ -197,8 +200,33 @@ public sealed class GestorDeSegundoFator(BancoDeDados banco, UserManager<Usuario
         await usuarios.UpdateAsync(usuario);
         await usuarios.SetTwoFactorEnabledAsync(usuario, true);
         Auditar(usuario, AcaoAuditada.SegundoFatorLigado, porEmail ? "e-mail" : "app autenticador");
+        Avisar(usuario, "ligado", $"O segundo fator da sua conta na Avalia Sales foi ligado, por {(porEmail ? "código no e-mail" : "app autenticador")}.");
         await banco.SaveChangesAsync();
         return (await usuarios.GenerateNewTwoFactorRecoveryCodesAsync(usuario, CodigosDeRecuperacao))?.ToList() ?? [];
+    }
+
+    /// <summary>
+    /// Aviso de mudança na segurança da conta, para o e-mail confirmado: quem tem só a
+    /// senha e liga ou desliga o segundo fator deixa rastro na caixa do dono. Sem código nem link.
+    /// </summary>
+    private void Avisar(Usuario usuario, string mudanca, string fato)
+    {
+        if (!usuario.EmailConfirmed || usuario.Email is null)
+        {
+            return;
+        }
+
+        emails.Enfileirar($"segundo-fator-{mudanca}:{usuario.Id:N}:{relogio.GetUtcNow().ToUnixTimeSeconds()}", usuario.Email,
+            $"Segundo fator {mudanca}",
+            $"""
+            Olá, {usuario.Nome}.
+
+            {fato}
+
+            Se não foi você, troque a senha agora e fale com o suporte.
+
+            Trocar a senha: {plataforma.Value.UrlDoPainel.TrimEnd('/')}/esqueci
+            """);
     }
 
     private async Task MandarCodigo(Usuario usuario, string chave, CancellationToken ct)
@@ -210,7 +238,9 @@ public sealed class GestorDeSegundoFator(BancoDeDados banco, UserManager<Usuario
 
             Seu código de acesso à Avalia Sales: {codigo}
 
-            Vale alguns minutos. Se não foi você, troque a senha.
+            Vale alguns minutos. A Avalia nunca pede este código por telefone ou mensagem: não passe a ninguém.
+
+            Se não foi você, troque a senha.
             """, sensivel: true);
         await banco.SaveChangesAsync(ct);
     }
