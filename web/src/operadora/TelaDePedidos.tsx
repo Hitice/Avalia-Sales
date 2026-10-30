@@ -1,3 +1,4 @@
+import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import { mensagemDoErro } from '@/api/cliente'
 import { formatarDataHora, rotuloDoPedido, TOM_DO_PEDIDO } from '@/api/rotulos'
@@ -13,8 +14,8 @@ import { Field, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { formatarCentavos } from '@/dinheiro/dinheiro'
-import { useIniciarProducao, useLotesLivres, usePedidosDaOperadora, useRegistrarPagamento } from './consultas'
+import { formatarCentavos, paraCentavos } from '@/dinheiro/dinheiro'
+import { useAbrirPedidoAvulso, useIniciarProducao, useLotesLivres, usePedidosDaOperadora, useRegistrarPagamento, useRevendasDoPedidoAvulso } from './consultas'
 import { useDespacharComEnvio, useEstornarPedido, useFornecedoresDeLogistica } from './consultasDeEntregaEAcerto'
 
 /** A fila da operadora: pedido pago ganha um lote livre da mesma quantidade. */
@@ -26,10 +27,13 @@ export function TelaDePedidos() {
   const producao = useIniciarProducao()
   const [despachando, setDespachando] = useState<Pedido | null>(null)
   const [estornando, setEstornando] = useState<Pedido | null>(null)
+  const [abrindo, setAbrindo] = useState(false)
 
   return (
     <>
-      <Cabecalho titulo="Pedidos" />
+      <Cabecalho titulo="Pedidos">
+        <Button onClick={() => setAbrindo(true)}><Plus aria-hidden />Novo pedido</Button>
+      </Cabecalho>
       <Erro erro={pagar.error ?? producao.error} />
       <Card className="mt-3">
         <CardContent>
@@ -93,11 +97,65 @@ export function TelaDePedidos() {
           aoFechar={() => setDespachando(null)}
           aoDespachar={(dados) => despachar.mutate({ id: despachando.id, ...dados }, { onSuccess: () => setDespachando(null) })} />
       )}
+      {abrindo && <PedidoAvulso aoFechar={() => setAbrindo(false)} />}
       {estornando && (
         <Estorno pedido={estornando} ocupado={estornar.isPending} erro={estornar.error} aoFechar={() => setEstornando(null)}
           aoEstornar={(motivo) => estornar.mutate({ id: estornando.id, motivo }, { onSuccess: () => setEstornando(null) })} />
       )}
     </>
+  )
+}
+
+/** Fora dos pacotes, para a placa avulsa ou a reposição: a revenda paga em Pedidos, e o valor zero já nasce pago. */
+function PedidoAvulso({ aoFechar }: { aoFechar: () => void }) {
+  const revendas = useRevendasDoPedidoAvulso()
+  const abrir = useAbrirPedidoAvulso()
+  const [revendedorId, setRevendedorId] = useState('')
+  const [quantidade, setQuantidade] = useState('1')
+  const [valor, setValor] = useState('0,00')
+  const placas = Number(quantidade)
+  const cents = paraCentavos(valor)
+  const valido = revendedorId !== '' && Number.isInteger(placas) && placas >= 1 && placas <= 1000 && cents !== null
+  return (
+    <Dialog open onOpenChange={(aberto) => !aberto && aoFechar()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Novo pedido</DialogTitle>
+          <DialogDescription>Fora dos pacotes. Valor zero já nasce pago.</DialogDescription>
+        </DialogHeader>
+        <form
+          className="grid gap-4"
+          onSubmit={(e) => {
+            e.preventDefault()
+            if (!valido) return
+            abrir.mutate({ revendedorId, quantidade: placas, valorCents: cents }, { onSuccess: aoFechar })
+          }}
+        >
+          <Erro erro={abrir.error ?? revendas.error} />
+          <Field>
+            <FieldLabel htmlFor="revenda-do-pedido">Revenda</FieldLabel>
+            <Select value={revendedorId} onValueChange={setRevendedorId}>
+              <SelectTrigger id="revenda-do-pedido" className="w-full"><SelectValue placeholder="Escolha" /></SelectTrigger>
+              <SelectContent>
+                {(revendas.data ?? []).map((r) => <SelectItem key={r.id} value={r.id}>{r.nome}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="quantidade-do-pedido">Placas</FieldLabel>
+            <Input id="quantidade-do-pedido" type="number" inputMode="numeric" min={1} max={1000} value={quantidade} onChange={(e) => setQuantidade(e.target.value)} />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="valor-do-pedido">Valor</FieldLabel>
+            <Input id="valor-do-pedido" inputMode="decimal" autoComplete="off" value={valor} aria-invalid={cents === null} onChange={(e) => setValor(e.target.value)} />
+          </Field>
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={aoFechar}>Cancelar</Button>
+            <Button type="submit" disabled={!valido || abrir.isPending}>Abrir pedido</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   )
 }
 

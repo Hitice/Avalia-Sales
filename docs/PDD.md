@@ -154,7 +154,7 @@ maiúscula ("otica" acha "Ótica").
 
 | Tela | O que faz |
 | --- | --- |
-| Pedidos | Fila de pedidos de placas - produção, despacho do lote pelo envio (com transportadora e código de rastreio) ou para retirada, e estorno do pedido pago ainda não despachado |
+| Pedidos | Fila de pedidos de placas - pedido avulso aberto pela operadora, produção, despacho do lote pelo envio (com transportadora e código de rastreio) ou para retirada, e estorno do pedido pago ainda não despachado |
 | Lotes | Geração e impressão de lotes com título e categoria, exclusão antes do primeiro download e arquivamento |
 | Pacotes e Cupons | Cadastro dos pacotes de placas e dos cupons |
 | Catálogo da Avalia | Cadastrar e editar produto, foto com recorte, preço sugerido, desconto da revenda (e a parte da Avalia que sai dele), pedido mínimo, ordem e situação |
@@ -206,8 +206,8 @@ maiúscula ("otica" acha "Ótica").
   código novo enviado ao e-mail cadastrado; o código do app e os de
   recuperação também valem.
 - A conta da operadora precisa do segundo fator ligado para trocar o nome, o
-  CNPJ ou o recebedor de uma revenda, registrar pagamento por fora, estornar
-  pedido e registrar acerto. Trocar o recebedor avisa o dono da revenda no
+  CNPJ ou o recebedor de uma revenda, registrar pagamento por fora, abrir
+  pedido avulso, estornar pedido e registrar acerto. Trocar o recebedor avisa o dono da revenda no
   sino e por e-mail (ADR 0027).
 - Vendedor convidado por e-mail cria a própria senha; o convite vale 24
   horas. O revendedor também pode mandar o link pelo WhatsApp.
@@ -219,7 +219,9 @@ maiúscula ("otica" acha "Ótica").
 - Itens - uma venda leva até 20 itens para o mesmo cliente. Cada placa ou
   serviço é uma venda, com a comissão dela, e juntas formam um grupo com uma
   cobrança só. O valor de cada linha pode ser ajustado. A placa sai uma por
-  código.
+  código. A placa com dois QR (avaliação e Instagram, por exemplo) tem dois
+  códigos: são duas linhas na mesma venda, cada uma com o seu destino, e o
+  preço combinado dividido entre elas.
 - Pedido mínimo - o serviço vende por quantidade, nunca abaixo do pedido
   mínimo do catálogo (kit mesa e placa de cardápio a partir de 10). A ordem de
   serviço leva a quantidade.
@@ -335,6 +337,11 @@ confirmar, em Comissões, que ele chegou. Só o
   devolve o mesmo enquanto ele valer. Cancelar o pedido com link em aberto
   cancela o link no Pagar.me junto: ele deixa de abrir o checkout.
 - A operadora também pode registrar um pagamento recebido por fora.
+- Pedido avulso - a operadora abre, para uma revenda ativa e com contrato, um
+  pedido fora dos pacotes, de 1 a 1.000 placas e com o valor combinado: a placa
+  avulsa com dois códigos, a reposição. Com valor, a revenda paga em Pedidos
+  como no pacote; com valor zero, nasce pago. Despacho e ativação são iguais, e
+  a placa leva o custo do pedido dividido pela quantidade.
 - Pagamento confirmado - o dono recebe um e-mail a cada pagamento que entra,
   do pedido de placas e da venda, com o cliente, os itens e o valor.
 - Estorno do pedido - a operadora desfaz o pedido pago e ainda não despachado:
@@ -902,6 +909,7 @@ As mudanças de 21 a 24/10/2026 estão em [historico/pdd-ate-24-10.md](historico
 
 | Data | Mudança |
 | --- | --- |
+| 30/10/2026 | Pedido avulso - a operadora abre em Pedidos um pedido fora dos pacotes, para uma revenda, com quantidade de 1 a 1.000 e valor livre (zero nasce pago), com o segundo fator; despacho e ativação iguais. A placa com dois QR vende em duas linhas da mesma venda. |
 | 30/10/2026 | Página do QR só no tema claro, com Copiar no código e o botão Entrar (Nova venda na placa não ativada, ficha na vencida, suspensa e com endereço bloqueado). Placa de lote despachado e não ativado diz na Nova venda qual lote o dono ativa. |
 | 27/10/2026 | Destino marcado como perigoso pelo Google não entra em placa nem em link. A chave do app autenticador e os códigos de recuperação ficam cifrados no banco. |
 | 27/10/2026 | Travas de dinheiro, placa e cadastro - custo de lote ativado até um mês fechado da operadora só muda com o mês reaberto; o limite de 10 destinos por dia vale também para vendas ao mesmo tempo; placa fora do ar pelo teste vencido só volta com o pagamento, e não pelo botão de ligar (a que já tinha sido religada assim sai do ar na publicação); o telefone só acha o cliente quando um dos dois não tem CNPJ ou CPF (documentos diferentes são clientes diferentes), e a venda sem documento num telefone de várias empresas cria cliente novo; cadastro com endereço de site no nome é recusado; cinco códigos errados ao ligar ou desligar o segundo fator bloqueiam como na entrada; aviso do Pagar.me ou da D4Sign que falha volta a ser tentado por cerca de 4 horas, e a operadora recebe um e-mail quando ele sai da fila; o acréscimo do parcelamento de uma venda feita junto com outras é dividido pelo valor de cada uma, e o cancelamento de uma devolve a parte dela. |

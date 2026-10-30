@@ -19,6 +19,13 @@ export const useLotesLivres = (quantidade: number) =>
   useQuery({ queryKey: [...chaves.lotes, 'livres', quantidade], queryFn: () => chamarApi<Pagina<Lote>>(`/operadora/lotes?livres=true&quantidade=${quantidade}&tamanho=100`) })
 export const usePacotesDaOperadora = () => useQuery({ queryKey: chaves.pacotes, queryFn: () => chamarApi<Pacote[]>('/operadora/pacotes') })
 export const useRevendedores = () => useListaPaginada<Revendedor>(chaves.revendedores, '/operadora/revendedores')
+/** As revendas que podem receber pedido avulso: ativas e com contrato assinado. */
+export const useRevendasDoPedidoAvulso = () =>
+  useQuery({
+    queryKey: [...chaves.revendedores, 'pedido-avulso'],
+    queryFn: () => chamarApi<Pagina<Revendedor>>('/operadora/revendedores?tamanho=100'),
+    select: (pagina) => pagina.itens.filter((r) => r.contratoAssinadoEm && !r.encerradaEm && !r.suspensaEm),
+  })
 
 /** Toda gravação da operadora refaz as listas dela: pedido, lote e revendedor andam juntos. */
 function useGravar<T>(fazer: (dados: T) => Promise<unknown>) {
@@ -26,6 +33,8 @@ function useGravar<T>(fazer: (dados: T) => Promise<unknown>) {
   return useMutation({ mutationFn: fazer, meta: { sucesso: 'Alteração salva.' }, onSuccess: () => cliente.invalidateQueries({ queryKey: ['operadora'] }) })
 }
 
+export const useAbrirPedidoAvulso = () =>
+  useGravar((dados: { revendedorId: string; quantidade: number; valorCents: number }) => chamarApi<Pedido>('/operadora/pedidos', enviarJson('POST', dados)))
 export const useRegistrarPagamento = () => useGravar((id: string) => chamarApi(`/operadora/pedidos/${id}/pagamento`, enviarJson('POST', {})))
 export const useIniciarProducao = () => useGravar((id: string) => chamarApi(`/operadora/pedidos/${id}/producao`, enviarJson('POST', {})))
 export type DadosDoLote = { titulo: string | null; categoria: CategoriaDoLote }

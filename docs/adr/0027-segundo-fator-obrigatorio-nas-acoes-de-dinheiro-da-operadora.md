@@ -26,6 +26,7 @@ segundo fator ligado, com a mensagem para ligar em Segurança. As ações são:
 - trocar o recebedor do Pagar.me;
 - trocar a revenda receptora (ADR 0029);
 - registrar pagamento por fora de pedido;
+- abrir pedido avulso, que pode nascer pago com valor zero;
 - estornar pedido;
 - registrar acerto (ADR 0028).
 

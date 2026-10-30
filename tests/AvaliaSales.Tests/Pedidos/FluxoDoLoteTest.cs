@@ -1,5 +1,8 @@
 using System.Net;
+using AvaliaSales.Application;
 using AvaliaSales.Tests.Apoio;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace AvaliaSales.Tests.Pedidos;
 
@@ -38,6 +41,71 @@ public sealed class FluxoDoLoteTest(ApiDeTeste api)
 
         // Ativar de novo não duplica.
         await dono.Postar("/lotes/ativacao", new { numero = lote.GetProperty("rotulo").GetString() }, HttpStatusCode.UnprocessableEntity);
+    }
+
+    /// <summary>A placa avulsa com dois códigos: a operadora abre o pedido de 2 sem pacote, sem custo, e ele anda como o do pacote.</summary>
+    [Fact]
+    public async Task Pedido_avulso_sem_custo_nasce_pago_e_vira_estoque_pelo_despacho_e_ativacao()
+    {
+        var operadora = await api.ClienteLogado(await api.CriarOperadora());
+        var (revendedorId, email) = await api.CriarRevendedor("Revenda da Placa Avulsa");
+        var dono = await api.ClienteLogado(email);
+        var lote = await operadora.Postar("/operadora/lotes", new { quantidade = 2 }, HttpStatusCode.Created);
+
+        var pedido = await operadora.Postar("/operadora/pedidos", new { revendedorId, quantidade = 2, valorCents = 0 }, HttpStatusCode.Created);
+        var pedidoId = pedido.GetProperty("id").GetGuid();
+        Assert.Equal("Pago", pedido.GetProperty("situacao").GetString());
+        await operadora.Postar($"/operadora/pedidos/{pedidoId}/despacho", new { lote = lote.GetProperty("numero").GetInt32() }, HttpStatusCode.NoContent);
+        var ativado = await dono.Postar("/lotes/ativacao", new { numero = lote.GetProperty("rotulo").GetString() });
+
+        Assert.Equal(2, ativado.GetProperty("placas").GetInt32());
+        await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
+        Assert.Equal(2, await banco.Contar($"select count(*) from placas where revendedor_id = '{revendedorId}' and custo_cents = 0"));
+        Assert.Equal(1, await banco.Contar($"select count(*) from notificacoes where revendedor_id = '{revendedorId}' and texto like 'A Avalia abriu um pedido de 2 placas, sem custo.'"));
+    }
+
+    [Fact]
+    public async Task Pedido_avulso_com_valor_espera_o_pagamento_da_revenda_e_so_a_operadora_abre()
+    {
+        var operadora = await api.ClienteLogado(await api.CriarOperadora());
+        var (revendedorId, email) = await api.CriarRevendedor("Revenda do Avulso Pago");
+        var dono = await api.ClienteLogado(email);
+
+        var pedido = await operadora.Postar("/operadora/pedidos", new { revendedorId, quantidade = 1, valorCents = 4_500L }, HttpStatusCode.Created);
+
+        Assert.Equal("AguardandoPagamento", pedido.GetProperty("situacao").GetString());
+        var doDono = await dono.PegarItens("/pedidos");
+        var visto = Assert.Single(doDono.EnumerateArray(), p => p.GetProperty("id").GetGuid() == pedido.GetProperty("id").GetGuid());
+        Assert.Equal(4_500L, visto.GetProperty("valorCents").GetInt64());
+        await operadora.Postar($"/operadora/pedidos/{pedido.GetProperty("id").GetGuid()}/pagamento", new { }, HttpStatusCode.NoContent);
+
+        await operadora.Postar("/operadora/pedidos", new { revendedorId, quantidade = 0, valorCents = 0 }, HttpStatusCode.UnprocessableEntity);
+        await operadora.Postar("/operadora/pedidos", new { revendedorId, quantidade = 1_001, valorCents = 0 }, HttpStatusCode.UnprocessableEntity);
+        await operadora.Postar("/operadora/pedidos", new { revendedorId, quantidade = 1, valorCents = -1 }, HttpStatusCode.UnprocessableEntity);
+        await operadora.Postar("/operadora/pedidos", new { revendedorId = Guid.NewGuid(), quantidade = 1, valorCents = 0 }, HttpStatusCode.UnprocessableEntity);
+        await dono.Postar("/operadora/pedidos", new { revendedorId, quantidade = 1, valorCents = 0 }, HttpStatusCode.Forbidden);
+    }
+
+    /// <summary>Placa sem custo para a revenda é dinheiro da Avalia: sem o segundo fator, a operadora não abre o pedido.</summary>
+    [Fact]
+    public async Task Pedido_avulso_exige_o_segundo_fator_da_operadora()
+    {
+        var operadora = await api.ClienteLogado(await api.CriarOperadora());
+        var (revendedorId, _) = await api.CriarRevendedor("Revenda do Avulso Protegido");
+        var opcoes = api.Fabrica.Services.GetRequiredService<IOptions<OpcoesDaPlataforma>>().Value;
+        opcoes.ExigirSegundoFatorDaOperadora = true;
+        try
+        {
+            var recusa = await operadora.Postar("/operadora/pedidos", new { revendedorId, quantidade = 2, valorCents = 0 }, HttpStatusCode.UnprocessableEntity);
+            Assert.Contains("Segurança", recusa.GetProperty("detail").GetString(), StringComparison.Ordinal);
+        }
+        finally
+        {
+            opcoes.ExigirSegundoFatorDaOperadora = false;
+        }
+
+        await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
+        Assert.Equal(0, await banco.Contar($"select count(*) from pedidos_placas where revendedor_id = '{revendedorId}'"));
     }
 
     /// <summary>Quem lê a placa da caixa ainda fechada copia o código e entra; no painel, a Nova venda diz qual lote ativar.</summary>

@@ -2287,6 +2287,26 @@
             }
           }
         }
+      },
+      "post": {
+        "tags": [
+          "Operadora"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AbrirPedidoAvulso"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
       }
     },
     "/operadora/pedidos/{id}/pagamento": {
@@ -6643,6 +6663,29 @@
   },
   "components": {
     "schemas": {
+      "AbrirPedidoAvulso": {
+        "required": [
+          "revendedorId",
+          "quantidade",
+          "valorCents"
+        ],
+        "type": "object",
+        "properties": {
+          "revendedorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "quantidade": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "valorCents": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "description": "Pedido fora dos pacotes: quantidade de 1 a 1.000 e valor em centavos, zero para sem custo."
+      },
       "AcaoAuditada": {
         "enum": [
           "DestinoDefinido",

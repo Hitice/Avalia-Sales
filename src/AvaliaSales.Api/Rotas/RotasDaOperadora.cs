@@ -17,6 +17,9 @@ public sealed record SuspenderRevenda(string? Motivo);
 /// <summary>Retirada: a revenda busca a caixa na Avalia, sem envio.</summary>
 public sealed record EstornarPedido(string? Motivo);
 
+/// <summary>Pedido fora dos pacotes: quantidade de 1 a 1.000 e valor em centavos, zero para sem custo.</summary>
+public sealed record AbrirPedidoAvulso(Guid RevendedorId, int Quantidade, long ValorCents);
+
 public sealed record DespacharPedido(int Lote, bool Retirada = false, string? Transportadora = null, string? CodigoDeRastreio = null);
 
 public sealed record DefinirRecebedor(string Recebedor);
@@ -123,6 +126,8 @@ public static class RotasDaOperadora
             return Results.NoContent();
         });
         operadora.MapGet("/pedidos", (string? busca, [AsParameters] PedidoDePagina pagina, PedidosDePlacas pedidos, CancellationToken ct) => pedidos.Listar(busca, pagina, ct));
+        operadora.MapPost("/pedidos", async (AbrirPedidoAvulso pedido, PedidosDePlacas pedidos, CancellationToken ct) =>
+            Results.Created("/operadora/pedidos", await pedidos.CriarAvulso(pedido.RevendedorId, pedido.Quantidade, pedido.ValorCents, ct)));
         operadora.MapPost("/pedidos/{id:guid}/pagamento", async (Guid id, PedidosDePlacas pedidos, CancellationToken ct) =>
         {
             await pedidos.RegistrarPagamento(id, ct);

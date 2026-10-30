@@ -29,6 +29,16 @@ function abrir() {
     chamadas.push({ url, metodo, corpo: opcoes?.body ? JSON.parse(String(opcoes.body)) : undefined })
     if (metodo !== 'GET') return new Response(null, { status: 204 })
     if (url.includes('/operadora/fornecedores')) return new Response(JSON.stringify({ itens: [{ id: 'f1', nome: 'Correios' }], total: 1, proxima: null }), { status: 200 })
+    if (url.includes('/operadora/revendedores')) {
+      return new Response(JSON.stringify({
+        itens: [
+          { id: 'r1', nome: 'Avalia Vendas', contratoAssinadoEm: '2026-10-01T00:00:00Z', encerradaEm: null, suspensaEm: null },
+          { id: 'r2', nome: 'Loja Sem Contrato', contratoAssinadoEm: null, encerradaEm: null, suspensaEm: null },
+        ],
+        total: 2,
+        proxima: null,
+      }), { status: 200 })
+    }
     if (url.includes('/operadora/lotes')) return new Response(JSON.stringify({ itens: [lote], total: 1, proxima: null }), { status: 200 })
     return new Response(JSON.stringify({ itens: [pedido], total: 1, proxima: null }), { status: 200 })
   }))
@@ -37,6 +47,22 @@ function abrir() {
 }
 
 describe('TelaDePedidos', () => {
+  it('abre pedido avulso fora dos pacotes, só para revenda com contrato', async () => {
+    const chamadas = abrir()
+    fireEvent.click(await screen.findByRole('button', { name: 'Novo pedido' }))
+    fireEvent.click(await screen.findByLabelText('Revenda'))
+    expect(screen.queryByRole('option', { name: 'Loja Sem Contrato' })).toBeNull()
+    fireEvent.click(await screen.findByRole('option', { name: 'Avalia Vendas' }))
+    fireEvent.change(screen.getByLabelText('Placas'), { target: { value: '2' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Abrir pedido' }))
+
+    await waitFor(() => expect(chamadas.find((c) => c.metodo === 'POST')).toBeDefined())
+    expect(chamadas.find((c) => c.metodo === 'POST')).toMatchObject({
+      url: '/api/operadora/pedidos',
+      corpo: { revendedorId: 'r1', quantidade: 2, valorCents: 0 },
+    })
+  })
+
   it('despacha com transportadora e código de rastreio', async () => {
     const chamadas = abrir()
     fireEvent.click((await screen.findAllByRole('button', { name: /Despachar/ }))[0])

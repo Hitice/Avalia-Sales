@@ -2756,7 +2756,28 @@ export interface paths {
             };
         };
         put?: never;
-        post?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AbrirPedidoAvulso"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -7951,6 +7972,15 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @description Pedido fora dos pacotes: quantidade de 1 a 1.000 e valor em centavos, zero para sem custo. */
+        AbrirPedidoAvulso: {
+            /** Format: uuid */
+            revendedorId: string;
+            /** Format: int32 */
+            quantidade: number;
+            /** Format: int64 */
+            valorCents: number;
+        };
         /** @enum {unknown} */
         AcaoAuditada: "DestinoDefinido" | "DestinoTrocado" | "PlacaSuspensa" | "PlacaNoAr" | "PlacaTrocada" | "VendaCancelada" | "VendaEmCortesia" | "RecebidoPorFora" | "RecebimentoDesfeito" | "VendedorCadastrado" | "VendedorAlterado" | "VendedorDesativado" | "VendedorReativado" | "VendedorExcluido" | "ComissaoPadraoAlterada" | "ProdutoAlterado" | "RepasseRegistrado" | "ClienteAnonimizado" | "MarcaAlterada" | "LinkAlterado" | "LinkExcluido" | "SegundoFatorLigado" | "SegundoFatorDesligado" | "EmpresaAlterada" | "EncerramentoPedido" | "EncerramentoDesistido" | "ContaEncerrada" | "ReaberturaPedida" | "ClienteAlterado" | "ClienteExcluido" | "ClientesJuntados" | "VendaCorrigida" | "RepasseDesfeito" | "MesFechado" | "MesReaberto" | "SocioCadastrado" | "SocioAlterado" | "SocioExcluido" | "ClienteCadastrado" | "SaldoInicialDoCaixaDefinido" | "SaldoInicialDoCaixaExcluido" | "RenovacaoRecebidaPorFora" | "RenovacaoDesfeita" | "LinkCriado" | "RecebimentoConferido" | "LimiteDePorForaDefinido";
         AcertoDto: {

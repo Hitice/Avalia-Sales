@@ -87,6 +87,32 @@ public sealed class PedidoDePlacas : IAtendidoPelaOperadora
         CriadoEm = agora;
     }
 
+    /// <summary>
+    /// Pedido aberto pela operadora fora dos pacotes, com a quantidade e o valor combinados com a revenda: a placa
+    /// avulsa com dois códigos, a reposição. Segue o mesmo caminho do pedido do pacote; valor zero nasce pago.
+    /// </summary>
+    public static PedidoDePlacas Avulso(Guid revendedorId, int quantidade, long valorCents, DateTimeOffset agora)
+    {
+        if (quantidade is < 1 or > Placas.Lote.QuantidadeMaxima)
+        {
+            throw new RegraDeNegocioException($"Pedido de 1 a {Placas.Lote.QuantidadeMaxima} placas.");
+        }
+
+        if (valorCents < 0)
+        {
+            throw new RegraDeNegocioException("Valor negativo. Use zero para o pedido sem custo.");
+        }
+
+        return new PedidoDePlacas
+        {
+            RevendedorId = revendedorId,
+            Quantidade = quantidade,
+            PrecoDoPacoteCents = valorCents,
+            ValorCents = valorCents,
+            CriadoEm = agora,
+        };
+    }
+
     /// <summary>O custo que a placa carrega é o que o revendedor pagou de fato, com o desconto.</summary>
     public long CustoPorPlacaCents => ValorCents / Quantidade;
 

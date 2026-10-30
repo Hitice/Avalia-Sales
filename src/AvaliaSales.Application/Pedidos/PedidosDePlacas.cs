@@ -274,6 +274,38 @@ public sealed class PedidosDePlacas(
         return avisados;
     }
 
+    /// <summary>
+    /// Operadora: pedido fora dos pacotes, com a quantidade e o valor combinados com a revenda. Com valor, a revenda
+    /// paga em Pedidos como no pacote; sem valor, nasce pago. Depois, despacho e ativação iguais.
+    /// </summary>
+    public async Task<PedidoDto> CriarAvulso(Guid revendedorId, int quantidade, long valorCents, CancellationToken ct)
+    {
+        await sensiveis.Exigir("Abrir pedido avulso", ct);
+        var revendedor = await banco.Revendedores.SingleOrDefaultAsync(r => r.Id == revendedorId, ct)
+            ?? throw new RegraDeNegocioException("Revenda não encontrada.");
+        revendedor.ExigirAtiva();
+        if (revendedor.ContratoAssinadoEm is null)
+        {
+            throw new RegraDeNegocioException("Contrato de revenda não assinado.");
+        }
+
+        var agora = relogio.GetUtcNow();
+        var pedido = PedidoDePlacas.Avulso(revendedor.Id, quantidade, valorCents, agora);
+        banco.Pedidos.Add(pedido);
+        if (pedido.Gratuito)
+        {
+            pedido.RegistrarPagamento(agora);
+            await erp.Enfileirar(pedido, revendedor.Id, ct);
+        }
+
+        banco.AvisarAoVivo("pedido", revendedor.Id, operadora: true);
+        notificacoes.ParaDono(revendedor.Id, "Pedido novo", pedido.Gratuito
+            ? $"A Avalia abriu um pedido de {pedido.Quantidade} placas, sem custo."
+            : $"A Avalia abriu um pedido de {pedido.Quantidade} placas, {Reais(pedido.ValorCents)}. Pague em Pedidos.", "/painel/pedidos");
+        await banco.SaveChangesAsync(ct);
+        return (await Dtos([pedido], ct))[0];
+    }
+
     /// <summary>Operadora: pagamento recebido por fora, até o checkout do Pagar.me entrar.</summary>
     public async Task RegistrarPagamento(Guid id, CancellationToken ct)
     {
