@@ -25,7 +25,7 @@ public sealed record FichaDto(string Codigo, string Endereco, long Sequencia, Es
 /// A placa vendida: destino, vencimento, leituras e o liga e desliga. O dono
 /// mexe em qualquer placa; o vendedor, só nas que vendeu.
 /// </summary>
-public sealed class FichaDaPlaca(IBancoDeDados banco, IUsuarioAtual usuario, IContas contas, Clientes.PrivacidadeDoCliente privacidade, Auditoria.Auditoria auditoria, IOptions<OpcoesDaPlataforma> plataforma, TimeProvider relogio,
+public sealed class FichaDaPlaca(IBancoDeDados banco, IUsuarioAtual usuario, IRevendedorAtual atual, IContas contas, Clientes.PrivacidadeDoCliente privacidade, Auditoria.Auditoria auditoria, IOptions<OpcoesDaPlataforma> plataforma, TimeProvider relogio,
     Revendedores.LimiteDeDestinos limiteDeDestinos, Links.DestinosBloqueados destinosBloqueados)
 {
     public const int DiasDeLeitura = 30;
@@ -132,8 +132,21 @@ public sealed class FichaDaPlaca(IBancoDeDados banco, IUsuarioAtual usuario, ICo
     private async Task<Placa> Achar(string codigo, CancellationToken ct)
     {
         var normalizado = CodigoDaPlaca.Normalizar(codigo);
-        return (normalizado.Length == 0 ? null : await banco.Placas.SingleOrDefaultAsync(p => p.Codigo == normalizado, ct))
-            ?? throw new RegraDeNegocioException("Código não encontrado.");
+        if (normalizado.Length > 0 && await banco.Placas.SingleOrDefaultAsync(p => p.Codigo == normalizado, ct) is { } placa)
+        {
+            return placa;
+        }
+
+        // A placa do lote despachado à revenda só vira placa dela na ativação; até lá, a Nova venda diz o que falta.
+        var lote = normalizado.Length == 0 || atual.RevendedorId is not { } revendedorId
+            ? null
+            : await banco.PlacasEmitidas.AsNoTracking().Where(p => p.Codigo == normalizado)
+                .Join(banco.Lotes, p => p.LoteId, l => l.Id, (_, l) => l)
+                .Where(l => l.RevendedorId == revendedorId && l.AtivadoEm == null && l.ArquivadoEm == null)
+                .Select(l => (int?)l.Numero).SingleOrDefaultAsync(ct);
+        throw new RegraDeNegocioException(lote is { } numero
+            ? $"Lote {Lote.Rotular(numero)} não ativado. O dono ativa o lote em Estoque."
+            : "Código não encontrado.");
     }
 
     private async Task<bool> VendidaPorMim(Placa placa, CancellationToken ct) =>

@@ -171,7 +171,7 @@ maiúscula ("otica" acha "Ótica").
 
 | Tela | O que faz |
 | --- | --- |
-| Página do QR (`/q/{codigo}`) | Redireciona ao destino e conta a leitura; placa vencida, suspensa ou baixada mostra uma página que explica |
+| Página do QR (`/q/{codigo}`) | Redireciona ao destino e conta a leitura; placa não ativada, vencida, suspensa ou baixada mostra uma página que explica, no tema claro, com o código, Copiar e, menos na baixada, o botão Entrar (Nova venda na não ativada; ficha na vencida, na suspensa e na de endereço bloqueado) |
 | Link curto (`/l/{codigo}`) | Redireciona ao destino e conta o clique |
 
 ## 6. Regras de negócio
@@ -387,6 +387,9 @@ confirmar, em Comissões, que ele chegou. Só o
   da data: a placa vale 12 meses da venda e continua no ar por mais 30 dias de
   carência; depois, mostra a página de vencida.
 - Placa sem venda não vai ao ar. Lida, abre a Nova venda com o código.
+- Placa de lote despachado e ainda não ativado - a Nova venda e a ficha dizem
+  o lote que falta ativar e que o dono ativa em Estoque. Para outra revenda, o
+  código continua não encontrado.
 - Leitura - redireciona com 302 e sem cache, para o destino trocado valer na
   hora. Conta por dia no fuso de Brasília. Leitura de robô e de
   pré-visualização não conta, e falha na contagem nunca derruba o
@@ -899,6 +902,7 @@ As mudanças de 21 a 24/10/2026 estão em [historico/pdd-ate-24-10.md](historico
 
 | Data | Mudança |
 | --- | --- |
+| 30/10/2026 | Página do QR só no tema claro, com Copiar no código e o botão Entrar (Nova venda na placa não ativada, ficha na vencida, suspensa e com endereço bloqueado). Placa de lote despachado e não ativado diz na Nova venda qual lote o dono ativa. |
 | 27/10/2026 | Destino marcado como perigoso pelo Google não entra em placa nem em link. A chave do app autenticador e os códigos de recuperação ficam cifrados no banco. |
 | 27/10/2026 | Travas de dinheiro, placa e cadastro - custo de lote ativado até um mês fechado da operadora só muda com o mês reaberto; o limite de 10 destinos por dia vale também para vendas ao mesmo tempo; placa fora do ar pelo teste vencido só volta com o pagamento, e não pelo botão de ligar (a que já tinha sido religada assim sai do ar na publicação); o telefone só acha o cliente quando um dos dois não tem CNPJ ou CPF (documentos diferentes são clientes diferentes), e a venda sem documento num telefone de várias empresas cria cliente novo; cadastro com endereço de site no nome é recusado; cinco códigos errados ao ligar ou desligar o segundo fator bloqueiam como na entrada; aviso do Pagar.me ou da D4Sign que falha volta a ser tentado por cerca de 4 horas, e a operadora recebe um e-mail quando ele sai da fila; o acréscimo do parcelamento de uma venda feita junto com outras é dividido pelo valor de cada uma, e o cancelamento de uma devolve a parte dela. |
 | 27/10/2026 | Tabela larga rola dentro do cartão em qualquer tela - a coluna de ações (Editar e "⋯") fica sempre à vista; o painel usa até 1280 px de largura com o menu lateral. |

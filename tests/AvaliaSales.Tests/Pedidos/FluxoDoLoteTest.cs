@@ -40,6 +40,46 @@ public sealed class FluxoDoLoteTest(ApiDeTeste api)
         await dono.Postar("/lotes/ativacao", new { numero = lote.GetProperty("rotulo").GetString() }, HttpStatusCode.UnprocessableEntity);
     }
 
+    /// <summary>Quem lê a placa da caixa ainda fechada copia o código e entra; no painel, a Nova venda diz qual lote ativar.</summary>
+    [Fact]
+    public async Task Placa_de_lote_despachado_e_nao_ativado_explica_na_leitura_e_na_nova_venda()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var operadora = await api.ClienteLogado(await api.CriarOperadora());
+        var (_, email) = await api.CriarRevendedor("Revenda da Caixa Fechada");
+        var dono = await api.ClienteLogado(email);
+        var quantidade = Cenarios.QuantidadeNova();
+        var pacote = await Cenarios.PacoteJson(operadora, quantidade, quantidade * 1_400L);
+        var lote = await operadora.Postar("/operadora/lotes", new { quantidade }, HttpStatusCode.Created);
+        var pedidoId = (await dono.Postar("/pedidos", new { pacoteId = pacote.GetProperty("id").GetGuid() }, HttpStatusCode.Created)).GetProperty("id").GetGuid();
+        await operadora.Postar($"/operadora/pedidos/{pedidoId}/pagamento", new { }, HttpStatusCode.NoContent);
+        await operadora.Postar($"/operadora/pedidos/{pedidoId}/despacho", new { lote = lote.GetProperty("numero").GetInt32() }, HttpStatusCode.NoContent);
+        await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
+        var codigo = await banco.Texto($"select codigo from placas_emitidas where lote_id = '{lote.GetProperty("id").GetGuid()}' order by sequencia limit 1");
+
+        var anonimo = api.Fabrica.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var leitura = await anonimo.GetAsync($"/q/{codigo}", ct);
+        var pagina = await leitura.Content.ReadAsStringAsync(ct);
+        var politica = Assert.Single(leitura.Headers.GetValues("Content-Security-Policy"));
+        var nonce = System.Text.RegularExpressions.Regex.Match(politica, "'nonce-([^']+)'").Groups[1].Value;
+
+        Assert.Contains("Placa ainda não ativada", pagina, StringComparison.Ordinal);
+        Assert.Contains($"data-codigo=\"{codigo}\">Copiar</button>", pagina, StringComparison.Ordinal);
+        Assert.Contains($"href=\"https://painel.exemplo.com.br/vender?codigo={codigo}\">Entrar</a>", pagina, StringComparison.Ordinal);
+        Assert.DoesNotContain("prefers-color-scheme", pagina, StringComparison.Ordinal);
+        Assert.StartsWith("default-src 'none';", politica, StringComparison.Ordinal);
+        Assert.NotEmpty(nonce);
+        Assert.Contains($"<script nonce=\"{nonce}\">", pagina, StringComparison.Ordinal);
+
+        var recusa = await dono.Pegar($"/placas/{codigo}", HttpStatusCode.UnprocessableEntity);
+        Assert.Equal($"Lote {lote.GetProperty("rotulo").GetString()} não ativado. O dono ativa o lote em Estoque.", recusa.GetProperty("detail").GetString());
+
+        // Outra revenda não fica sabendo de que lote é o código.
+        var (_, emailDaVizinha) = await api.CriarRevendedor("Revenda Vizinha da Caixa");
+        var vizinha = await api.ClienteLogado(emailDaVizinha);
+        Assert.Equal("Código não encontrado.", (await vizinha.Pegar($"/placas/{codigo}", HttpStatusCode.UnprocessableEntity)).GetProperty("detail").GetString());
+    }
+
     [Fact]
     public async Task Pedido_para_retirada_avisa_que_a_caixa_esta_pronta_e_ativa_igual()
     {

@@ -1,4 +1,5 @@
 using System.Net;
+using System.Security.Cryptography;
 using AvaliaSales.Api.Autenticacao;
 using AvaliaSales.Application;
 using AvaliaSales.Application.Links;
@@ -39,7 +40,7 @@ public static class RotasDaLeitura
             : await banco.CodigosDeLink.AsNoTracking().Where(c => c.Codigo == normalizado).Select(c => (Guid?)c.RevendedorId).SingleOrDefaultAsync(ct);
         if (dono is not { } revendedorId)
         {
-            return Pagina(http, Aviso.LinkNaoEncontrado, codigo, HttpStatusCode.NotFound);
+            return Pagina(http, Aviso.LinkNaoEncontrado, normalizado, HttpStatusCode.NotFound);
         }
 
         using var escopo = escopos.CreateScope();
@@ -61,7 +62,7 @@ public static class RotasDaLeitura
         var normalizado = CodigoDaPlaca.Normalizar(codigo);
         if (normalizado.Length == 0)
         {
-            return Pagina(http, Aviso.NaoEncontrada, codigo, HttpStatusCode.NotFound);
+            return Pagina(http, Aviso.NaoEncontrada, string.Empty, HttpStatusCode.NotFound);
         }
 
         // Tabela da plataforma, sem RLS: é por aqui que se descobre de quem é a placa.
@@ -72,9 +73,13 @@ public static class RotasDaLeitura
             return Pagina(http, Aviso.NaoEncontrada, normalizado, HttpStatusCode.NotFound);
         }
 
+        // Quem lê a placa pode ser da loja: o botão leva ao painel, que pede a entrada e volta para cá.
+        var painel = plataforma.Value.UrlDoPainel.TrimEnd('/');
+        var vender = new Entrada("Entrar", $"{painel}/vender?codigo={normalizado}");
+        var ficha = new Entrada("Entrar", $"{painel}/placa/{normalizado}");
         if (emitida.RevendedorId is not { } revendedorId)
         {
-            return Pagina(http, Aviso.NaoAtivada, normalizado, HttpStatusCode.OK);
+            return Pagina(http, Aviso.NaoAtivada, normalizado, HttpStatusCode.OK, vender);
         }
 
         using var escopo = escopos.CreateScope();
@@ -87,18 +92,20 @@ public static class RotasDaLeitura
             // 302 e nunca 301: o 301 fica guardado no navegador de quem leu, e a
             // placa congelaria no primeiro destino mesmo depois de trocado.
             ResultadoDaLeitura.Redirecionar when await escopo.ServiceProvider.GetRequiredService<DestinosBloqueados>().Bloqueado(leitura.Destino, ct) =>
-                Pagina(http, Aviso.DestinoBloqueado, normalizado, HttpStatusCode.OK),
+                Pagina(http, Aviso.DestinoBloqueado, normalizado, HttpStatusCode.OK, ficha),
             ResultadoDaLeitura.Redirecionar => Redirecionar(http, leitura.Destino!),
-            ResultadoDaLeitura.Vender => Redirecionar(http, $"{plataforma.Value.UrlDoPainel.TrimEnd('/')}/vender?codigo={normalizado}"),
-            ResultadoDaLeitura.Aviso => Pagina(http, leitura.Estado switch
+            ResultadoDaLeitura.Vender => Redirecionar(http, vender.Url),
+            ResultadoDaLeitura.Aviso => leitura.Estado switch
             {
-                EstadoDaPlaca.Vencida => Aviso.Vencida,
-                EstadoDaPlaca.Baixada => Aviso.Baixada,
-                _ => Aviso.Suspensa,
-            }, normalizado, HttpStatusCode.OK),
+                EstadoDaPlaca.Vencida => Pagina(http, Aviso.Vencida, normalizado, HttpStatusCode.OK, ficha),
+                EstadoDaPlaca.Baixada => Pagina(http, Aviso.Baixada, normalizado, HttpStatusCode.OK),
+                _ => Pagina(http, Aviso.Suspensa, normalizado, HttpStatusCode.OK, ficha),
+            },
             _ => Pagina(http, Aviso.NaoEncontrada, normalizado, HttpStatusCode.NotFound),
         };
     }
+
+    private sealed record Entrada(string Rotulo, string Url);
 
     private static IResult Redirecionar(HttpContext http, string destino)
     {
@@ -133,9 +140,17 @@ public static class RotasDaLeitura
         DestinoBloqueado,
     }
 
-    private static IResult Pagina(HttpContext http, Aviso aviso, string codigo, HttpStatusCode status)
+    /// <summary>
+    /// A página do aviso, só no tema claro, como o app. O código tem Copiar, e a placa da loja, o botão de entrar. O
+    /// script e o estilo vão com nonce, e a política da página não deixa carregar mais nada.
+    /// </summary>
+    private static IResult Pagina(HttpContext http, Aviso aviso, string codigo, HttpStatusCode status, Entrada? entrar = null)
     {
         SemCache(http);
+        var nonce = Convert.ToBase64String(RandomNumberGenerator.GetBytes(16));
+        http.Response.Headers.ContentSecurityPolicy =
+            $"default-src 'none'; style-src 'nonce-{nonce}'; script-src 'nonce-{nonce}'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
+        var exibido = WebUtility.HtmlEncode(codigo.ToUpperInvariant());
         var (titulo, texto) = aviso switch
         {
             Aviso.NaoAtivada => ("Placa ainda não ativada", "Esta placa ainda não foi ativada pela loja. Volte a ler quando ela estiver no balcão."),
@@ -147,6 +162,16 @@ public static class RotasDaLeitura
             Aviso.DestinoBloqueado => ("Endereço bloqueado", "A Avalia bloqueou o endereço para onde este código leva, por segurança. Fale com a loja."),
             _ => ("Código não encontrado", "Não achamos este código. Confira as letras e os números impressos na placa."),
         };
+        var tipo = aviso is Aviso.LinkNaoEncontrado or Aviso.LinkDesligado ? "Link" : "Placa";
+        var codigoNaPagina = exibido.Length == 0
+            ? string.Empty
+            : $"""
+              <div class="codigo"><span>{tipo}</span> <code id="codigo">{exibido}</code>
+              <button type="button" class="contorno" id="copiar" data-codigo="{exibido}">Copiar</button></div>
+              """;
+        var botaoDeEntrar = entrar is null
+            ? string.Empty
+            : $"""<a class="primario" href="{WebUtility.HtmlEncode(entrar.Url)}">{entrar.Rotulo}</a>""";
         var html = $$"""
             <!doctype html>
             <html lang="pt-BR">
@@ -154,23 +179,46 @@ public static class RotasDaLeitura
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1">
             <meta name="robots" content="noindex">
+            <meta name="color-scheme" content="light">
             <title>{{titulo}} - Avalia Sales</title>
-            <style>
-              :root { color-scheme: light dark; --fundo: #ffffff; --texto: #120c2b; --suave: #4d4766; --marca: #ee46bc; }
-              @media (prefers-color-scheme: dark) { :root { --fundo: #120c2b; --texto: #f5f3fb; --suave: #c4bfd6; } }
+            <style nonce="{{nonce}}">
+              :root { color-scheme: light; --fundo: #ffffff; --texto: #120c2b; --suave: #4d4766; --borda: #e4e2ec; --marca: #ee46bc; }
               body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: var(--fundo); color: var(--texto);
                      font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; padding: 24px; box-sizing: border-box; }
-              main { max-width: 26rem; }
+              main { width: 100%; max-width: 26rem; }
               h1 { font-size: 1.5rem; line-height: 1.2; margin: 0 0 .75rem; }
-              p { margin: 0 0 1rem; color: var(--suave); }
-              code { font: 600 1.125rem/1 ui-monospace, monospace; letter-spacing: .12em; border-bottom: 3px solid var(--marca); }
+              p { margin: 0 0 1.25rem; color: var(--suave); }
+              .codigo { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; margin: 0 0 1.5rem; color: var(--suave); }
+              code { font: 600 1.125rem/1 ui-monospace, monospace; letter-spacing: .12em; color: var(--texto);
+                     border-bottom: 3px solid var(--marca); user-select: all; }
+              a, button { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 1rem;
+                          border-radius: 6px; font-family: inherit; font-size: 15px; font-weight: 500; line-height: 1; text-decoration: none; cursor: pointer;
+                          box-sizing: border-box; }
+              .contorno { background: var(--fundo); color: var(--texto); border: 1px solid var(--borda); }
+              .primario { width: 100%; background: var(--texto); color: var(--fundo); border: 0; }
+              a:focus-visible, button:focus-visible { outline: 2px solid var(--marca); outline-offset: 2px; }
             </style>
             </head>
             <body><main>
             <h1>{{titulo}}</h1>
             <p>{{texto}}</p>
-            <p>{{(aviso is Aviso.LinkNaoEncontrado or Aviso.LinkDesligado ? "Link" : "Placa")}} <code>{{WebUtility.HtmlEncode(codigo.ToUpperInvariant())}}</code></p>
-            </main></body>
+            {{codigoNaPagina}}
+            {{botaoDeEntrar}}
+            </main>
+            <script nonce="{{nonce}}">
+              const botao = document.getElementById('copiar');
+              botao?.addEventListener('click', async () => {
+                try {
+                  await navigator.clipboard.writeText(botao.dataset.codigo);
+                  botao.textContent = 'Copiado';
+                } catch {
+                  getSelection().selectAllChildren(document.getElementById('codigo'));
+                  botao.textContent = 'Selecionado';
+                }
+                setTimeout(() => { botao.textContent = 'Copiar'; }, 2000);
+              });
+            </script>
+            </body>
             </html>
             """;
         return Results.Content(html, "text/html; charset=utf-8", statusCode: (int)status);

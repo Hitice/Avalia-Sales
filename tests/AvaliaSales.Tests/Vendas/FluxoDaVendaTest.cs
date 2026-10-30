@@ -111,8 +111,15 @@ public sealed class FluxoDaVendaTest(ApiDeTeste api)
         var desconhecido = await anonimo.GetAsync("/q/ZZZZZZ", ct);
 
         Assert.Equal($"https://painel.exemplo.com.br/vender?codigo={revenda.Codigos[3]}", emEstoque.Headers.Location!.ToString());
+        var paginaDoDesconhecido = await desconhecido.Content.ReadAsStringAsync(ct);
         Assert.Equal(HttpStatusCode.NotFound, desconhecido.StatusCode);
-        Assert.Contains("Código não encontrado", await desconhecido.Content.ReadAsStringAsync(ct));
+        Assert.Contains("Código não encontrado", paginaDoDesconhecido);
+        Assert.DoesNotContain(">Entrar</a>", paginaDoDesconhecido, StringComparison.Ordinal);
+
+        // Texto que nem vira código não aparece na página com cara de código.
+        var lixo = await (await anonimo.GetAsync("/q/%3Cscript%3E", ct)).Content.ReadAsStringAsync(ct);
+        Assert.DoesNotContain("SCRIPT", lixo, StringComparison.Ordinal);
+        Assert.DoesNotContain("id=\"copiar\"", lixo, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -126,8 +133,10 @@ public sealed class FluxoDaVendaTest(ApiDeTeste api)
 
         var resposta = await anonimo.GetAsync($"/q/{codigo}", TestContext.Current.CancellationToken);
 
+        var pagina = await resposta.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.OK, resposta.StatusCode);
-        Assert.Contains("fora do ar", await resposta.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+        Assert.Contains("fora do ar", pagina);
+        Assert.Contains($"href=\"https://painel.exemplo.com.br/placa/{codigo}\">Entrar</a>", pagina, StringComparison.Ordinal);
     }
 
     [Fact]
