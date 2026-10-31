@@ -2309,6 +2309,29 @@
         }
       }
     },
+    "/operadora/pedidos/{id}/cancelamento": {
+      "post": {
+        "tags": [
+          "Operadora"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/operadora/pedidos/{id}/pagamento": {
       "post": {
         "tags": [

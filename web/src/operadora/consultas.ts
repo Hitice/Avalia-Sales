@@ -19,12 +19,20 @@ export const useLotesLivres = (quantidade: number) =>
   useQuery({ queryKey: [...chaves.lotes, 'livres', quantidade], queryFn: () => chamarApi<Pagina<Lote>>(`/operadora/lotes?livres=true&quantidade=${quantidade}&tamanho=100`) })
 export const usePacotesDaOperadora = () => useQuery({ queryKey: chaves.pacotes, queryFn: () => chamarApi<Pacote[]>('/operadora/pacotes') })
 export const useRevendedores = () => useListaPaginada<Revendedor>(chaves.revendedores, '/operadora/revendedores')
-/** As revendas que podem receber pedido avulso: ativas e com contrato assinado. */
+/** As revendas que podem receber pedido avulso: ativas, sem encerramento e com contrato assinado. Lê todas as páginas. */
 export const useRevendasDoPedidoAvulso = () =>
   useQuery({
     queryKey: [...chaves.revendedores, 'pedido-avulso'],
-    queryFn: () => chamarApi<Pagina<Revendedor>>('/operadora/revendedores?tamanho=100'),
-    select: (pagina) => pagina.itens.filter((r) => r.contratoAssinadoEm && !r.encerradaEm && !r.suspensaEm),
+    queryFn: async () => {
+      const todas: Revendedor[] = []
+      for (let pagina: number | null = 1; pagina !== null;) {
+        const resposta: Pagina<Revendedor> = await chamarApi<Pagina<Revendedor>>(`/operadora/revendedores?tamanho=100&pagina=${pagina}`)
+        todas.push(...resposta.itens)
+        pagina = resposta.proxima ?? null
+      }
+      return todas
+    },
+    select: (revendas) => revendas.filter((r) => r.contratoAssinadoEm && !r.encerradaEm && !r.encerramentoPedidoEm && !r.suspensaEm),
   })
 
 /** Toda gravação da operadora refaz as listas dela: pedido, lote e revendedor andam juntos. */
@@ -35,6 +43,7 @@ function useGravar<T>(fazer: (dados: T) => Promise<unknown>) {
 
 export const useAbrirPedidoAvulso = () =>
   useGravar((dados: { revendedorId: string; quantidade: number; valorCents: number }) => chamarApi<Pedido>('/operadora/pedidos', enviarJson('POST', dados)))
+export const useCancelarPedidoDaOperadora = () => useGravar((id: string) => chamarApi(`/operadora/pedidos/${id}/cancelamento`, enviarJson('POST', {})))
 export const useRegistrarPagamento = () => useGravar((id: string) => chamarApi(`/operadora/pedidos/${id}/pagamento`, enviarJson('POST', {})))
 export const useIniciarProducao = () => useGravar((id: string) => chamarApi(`/operadora/pedidos/${id}/producao`, enviarJson('POST', {})))
 export type DadosDoLote = { titulo: string | null; categoria: CategoriaDoLote }

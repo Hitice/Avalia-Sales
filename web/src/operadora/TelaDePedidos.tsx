@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { formatarCentavos, paraCentavos } from '@/dinheiro/dinheiro'
-import { useAbrirPedidoAvulso, useIniciarProducao, useLotesLivres, usePedidosDaOperadora, useRegistrarPagamento, useRevendasDoPedidoAvulso } from './consultas'
+import { useAbrirPedidoAvulso, useCancelarPedidoDaOperadora, useIniciarProducao, useLotesLivres, usePedidosDaOperadora, useRegistrarPagamento, useRevendasDoPedidoAvulso } from './consultas'
 import { useDespacharComEnvio, useEstornarPedido, useFornecedoresDeLogistica } from './consultasDeEntregaEAcerto'
 
 /** A fila da operadora: pedido pago ganha um lote livre da mesma quantidade. */
@@ -25,6 +25,7 @@ export function TelaDePedidos() {
   const despachar = useDespacharComEnvio()
   const estornar = useEstornarPedido()
   const producao = useIniciarProducao()
+  const cancelar = useCancelarPedidoDaOperadora()
   const [despachando, setDespachando] = useState<Pedido | null>(null)
   const [estornando, setEstornando] = useState<Pedido | null>(null)
   const [abrindo, setAbrindo] = useState(false)
@@ -34,7 +35,7 @@ export function TelaDePedidos() {
       <Cabecalho titulo="Pedidos">
         <Button onClick={() => setAbrindo(true)}><Plus aria-hidden />Novo pedido</Button>
       </Cabecalho>
-      <Erro erro={pagar.error ?? producao.error} />
+      <Erro erro={pagar.error ?? producao.error ?? cancelar.error} />
       <Card className="mt-3">
         <CardContent>
           <ListaPaginada lista={pedidos} textoVazio="Nenhum pedido ainda." nomeDaBusca="Buscar nos pedidos" placeholder="Revendedor, cupom ou lote">
@@ -78,6 +79,7 @@ export function TelaDePedidos() {
                               }
                               outras={[
                                 pedido.situacao === 'Pago' && { rotulo: 'Iniciar produção', desabilitada: producao.isPending, aoClicar: () => producao.mutate(pedido.id) },
+                                pedido.situacao === 'AguardandoPagamento' && { rotulo: 'Cancelar pedido', destrutiva: true, desabilitada: cancelar.isPending, aoClicar: () => cancelar.mutate(pedido.id) },
                                 aDespachar && { rotulo: 'Estornar pedido', destrutiva: true, aoClicar: () => { estornar.reset(); setEstornando(pedido) } },
                               ]}
                             />
@@ -112,7 +114,7 @@ function PedidoAvulso({ aoFechar }: { aoFechar: () => void }) {
   const abrir = useAbrirPedidoAvulso()
   const [revendedorId, setRevendedorId] = useState('')
   const [quantidade, setQuantidade] = useState('1')
-  const [valor, setValor] = useState('0,00')
+  const [valor, setValor] = useState('')
   const placas = Number(quantidade)
   const cents = paraCentavos(valor)
   const valido = revendedorId !== '' && Number.isInteger(placas) && placas >= 1 && placas <= 1000 && cents !== null
@@ -121,7 +123,7 @@ function PedidoAvulso({ aoFechar }: { aoFechar: () => void }) {
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Novo pedido</DialogTitle>
-          <DialogDescription>Fora dos pacotes. Valor zero já nasce pago.</DialogDescription>
+          <DialogDescription>Valor zero já nasce pago.</DialogDescription>
         </DialogHeader>
         <form
           className="grid gap-4"
@@ -147,7 +149,7 @@ function PedidoAvulso({ aoFechar }: { aoFechar: () => void }) {
           </Field>
           <Field>
             <FieldLabel htmlFor="valor-do-pedido">Valor</FieldLabel>
-            <Input id="valor-do-pedido" inputMode="decimal" autoComplete="off" value={valor} aria-invalid={cents === null} onChange={(e) => setValor(e.target.value)} />
+            <Input id="valor-do-pedido" inputMode="decimal" autoComplete="off" value={valor} aria-invalid={valor !== '' && cents === null} onChange={(e) => setValor(e.target.value)} />
           </Field>
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={aoFechar}>Cancelar</Button>

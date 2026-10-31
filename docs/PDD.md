@@ -221,7 +221,8 @@ maiúscula ("otica" acha "Ótica").
   cobrança só. O valor de cada linha pode ser ajustado. A placa sai uma por
   código. A placa com dois QR (avaliação e Instagram, por exemplo) tem dois
   códigos: são duas linhas na mesma venda, cada uma com o seu destino, e o
-  preço combinado dividido entre elas.
+  preço combinado dividido entre elas, sem nenhuma linha abaixo da tabela.
+  Cada código renova à parte.
 - Pedido mínimo - o serviço vende por quantidade, nunca abaixo do pedido
   mínimo do catálogo (kit mesa e placa de cardápio a partir de 10). A ordem de
   serviço leva a quantidade.
@@ -337,11 +338,13 @@ confirmar, em Comissões, que ele chegou. Só o
   devolve o mesmo enquanto ele valer. Cancelar o pedido com link em aberto
   cancela o link no Pagar.me junto: ele deixa de abrir o checkout.
 - A operadora também pode registrar um pagamento recebido por fora.
-- Pedido avulso - a operadora abre, para uma revenda ativa e com contrato, um
-  pedido fora dos pacotes, de 1 a 1.000 placas e com o valor combinado: a placa
-  avulsa com dois códigos, a reposição. Com valor, a revenda paga em Pedidos
-  como no pacote; com valor zero, nasce pago. Despacho e ativação são iguais, e
-  a placa leva o custo do pedido dividido pela quantidade.
+- Pedido avulso - a operadora abre, para uma revenda ativa, sem encerramento e
+  com contrato, um pedido fora dos pacotes, de 1 a 1.000 placas (a quantidade é
+  de códigos: a placa com dois QR conta 2) e com o valor combinado, que divide
+  pela quantidade sem resto. Com valor, a revenda paga em Pedidos como no
+  pacote; com valor zero, nasce pago. A operadora cancela o pedido antes do
+  pagamento, e a revenda é avisada. Despacho e ativação são iguais, e a placa
+  leva o custo do pedido dividido pela quantidade.
 - Pagamento confirmado - o dono recebe um e-mail a cada pagamento que entra,
   do pedido de placas e da venda, com o cliente, os itens e o valor.
 - Estorno do pedido - a operadora desfaz o pedido pago e ainda não despachado:
@@ -909,6 +912,7 @@ As mudanças de 21 a 24/10/2026 estão em [historico/pdd-ate-24-10.md](historico
 
 | Data | Mudança |
 | --- | --- |
+| 31/10/2026 | Pedido avulso - recusa revenda suspensa ou em encerramento e valor que não divide pela quantidade; a operadora cancela o pedido antes do pagamento, e a revenda é avisada. Avisos com "1 placa" no singular e limites escritos como "1.000". |
 | 30/10/2026 | Pedido avulso - a operadora abre em Pedidos um pedido fora dos pacotes, para uma revenda, com quantidade de 1 a 1.000 e valor livre (zero nasce pago), com o segundo fator; despacho e ativação iguais. A placa com dois QR vende em duas linhas da mesma venda. |
 | 30/10/2026 | Página do QR só no tema claro, com Copiar no código e o botão Entrar (Nova venda na placa não ativada, ficha na vencida, suspensa e com endereço bloqueado). Placa de lote despachado e não ativado diz na Nova venda qual lote o dono ativa. |
 | 27/10/2026 | Destino marcado como perigoso pelo Google não entra em placa nem em link. A chave do app autenticador e os códigos de recuperação ficam cifrados no banco. |

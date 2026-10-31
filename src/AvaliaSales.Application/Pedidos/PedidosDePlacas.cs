@@ -115,15 +115,15 @@ public sealed class PedidosDePlacas(
         }
 
         banco.AvisarAoVivo("pedido", revendedor.Id, operadora: true);
-        notificacoes.ParaOperadora(revendedor.Id, "Pedido novo", $"{revendedor.Nome} pediu {pedido.Quantidade} placas.", "/operadora/pedidos");
+        notificacoes.ParaOperadora(revendedor.Id, "Pedido novo", $"{revendedor.Nome} pediu {pedido.QuantidadeEscrita}.", "/operadora/pedidos");
 
         var site = plataforma.Value;
         avisos.Enfileirar($"pedido:{pedido.Id:N}:operadora", site.EmailDaOperadora,
-            $"Pedido de {pedido.Quantidade} placas - {revendedor.Nome}",
+            $"Pedido de {pedido.QuantidadeEscrita} - {revendedor.Nome}",
             $"""
-            {revendedor.Nome} pediu {pedido.Quantidade} placas, {Reais(pedido.ValorCents)}.
+            {revendedor.Nome} pediu {pedido.QuantidadeEscrita}, {Reais(pedido.ValorCents)}.
 
-            Registre o pagamento e despache um lote de {pedido.Quantidade} placas.
+            Registre o pagamento e despache um lote de {pedido.QuantidadeEscrita}.
 
             Abrir pedidos: {site.UrlDoPainel.TrimEnd('/')}/operadora/pedidos
             """, destaques: [$"{site.UrlDoPainel.TrimEnd('/')}/operadora/pedidos"]);
@@ -152,7 +152,7 @@ public sealed class PedidosDePlacas(
             return aberto;
         }
 
-        var cobranca = await cobrancas.CriarLink(Domain.Pagamentos.OrigemDaCobranca.PedidoDePlacas, id, pedido.ValorCents, $"Pedido de {pedido.Quantidade} placas", ct);
+        var cobranca = await cobrancas.CriarLink(Domain.Pagamentos.OrigemDaCobranca.PedidoDePlacas, id, pedido.ValorCents, $"Pedido de {pedido.QuantidadeEscrita}", ct);
         return cobranca.UrlDoLink!;
     }
 
@@ -174,6 +174,12 @@ public sealed class PedidosDePlacas(
         if (pedido.Cupom is { } codigo && await banco.Cupons.SingleOrDefaultAsync(c => c.Codigo == codigo, ct) is { } cupom)
         {
             cupom.Devolver();
+        }
+
+        if (atual.Operadora)
+        {
+            banco.AvisarAoVivo("pedido", pedido.RevendedorId, operadora: true);
+            notificacoes.ParaDono(pedido.RevendedorId, "Pedido cancelado", $"A Avalia cancelou o pedido de {pedido.QuantidadeEscrita}.", "/painel/pedidos");
         }
 
         await banco.SaveChangesAsync(ct);
@@ -206,12 +212,12 @@ public sealed class PedidosDePlacas(
         banco.AvisarAoVivo("pedido", pedido.RevendedorId, operadora: true);
         var revendedor = await banco.Revendedores.AsNoTracking().Where(r => r.Id == pedido.RevendedorId).Select(r => r.Nome).SingleAsync(ct);
         var porque = string.IsNullOrWhiteSpace(motivo) ? string.Empty : $" Motivo: {motivo.Trim()}.";
-        notificacoes.ParaDono(pedido.RevendedorId, "Pedido estornado", $"O pedido de {pedido.Quantidade} placas foi estornado.{porque} A Avalia devolve o pagamento.", "/painel/pedidos");
+        notificacoes.ParaDono(pedido.RevendedorId, "Pedido estornado", $"O pedido de {pedido.QuantidadeEscrita} foi estornado.{porque} A Avalia devolve o pagamento.", "/painel/pedidos");
         foreach (var dono in await contas.EmailsDosDonos(pedido.RevendedorId, ct))
         {
-            avisos.Enfileirar($"pedido:{pedido.Id:N}:estornado:{dono}", dono, $"Pedido de {pedido.Quantidade} placas estornado",
+            avisos.Enfileirar($"pedido:{pedido.Id:N}:estornado:{dono}", dono, $"Pedido de {pedido.QuantidadeEscrita} estornado",
                 $"""
-                O pedido de {pedido.Quantidade} placas, {Reais(valor)}, foi estornado pela Avalia.{porque}
+                O pedido de {pedido.QuantidadeEscrita}, {Reais(valor)}, foi estornado pela Avalia.{porque}
 
                 A devolução do pagamento é feita pela Avalia pelo mesmo meio em que você pagou.
                 """);
@@ -227,9 +233,9 @@ public sealed class PedidosDePlacas(
             _ => "Estorne no painel do Pagar.me ou devolva por fora, conforme foi pago.",
         };
         var site = plataforma.Value;
-        avisos.Enfileirar($"pedido:{pedido.Id:N}:estornado:operadora", site.EmailDaOperadora, $"Devolver pagamento - pedido de {pedido.Quantidade} placas - {revendedor}",
+        avisos.Enfileirar($"pedido:{pedido.Id:N}:estornado:operadora", site.EmailDaOperadora, $"Devolver pagamento - pedido de {pedido.QuantidadeEscrita} - {revendedor}",
             $"""
-            O pedido de {pedido.Quantidade} placas de {revendedor} foi estornado. Devolva {Reais(valor)}.{porque}
+            O pedido de {pedido.QuantidadeEscrita} de {revendedor} foi estornado. Devolva {Reais(valor)}.{porque}
 
             {comoDevolver}
             Se o pedido já foi ao Protheus, cancele o pedido de venda lá.
@@ -249,7 +255,7 @@ public sealed class PedidosDePlacas(
         foreach (var pedido in pedidos)
         {
             var numero = pedido.LoteId is { } loteId ? await banco.Lotes.AsNoTracking().Where(l => l.Id == loteId).Select(l => (int?)l.Numero).SingleOrDefaultAsync(ct) : null;
-            var qual = numero is { } n ? $"o lote {Lote.Rotular(n)}" : $"o lote de {pedido.Quantidade} placas";
+            var qual = numero is { } n ? $"o lote {Lote.Rotular(n)}" : $"o lote de {pedido.QuantidadeEscrita}";
             if (pedido.PrecisaLembrarDaAtivacao(agora))
             {
                 pedido.LembrouDaAtivacao();
@@ -283,10 +289,16 @@ public sealed class PedidosDePlacas(
         await sensiveis.Exigir("Abrir pedido avulso", ct);
         var revendedor = await banco.Revendedores.SingleOrDefaultAsync(r => r.Id == revendedorId, ct)
             ?? throw new RegraDeNegocioException("Revenda não encontrada.");
-        revendedor.ExigirAtiva();
-        if (revendedor.ContratoAssinadoEm is null)
+        var recusa = revendedor switch
         {
-            throw new RegraDeNegocioException("Contrato de revenda não assinado.");
+            { EncerradaEm: not null } or { EncerramentoPedidoEm: not null } => "Revenda encerrada ou em encerramento.",
+            { SuspensaEm: not null } => "Revenda suspensa. Reative antes de abrir o pedido.",
+            { ContratoAssinadoEm: null } => "Contrato de revenda não assinado.",
+            _ => null,
+        };
+        if (recusa is not null)
+        {
+            throw new RegraDeNegocioException(recusa);
         }
 
         var agora = relogio.GetUtcNow();
@@ -300,8 +312,8 @@ public sealed class PedidosDePlacas(
 
         banco.AvisarAoVivo("pedido", revendedor.Id, operadora: true);
         notificacoes.ParaDono(revendedor.Id, "Pedido novo", pedido.Gratuito
-            ? $"A Avalia abriu um pedido de {pedido.Quantidade} placas, sem custo."
-            : $"A Avalia abriu um pedido de {pedido.Quantidade} placas, {Reais(pedido.ValorCents)}. Pague em Pedidos.", "/painel/pedidos");
+            ? $"A Avalia abriu um pedido de {pedido.QuantidadeEscrita}, sem custo."
+            : $"A Avalia abriu um pedido de {pedido.QuantidadeEscrita}, {Reais(pedido.ValorCents)}. Pague em Pedidos.", "/painel/pedidos");
         await banco.SaveChangesAsync(ct);
         return (await Dtos([pedido], ct))[0];
     }
@@ -345,12 +357,12 @@ public sealed class PedidosDePlacas(
         pedido.Despachar(lote.Id, agora, retirada, transportadora, codigoDeRastreio);
         banco.AvisarAoVivo("pedido", pedido.RevendedorId, operadora: true);
         var (titulo, texto, assunto, corpo) = retirada
-            ? ("Placas prontas para retirada", $"O lote {lote.Rotulo} com {pedido.Quantidade} placas está pronto para retirada na Avalia. Ative pelo número da caixa.",
+            ? ("Placas prontas para retirada", $"O lote {lote.Rotulo} com {pedido.QuantidadeEscrita} está pronto para retirada na Avalia. Ative pelo número da caixa.",
                 $"Suas {pedido.Quantidade} placas estão prontas para retirada - lote {lote.Rotulo}",
-                $"O lote {lote.Rotulo} com {pedido.Quantidade} placas está pronto para retirada na Avalia.\n\nAo retirar a caixa, ative o lote pelo número impresso nela.")
-            : ("Placas enviadas", $"O lote {lote.Rotulo} com {pedido.Quantidade} placas saiu{Entrega(pedido)}. Ative pelo número da caixa.",
+                $"O lote {lote.Rotulo} com {pedido.QuantidadeEscrita} está pronto para retirada na Avalia.\n\nAo retirar a caixa, ative o lote pelo número impresso nela.")
+            : ("Placas enviadas", $"O lote {lote.Rotulo} com {pedido.QuantidadeEscrita} saiu{Entrega(pedido)}. Ative pelo número da caixa.",
                 $"Suas {pedido.Quantidade} placas saíram - lote {lote.Rotulo}",
-                $"O lote {lote.Rotulo} com {pedido.Quantidade} placas foi despachado{Entrega(pedido)}.\n\nQuando a caixa chegar, ative o lote pelo número impresso nela.");
+                $"O lote {lote.Rotulo} com {pedido.QuantidadeEscrita} foi despachado{Entrega(pedido)}.\n\nQuando a caixa chegar, ative o lote pelo número impresso nela.");
         notificacoes.ParaDono(pedido.RevendedorId, titulo, texto, "/painel/estoque");
         foreach (var dono in await contas.EmailsDosDonos(pedido.RevendedorId, ct))
         {

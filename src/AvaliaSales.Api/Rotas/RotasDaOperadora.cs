@@ -128,6 +128,12 @@ public static class RotasDaOperadora
         operadora.MapGet("/pedidos", (string? busca, [AsParameters] PedidoDePagina pagina, PedidosDePlacas pedidos, CancellationToken ct) => pedidos.Listar(busca, pagina, ct));
         operadora.MapPost("/pedidos", async (AbrirPedidoAvulso pedido, PedidosDePlacas pedidos, CancellationToken ct) =>
             Results.Created("/operadora/pedidos", await pedidos.CriarAvulso(pedido.RevendedorId, pedido.Quantidade, pedido.ValorCents, ct)));
+        // O pedido avulso aberto errado (revenda ou valor) sai daqui, antes do pagamento, com o link do Pagar.me junto.
+        operadora.MapPost("/pedidos/{id:guid}/cancelamento", async (Guid id, PedidosDePlacas pedidos, CancellationToken ct) =>
+        {
+            await pedidos.Cancelar(id, ct);
+            return Results.NoContent();
+        });
         operadora.MapPost("/pedidos/{id:guid}/pagamento", async (Guid id, PedidosDePlacas pedidos, CancellationToken ct) =>
         {
             await pedidos.RegistrarPagamento(id, ct);

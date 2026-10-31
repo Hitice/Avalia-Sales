@@ -95,12 +95,18 @@ public sealed class PedidoDePlacas : IAtendidoPelaOperadora
     {
         if (quantidade is < 1 or > Placas.Lote.QuantidadeMaxima)
         {
-            throw new RegraDeNegocioException($"Pedido de 1 a {Placas.Lote.QuantidadeMaxima} placas.");
+            throw new RegraDeNegocioException("Pedido de 1 a 1.000 placas.");
         }
 
         if (valorCents < 0)
         {
             throw new RegraDeNegocioException("Valor negativo. Use zero para o pedido sem custo.");
+        }
+
+        // O custo da placa é o valor dividido pela quantidade: o resto sumiria do custo e do pedido no ERP.
+        if (valorCents % quantidade != 0)
+        {
+            throw new RegraDeNegocioException($"Valor não divide pelas {quantidade} placas. Ajuste os centavos.");
         }
 
         return new PedidoDePlacas
@@ -112,6 +118,9 @@ public sealed class PedidoDePlacas : IAtendidoPelaOperadora
             CriadoEm = agora,
         };
     }
+
+    /// <summary>"1 placa" ou "20 placas", para os avisos.</summary>
+    public string QuantidadeEscrita => Quantidade == 1 ? "1 placa" : $"{Quantidade} placas";
 
     /// <summary>O custo que a placa carrega é o que o revendedor pagou de fato, com o desconto.</summary>
     public long CustoPorPlacaCents => ValorCents / Quantidade;

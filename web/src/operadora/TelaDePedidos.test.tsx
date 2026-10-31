@@ -54,6 +54,8 @@ describe('TelaDePedidos', () => {
     expect(screen.queryByRole('option', { name: 'Loja Sem Contrato' })).toBeNull()
     fireEvent.click(await screen.findByRole('option', { name: 'Avalia Vendas' }))
     fireEvent.change(screen.getByLabelText('Placas'), { target: { value: '2' } })
+    expect(screen.getByRole('button', { name: 'Abrir pedido' })).toBeDisabled()
+    fireEvent.change(screen.getByLabelText('Valor'), { target: { value: '0' } })
     fireEvent.click(screen.getByRole('button', { name: 'Abrir pedido' }))
 
     await waitFor(() => expect(chamadas.find((c) => c.metodo === 'POST')).toBeDefined())

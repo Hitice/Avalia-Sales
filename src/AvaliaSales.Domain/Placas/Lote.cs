@@ -56,7 +56,7 @@ public sealed class Lote
     {
         if (quantidade is < 1 or > QuantidadeMaxima)
         {
-            throw new RegraDeNegocioException($"Lote de 1 a {QuantidadeMaxima} placas.");
+            throw new RegraDeNegocioException("Lote de 1 a 1.000 placas.");
         }
 
         Numero = numero;

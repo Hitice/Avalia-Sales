@@ -22,7 +22,7 @@ public sealed class Pacote
     {
         Quantidade = quantidade is >= 1 and <= Placas.Lote.QuantidadeMaxima
             ? quantidade
-            : throw new RegraDeNegocioException($"Pacote de 1 a {Placas.Lote.QuantidadeMaxima} placas.");
+            : throw new RegraDeNegocioException("Pacote de 1 a 1.000 placas.");
         PrecoCents = precoCents > 0 ? precoCents : throw new RegraDeNegocioException("Preço do pacote precisa ser maior que zero.");
     }
 

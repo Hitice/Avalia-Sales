@@ -47,7 +47,7 @@ public sealed class LivroDaOperadora(IBancoDeDados banco)
         }
 
         banco.LancamentosDaOperadora.Add(new LancamentoDaOperadora(TipoDeLancamentoDaOperadora.PedidoDePlacas, pedido.Id, pedido.ValorCents,
-            $"Pedido de {pedido.Quantidade} placas, lote {rotuloDoLote}", agora, revendedorOrigemId: pedido.RevendedorId));
+            $"Pedido de {pedido.QuantidadeEscrita}, lote {rotuloDoLote}", agora, revendedorOrigemId: pedido.RevendedorId));
     }
 
     /// <summary>

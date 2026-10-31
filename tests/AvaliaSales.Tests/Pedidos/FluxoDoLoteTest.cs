@@ -84,6 +84,34 @@ public sealed class FluxoDoLoteTest(ApiDeTeste api)
         await operadora.Postar("/operadora/pedidos", new { revendedorId, quantidade = 1, valorCents = -1 }, HttpStatusCode.UnprocessableEntity);
         await operadora.Postar("/operadora/pedidos", new { revendedorId = Guid.NewGuid(), quantidade = 1, valorCents = 0 }, HttpStatusCode.UnprocessableEntity);
         await dono.Postar("/operadora/pedidos", new { revendedorId, quantidade = 1, valorCents = 0 }, HttpStatusCode.Forbidden);
+
+        // O custo da placa é o valor dividido pela quantidade, sem resto.
+        var resto = await operadora.Postar("/operadora/pedidos", new { revendedorId, quantidade = 3, valorCents = 19_990L }, HttpStatusCode.UnprocessableEntity);
+        Assert.Equal("Valor não divide pelas 3 placas. Ajuste os centavos.", resto.GetProperty("detail").GetString());
+
+        // Aberto errado, a operadora cancela antes do pagamento, e o dono é avisado.
+        var errado = (await operadora.Postar("/operadora/pedidos", new { revendedorId, quantidade = 2, valorCents = 1_000L }, HttpStatusCode.Created)).GetProperty("id").GetGuid();
+        await operadora.Postar($"/operadora/pedidos/{errado}/cancelamento", new { }, HttpStatusCode.NoContent);
+        await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
+        Assert.Equal("Cancelado", await banco.Texto($"select situacao from pedidos_placas where id = '{errado}'"));
+        Assert.Equal(1, await banco.Contar($"select count(*) from notificacoes where revendedor_id = '{revendedorId}' and texto = 'A Avalia cancelou o pedido de 2 placas.'"));
+    }
+
+    [Fact]
+    public async Task Pedido_avulso_recusa_revenda_suspensa_ou_em_encerramento()
+    {
+        var operadora = await api.ClienteLogado(await api.CriarOperadora());
+        var (suspensa, _) = await api.CriarRevendedor("Revenda Suspensa do Avulso");
+        await operadora.Postar($"/operadora/revendedores/{suspensa}/suspensao", new { motivo = "Inadimplência" }, HttpStatusCode.NoContent);
+        var (encerrando, _) = await api.CriarRevendedor("Revenda Encerrando do Avulso");
+        await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
+        await banco.Contar($"with r as (update revendedores set encerramento_pedido_em = now() where id = '{encerrando}' returning 1) select count(*) from r");
+
+        var deSuspensa = await operadora.Postar("/operadora/pedidos", new { revendedorId = suspensa, quantidade = 2, valorCents = 0 }, HttpStatusCode.UnprocessableEntity);
+        var deEncerrando = await operadora.Postar("/operadora/pedidos", new { revendedorId = encerrando, quantidade = 2, valorCents = 0 }, HttpStatusCode.UnprocessableEntity);
+
+        Assert.Equal("Revenda suspensa. Reative antes de abrir o pedido.", deSuspensa.GetProperty("detail").GetString());
+        Assert.Equal("Revenda encerrada ou em encerramento.", deEncerrando.GetProperty("detail").GetString());
     }
 
     /// <summary>Placa sem custo para a revenda é dinheiro da Avalia: sem o segundo fator, a operadora não abre o pedido.</summary>
