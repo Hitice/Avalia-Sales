@@ -270,6 +270,12 @@ public sealed class Estoque(IBancoDeDados banco, IUsuarioAtual usuario, IRevende
             throw new RegraDeNegocioException("Placa de lote arquivado. Desarquive o lote.");
         }
 
+        // A arte é do cliente: o código da placa personalizada cancelada não volta a ser vendido (ADR 0032).
+        if (await banco.OrdensDeServico.AnyAsync(o => o.LoteId == placa.LoteId, ct))
+        {
+            throw new RegraDeNegocioException("Placa personalizada não volta ao estoque.");
+        }
+
         placa.DesfazerBaixa();
         await custoDasPlacas.BaixaDesfeita(placa, relogio.GetUtcNow(), ct);
         await banco.SaveChangesAsync(ct);

@@ -1,6 +1,6 @@
 import { Minus, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { usaPlaca } from '@/catalogo/produtos'
+import { personalizada, usaPlaca } from '@/catalogo/produtos'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { formatarCentavos, paraCentavos } from '@/dinheiro/dinheiro'
@@ -40,14 +40,17 @@ function Linha({ linha, aoRemover, aoMudarQuantidade, aoMudarValor }: {
   aoMudarQuantidade: (quantidade: number) => void
   aoMudarValor: (valorCents: number | null) => void
 }) {
-  const placa = usaPlaca(linha.item)
+  // A personalizada também é uma por linha, com os destinos dela.
+  const placa = usaPlaca(linha.item) || personalizada(linha.item)
   const minimo = quantidadeMinima(linha.item)
   const nome = linha.codigo ? `${linha.item.nome} ${linha.codigo}` : linha.item.nome
   const [ajustando, setAjustando] = useState(false)
   const [valor, setValor] = useState('')
   const centavos = valor.trim() ? paraCentavos(valor) : null
   const valorInvalido = valor.trim() !== '' && centavos === null
-  const destino = linha.lugar?.nome ?? linha.destino?.link ?? null
+  const destino = linha.destinos
+    ? linha.destinos.map((d, i) => `QR ${i + 1}: ${d.link ?? 'avaliação no Google'}`).join(' · ')
+    : linha.lugar?.nome ?? linha.destino?.link ?? null
 
   return (
     <li className="grid gap-2 py-3 first:pt-0 last:pb-0">

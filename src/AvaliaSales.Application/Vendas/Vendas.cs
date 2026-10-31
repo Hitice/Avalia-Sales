@@ -29,8 +29,12 @@ public sealed record NovaVenda(
     bool TesteGratuito = false,
     int Quantidade = 1);
 
-/// <summary>Uma linha da venda feita junto com outras: placa pelo código, com o destino, ou serviço pela quantidade.</summary>
-public sealed record ItemDaVenda(Guid ProdutoId, string? Codigo = null, DestinoInformado? Destino = null, long? ValorCents = null, int Quantidade = 1);
+/// <summary>
+/// Uma linha da venda feita junto com outras: placa pelo código, com o destino, ou serviço pela quantidade. A placa
+/// personalizada leva um destino por QR em <paramref name="Destinos"/>, sem código: ela é feita depois (ADR 0032).
+/// </summary>
+public sealed record ItemDaVenda(Guid ProdutoId, string? Codigo = null, DestinoInformado? Destino = null, long? ValorCents = null, int Quantidade = 1,
+    IReadOnlyList<DestinoInformado>? Destinos = null);
 
 /// <summary>Várias linhas para o mesmo cliente, numa cobrança só.</summary>
 public sealed record NovaVendaComItens(
@@ -192,6 +196,7 @@ public sealed class Vendas(
 
         // Produto, quantidade e destino conferidos antes de travar placa: o erro de digitação não segura o estoque.
         var linhas = new List<(ItemDaVenda Item, Domain.Catalogo.Produto Produto, Domain.Catalogo.ProdutoDaPlataforma? DoCatalogo, string? Destino)>();
+        var daPersonalizada = new Dictionary<int, IReadOnlyList<string>>();
         foreach (var item in pedido.Itens)
         {
             var (produto, doCatalogo) = await ProdutoDaVenda(item.ProdutoId, ct);
@@ -200,6 +205,21 @@ public sealed class Vendas(
                 if (pedido.TesteGratuito)
                 {
                     throw new RegraDeNegocioException("Teste gratuito só para placa.");
+                }
+
+                if (doCatalogo.Personalizada)
+                {
+                    if (item.Quantidade != 1)
+                    {
+                        throw new RegraDeNegocioException($"{doCatalogo.Nome}: uma por linha.");
+                    }
+
+                    if (item.Destinos is not { } informados || informados.Count != doCatalogo.CodigosNaPlaca || informados.Any(d => d is null))
+                    {
+                        throw new RegraDeNegocioException($"{doCatalogo.Nome}: informe os {doCatalogo.CodigosNaPlaca} destinos da placa.");
+                    }
+
+                    daPersonalizada[linhas.Count] = informados.Select(d => d.Resolver(plataforma.Value.HostPublico)).ToList();
                 }
 
                 if (item.Quantidade < doCatalogo.QuantidadeMinima)
@@ -220,13 +240,14 @@ public sealed class Vendas(
             linhas.Add((item, produto, doCatalogo, destino));
         }
 
-        await destinosBloqueados.ExigirPermitidos(linhas.Select(l => l.Destino).OfType<string>().ToList(), ct);
+        var destinosNovos = linhas.Select(l => l.Destino).OfType<string>().Concat(daPersonalizada.Values.SelectMany(d => d)).ToList();
+        await destinosBloqueados.ExigirPermitidos(destinosNovos, ct);
 
         await using var transacao = await banco.Database.BeginTransactionAsync(ct);
         // Cada placa vendida cadastra um destino novo: o limite do dia conta antes de travar qualquer placa, sob a trava dos
         // destinos da revenda. A mesma trava põe em fila o "um teste por cliente" abaixo, porque o teste sempre tem destino.
-        await limiteDeDestinos.Exigir(linhas.Count(l => l.Destino is not null), ct);
-        var lugar = pedido.Itens.Select(i => i.Destino?.LugarNoGoogle).FirstOrDefault(l => l is not null);
+        await limiteDeDestinos.Exigir(destinosNovos.Count, ct);
+        var lugar = pedido.Itens.SelectMany(i => (i.Destinos ?? []).Prepend(i.Destino)).Select(d => d?.LugarNoGoogle).FirstOrDefault(l => l is not null);
         var cliente = await EncontrarCliente(pedido.Empresa, pedido.Responsavel, pedido.Telefone, pedido.Documento, pedido.Email, lugar, agora, ct);
         if (pedido.TesteGratuito && await banco.Vendas.AnyAsync(v => v.ClienteId == cliente.Id && v.TesteAte != null, ct))
         {
@@ -234,7 +255,7 @@ public sealed class Vendas(
         }
 
         var feitas = new List<(Venda Venda, Placa? Placa, string? LinkCurto, string Descricao)>();
-        foreach (var (item, produto, doCatalogo, destino) in linhas)
+        foreach (var (posicaoDaLinha, (item, produto, doCatalogo, destino)) in linhas.Index())
         {
             var (vendedorId, comissaoBps) = await QuemVende(produto.ComissaoBps, ct);
             if (destino is null)
@@ -243,6 +264,11 @@ public sealed class Vendas(
                 var servico = new Venda(null, cliente.Id, produto.Id, checked(produto.PrecoCents * quantidade), vendedorId, item.ValorCents, 0, comissaoBps, pedido.Meio,
                     agora, checked(doCatalogo!.ParteDaAvaliaCents * quantidade), quantidade);
                 banco.Vendas.Add(servico);
+                foreach (var (posicao, destinoDaPlaca) in daPersonalizada.GetValueOrDefault(posicaoDaLinha, []).Index())
+                {
+                    banco.DestinosDaVenda.Add(new DestinoDaVenda(servico.Id, posicao + 1, destinoDaPlaca));
+                }
+
                 feitas.Add((servico, null, null, quantidade > 1 ? $"{quantidade}x {produto.Nome}" : produto.Nome));
                 continue;
             }
@@ -531,6 +557,12 @@ public sealed class Vendas(
             await ExigirSemRenovacaoAberta(daVenda, ct);
         }
 
+        var personalizada = await banco.DestinosDaVenda.AnyAsync(d => d.VendaId == venda.Id, ct);
+        if (personalizada && venda.PlacaId is not null && placaVolta == PlacaDaVendaCancelada.VoltaAoEstoque)
+        {
+            throw new RegraDeNegocioException("Placa personalizada não volta ao estoque. Escolha com defeito ou não voltou.");
+        }
+
         // A venda se cancela antes da cobrança: o motivo inválido recusa antes de o dinheiro voltar, e o estorno já a vê cancelada.
         var agora = relogio.GetUtcNow();
         venda.Cancelar(motivo, observacao, agora);
@@ -562,11 +594,16 @@ public sealed class Vendas(
         {
             var placa = await banco.Placas.SingleAsync(p => p.Id == placaId, ct);
             auditoria.Registrar(AcaoAuditada.VendaCancelada, $"Venda da placa {placa.Codigo} ({motivo})", placa.Codigo, placa.Destino, null);
-            placa.DesfazerVenda();
-            if (placaVolta != PlacaDaVendaCancelada.VoltaAoEstoque)
+            // Os códigos adicionais da placa personalizada saem do ar com o principal.
+            var adicionais = await banco.Placas.Where(p => p.PlacaPrincipalId == placaId && p.VendaId == venda.Id && p.Situacao != SituacaoDaPlaca.Baixada).ToListAsync(ct);
+            foreach (var codigo in adicionais.Prepend(placa))
             {
-                placa.Baixar(placaVolta == PlacaDaVendaCancelada.NaoVoltou ? MotivoDaBaixa.Perdida : MotivoDaBaixa.Quebrada, agora);
-                custoDasPlacas.Baixada(placa, agora);
+                codigo.DesfazerVenda();
+                if (placaVolta != PlacaDaVendaCancelada.VoltaAoEstoque)
+                {
+                    codigo.Baixar(placaVolta == PlacaDaVendaCancelada.NaoVoltou ? MotivoDaBaixa.Perdida : MotivoDaBaixa.Quebrada, agora);
+                    custoDasPlacas.Baixada(codigo, agora);
+                }
             }
 
             await custoDasPlacas.VendaCancelada(venda, agora, ct);
@@ -615,6 +652,11 @@ public sealed class Vendas(
         var codigo = CodigoDaPlaca.Normalizar(codigoNovo);
         await using var transacao = await banco.Database.BeginTransactionAsync(ct);
         var placaDaVenda = venda.PlacaId ?? throw new RegraDeNegocioException("Venda de serviço não tem placa.");
+        if (await banco.DestinosDaVenda.AnyAsync(d => d.VendaId == venda.Id, ct))
+        {
+            throw new RegraDeNegocioException("Placa personalizada não troca código. Peça uma placa nova à Avalia.");
+        }
+
         var nova = (codigo.Length == 0 ? null : await banco.TravarPlaca(codigo, ct))
             ?? throw new RegraDeNegocioException("Código não encontrado.");
         await ExigirSemRenovacaoAberta(placaDaVenda, ct);

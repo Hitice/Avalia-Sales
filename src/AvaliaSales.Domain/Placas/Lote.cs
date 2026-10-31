@@ -122,6 +122,22 @@ public sealed class Lote
         AtivadoEm = agora,
     };
 
+    /// <summary>
+    /// O lote da placa personalizada, gerado na ordem de serviço: já é da revenda que vendeu e não passa por pedido,
+    /// despacho nem ativação, porque a venda paga é o pedido (ADR 0032).
+    /// </summary>
+    public void EntregarParaOrdem(Guid revendedorId, DateTimeOffset agora)
+    {
+        if (RevendedorId is not null)
+        {
+            throw new InvalidOperationException($"Lote {Rotulo} já é de uma revenda.");
+        }
+
+        RevendedorId = revendedorId;
+        DespachadoEm = agora;
+        AtivadoEm = agora;
+    }
+
     public void Despachar(Guid pedidoId, Guid revendedorId, int quantidadeDoPedido, DateTimeOffset agora)
     {
         if (DespachadoEm is not null)

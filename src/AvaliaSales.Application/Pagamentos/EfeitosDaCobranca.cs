@@ -182,7 +182,15 @@ public sealed class EfeitosDaCobranca(IBancoDeDados banco, FilaDeEmails avisos, 
             : null;
         if (doCatalogo is { GeraServico: true } && !await banco.OrdensDeServico.AnyAsync(o => o.VendaId == venda.Id, ct))
         {
-            banco.OrdensDeServico.Add(new Domain.Servicos.OrdemDeServico(venda.RevendedorId, venda.Id, doCatalogo.Id, doCatalogo.Nome, cliente, quando, venda.Quantidade));
+            var ordem = new Domain.Servicos.OrdemDeServico(venda.RevendedorId, venda.Id, doCatalogo.Id, doCatalogo.Nome, cliente, quando, venda.Quantidade);
+            // A placa personalizada vai com os destinos da venda: a ordem é o que a operadora lê para montar a arte (ADR 0032).
+            var destinos = await banco.DestinosDaVenda.AsNoTracking().Where(d => d.VendaId == venda.Id).OrderBy(d => d.Posicao).Select(d => d.Destino).ToListAsync(ct);
+            if (destinos.Count > 0)
+            {
+                ordem.SerPlacaPersonalizada(destinos);
+            }
+
+            banco.OrdensDeServico.Add(ordem);
             var revendedor = await banco.Revendedores.Where(r => r.Id == venda.RevendedorId).Select(r => r.Nome).SingleAsync(ct);
             var servico = venda.Quantidade > 1 ? $"{venda.Quantidade}x {doCatalogo.Nome}" : doCatalogo.Nome;
             notificacoes.ParaOperadora(venda.RevendedorId, "Serviço a fazer", $"{servico} para {cliente}, vendido por {revendedor}.", "/operadora/servicos", venda.Id);
@@ -204,6 +212,12 @@ public sealed class EfeitosDaCobranca(IBancoDeDados banco, FilaDeEmails avisos, 
         if (!renovacao.Confirmar(placa, quando) || await JaLancada(cobranca.Id, ct))
         {
             return;
+        }
+
+        // A placa personalizada renova inteira: os códigos adicionais vencem com o principal.
+        foreach (var adicional in await banco.Placas.Where(p => p.PlacaPrincipalId == placa.Id && p.VendaId == placa.VendaId).ToListAsync(ct))
+        {
+            adicional.AcompanharVencimento(placa);
         }
 
         banco.Lancamentos.Add(new Lancamento(TipoDeLancamento.Receita, cobranca.Id, cobranca.ValorCents, $"Renovação da placa {placa.Codigo}", quando, renovacao.VendaId));

@@ -73,7 +73,7 @@ public sealed class FichaDaPlaca(IBancoDeDados banco, IUsuarioAtual usuario, IRe
         }
 
         var renovacao = await (
-            from r in banco.Renovacoes.AsNoTracking().Where(r => r.PlacaId == placa.Id && r.Situacao == SituacaoDaRenovacao.Paga)
+            from r in banco.Renovacoes.AsNoTracking().Where(r => r.PlacaId == (placa.PlacaPrincipalId ?? placa.Id) && r.Situacao == SituacaoDaRenovacao.Paga)
             join c in banco.Cobrancas on r.Id equals c.OrigemId
             where c.Origem == OrigemDaCobranca.Renovacao && c.Situacao == SituacaoDaCobranca.Paga
             orderby r.PagaEm descending

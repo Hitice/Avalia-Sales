@@ -7,7 +7,7 @@ import { useSessao } from '@/acesso/sessao'
 import { mensagemDoErro } from '@/api/cliente'
 import { ROTULO_DO_PAGAMENTO, formatarData } from '@/api/rotulos'
 import type { ItemDoCatalogo, NovaVendaComItens, VendasRegistradas } from '@/api/tipos'
-import { useCatalogo, usaPlaca } from '@/catalogo/produtos'
+import { personalizada, useCatalogo, usaPlaca } from '@/catalogo/produtos'
 import { useAtualizarLimiteDeDestinos } from '@/painel/consultasDoLimite'
 import { AvisoDoLimiteDeDestinos } from '@/componentes/AvisoDoLimiteDeDestinos'
 import { Campo } from '@/componentes/Campo'
@@ -30,6 +30,7 @@ import { type LinhaDaVenda, adicionar, comQuantidade, comValor, itensParaVender,
 import { extrairCodigo } from './codigo'
 import { useConfiguracaoDoCartao, usePagamentoDaVenda, useVenderItens } from './consultas'
 import { ListaDeItens } from './ListaDeItens'
+import { ModalDaPersonalizada } from './ModalDaPersonalizada'
 import { ModalDaPlaca } from './ModalDaPlaca'
 import { type Tentativa, tentativaContinua, tentativaPara } from './tentativa'
 
@@ -93,6 +94,7 @@ export function TelaDeNovaVenda() {
   const [passo, setPasso] = useState<Passo>('itens')
   const [linhas, setLinhas] = useState<LinhaDaVenda[]>([])
   const [modal, setModal] = useState<{ item: ItemDoCatalogo; codigo?: string } | null>(null)
+  const [comQr, setComQr] = useState<ItemDoCatalogo | null>(null)
   // O esquema do cliente depende da forma de pagamento: a ref a entrega ao resolver sem recriar o formulário.
   const meioDoResolver = useRef<MeioNaTela>('Pix')
   const resolverDoCliente: Resolver<Cliente> = (valores, contexto, opcoes) =>
@@ -165,6 +167,7 @@ export function TelaDeNovaVenda() {
 
   function escolher(item: ItemDoCatalogo) {
     if (usaPlaca(item)) setModal({ item })
+    else if (personalizada(item)) setComQr(item)
     else setLinhas((l) => adicionar(l, linhaDeServico(item)))
   }
 
@@ -301,6 +304,17 @@ export function TelaDeNovaVenda() {
           aoConfirmar={(linha) => {
             setLinhas((l) => adicionar(l, linha))
             setModal(null)
+          }}
+        />
+      )}
+
+      {comQr && (
+        <ModalDaPersonalizada
+          item={comQr}
+          aoFechar={() => setComQr(null)}
+          aoConfirmar={(linha) => {
+            setLinhas((l) => adicionar(l, linha))
+            setComQr(null)
           }}
         />
       )}

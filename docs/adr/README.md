@@ -37,3 +37,4 @@ apagada, ganha a situação Substituída e o número da que a substitui.
 | [0029](0029-revenda-receptora-no-encerramento-por-marca-explicita.md) | Revenda receptora no encerramento por marca explícita | Aceita |
 | [0030](0030-segredos-do-segundo-fator-cifrados-em-repouso.md) | Segredos do segundo fator cifrados em repouso | Aceita |
 | [0031](0031-google-web-risk-no-cadastro-do-destino.md) | Google Web Risk no cadastro do destino | Aceita |
+| [0032](0032-placa-personalizada-com-codigos-gerados-na-ordem.md) | Placa personalizada com códigos gerados na ordem de serviço | Aceita |

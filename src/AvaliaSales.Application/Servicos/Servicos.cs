@@ -4,8 +4,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AvaliaSales.Application.Servicos;
 
+/// <summary>
+/// <paramref name="Personalizada"/> - a placa personalizada, que precisa dos códigos; <paramref name="Destinos"/> - o de cada
+/// QR, na ordem; <paramref name="LoteId"/> - o lote dos códigos, para baixar o QR.
+/// </summary>
 public sealed record OrdemDto(Guid Id, long Numero, string Revendedor, string Produto, string Cliente, SituacaoDaOrdem Situacao, string? Observacao,
-    DateTimeOffset CriadaEm, DateTimeOffset? IniciadaEm, DateTimeOffset? EntregueEm, int Quantidade = 1);
+    DateTimeOffset CriadaEm, DateTimeOffset? IniciadaEm, DateTimeOffset? EntregueEm, int Quantidade = 1, bool Personalizada = false, Guid? LoteId = null,
+    IReadOnlyList<string>? Destinos = null);
 
 public sealed record AnotarOrdem(string? Observacao);
 
@@ -13,7 +18,7 @@ public sealed record AnotarOrdem(string? Observacao);
 /// As ordens de serviço: a operadora executa e anda com elas; o revendedor
 /// acompanha as dele. Cada passo avisa o dono no sino.
 /// </summary>
-public sealed class Servicos(IBancoDeDados banco, IRevendedorAtual atual, Notificacoes.Notificacoes notificacoes, TimeProvider relogio)
+public sealed class Servicos(IBancoDeDados banco, IRevendedorAtual atual, Notificacoes.Notificacoes notificacoes, TimeProvider relogio, PlacasPersonalizadas personalizadas)
 {
     /// <summary>
     /// A fila primeiro (a fazer e em andamento, da mais antiga); o encerrado depois, da mais recente. A busca vale
@@ -45,12 +50,31 @@ public sealed class Servicos(IBancoDeDados banco, IRevendedorAtual atual, Notifi
         var ids = pagina.Itens.Select(o => o.RevendedorId).Distinct().ToList();
         var nomes = await banco.Revendedores.AsNoTracking().Where(r => ids.Contains(r.Id)).ToDictionaryAsync(r => r.Id, r => r.Nome, ct);
         return pagina.Mapear(o => new OrdemDto(o.Id, o.Numero, nomes.GetValueOrDefault(o.RevendedorId, ""), o.Produto, o.Cliente, o.Situacao, o.Observacao,
-            o.CriadaEm, o.IniciadaEm, o.EntregueEm, o.Quantidade));
+            o.CriadaEm, o.IniciadaEm, o.EntregueEm, o.Quantidade, o.CodigosNaPlaca > 0, o.LoteId, o.DestinosDaPlaca?.Split('\n')));
     }
 
     public Task Iniciar(Guid id, CancellationToken ct) => Mudar(id, (o, agora) => o.Iniciar(agora), "Serviço em andamento", "A Avalia começou", ct);
 
-    public Task Entregar(Guid id, CancellationToken ct) => Mudar(id, (o, agora) => o.Entregar(agora), "Serviço entregue", "A Avalia entregou", ct);
+    public async Task Entregar(Guid id, CancellationToken ct)
+    {
+        var ordem = await Achar(id, ct);
+        if (ordem.CodigosNaPlaca == 0)
+        {
+            await Mudar(id, (o, agora) => o.Entregar(agora), "Serviço entregue", "A Avalia entregou", ct);
+            return;
+        }
+
+        // A placa personalizada entrega pelo banco da revenda: os 12 meses dos códigos contam da entrega (ADR 0032).
+        if (!atual.Operadora)
+        {
+            throw new RegraDeNegocioException("Só a operadora anda com a ordem de serviço.");
+        }
+
+        await personalizadas.Entregar(id, ct);
+        notificacoes.ParaDono(ordem.RevendedorId, "Serviço entregue", $"A Avalia entregou {ordem.Produto} de {ordem.Cliente} (ordem {ordem.Numero}). Os 12 meses da placa contam de hoje.", "/links?aba=status");
+        banco.AvisarAoVivo("servico", ordem.RevendedorId, operadora: true);
+        await banco.SaveChangesAsync(ct);
+    }
 
     public Task Cancelar(Guid id, CancellationToken ct) => Mudar(id, (o, _) => o.Cancelar(), "Serviço cancelado", "A Avalia cancelou", ct);
 

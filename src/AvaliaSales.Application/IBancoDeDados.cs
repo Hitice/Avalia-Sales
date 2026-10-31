@@ -38,6 +38,7 @@ public interface IBancoDeDados
     DbSet<Vendedor> Vendedores { get; }
     DbSet<Cliente> Clientes { get; }
     DbSet<Venda> Vendas { get; }
+    DbSet<DestinoDaVenda> DestinosDaVenda { get; }
     DbSet<EmailNaFila> Emails { get; }
     DbSet<Cupom> Cupons { get; }
     DbSet<Lancamento> Lancamentos { get; }

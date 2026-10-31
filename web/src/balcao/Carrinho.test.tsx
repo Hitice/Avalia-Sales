@@ -4,11 +4,11 @@ import { useState } from 'react'
 import { describe, expect, it } from 'vitest'
 import type { ItemDoCatalogo } from '@/api/tipos'
 import { Carrinho } from './Carrinho'
-import { type LinhaDaVenda, comQuantidade, comValor, linhaDeServico, remover } from './itens'
+import { type LinhaDaVenda, comQuantidade, comValor, linhaDeServico, linhaPersonalizada, remover } from './itens'
 
 const KIT_MESA: ItemDoCatalogo = {
   id: 's1', chave: 'kit-mesa', nome: 'Kit Mesa', descricao: '', tipo: 'Servico', situacao: 'Disponivel', fotoUrl: null,
-  precoSugeridoCents: 1990, precoCents: 1990, comissaoBps: null, pisoCents: 1, ativo: true, quantidadeMinima: 10,
+  precoSugeridoCents: 1990, precoCents: 1990, comissaoBps: null, pisoCents: 1, ativo: true, quantidadeMinima: 10, codigosNaPlaca: 0,
 }
 
 function Dono({ iniciais }: { iniciais: LinhaDaVenda[] }) {
@@ -24,6 +24,17 @@ function Dono({ iniciais }: { iniciais: LinhaDaVenda[] }) {
 }
 
 describe('Carrinho', () => {
+  it('a placa personalizada é uma por linha e mostra o destino de cada QR', () => {
+    const comQr = { ...KIT_MESA, id: 'q1', chave: 'placa-personalizada', nome: 'Placa personalizada', precoCents: 19900, quantidadeMinima: 1, codigosNaPlaca: 2 }
+    render(<Dono iniciais={[linhaPersonalizada(comQr, [
+      { tipo: 'Link', lugarNoGoogle: null, link: 'cardapio.com.br' },
+      { tipo: 'Link', lugarNoGoogle: null, link: 'instagram.com/padaria' },
+    ])]} />)
+
+    expect(screen.queryByLabelText('Quantidade de Placa personalizada')).toBeNull()
+    expect(screen.getByText('QR 1: cardapio.com.br · QR 2: instagram.com/padaria')).toBeInTheDocument()
+  })
+
   it('não desce do mínimo e avisa; o mais soma', async () => {
     const usuario = userEvent.setup()
     render(<Dono iniciais={[linhaDeServico(KIT_MESA)]} />)

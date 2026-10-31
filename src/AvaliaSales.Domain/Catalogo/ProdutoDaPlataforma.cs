@@ -55,6 +55,14 @@ public sealed class ProdutoDaPlataforma
     /// <summary>Pedido mínimo do que a Avalia produz em quantidade (kit mesa e placa de cardápio, 10): a venda sai com ao menos isso.</summary>
     public int QuantidadeMinima { get; private set; } = 1;
 
+    public const int CodigosNaPlacaMaximos = 4;
+
+    /// <summary>
+    /// A placa personalizada: serviço que a Avalia produz sob encomenda com este número de QR, cada um com o destino
+    /// que o vendedor informou na venda. Zero é o serviço comum. Os códigos nascem na ordem de serviço (ADR 0032).
+    /// </summary>
+    public int CodigosNaPlaca { get; private set; }
+
     /// <summary>Caminho da foto que já vem com o front (/produtos/...), usada sem foto enviada.</summary>
     public string? FotoPadrao { get; private set; }
 
@@ -90,6 +98,11 @@ public sealed class ProdutoDaPlataforma
             ? descricao
             : throw new RegraDeNegocioException($"Descrição com até {DescricaoMaxima} caracteres.");
         Tipo = Enum.IsDefined(tipo) ? tipo : throw new RegraDeNegocioException("Escolha o tipo do produto.");
+        if (CodigosNaPlaca > 0 && Tipo != TipoDeProduto.Servico)
+        {
+            throw new RegraDeNegocioException("Placa personalizada é serviço. Zere os QR antes de mudar o tipo.");
+        }
+
         PrecoSugeridoCents = precoSugeridoCents > 0 ? precoSugeridoCents : throw new RegraDeNegocioException("Preço sugerido precisa ser maior que zero.");
         Ordem = ordem;
     }
@@ -101,9 +114,25 @@ public sealed class ProdutoDaPlataforma
     public long ParteDaAvaliaCents => GeraServico ? checked((PrecoSugeridoCents * (Base - DescontoDaRevendaBps) + Base / 2) / Base) : 0;
 
     public void DefinirQuantidadeMinima(int quantidade) =>
-        QuantidadeMinima = quantidade is >= 1 and <= Vendas.Venda.QuantidadeMaxima && (!UsaPlaca || quantidade == 1)
+        QuantidadeMinima = quantidade is >= 1 and <= Vendas.Venda.QuantidadeMaxima && (!UsaPlaca && !Personalizada || quantidade == 1)
             ? quantidade
-            : throw new RegraDeNegocioException("Pedido mínimo de 1 a 1000. Produto com placa do estoque sai de uma em uma.");
+            : throw new RegraDeNegocioException("Pedido mínimo de 1 a 1.000. Produto com placa sai de uma em uma.");
+
+    /// <summary>Só o serviço vira placa personalizada, e ela sai de uma em uma: cada placa tem os códigos dela.</summary>
+    public void DefinirCodigosNaPlaca(int codigos)
+    {
+        if (codigos is < 0 or > CodigosNaPlacaMaximos || (codigos > 0 && Tipo != TipoDeProduto.Servico))
+        {
+            throw new RegraDeNegocioException($"Placa personalizada é serviço, com 1 a {CodigosNaPlacaMaximos} QR.");
+        }
+
+        if (codigos > 0 && QuantidadeMinima != 1)
+        {
+            throw new RegraDeNegocioException("Placa personalizada sai de uma em uma. Deixe o pedido mínimo em 1.");
+        }
+
+        CodigosNaPlaca = codigos;
+    }
 
     public void DefinirSituacao(SituacaoDoProduto situacao) =>
         Situacao = Enum.IsDefined(situacao) ? situacao : throw new RegraDeNegocioException("Situação desconhecida.");
@@ -135,4 +164,7 @@ public sealed class ProdutoDaPlataforma
     public bool GeraServico => Tipo is TipoDeProduto.PlacaComServico or TipoDeProduto.Servico;
 
     public bool AVenda => Situacao == SituacaoDoProduto.Disponivel;
+
+    /// <summary>Placa personalizada: a venda leva os destinos, e os códigos nascem na ordem de serviço.</summary>
+    public bool Personalizada => Tipo == TipoDeProduto.Servico && CodigosNaPlaca > 0;
 }

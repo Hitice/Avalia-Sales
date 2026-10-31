@@ -106,6 +106,12 @@ public sealed class Placa : IDoRevendedor
     public Guid? ClienteDaTransferenciaId { get; private set; }
     public long? ValorDaVendaCents { get; private set; }
 
+    /// <summary>
+    /// Código adicional da placa personalizada: aponta para o principal, o da venda. Cada código tem o destino dele e
+    /// liga e desliga sozinho; vencimento, renovação e aviso do vencimento seguem o principal (ADR 0032).
+    /// </summary>
+    public Guid? PlacaPrincipalId { get; private set; }
+
     private Placa() => Codigo = string.Empty;
 
     public Placa(PlacaEmitida emitida, long custoCents, DateTimeOffset agora)
@@ -356,7 +362,8 @@ public sealed class Placa : IDoRevendedor
     /// <summary>Baixa lançada por engano, ou lote desarquivado: a placa volta ao estoque.</summary>
     public void DesfazerBaixa()
     {
-        if (Situacao != SituacaoDaPlaca.Baixada || VendaId is not null || MotivoDaBaixa is null or Placas.MotivoDaBaixa.Troca or Placas.MotivoDaBaixa.Encerramento)
+        if (Situacao != SituacaoDaPlaca.Baixada || VendaId is not null || PlacaPrincipalId is not null
+            || MotivoDaBaixa is null or Placas.MotivoDaBaixa.Troca or Placas.MotivoDaBaixa.Encerramento)
         {
             throw new RegraDeNegocioException($"Baixa da placa {Codigo} não se desfaz.");
         }
@@ -367,6 +374,33 @@ public sealed class Placa : IDoRevendedor
     }
 
     public void PassarAoCliente(Guid clienteId) => ClienteDaTransferenciaId = ClienteDaTransferenciaId is null ? null : clienteId;
+
+    public void SerAdicionalDe(Placa principal) =>
+        PlacaPrincipalId = principal.Id != Id && principal.VendaId == VendaId && VendaId is not null
+            ? principal.Id
+            : throw new InvalidOperationException($"A placa {Codigo} não é adicional da {principal.Codigo}.");
+
+    /// <summary>O código adicional vence junto com o principal: renovação paga ou desfeita e entrega da placa.</summary>
+    public void AcompanharVencimento(Placa principal)
+    {
+        if (PlacaPrincipalId == principal.Id && VendaId == principal.VendaId && Situacao != SituacaoDaPlaca.Baixada)
+        {
+            VenceEm = principal.VenceEm;
+        }
+    }
+
+    /// <summary>
+    /// A placa personalizada chegou ao cliente: 12 meses da entrega. Nunca encurta: a ordem reaberta e entregue de novo
+    /// não apaga o ano que uma renovação já somou.
+    /// </summary>
+    public void ComecarVigenciaNaEntrega(DateTimeOffset entregueEm)
+    {
+        var ate = entregueEm.AddMonths(ValidadeMeses);
+        if (VendaId is not null && Situacao != SituacaoDaPlaca.Baixada && (VenceEm is null || VenceEm < ate))
+        {
+            VenceEm = ate;
+        }
+    }
 
     /// <summary>Volta ao lote em que foi impressa, quando veio de outro sistema num lote só.</summary>
     public void MoverParaOLote(Guid loteId) => LoteId = loteId;

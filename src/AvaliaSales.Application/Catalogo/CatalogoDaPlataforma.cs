@@ -5,11 +5,15 @@ using Microsoft.EntityFrameworkCore;
 namespace AvaliaSales.Application.Catalogo;
 
 public sealed record ProdutoDaPlataformaDto(Guid Id, string Chave, string Nome, string Descricao, TipoDeProduto Tipo, long PrecoSugeridoCents,
-    SituacaoDoProduto Situacao, int Ordem, string? FotoUrl, bool TemFotoEnviada, int DescontoDaRevendaBps, long ParteDaAvaliaCents, int QuantidadeMinima);
+    SituacaoDoProduto Situacao, int Ordem, string? FotoUrl, bool TemFotoEnviada, int DescontoDaRevendaBps, long ParteDaAvaliaCents, int QuantidadeMinima,
+    int CodigosNaPlaca = 0);
 
-/// <summary>Sem desconto ou pedido mínimo informado, o produto novo nasce com o padrão e o que existe mantém o dele.</summary>
+/// <summary>
+/// Sem desconto, pedido mínimo ou QR informado, o produto novo nasce com o padrão e o que existe mantém o dele.
+/// <paramref name="CodigosNaPlaca"/> acima de zero faz do serviço a placa personalizada (ADR 0032).
+/// </summary>
 public sealed record GravarProdutoDaPlataforma(string Chave, string Nome, string? Descricao, TipoDeProduto Tipo, long PrecoSugeridoCents, int Ordem,
-    int? DescontoDaRevendaBps = null, int? QuantidadeMinima = null);
+    int? DescontoDaRevendaBps = null, int? QuantidadeMinima = null, int? CodigosNaPlaca = null);
 
 public sealed record DefinirSituacaoDoProduto(SituacaoDoProduto Situacao);
 
@@ -34,6 +38,7 @@ public sealed class CatalogoDaPlataforma(IBancoDeDados banco, TimeProvider relog
         var produto = new ProdutoDaPlataforma(chave, comando.Nome, comando.Descricao ?? "", comando.Tipo, comando.PrecoSugeridoCents, comando.Ordem, relogio.GetUtcNow());
         produto.DefinirDescontoDaRevenda(comando.DescontoDaRevendaBps ?? ProdutoDaPlataforma.DescontoPadraoBps);
         produto.DefinirQuantidadeMinima(comando.QuantidadeMinima ?? 1);
+        produto.DefinirCodigosNaPlaca(comando.CodigosNaPlaca ?? 0);
         banco.ProdutosDaPlataforma.Add(produto);
         await banco.SaveChangesAsync(ct);
         return Dto(produto);
@@ -43,6 +48,12 @@ public sealed class CatalogoDaPlataforma(IBancoDeDados banco, TimeProvider relog
     public async Task<ProdutoDaPlataformaDto> Alterar(Guid id, GravarProdutoDaPlataforma comando, CancellationToken ct)
     {
         var produto = await Achar(id, ct);
+        // Zerar os QR vem antes de mudar o tipo, e o pedido mínimo depois de virar placa personalizada.
+        if (comando.CodigosNaPlaca == 0)
+        {
+            produto.DefinirCodigosNaPlaca(0);
+        }
+
         produto.Alterar(comando.Nome, comando.Descricao, comando.Tipo, comando.PrecoSugeridoCents, comando.Ordem);
         if (comando.DescontoDaRevendaBps is { } desconto)
         {
@@ -52,6 +63,11 @@ public sealed class CatalogoDaPlataforma(IBancoDeDados banco, TimeProvider relog
         if (comando.QuantidadeMinima is { } minima)
         {
             produto.DefinirQuantidadeMinima(minima);
+        }
+
+        if (comando.CodigosNaPlaca is > 0 and var codigos)
+        {
+            produto.DefinirCodigosNaPlaca(codigos);
         }
 
         await banco.SaveChangesAsync(ct);
@@ -95,5 +111,5 @@ public sealed class CatalogoDaPlataforma(IBancoDeDados banco, TimeProvider relog
 
     private static ProdutoDaPlataformaDto Dto(ProdutoDaPlataforma p) =>
         new(p.Id, p.Chave, p.Nome, p.Descricao, p.Tipo, p.PrecoSugeridoCents, p.Situacao, p.Ordem, Catalogo.FotoUrl(p), p.Foto is not null,
-            p.DescontoDaRevendaBps, p.ParteDaAvaliaCents, p.QuantidadeMinima);
+            p.DescontoDaRevendaBps, p.ParteDaAvaliaCents, p.QuantidadeMinima, p.CodigosNaPlaca);
 }

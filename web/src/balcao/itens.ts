@@ -1,13 +1,14 @@
 import type { components } from '@/api/esquema'
 import type { DestinoInformado, ItemDoCatalogo, Lugar } from '@/api/tipos'
-import { usaPlaca } from '@/catalogo/produtos'
+import { personalizada, usaPlaca } from '@/catalogo/produtos'
 
 export type ItemDaVenda = components['schemas']['ItemDaVenda']
 
 /**
- * Uma linha da venda no balcão: a placa lida (uma por código, com o destino)
- * ou o serviço com a quantidade. O valor só fica preenchido quando o vendedor
- * cobrou diferente da tabela; é o total da linha, como a API espera.
+ * Uma linha da venda no balcão: a placa lida (uma por código, com o destino),
+ * a placa personalizada (um destino por QR, sem código) ou o serviço com a
+ * quantidade. O valor só fica preenchido quando o vendedor cobrou diferente da
+ * tabela; é o total da linha, como a API espera.
  */
 export type LinhaDaVenda = {
   id: string
@@ -15,6 +16,7 @@ export type LinhaDaVenda = {
   quantidade: number
   codigo: string | null
   destino: DestinoInformado | null
+  destinos: DestinoInformado[] | null
   lugar: Lugar | null
   valorCents: number | null
 }
@@ -32,19 +34,24 @@ const novoId = () => (typeof crypto.randomUUID === 'function'
   : Array.from(crypto.getRandomValues(new Uint32Array(4)), (n) => n.toString(16).padStart(8, '0')).join(''))
 
 export function linhaDePlaca(item: ItemDoCatalogo, codigo: string, destino: DestinoInformado, lugar: Lugar | null): LinhaDaVenda {
-  return { id: novoId(), item, quantidade: 1, codigo, destino, lugar, valorCents: null }
+  return { id: novoId(), item, quantidade: 1, codigo, destino, destinos: null, lugar, valorCents: null }
 }
 
 export function linhaDeServico(item: ItemDoCatalogo): LinhaDaVenda {
-  return { id: novoId(), item, quantidade: quantidadeMinima(item), codigo: null, destino: null, lugar: null, valorCents: null }
+  return { id: novoId(), item, quantidade: quantidadeMinima(item), codigo: null, destino: null, destinos: null, lugar: null, valorCents: null }
+}
+
+export function linhaPersonalizada(item: ItemDoCatalogo, destinos: DestinoInformado[]): LinhaDaVenda {
+  return { id: novoId(), item, quantidade: 1, codigo: null, destino: null, destinos, lugar: null, valorCents: null }
 }
 
 /**
  * Serviço já na venda ganha mais uma unidade em vez de outra linha; placa é
- * sempre linha nova, uma por código. No limite, a venda não muda.
+ * sempre linha nova, uma por código, e a personalizada uma por placa, com os
+ * destinos dela. No limite, a venda não muda.
  */
 export function adicionar(linhas: LinhaDaVenda[], nova: LinhaDaVenda): LinhaDaVenda[] {
-  if (!usaPlaca(nova.item)) {
+  if (!usaPlaca(nova.item) && !personalizada(nova.item)) {
     const existente = linhas.find((l) => l.item.id === nova.item.id)
     if (existente) return comQuantidade(linhas, existente.id, existente.quantidade + 1)
   }
@@ -74,9 +81,9 @@ export const cabeTeste = (linhas: LinhaDaVenda[]) => linhas.length === 1 && usaP
 
 export const codigosNaVenda = (linhas: LinhaDaVenda[]) => linhas.map((l) => l.codigo).filter((c): c is string => !!c)
 
-/** Como vai na NovaVendaComItens: placa com código e destino, serviço com a quantidade. */
+/** Como vai na NovaVendaComItens: placa com código e destino, personalizada com os destinos, serviço com a quantidade. */
 export const paraItens = (linhas: LinhaDaVenda[]): ItemDaVenda[] =>
-  linhas.map((l) => ({ produtoId: l.item.id, codigo: l.codigo, destino: l.destino, valorCents: l.valorCents, quantidade: l.quantidade }))
+  linhas.map((l) => ({ produtoId: l.item.id, codigo: l.codigo, destino: l.destino, destinos: l.destinos, valorCents: l.valorCents, quantidade: l.quantidade }))
 
 /** O nome da linha na tela: "10x Kit Mesa" ou "Placa K7M2PX". */
 export const nomeDaLinha = (l: LinhaDaVenda) => (l.codigo ? `${l.item.nome}, ${l.codigo}` : l.quantidade > 1 ? `${l.quantidade}x ${l.item.nome}` : l.item.nome)

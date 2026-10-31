@@ -16,6 +16,7 @@ public static class InjecaoDeDependencias
         servicos.AddScoped<Catalogo.Catalogo>();
         servicos.AddScoped<Catalogo.CatalogoDaPlataforma>();
         servicos.AddScoped<Servicos.Servicos>();
+        servicos.AddScoped<Servicos.PlacasPersonalizadas>();
         servicos.AddScoped<Notificacoes.Notificacoes>();
         servicos.AddScoped<Auditoria.Auditoria>();
         servicos.AddScoped<Links.Links>();

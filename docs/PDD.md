@@ -157,8 +157,8 @@ maiúscula ("otica" acha "Ótica").
 | Pedidos | Fila de pedidos de placas - pedido avulso aberto pela operadora, produção, despacho do lote pelo envio (com transportadora e código de rastreio) ou para retirada, e estorno do pedido pago ainda não despachado |
 | Lotes | Geração e impressão de lotes com título e categoria, exclusão antes do primeiro download e arquivamento |
 | Pacotes e Cupons | Cadastro dos pacotes de placas e dos cupons |
-| Catálogo da Avalia | Cadastrar e editar produto, foto com recorte, preço sugerido, desconto da revenda (e a parte da Avalia que sai dele), pedido mínimo, ordem e situação |
-| Serviços | Fila de ordens de serviço - iniciar, entregar, cancelar e reabrir |
+| Catálogo da Avalia | Cadastrar e editar produto, foto com recorte, preço sugerido, desconto da revenda (e a parte da Avalia que sai dele), pedido mínimo, QR na placa (a placa personalizada), ordem e situação |
+| Serviços | Fila de ordens de serviço - iniciar, entregar, cancelar e reabrir; na placa personalizada, gerar os códigos e baixar o QR antes de entregar |
 | Revendedores | Revendas, nome e CNPJ, recebedor no Pagar.me, percentual da renovação, contrato em papel, suspensão, encerramento, pedido de reabertura, liberação de cadastros de destino do dia, a marca de revenda do grupo da operadora e a marca de revenda receptora |
 | Fornecedores | Cadastro de quem produz e entrega para a operadora (gráfica, acrílico, confecção com dado variável, logística), com criar, editar, desativar e excluir |
 | Destinos bloqueados | Domínios que a plataforma recusa como destino de QR e de link curto, e que deixam de redirecionar |
@@ -452,6 +452,23 @@ confirmar, em Comissões, que ele chegou. Só o
   revendedor acompanha na aba Status de Serviços.
 - Ordem entregue ou cancelada por engano se reabre. A cancelada por estorno,
   não.
+- Placa personalizada - feita sob encomenda pela Avalia, com 1 a 4 QR (o
+  catálogo diz quantos), e vendida como serviço, de uma em uma e sem teste
+  gratuito (ADR 0032).
+  - Na Nova venda, o vendedor informa um destino por QR, sem ler código:
+    avaliação no Google ou link do cliente, inclusive o que ele já tem. Cada
+    destino conta no limite do dia.
+  - Com a venda paga, a ordem vai à Avalia. Nela, a operadora gera os códigos,
+    um por destino, na ordem informada, e baixa o QR para a arte. Os códigos
+    já levam ao destino, para conferir antes de entregar.
+  - A entrega só sai com os códigos gerados e começa os 12 meses da placa. A
+    renovação só abre depois da entrega.
+  - Cada código troca de destino e liga e desliga sozinho. A renovação é uma
+    por placa, pelo valor da venda, pedida por qualquer código, e estende
+    todos. O aviso de vencimento é um por placa.
+  - O cancelamento da venda tira todos os códigos do ar, e a placa não volta
+    ao estoque nem tem a baixa desfeita. Cancelar só a ordem não mexe nos
+    códigos. A troca de código não vale: refazer é pedir outra placa.
 
 ### 6.9 Mapa
 
@@ -912,6 +929,7 @@ As mudanças de 21 a 24/10/2026 estão em [historico/pdd-ate-24-10.md](historico
 
 | Data | Mudança |
 | --- | --- |
+| 31/10/2026 | Placa personalizada - serviço do catálogo com 1 a 4 QR, vendido com um destino por QR e sem teste gratuito; a operadora gera os códigos na ordem, baixa o QR e entrega, e os 12 meses contam da entrega; uma renovação e um aviso por placa; o cancelamento tira todos os códigos do ar sem voltar ao estoque, e a troca de código não vale (ADR 0032). |
 | 31/10/2026 | Pedido avulso - recusa revenda suspensa ou em encerramento e valor que não divide pela quantidade; a operadora cancela o pedido antes do pagamento, e a revenda é avisada. Avisos com "1 placa" no singular e limites escritos como "1.000". |
 | 30/10/2026 | Pedido avulso - a operadora abre em Pedidos um pedido fora dos pacotes, para uma revenda, com quantidade de 1 a 1.000 e valor livre (zero nasce pago), com o segundo fator; despacho e ativação iguais. A placa com dois QR vende em duas linhas da mesma venda. |
 | 30/10/2026 | Página do QR só no tema claro, com Copiar no código e o botão Entrar (Nova venda na placa não ativada, ficha na vencida, suspensa e com endereço bloqueado). Placa de lote despachado e não ativado diz na Nova venda qual lote o dono ativa. |

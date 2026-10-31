@@ -156,6 +156,12 @@ independentes (ADR 0001):
   abre uma sessão com a revenda marcada (`revendedores.do_grupo_da_operadora`) e devolve só
   números somados. Confere a marca no banco a cada leitura, recusa a revenda não marcada
   mesmo com o id certo e só serve a quem entra como operadora (ADR 0025).
+- Gravação pela ordem de serviço - a placa personalizada nasce no estoque da revenda,
+  fechado para a operadora. `IEscopoDaOrdem` (`EscopoDaOrdem`) abre uma sessão com a
+  revenda dona da ordem, lida da própria ordem e não de quem chama, numa transação só com
+  a ordem, presa com `for update`, e só serve a quem entra como operadora. É o único
+  caminho de gravação da operadora em tabela da revenda fechada para ela: gerar os códigos
+  e entregar a placa (ADR 0032).
 - Tabelas sem RLS de propósito - `usuarios`, `sessoes`, `links_de_senha` e
   `aparelhos_conhecidos` (o login lê antes de saber a revenda);
   `revendedores` (a lista que o Worker percorre); `vinculos_externos` (o
@@ -923,6 +929,7 @@ As mudanças de 21 a 24/10/2026 estão em [historico/sdd-ate-24-10.md](historico
 
 | Data | Mudança |
 | --- | --- |
+| 31/10/2026 | Placa personalizada (ADR 0032) - `produtos_da_plataforma.codigos_na_placa`, `destinos_da_venda` (RLS), `placas.placa_principal_id` e `ordens_de_servico.lote_id`, `codigos_na_placa` e `destinos_da_placa` (`PlacaPersonalizada`; a ordem grava a placa e os destinos quando nasce); `ItemDaVenda.Destinos`; `PlacasPersonalizadas.GerarCodigos` e `Entregar` por `IEscopoDaOrdem` (banco da revenda da ordem, aberto só para a operadora); `POST /operadora/servicos/{id}/codigos`; `Lote.EntregarParaOrdem`; renovação (só depois da entrega), aviso de vencimento e cancelamento seguem o código principal; a entrega nunca encurta o vencimento (`Placa.ComecarVigenciaNaEntrega`); gerar códigos pega a trava da cobrança da venda; troca e desfazer da baixa recusados. |
 | 31/10/2026 | `POST /operadora/pedidos/{id}/cancelamento` (reusa `PedidosDePlacas.Cancelar`, que avisa o dono quando quem cancela é a operadora); `PedidoDePlacas.Avulso` recusa valor com resto na divisão pela quantidade; `CriarAvulso` recusa revenda encerrada, em encerramento ou suspensa; `PedidoDePlacas.QuantidadeEscrita` nos avisos; a lista de revendas do diálogo lê todas as páginas. |
 | 30/10/2026 | `POST /operadora/pedidos` (`AbrirPedidoAvulso`) e `PedidoDePlacas.Avulso`: pedido sem pacote, gravado pela operadora com o `revendedor_id` escolhido (`IAtendidoPelaOperadora`), atrás de `AcoesSensiveisDaOperadora.Exigir`; sem coluna nova. Tela de Pedidos da operadora com Novo pedido. |
 | 30/10/2026 | Página de aviso do `/q/` e do `/l/` com `Content-Security-Policy` própria (`default-src 'none'`, estilo e script com nonce por resposta), só no tema claro, com Copiar e o botão de entrar; `FichaDaPlaca` diz o lote despachado à revenda e não ativado, pela `placas_emitidas` com `lotes`. |

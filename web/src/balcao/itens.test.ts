@@ -1,10 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ItemDoCatalogo } from '@/api/tipos'
-import { ITENS_MAXIMOS, adicionar, comQuantidade, comValor, itensParaVender, linhaDePlaca, linhaDeServico, nomeDaLinha, paraItens, remover, cabeTeste, total } from './itens'
+import { ITENS_MAXIMOS, adicionar, comQuantidade, comValor, itensParaVender, linhaDePlaca, linhaDeServico, linhaPersonalizada, nomeDaLinha, paraItens, remover, cabeTeste, total } from './itens'
 
 const item = (parte: Partial<ItemDoCatalogo>): ItemDoCatalogo => ({
   id: parte.id ?? 'p1', chave: 'placa', nome: 'Placa de avaliação', descricao: '', tipo: 'Placa', situacao: 'Disponivel', fotoUrl: null,
-  precoSugeridoCents: 14990, precoCents: 14990, comissaoBps: null, pisoCents: 1, ativo: true, quantidadeMinima: 1, ...parte,
+  precoSugeridoCents: 14990, precoCents: 14990, comissaoBps: null, pisoCents: 1, ativo: true, quantidadeMinima: 1, codigosNaPlaca: 0, ...parte,
 })
 const placa = item({})
 const kitMesa = item({ id: 's1', chave: 'kit-mesa', nome: 'Kit Mesa', tipo: 'Servico', precoCents: 1990, quantidadeMinima: 10 })
@@ -61,8 +61,8 @@ describe('itens da venda', () => {
   it('monta os itens da API e o nome de cada linha', () => {
     const linhas = [linhaDePlaca(placa, 'K7M2PX', destino, null), linhaDeServico(kitMesa)]
     expect(paraItens(linhas)).toEqual([
-      { produtoId: 'p1', codigo: 'K7M2PX', destino, valorCents: null, quantidade: 1 },
-      { produtoId: 's1', codigo: null, destino: null, valorCents: null, quantidade: 10 },
+      { produtoId: 'p1', codigo: 'K7M2PX', destino, destinos: null, valorCents: null, quantidade: 1 },
+      { produtoId: 's1', codigo: null, destino: null, destinos: null, valorCents: null, quantidade: 10 },
     ])
     expect(nomeDaLinha(linhas[0])).toBe('Placa de avaliação, K7M2PX')
     expect(nomeDaLinha(linhas[1])).toBe('10x Kit Mesa')
@@ -82,3 +82,18 @@ describe('itens da venda', () => {
     expect(a.id).not.toBe(b.id)
   })
 })
+
+describe('placa personalizada', () => {
+  const comQr = item({ id: 'q1', chave: 'placa-personalizada', nome: 'Placa personalizada', tipo: 'Servico', precoCents: 19900, codigosNaPlaca: 2 })
+  const instagram = { tipo: 'Link' as const, lugarNoGoogle: null, link: 'instagram.com/padaria' }
+
+  it('cada placa é uma linha, com os destinos dela, e vai à API sem código', () => {
+    const linhas = adicionar(adicionar([], linhaPersonalizada(comQr, [destino, instagram])), linhaPersonalizada(comQr, [instagram, destino]))
+
+    expect(linhas).toHaveLength(2)
+    expect(paraItens(linhas)[0]).toMatchObject({ produtoId: 'q1', codigo: null, destino: null, destinos: [destino, instagram], quantidade: 1 })
+    expect(cabeTeste(linhas.slice(0, 1))).toBe(false)
+    expect(total(linhas)).toBe(39800)
+  })
+})
+

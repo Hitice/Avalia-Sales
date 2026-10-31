@@ -246,6 +246,10 @@ public sealed class Venda : IDoRevendedor
 
     public void TrocarPlaca(Guid novaPlacaId) => PlacaId = novaPlacaId;
 
+    /// <summary>A placa personalizada nasce sem placa: os códigos chegam na ordem de serviço, e o primeiro vira o da venda.</summary>
+    public void LigarPlacaPersonalizada(Guid placaId) =>
+        PlacaId = PlacaId is null ? placaId : throw new RegraDeNegocioException("Códigos da placa já gerados.");
+
     public void DesmarcarRepasse(Guid repasseId) => RepasseId = RepasseId == repasseId ? null : RepasseId;
 
     public void MarcarRepassada(Guid repasseId) =>

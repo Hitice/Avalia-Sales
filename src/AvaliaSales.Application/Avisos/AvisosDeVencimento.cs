@@ -22,7 +22,8 @@ public sealed class AvisosDeVencimento(IBancoDeDados banco, Notificacoes.Notific
         var linhas = await (
             from p in banco.Placas
             join v in banco.Vendas on p.VendaId equals v.Id
-            where p.Situacao == SituacaoDaPlaca.Ativa && p.VenceEm != null && p.VenceEm > agora && p.VenceEm <= limite
+            // O código adicional da placa personalizada vence com o principal: um aviso por placa.
+            where p.Situacao == SituacaoDaPlaca.Ativa && p.VenceEm != null && p.VenceEm > agora && p.VenceEm <= limite && p.PlacaPrincipalId == null
                 && v.Situacao == Domain.Vendas.SituacaoDaVenda.Registrada && v.TesteAte == null
             select new { Placa = p, v.ClienteId, v.VendedorId, VendaId = v.Id }).ToListAsync(ct);
         if (linhas.Count == 0)

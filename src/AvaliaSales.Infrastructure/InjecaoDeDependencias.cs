@@ -53,6 +53,7 @@ public static class InjecaoDeDependencias
         servicos.AddSingleton<CifraDosSegredosDoUsuario>();
         servicos.AddScoped<ITransferenciaDeClientes, TransferenciaDeClientes>();
         servicos.AddScoped<AvaliaSales.Application.Financeiro.IEscopoDeRevenda, EscopoDeRevenda>();
+        servicos.AddScoped<AvaliaSales.Application.Servicos.IEscopoDaOrdem, EscopoDaOrdem>();
         servicos.AdicionarCasosDeUso();
 
         servicos

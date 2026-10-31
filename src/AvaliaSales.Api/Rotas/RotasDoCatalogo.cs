@@ -59,6 +59,8 @@ public static class RotasDoCatalogo
         servicos.MapGet("/", (string? busca, Domain.Servicos.SituacaoDaOrdem? situacao, [AsParameters] PedidoDePagina pagina, Servicos s, CancellationToken ct) => s.Listar(busca, situacao, pagina, ct));
         servicos.MapPost("/{id:guid}/iniciar", async (Guid id, Servicos s, CancellationToken ct) => { await s.Iniciar(id, ct); return Results.NoContent(); });
         servicos.MapPost("/{id:guid}/entregar", async (Guid id, Servicos s, CancellationToken ct) => { await s.Entregar(id, ct); return Results.NoContent(); });
+        // A placa personalizada: os códigos nascem na ordem, no estoque da revenda que vendeu (ADR 0032).
+        servicos.MapPost("/{id:guid}/codigos", (Guid id, PlacasPersonalizadas placas, CancellationToken ct) => placas.GerarCodigos(id, ct));
         servicos.MapPost("/{id:guid}/reabrir", async (Guid id, Servicos s, CancellationToken ct) => { await s.Reabrir(id, ct); return Results.NoContent(); });
         servicos.MapPost("/{id:guid}/cancelar", async (Guid id, Servicos s, CancellationToken ct) => { await s.Cancelar(id, ct); return Results.NoContent(); });
         servicos.MapPut("/{id:guid}/observacao", async (Guid id, AnotarOrdem pedido, Servicos s, CancellationToken ct) =>

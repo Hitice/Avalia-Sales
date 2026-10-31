@@ -36,6 +36,20 @@ public sealed class OrdemDeServico : IAtendidoPelaOperadora
     public DateTimeOffset? IniciadaEm { get; private set; }
     public DateTimeOffset? EntregueEm { get; private set; }
 
+    /// <summary>O lote com os códigos da placa personalizada, para baixar o QR da arte.</summary>
+    public Guid? LoteId { get; private set; }
+
+    /// <summary>
+    /// Os QR da placa personalizada, gravados quando a ordem nasce, como o preço na venda: mudar o catálogo depois não
+    /// muda a ordem. Zero é o serviço comum.
+    /// </summary>
+    public int CodigosNaPlaca { get; private set; }
+
+    public const int DestinosMaximos = Catalogo.ProdutoDaPlataforma.CodigosNaPlacaMaximos * (Placas.Destino.TamanhoMaximo + 1);
+
+    /// <summary>Os destinos de cada QR, um por linha, na ordem da venda: a operadora monta a arte por eles.</summary>
+    public string? DestinosDaPlaca { get; private set; }
+
     private OrdemDeServico() => Produto = Cliente = string.Empty;
 
     /// <summary>O revendedor vai explícito: o pagamento pode chegar pelo contexto da operadora.</summary>
@@ -49,6 +63,14 @@ public sealed class OrdemDeServico : IAtendidoPelaOperadora
         Cliente = cliente;
         CriadaEm = agora;
     }
+
+    public void SerPlacaPersonalizada(IReadOnlyList<string> destinos)
+    {
+        CodigosNaPlaca = destinos.Count > 0 ? destinos.Count : throw new InvalidOperationException("Placa personalizada sem destinos.");
+        DestinosDaPlaca = string.Join('\n', destinos);
+    }
+
+    public void LigarLote(Guid loteId) => LoteId = LoteId is null ? loteId : throw new RegraDeNegocioException("Códigos da placa já gerados.");
 
     public void Iniciar(DateTimeOffset agora)
     {

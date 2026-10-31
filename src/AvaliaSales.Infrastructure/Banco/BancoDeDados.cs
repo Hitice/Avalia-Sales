@@ -47,6 +47,7 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
     public DbSet<Vendedor> Vendedores => Set<Vendedor>();
     public DbSet<Cliente> Clientes => Set<Cliente>();
     public DbSet<Venda> Vendas => Set<Venda>();
+    public DbSet<DestinoDaVenda> DestinosDaVenda => Set<DestinoDaVenda>();
     public DbSet<EmailNaFila> Emails => Set<EmailNaFila>();
     public DbSet<Sessao> Sessoes => Set<Sessao>();
     public DbSet<LinkDeSenha> LinksDeSenha => Set<LinkDeSenha>();
@@ -240,6 +241,7 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
             p.Ignore(x => x.UsaPlaca);
             p.Ignore(x => x.GeraServico);
             p.Ignore(x => x.AVenda);
+            p.Ignore(x => x.Personalizada);
         });
 
         modelo.Entity<Domain.Servicos.OrdemDeServico>(o =>
@@ -257,6 +259,8 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
             o.HasOne<ProdutoDaPlataforma>().WithMany().HasForeignKey(x => x.ProdutoDaPlataformaId).OnDelete(DeleteBehavior.Restrict);
             o.HasIndex(x => x.VendaId).IsUnique();
             o.HasIndex(x => new { x.Situacao, x.CriadaEm });
+            o.HasOne<Lote>().WithMany().HasForeignKey(x => x.LoteId).OnDelete(DeleteBehavior.Restrict);
+            o.Property(x => x.DestinosDaPlaca).HasMaxLength(Domain.Servicos.OrdemDeServico.DestinosMaximos);
         });
 
         modelo.Entity<Domain.Notificacoes.Notificacao>(n =>
@@ -672,6 +676,8 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
             p.HasIndex(x => new { x.RevendedorId, x.ConsignadaA });
             p.HasOne<Revendedor>().WithMany().HasForeignKey(x => x.RevendedorId).OnDelete(DeleteBehavior.Restrict);
             p.HasOne<PlacaEmitida>().WithOne().HasForeignKey<Placa>(x => x.Codigo).OnDelete(DeleteBehavior.Restrict);
+            p.HasOne<Placa>().WithMany().HasForeignKey(x => x.PlacaPrincipalId).OnDelete(DeleteBehavior.Restrict);
+            p.HasIndex(x => x.PlacaPrincipalId).HasFilter("placa_principal_id is not null");
         });
 
         modelo.Entity<LeituraDoDia>(l =>
@@ -731,6 +737,15 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
             v.HasIndex(x => x.PlacaId).IsUnique().HasFilter("situacao = 'Registrada'");
             v.HasIndex(x => new { x.RevendedorId, x.VendedorId, x.VendidaEm });
             v.HasOne<Repasse>().WithMany().HasForeignKey(x => x.RepasseId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelo.Entity<DestinoDaVenda>(d =>
+        {
+            d.ToTable("destinos_da_venda");
+            d.Property(x => x.Destino).HasMaxLength(Destino.TamanhoMaximo).IsRequired();
+            d.HasOne<Revendedor>().WithMany().HasForeignKey(x => x.RevendedorId).OnDelete(DeleteBehavior.Restrict);
+            d.HasOne<Venda>().WithMany().HasForeignKey(x => x.VendaId).OnDelete(DeleteBehavior.Restrict);
+            d.HasIndex(x => new { x.RevendedorId, x.VendaId, x.Posicao }).IsUnique();
         });
     }
 

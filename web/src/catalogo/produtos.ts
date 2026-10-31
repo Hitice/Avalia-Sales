@@ -21,3 +21,6 @@ export const useAtivarProduto = () =>
 
 /** Leva placa do estoque na venda: a Nova venda passa pelo QR. */
 export const usaPlaca = (p: ItemDoCatalogo) => p.tipo === 'Placa' || p.tipo === 'PlacaComServico'
+
+/** A placa personalizada: serviço com um destino por QR, feita depois da venda (ADR 0032). */
+export const personalizada = (p: ItemDoCatalogo) => p.tipo === 'Servico' && (p.codigosNaPlaca ?? 0) > 0

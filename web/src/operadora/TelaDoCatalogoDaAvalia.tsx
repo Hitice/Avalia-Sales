@@ -74,7 +74,7 @@ export function TelaDoCatalogoDaAvalia() {
               : <div aria-hidden className="flex aspect-4/3 items-center justify-center bg-muted text-muted-foreground"><ImageOff className="size-8" /></div>}
             <CardContent className="grid gap-3">
               <div>
-                <p className="text-xs text-muted-foreground">{ROTULO_DO_TIPO[p.tipo]}, ordem {p.ordem}</p>
+                <p className="text-xs text-muted-foreground">{p.codigosNaPlaca > 0 ? `Placa personalizada com ${p.codigosNaPlaca} QR` : ROTULO_DO_TIPO[p.tipo]}, ordem {p.ordem}</p>
                 <h2 className="text-lg font-semibold">{p.nome}</h2>
                 <p className="text-sm tabular-nums">Sugerido {formatarCentavos(p.precoSugeridoCents)}{p.quantidadeMinima > 1 ? `, mínimo ${p.quantidadeMinima}` : ''}</p>
                 {p.tipo !== 'Placa' && (
@@ -114,12 +114,16 @@ function FormularioDoProduto({ produto, aoFechar, aoSalvar }: { produto: Produto
   const [desconto, setDesconto] = useState(formatarBps(produto?.descontoDaRevendaBps ?? 2_000).replaceAll('%', ''))
   // Pedido mínimo só do serviço vendido por quantidade (kit mesa, placa de cardápio); placa sai uma por código.
   const [minimo, setMinimo] = useState(String(produto?.quantidadeMinima ?? 1))
-  const minimoValido = tipo !== 'Servico' || Number(minimo) >= 1
+  // Placa personalizada: serviço feito sob encomenda com um QR por destino informado na venda (ADR 0032).
+  const [qr, setQr] = useState(String(produto?.codigosNaPlaca ?? 0))
+  const comQr = tipo === 'Servico' && Number(qr) > 0
+  const minimoValido = tipo !== 'Servico' || (comQr ? Number(minimo) === 1 : Number(minimo) >= 1)
   const gravar = useMutation({ meta: { sucesso: 'Produto salvo.' },
     mutationFn: () => {
       const corpo = {
         chave, nome, descricao, tipo, precoSugeridoCents: paraCentavos(preco), ordem: Number(ordem) || 0, descontoDaRevendaBps: paraBps(desconto),
         quantidadeMinima: tipo === 'Servico' ? Number(minimo) : 1,
+        codigosNaPlaca: tipo === 'Servico' ? Number(qr) : 0,
       }
       return produto ? chamarApi(`/operadora/catalogo/${produto.id}`, enviarJson('PUT', corpo)) : chamarApi('/operadora/catalogo', enviarJson('POST', corpo))
     },
@@ -177,10 +181,22 @@ function FormularioDoProduto({ produto, aoFechar, aoSalvar }: { produto: Produto
             )}
           </div>
           {tipo === 'Servico' && (
-            <Field>
-              <FieldLabel htmlFor="minimo">Pedido mínimo (unidades)</FieldLabel>
-              <Input id="minimo" inputMode="numeric" className="sm:w-32" aria-invalid={!minimoValido} value={minimo} onChange={(e) => setMinimo(e.target.value.replace(/\D/g, ''))} />
-            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field>
+                <FieldLabel htmlFor="minimo">Pedido mínimo (unidades)</FieldLabel>
+                <Input id="minimo" inputMode="numeric" aria-invalid={!minimoValido} value={minimo} onChange={(e) => setMinimo(e.target.value.replace(/\D/g, ''))} />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="qr-da-placa">QR na placa</FieldLabel>
+                <Select value={qr} onValueChange={(v) => { setQr(v); if (Number(v) > 0) setMinimo('1') }}>
+                  <SelectTrigger id="qr-da-placa" className="w-full"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">Nenhum</SelectItem>
+                    {[1, 2, 3, 4].map((n) => <SelectItem key={n} value={String(n)}>{n}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </Field>
+            </div>
           )}
         </form>
         <DialogFooter>

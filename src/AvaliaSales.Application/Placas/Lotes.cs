@@ -81,7 +81,7 @@ public sealed class Lotes(IBancoDeDados banco, TimeProvider relogio)
         var lote = new Lote(numero, pedido.Quantidade, relogio.GetUtcNow(), pedido.Titulo, pedido.Categoria);
         var sequencia = await banco.PlacasEmitidas.MaxAsync(p => (long?)p.Sequencia, ct) ?? 0;
 
-        foreach (var codigo in await SortearLivres(pedido.Quantidade, ct))
+        foreach (var codigo in await SortearLivres(banco, pedido.Quantidade, ct))
         {
             banco.PlacasEmitidas.Add(new PlacaEmitida(codigo, ++sequencia, lote.Id));
         }
@@ -164,7 +164,8 @@ public sealed class Lotes(IBancoDeDados banco, TimeProvider relogio)
     }
 
     /// <summary>Códigos que ainda não existem. A chave primária é a última palavra; isto evita a colisão antes dela.</summary>
-    private async Task<IReadOnlyList<string>> SortearLivres(int quantidade, CancellationToken ct)
+    /// <summary>Códigos que nunca saíram nem estão reservados; quem chama segura a trava da geração de lotes.</summary>
+    internal static async Task<IReadOnlyList<string>> SortearLivres(IBancoDeDados banco, int quantidade, CancellationToken ct)
     {
         var escolhidos = new HashSet<string>(StringComparer.Ordinal);
         for (var rodada = 0; rodada < RodadasDeSorteio && escolhidos.Count < quantidade; rodada++)

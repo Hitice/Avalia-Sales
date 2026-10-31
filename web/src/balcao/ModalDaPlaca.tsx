@@ -16,7 +16,10 @@ import { destinoPronto } from './destino'
 import { EscolhaDeDestino } from './EscolhaDeDestino'
 import { LeitorDeQr } from './LeitorDeQr'
 
-const DESTINO_VAZIO: DestinoInformado = { tipo: 'Google', lugarNoGoogle: null, link: null }
+export const DESTINO_VAZIO: DestinoInformado = { tipo: 'Google', lugarNoGoogle: null, link: null }
+
+/** Folha de baixo no celular, centro no computador: a mesma das duas folhas da Nova venda. */
+export const FOLHA_DA_VENDA = 'top-auto bottom-0 left-0 altura-da-folha max-w-full translate-x-0 translate-y-0 overflow-y-auto rounded-b-none area-segura-baixo-4 max-sm:border-x-0 max-sm:border-b-0 max-sm:data-open:slide-in-from-bottom-8 max-sm:data-closed:slide-out-to-bottom-8 sm:top-1/2 sm:bottom-auto sm:left-1/2 sm:altura-da-folha sm:max-w-md sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-xl sm:pb-4'
 
 /**
  * A placa entra na venda por aqui: ler o QR (ou digitar o código), conferir
@@ -51,7 +54,7 @@ export function ModalDaPlaca({ item, opcoes, codigoInicial = '', codigosNaVenda,
 
   return (
     <Dialog open onOpenChange={(aberto) => !aberto && aoFechar()}>
-      <DialogContent className="top-auto bottom-0 left-0 altura-da-folha max-w-full translate-x-0 translate-y-0 overflow-y-auto rounded-b-none area-segura-baixo-4 max-sm:border-x-0 max-sm:border-b-0 max-sm:data-open:slide-in-from-bottom-8 max-sm:data-closed:slide-out-to-bottom-8 sm:top-1/2 sm:bottom-auto sm:left-1/2 sm:altura-da-folha sm:max-w-md sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-xl sm:pb-4">
+      <DialogContent className={FOLHA_DA_VENDA}>
         <DialogHeader>
           <DialogTitle>{produto.nome}</DialogTitle>
           <DialogDescription>{formatarCentavos(produto.precoCents)} por placa. Leia o QR e diga para onde ela leva.</DialogDescription>

@@ -7,7 +7,7 @@ import { type LinhaDaVenda, comQuantidade, comValor, linhaDePlaca, linhaDeServic
 
 const PLACA: ItemDoCatalogo = {
   id: 'p1', chave: 'placa', nome: 'Placa de avaliação', descricao: '', tipo: 'Placa', situacao: 'Disponivel', fotoUrl: null,
-  precoSugeridoCents: 14990, precoCents: 14990, comissaoBps: null, pisoCents: 1, ativo: true, quantidadeMinima: 1,
+  precoSugeridoCents: 14990, precoCents: 14990, comissaoBps: null, pisoCents: 1, ativo: true, quantidadeMinima: 1, codigosNaPlaca: 0,
 }
 const KIT_MESA: ItemDoCatalogo = { ...PLACA, id: 's1', chave: 'kit-mesa', nome: 'Kit Mesa', tipo: 'Servico', precoCents: 1990, precoSugeridoCents: 1990, quantidadeMinima: 10 }
 const CARDAPIO: ItemDoCatalogo = { ...PLACA, id: 's2', chave: 'cardapio', nome: 'Cardápio digital', tipo: 'Servico', precoCents: 9900, precoSugeridoCents: 9900 }

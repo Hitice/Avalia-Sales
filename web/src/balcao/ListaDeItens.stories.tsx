@@ -7,7 +7,7 @@ import { itensParaVender } from './itens'
 
 const BASE: ItemDoCatalogo = {
   id: 'p1', chave: 'placa', nome: 'Placa de avaliação', descricao: '', tipo: 'Placa', situacao: 'Disponivel', fotoUrl: null,
-  precoSugeridoCents: 14990, precoCents: 14990, comissaoBps: null, pisoCents: 1, ativo: true, quantidadeMinima: 1,
+  precoSugeridoCents: 14990, precoCents: 14990, comissaoBps: null, pisoCents: 1, ativo: true, quantidadeMinima: 1, codigosNaPlaca: 0,
 }
 const CATALOGO: ItemDoCatalogo[] = [
   { ...BASE, id: 's1', chave: 'kit-mesa', nome: 'Kit Mesa', tipo: 'Servico', precoCents: 1990, quantidadeMinima: 10 },

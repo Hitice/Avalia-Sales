@@ -401,6 +401,10 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .HasColumnType("character varying(60)")
                         .HasColumnName("chave");
 
+                    b.Property<int>("CodigosNaPlaca")
+                        .HasColumnType("integer")
+                        .HasColumnName("codigos_na_placa");
+
                     b.Property<DateTimeOffset>("CriadoEm")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("criado_em");
@@ -2040,6 +2044,10 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .HasColumnType("character varying(20)")
                         .HasColumnName("motivo_da_baixa");
 
+                    b.Property<Guid?>("PlacaPrincipalId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("placa_principal_id");
+
                     b.Property<Guid>("RevendedorId")
                         .HasColumnType("uuid")
                         .HasColumnName("revendedor_id");
@@ -2096,6 +2104,10 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                     b.HasIndex("Codigo")
                         .IsUnique()
                         .HasDatabaseName("ix_placas_codigo");
+
+                    b.HasIndex("PlacaPrincipalId")
+                        .HasDatabaseName("ix_placas_placa_principal_id")
+                        .HasFilter("placa_principal_id is not null");
 
                     b.HasIndex("RevendedorId", "ConsignadaA")
                         .HasDatabaseName("ix_placas_revendedor_id_consignada_a");
@@ -2376,9 +2388,18 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .HasColumnType("character varying(160)")
                         .HasColumnName("cliente");
 
+                    b.Property<int>("CodigosNaPlaca")
+                        .HasColumnType("integer")
+                        .HasColumnName("codigos_na_placa");
+
                     b.Property<DateTimeOffset>("CriadaEm")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("criada_em");
+
+                    b.Property<string>("DestinosDaPlaca")
+                        .HasMaxLength(4004)
+                        .HasColumnType("character varying(4004)")
+                        .HasColumnName("destinos_da_placa");
 
                     b.Property<DateTimeOffset?>("EntregueEm")
                         .HasColumnType("timestamp with time zone")
@@ -2387,6 +2408,10 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                     b.Property<DateTimeOffset?>("IniciadaEm")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("iniciada_em");
+
+                    b.Property<Guid?>("LoteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("lote_id");
 
                     b.Property<long>("Numero")
                         .ValueGeneratedOnAdd()
@@ -2430,6 +2455,9 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_ordens_de_servico");
+
+                    b.HasIndex("LoteId")
+                        .HasDatabaseName("ix_ordens_de_servico_lote_id");
 
                     b.HasIndex("Numero")
                         .IsUnique()
@@ -2514,6 +2542,44 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .HasDatabaseName("ix_clientes_revendedor_id_telefone");
 
                     b.ToTable("clientes", (string)null);
+                });
+
+            modelBuilder.Entity("AvaliaSales.Domain.Vendas.DestinoDaVenda", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Destino")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("destino");
+
+                    b.Property<int>("Posicao")
+                        .HasColumnType("integer")
+                        .HasColumnName("posicao");
+
+                    b.Property<Guid>("RevendedorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("revendedor_id");
+
+                    b.Property<Guid>("VendaId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("venda_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_destinos_da_venda");
+
+                    b.HasIndex("VendaId")
+                        .HasDatabaseName("ix_destinos_da_venda_venda_id");
+
+                    b.HasIndex("RevendedorId", "VendaId", "Posicao")
+                        .IsUnique()
+                        .HasDatabaseName("ix_destinos_da_venda_revendedor_id_venda_id_posicao");
+
+                    b.ToTable("destinos_da_venda", (string)null);
                 });
 
             modelBuilder.Entity("AvaliaSales.Domain.Vendas.Venda", b =>
@@ -3608,6 +3674,12 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .IsRequired()
                         .HasConstraintName("fk_placas_placas_emitidas_codigo");
 
+                    b.HasOne("AvaliaSales.Domain.Placas.Placa", null)
+                        .WithMany()
+                        .HasForeignKey("PlacaPrincipalId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_placas_placas_placa_principal_id");
+
                     b.HasOne("AvaliaSales.Domain.Revendedores.Revendedor", null)
                         .WithMany()
                         .HasForeignKey("RevendedorId")
@@ -3731,6 +3803,12 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
 
             modelBuilder.Entity("AvaliaSales.Domain.Servicos.OrdemDeServico", b =>
                 {
+                    b.HasOne("AvaliaSales.Domain.Placas.Lote", null)
+                        .WithMany()
+                        .HasForeignKey("LoteId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_ordens_de_servico_lotes_lote_id");
+
                     b.HasOne("AvaliaSales.Domain.Catalogo.ProdutoDaPlataforma", null)
                         .WithMany()
                         .HasForeignKey("ProdutoDaPlataformaId")
@@ -3761,6 +3839,23 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_clientes_revendedores_revendedor_id");
+                });
+
+            modelBuilder.Entity("AvaliaSales.Domain.Vendas.DestinoDaVenda", b =>
+                {
+                    b.HasOne("AvaliaSales.Domain.Revendedores.Revendedor", null)
+                        .WithMany()
+                        .HasForeignKey("RevendedorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_destinos_da_venda_revendedores_revendedor_id");
+
+                    b.HasOne("AvaliaSales.Domain.Vendas.Venda", null)
+                        .WithMany()
+                        .HasForeignKey("VendaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_destinos_da_venda_vendas_venda_id");
                 });
 
             modelBuilder.Entity("AvaliaSales.Domain.Vendas.Venda", b =>

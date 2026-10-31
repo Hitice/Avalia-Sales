@@ -1525,6 +1525,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/operadora/servicos/{id}/codigos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CodigosDaPlaca"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/operadora/servicos/{id}/reabrir": {
         parameters: {
             query?: never;
@@ -8244,6 +8281,11 @@ export interface components {
         CodigoDoAutenticador: {
             codigo: null | string;
         };
+        /** @description Os códigos gerados, na ordem dos destinos da venda: o primeiro é o principal. */
+        CodigosDaPlaca: {
+            lote: string;
+            codigos: string[];
+        };
         /** @description CobrancaIds - os recebimentos conferidos; nulo ou vazio confere todos os pendentes. */
         ConferirRecebimentos: {
             cobrancaIds: null | string[];
@@ -8660,7 +8702,10 @@ export interface components {
             /** Format: int64 */
             precoCents: number;
         };
-        /** @description Sem desconto ou pedido mínimo informado, o produto novo nasce com o padrão e o que existe mantém o dele. */
+        /**
+         * @description Sem desconto, pedido mínimo ou QR informado, o produto novo nasce com o padrão e o que existe mantém o dele.
+         *     CodigosNaPlaca acima de zero faz do serviço a placa personalizada (ADR 0032).
+         */
         GravarProdutoDaPlataforma: {
             chave: string;
             nome: string;
@@ -8674,11 +8719,16 @@ export interface components {
             descontoDaRevendaBps?: null | number;
             /** Format: int32 */
             quantidadeMinima?: null | number;
+            /** Format: int32 */
+            codigosNaPlaca?: null | number;
         };
         IntegracaoDoErp: {
             ligada: boolean;
         };
-        /** @description Uma linha da venda feita junto com outras: placa pelo código, com o destino, ou serviço pela quantidade. */
+        /**
+         * @description Uma linha da venda feita junto com outras: placa pelo código, com o destino, ou serviço pela quantidade. A placa
+         *     personalizada leva um destino por QR em Destinos, sem código: ela é feita depois (ADR 0032).
+         */
         ItemDaVenda: {
             /** Format: uuid */
             produtoId: string;
@@ -8691,6 +8741,7 @@ export interface components {
              * @default 1
              */
             quantidade: number;
+            destinos?: null | components["schemas"]["DestinoInformado"][];
         };
         /**
          * @description Um produto como a revenda vê: o do catálogo da Avalia com o preço dela.
@@ -8720,6 +8771,11 @@ export interface components {
              * @default 1
              */
             quantidadeMinima: number;
+            /**
+             * Format: int32
+             * @default 0
+             */
+            codigosNaPlaca: number;
         };
         ItemDoGrupo: {
             /** Format: uuid */
@@ -9123,6 +9179,10 @@ export interface components {
             /** Format: date-time */
             entregueEm: null | string;
         };
+        /**
+         * @description Personalizada - a placa personalizada, que precisa dos códigos; Destinos - o de cada
+         *             QR, na ordem; LoteId - o lote dos códigos, para baixar o QR.
+         */
         OrdemDto: {
             /** Format: uuid */
             id: string;
@@ -9144,6 +9204,11 @@ export interface components {
              * @default 1
              */
             quantidade: number;
+            /** @default false */
+            personalizada: boolean;
+            /** Format: uuid */
+            loteId?: null | string;
+            destinos?: null | string[];
         };
         PacoteDto: {
             /** Format: uuid */
@@ -9612,6 +9677,11 @@ export interface components {
             parteDaAvaliaCents: number;
             /** Format: int32 */
             quantidadeMinima: number;
+            /**
+             * Format: int32
+             * @default 0
+             */
+            codigosNaPlaca: number;
         };
         ReabrirMes: {
             motivo: string;

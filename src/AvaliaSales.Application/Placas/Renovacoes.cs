@@ -88,8 +88,8 @@ public sealed class Renovacoes(IBancoDeDados banco, IUsuarioAtual usuario, Cobra
     public async Task DesfazerRecebimento(string codigo, CancellationToken ct)
     {
         var normalizado = CodigoDaPlaca.Normalizar(codigo);
-        var placa = await banco.Placas.SingleOrDefaultAsync(p => p.Codigo == normalizado, ct)
-            ?? throw new RegraDeNegocioException("Código não encontrado.");
+        var placa = await Principal(await banco.Placas.SingleOrDefaultAsync(p => p.Codigo == normalizado, ct)
+            ?? throw new RegraDeNegocioException("Código não encontrado."), ct);
         var renovacao = await banco.Renovacoes.Where(r => r.PlacaId == placa.Id && r.Situacao == SituacaoDaRenovacao.Paga)
             .OrderByDescending(r => r.PagaEm).FirstOrDefaultAsync(ct) ?? throw new RegraDeNegocioException("Placa sem renovação paga.");
         var cobranca = await banco.Cobrancas
@@ -102,6 +102,11 @@ public sealed class Renovacoes(IBancoDeDados banco, IUsuarioAtual usuario, Cobra
 
         var antes = Vencimento(placa);
         renovacao.Desfazer(placa);
+        await foreach (var adicional in banco.Placas.Where(p => p.PlacaPrincipalId == placa.Id && p.VendaId == placa.VendaId).AsAsyncEnumerable().WithCancellation(ct))
+        {
+            adicional.AcompanharVencimento(placa);
+        }
+
         await cobrancas.DesfazerPorFora(cobranca, ct);
         auditoria.Registrar(AcaoAuditada.RenovacaoDesfeita, $"Placa {placa.Codigo}", placa.Codigo, antes, Vencimento(placa));
         await banco.SaveChangesAsync(ct);
@@ -122,8 +127,8 @@ public sealed class Renovacoes(IBancoDeDados banco, IUsuarioAtual usuario, Cobra
     private async Task<(Placa Placa, Guid ClienteId, Renovacao Renovacao)> AbrirRenovacao(string codigo, CancellationToken ct)
     {
         var normalizado = CodigoDaPlaca.Normalizar(codigo);
-        var placa = await banco.Placas.SingleOrDefaultAsync(p => p.Codigo == normalizado, ct)
-            ?? throw new RegraDeNegocioException("Código não encontrado.");
+        var placa = await Principal(await banco.Placas.SingleOrDefaultAsync(p => p.Codigo == normalizado, ct)
+            ?? throw new RegraDeNegocioException("Código não encontrado."), ct);
         var venda = placa.VendaId is { } vendaId && placa.TransferidaEm is null ? await banco.Vendas.SingleAsync(v => v.Id == vendaId, ct) : null;
         var (clienteId, valorDaVenda, vendedor) = venda is not null
             ? (venda.ClienteId, await BaseDaRenovacao(venda, ct), (Guid?)venda.VendedorId)
@@ -137,6 +142,12 @@ public sealed class Renovacoes(IBancoDeDados banco, IUsuarioAtual usuario, Cobra
             throw new RegraDeNegocioException("Só o revendedor renova a placa.");
         }
 
+        // A placa personalizada conta os 12 meses da entrega: antes dela, não há ano a renovar.
+        if (venda is not null && await banco.OrdensDeServico.AnyAsync(o => o.VendaId == venda.Id && o.CodigosNaPlaca > 0 && o.EntregueEm == null, ct))
+        {
+            throw new RegraDeNegocioException("Placa personalizada ainda não entregue. Renove depois da entrega.");
+        }
+
         var renovacao = await banco.Renovacoes.SingleOrDefaultAsync(r => r.PlacaId == placa.Id && r.Situacao == SituacaoDaRenovacao.Aberta, ct);
         if (renovacao is null)
         {
@@ -148,6 +159,10 @@ public sealed class Renovacoes(IBancoDeDados banco, IUsuarioAtual usuario, Cobra
 
         return (placa, clienteId, renovacao);
     }
+
+    /// <summary>O código adicional da placa personalizada renova pelo principal: uma renovação estende a placa inteira.</summary>
+    private async Task<Placa> Principal(Placa placa, CancellationToken ct) =>
+        placa.PlacaPrincipalId is { } principal ? await banco.Placas.SingleAsync(p => p.Id == principal, ct) : placa;
 
     /// <summary>
     /// O valor sobre o qual o percentual da renovação incide: o da venda; na cortesia e na
