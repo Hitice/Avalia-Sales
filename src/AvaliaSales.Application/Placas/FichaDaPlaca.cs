@@ -26,7 +26,7 @@ public sealed record FichaDto(string Codigo, string Endereco, long Sequencia, Es
 /// mexe em qualquer placa; o vendedor, só nas que vendeu.
 /// </summary>
 public sealed class FichaDaPlaca(IBancoDeDados banco, IUsuarioAtual usuario, IRevendedorAtual atual, IContas contas, Clientes.PrivacidadeDoCliente privacidade, Auditoria.Auditoria auditoria, IOptions<OpcoesDaPlataforma> plataforma, TimeProvider relogio,
-    Revendedores.LimiteDeDestinos limiteDeDestinos, Links.DestinosBloqueados destinosBloqueados)
+    Revendedores.LimiteDeDestinos limiteDeDestinos, Links.DestinosBloqueados destinosBloqueados, ResolvedorDeDestino resolvedorDeDestino)
 {
     public const int DiasDeLeitura = 30;
 
@@ -95,7 +95,7 @@ public sealed class FichaDaPlaca(IBancoDeDados banco, IUsuarioAtual usuario, IRe
         var placa = await Achar(codigo, ct);
         await ExigirQuePodeMexer(placa, ct);
         var antes = placa.Destino;
-        var novo = destino.Resolver(plataforma.Value.HostPublico);
+        var novo = await resolvedorDeDestino.Resolver(destino, ct);
         if (novo != antes)
         {
             // Antes da transação: a consulta ao Web Risk não segura a trava dos destinos da revenda.

@@ -240,7 +240,10 @@ maiúscula ("otica" acha "Ótica").
 - Destino do QR - avaliação no Google (lugar buscado no Places ou link colado
   do Perfil da Empresa; o link colado vence a busca) ou link livre do cliente.
   Só http e https, com domínio, até 1.000 caracteres, e nunca o endereço de
-  outra placa ou de outro link da plataforma.
+  outra placa ou de outro link da plataforma. Link curto `/l/` da própria
+  revenda pode ser colado: o sistema usa o destino final do link, desde que
+  ativo, e confere esse destino pelas mesmas regras; não cria redirecionamento
+  em cadeia.
 - Limite diário de destinos - cada revenda cadastra até 10 destinos novos por
   dia (Brasília): placa vendida com destino, destino trocado, link curto criado
   ou alterado. Passando disso, o dono usa Solicitar liberação, que abre um
@@ -929,6 +932,7 @@ As mudanças de 21 a 24/10/2026 estão em [historico/pdd-ate-24-10.md](historico
 
 | Data | Mudança |
 | --- | --- |
+| 03/11/2026 | Destino - link curto `/l/` da própria revenda pode ser informado em placa ou link; o sistema resolve para o destino final, exige link ativo e aplica as validações de domínio bloqueado e reputação, sem criar redirecionamento em cadeia. |
 | 31/10/2026 | Placa personalizada - serviço do catálogo com 1 a 4 QR, vendido com um destino por QR e sem teste gratuito; a operadora gera os códigos na ordem, baixa o QR e entrega, e os 12 meses contam da entrega; uma renovação e um aviso por placa; o cancelamento tira todos os códigos do ar sem voltar ao estoque, e a troca de código não vale (ADR 0032). |
 | 31/10/2026 | Pedido avulso - recusa revenda suspensa ou em encerramento e valor que não divide pela quantidade; a operadora cancela o pedido antes do pagamento, e a revenda é avisada. Avisos com "1 placa" no singular e limites escritos como "1.000". |
 | 30/10/2026 | Pedido avulso - a operadora abre em Pedidos um pedido fora dos pacotes, para uma revenda, com quantidade de 1 a 1.000 e valor livre (zero nasce pago), com o segundo fator; despacho e ativação iguais. A placa com dois QR vende em duas linhas da mesma venda. |

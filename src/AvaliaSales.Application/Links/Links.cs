@@ -22,7 +22,7 @@ public sealed record LeituraDoLink(string? Destino, bool Ativo);
 /// reaproveita o link do negócio; a tela Links cria o do negócio sem placa.
 /// </summary>
 public sealed class Links(IBancoDeDados banco, IRevendedorAtual atual, IUsuarioAtual usuario, Auditoria.Auditoria auditoria, IOptions<OpcoesDaPlataforma> plataforma, TimeProvider relogio,
-    Revendedores.LimiteDeDestinos limiteDeDestinos, DestinosBloqueados destinosBloqueados)
+    Revendedores.LimiteDeDestinos limiteDeDestinos, DestinosBloqueados destinosBloqueados, ResolvedorDeDestino resolvedorDeDestino)
 {
     /// <summary>Sorteios antes de desistir; com 32^6 códigos, chegar aqui é defeito, e não azar.</summary>
     private const int Sorteios = 20;
@@ -63,7 +63,7 @@ public sealed class Links(IBancoDeDados banco, IRevendedorAtual atual, IUsuarioA
 
     public async Task<LinkDto> Criar(GravarLink comando, CancellationToken ct)
     {
-        var destino = (comando.Destino ?? throw new RegraDeNegocioException("Escolha para onde o link leva.")).Resolver(plataforma.Value.HostPublico);
+        var destino = await resolvedorDeDestino.Resolver(comando.Destino ?? throw new RegraDeNegocioException("Escolha para onde o link leva."), ct);
         // Antes da transação: a consulta ao Web Risk não segura a trava dos destinos da revenda.
         await destinosBloqueados.ExigirPermitido(destino, ct);
         await using var transacao = await banco.Database.BeginTransactionAsync(ct);
@@ -87,7 +87,7 @@ public sealed class Links(IBancoDeDados banco, IRevendedorAtual atual, IUsuarioA
     public async Task<LinkDto> Alterar(Guid id, GravarLink comando, CancellationToken ct)
     {
         var link = await Achar(id, ct);
-        var destino = (comando.Destino ?? throw new RegraDeNegocioException("Escolha para onde o link leva.")).Resolver(plataforma.Value.HostPublico);
+        var destino = await resolvedorDeDestino.Resolver(comando.Destino ?? throw new RegraDeNegocioException("Escolha para onde o link leva."), ct);
         if (link.Destino != destino)
         {
             await destinosBloqueados.ExigirPermitido(destino, ct);

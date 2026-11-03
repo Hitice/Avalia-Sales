@@ -25,6 +25,7 @@ public static class InjecaoDeDependencias
         servicos.AddScoped<Lotes>();
         servicos.AddScoped<Estoque>();
         servicos.AddScoped<FichaDaPlaca>();
+        servicos.AddScoped<Placas.ResolvedorDeDestino>();
         servicos.AddScoped<Leituras>();
         servicos.AddScoped<Equipe.Equipe>();
         servicos.AddScoped<Vendas.Vendas>();

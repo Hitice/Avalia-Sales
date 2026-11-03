@@ -141,7 +141,8 @@ public sealed class Vendas(
     Clientes.PrivacidadeDoCliente privacidade,
     Financeiro.RecebimentosPorFora porFora,
     Revendedores.LimiteDeDestinos limiteDeDestinos,
-    Links.DestinosBloqueados destinosBloqueados)
+    Links.DestinosBloqueados destinosBloqueados,
+    ResolvedorDeDestino resolvedorDeDestino)
 {
     public const int ItensMaximos = 20;
 
@@ -219,7 +220,13 @@ public sealed class Vendas(
                         throw new RegraDeNegocioException($"{doCatalogo.Nome}: informe os {doCatalogo.CodigosNaPlaca} destinos da placa.");
                     }
 
-                    daPersonalizada[linhas.Count] = informados.Select(d => d.Resolver(plataforma.Value.HostPublico)).ToList();
+                    var destinos = new List<string>(informados.Count);
+                    foreach (var informado in informados)
+                    {
+                        destinos.Add(await resolvedorDeDestino.Resolver(informado, ct));
+                    }
+
+                    daPersonalizada[linhas.Count] = destinos;
                 }
 
                 if (item.Quantidade < doCatalogo.QuantidadeMinima)
@@ -236,7 +243,7 @@ public sealed class Vendas(
                 throw new RegraDeNegocioException("Placa vende uma por código. Leia cada QR.");
             }
 
-            var destino = (item.Destino ?? throw new RegraDeNegocioException("Informe para onde a placa leva.")).Resolver(plataforma.Value.HostPublico);
+            var destino = await resolvedorDeDestino.Resolver(item.Destino ?? throw new RegraDeNegocioException("Informe para onde a placa leva."), ct);
             linhas.Add((item, produto, doCatalogo, destino));
         }
 
