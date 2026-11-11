@@ -343,9 +343,9 @@ public sealed class Cobrancas(IBancoDeDados banco, IGatewayDePagamento gateway, 
     /// <summary>Recusa do Pagar.me é resposta para quem cancela, não falha do sistema: nada foi gravado, a venda segue paga.</summary>
     /// <summary>
     /// O Pagar.me recusou cancelar: a cobrança é reconsultada. Já cancelada, vencida ou estornada lá, vale o
-    /// que ele diz e não há mais nada a cancelar. Pix pendente com o QR vencido não pode mais ser pago (o
-    /// Pagar.me não cancela Pix vencido), então a cobrança se cancela aqui; se o pagamento ainda chegar, o
-    /// webhook o trata como pago depois de cancelada. Paga lá, recusa: a venda já está paga.
+    /// que ele diz e não há mais nada a cancelar. Pix pendente que não pode mais ser pago (QR vencido, ou sem
+    /// vencimento e criado há mais de um dia) se cancela aqui; se o pagamento ainda chegar, o webhook o trata
+    /// como pago depois de cancelada. Paga lá, recusa: a venda já está paga.
     /// </summary>
     private async Task<bool> FechadaApesarDaRecusa(Cobranca cobranca, CancellationToken ct)
     {
@@ -366,7 +366,7 @@ public sealed class Cobrancas(IBancoDeDados banco, IGatewayDePagamento gateway, 
         }
 
         var agora = relogio.GetUtcNow();
-        if (cobranca.Situacao == SituacaoDaCobranca.Pendente && cobranca.PixExpiraEm is { } expira && expira < agora
+        if (cobranca.Situacao == SituacaoDaCobranca.Pendente && cobranca.Meio == MeioDePagamento.Pix && PixVencido(cobranca, agora)
             && cobranca.Atualizar(SituacaoDaCobranca.Cancelada, null))
         {
             await efeitos.Aplicar(cobranca, agora, ct);
@@ -375,6 +375,16 @@ public sealed class Cobrancas(IBancoDeDados banco, IGatewayDePagamento gateway, 
 
         return false;
     }
+
+    /// <summary>A validade mais longa que o Pix pode ter (OpcoesPagarme.ValidadeDoPixEmMinutos vai até 1.440).</summary>
+    public static readonly TimeSpan ValidadeMaximaDoPix = TimeSpan.FromDays(1);
+
+    /// <summary>
+    /// O QR não pode mais ser pago: venceu, ou não tem vencimento registrado (o Pix não chegou a ser gerado, ou a
+    /// resposta se perdeu) e foi criado há mais que a validade mais longa possível.
+    /// </summary>
+    private static bool PixVencido(Cobranca cobranca, DateTimeOffset agora) =>
+        cobranca.PixExpiraEm is { } expira ? expira < agora : cobranca.CriadaEm + ValidadeMaximaDoPix < agora;
 
     private static RegraDeNegocioException Recusa(IntegracaoException recusa) =>
         new(recusa.Message.Contains("Saldo insuficiente", StringComparison.OrdinalIgnoreCase)

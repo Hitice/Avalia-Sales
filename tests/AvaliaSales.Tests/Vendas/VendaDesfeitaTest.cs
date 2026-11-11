@@ -202,6 +202,35 @@ public sealed class VendaDesfeitaTest(ApiDeTeste api)
         Assert.Equal("OutroPix", lida.GetProperty("pagoPor").GetString());
     }
 
+    [Fact]
+    public async Task Pix_sem_QR_criado_ha_mais_de_um_dia_se_cancela_aqui_quando_o_Pagarme_recusa()
+    {
+        var revenda = await api.RevendaComEstoque("Revenda do Pix Sem QR");
+        var codigo = revenda.Codigos[9];
+        await revenda.Dono.Postar("/vendas", Cenarios.Venda(codigo, revenda.ProdutoId, "11977770012"), HttpStatusCode.Created);
+        var venda = await VendaDe(revenda.Dono, codigo);
+        var cobranca = await CobrancaDa(revenda.Id);
+        // O pedido existe lá, mas o Pix não voltou: sem QR e sem vencimento, como a venda de 03/11.
+        api.Gateway.PorCodigo[cobranca] = api.Gateway.PorCodigo[cobranca] with { PixCopiaECola = null, PixQrCodeUrl = null, PixExpiraEm = null };
+        await using (var banco = new BancoDeDadosDoDono(api.ConexaoDoDono))
+        {
+            await banco.Contar($"update cobrancas set criada_em = now() - interval '2 days', pix_expira_em = null where revendedor_id = '{revenda.Id}' and situacao = 'Pendente' returning 1");
+        }
+
+        api.Gateway.FalhaAoCancelar = new Application.IntegracaoException("Pagar.me", 422, "{}");
+        try
+        {
+            await revenda.Dono.Postar($"/vendas/{venda}/recebimento", new { meio = "OutroPix" }, HttpStatusCode.NoContent);
+        }
+        finally
+        {
+            api.Gateway.FalhaAoCancelar = null;
+        }
+
+        var lida = (await revenda.Dono.PegarItens("/vendas")).EnumerateArray().Single(v => v.GetProperty("id").GetGuid() == venda);
+        Assert.Equal("Paga", lida.GetProperty("pagamento").GetString());
+    }
+
     /// <summary>O código da cobrança pendente da revenda, que é a chave do pedido no Pagar.me.</summary>
     private async Task<string> CobrancaDa(Guid revendedorId)
     {
