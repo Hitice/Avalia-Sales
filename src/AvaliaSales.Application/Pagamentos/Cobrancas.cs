@@ -274,6 +274,11 @@ public sealed class Cobrancas(IBancoDeDados banco, IGatewayDePagamento gateway, 
         }
         catch (IntegracaoException recusa) when (recusa.Status is >= 400 and < 500)
         {
+            if (await FechadaApesarDaRecusa(cobranca, ct))
+            {
+                return;
+            }
+
             throw Recusa(recusa);
         }
 
@@ -336,10 +341,52 @@ public sealed class Cobrancas(IBancoDeDados banco, IGatewayDePagamento gateway, 
     }
 
     /// <summary>Recusa do Pagar.me é resposta para quem cancela, não falha do sistema: nada foi gravado, a venda segue paga.</summary>
+    /// <summary>
+    /// O Pagar.me recusou cancelar: a cobrança é reconsultada. Já cancelada, vencida ou estornada lá, vale o
+    /// que ele diz e não há mais nada a cancelar. Pix pendente com o QR vencido não pode mais ser pago (o
+    /// Pagar.me não cancela Pix vencido), então a cobrança se cancela aqui; se o pagamento ainda chegar, o
+    /// webhook o trata como pago depois de cancelada. Paga lá, recusa: a venda já está paga.
+    /// </summary>
+    private async Task<bool> FechadaApesarDaRecusa(Cobranca cobranca, CancellationToken ct)
+    {
+        var antes = cobranca.Situacao;
+        if (await gateway.BuscarPorCodigo(cobranca.Codigo, ct) is { } lido)
+        {
+            await Aplicar(cobranca, lido, ct);
+        }
+
+        if (cobranca.Situacao is SituacaoDaCobranca.Cancelada or SituacaoDaCobranca.Falhou or SituacaoDaCobranca.Estornada)
+        {
+            return true;
+        }
+
+        if (antes == SituacaoDaCobranca.Pendente && cobranca.Situacao == SituacaoDaCobranca.Paga)
+        {
+            throw new RegraDeNegocioException("O Pix já foi pago no Pagar.me. A venda está paga.");
+        }
+
+        var agora = relogio.GetUtcNow();
+        if (cobranca.Situacao == SituacaoDaCobranca.Pendente && cobranca.PixExpiraEm is { } expira && expira < agora
+            && cobranca.Atualizar(SituacaoDaCobranca.Cancelada, null))
+        {
+            await efeitos.Aplicar(cobranca, agora, ct);
+            return true;
+        }
+
+        return false;
+    }
+
     private static RegraDeNegocioException Recusa(IntegracaoException recusa) =>
         new(recusa.Message.Contains("Saldo insuficiente", StringComparison.OrdinalIgnoreCase)
             ? "Pagar.me sem saldo para o estorno. Estorne pelo painel do Pagar.me e cancele a venda."
-            : "Pagar.me recusou o cancelamento. Confira no painel do Pagar.me.");
+            : $"Pagar.me recusou o cancelamento{Motivo(recusa.Message)}. Confira no painel do Pagar.me.");
+
+    /// <summary>O "message" da resposta do Pagar.me, quando vem: entra na recusa para quem está na tela saber o porquê.</summary>
+    private static string Motivo(string resposta)
+    {
+        var achado = System.Text.RegularExpressions.Regex.Match(resposta, "\"message\"\\s*:\\s*\"([^\"]{1,160})\"");
+        return achado.Success ? $" ({achado.Groups[1].Value})" : string.Empty;
+    }
 
     public static CobrancaDto ParaDto(Cobranca c) =>
         new(c.Id, c.Situacao, c.ValorCents, c.ParteDaAvaliaCents, c.PixCopiaECola, c.PixQrCodeUrl, c.PixExpiraEm, c.UrlDoLink);

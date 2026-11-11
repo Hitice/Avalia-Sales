@@ -320,7 +320,10 @@ maiúscula ("otica" acha "Ótica").
   vendedor ou pelo revendedor ("Registrar pagamento" no menu da venda), só sem
   pagamento. Com Pix ou cartão em aberto no Pagar.me, a cobrança é
   reconsultada antes: se já caiu lá, vale o pagamento e o registro é recusado;
-  se não, ela é cancelada no Pagar.me e o recebimento é registrado. O razão
+  se não, ela é cancelada no Pagar.me e o recebimento é registrado. Se o
+  Pagar.me recusar o cancelamento de um Pix com o QR já vencido, que não pode
+  mais ser pago, a cobrança se cancela aqui; com o QR válido, a recusa
+  aparece com o motivo do Pagar.me. O razão
   recebe a venda como se o Pix tivesse caído, com a comissão devida. O que
   seria da Avalia pelo split (a parte dela no serviço) fica "a acertar"; a
   placa e a renovação recebidas por fora não deixam nada a acertar. A
@@ -938,6 +941,7 @@ As mudanças de 21 a 24/10/2026 estão em [historico/pdd-ate-24-10.md](historico
 
 | Data | Mudança |
 | --- | --- |
+| 11/11/2026 | Recusa do Pagar.me ao cancelar - a cobrança é reconsultada; já cancelada ou vencida lá, vale; Pix com o QR vencido se cancela aqui e o recebimento por fora ou o cancelamento da venda seguem; com o QR válido, a recusa mostra o motivo do Pagar.me. |
 | 11/11/2026 | Toda tabela ganha filtro além da busca - situação, pessoa e mês quando a linha tiver (vendas, clientes, pedidos, serviços, auditoria, repasses, revendedores, ERP, destinos bloqueados, equipe e pacotes). Recebido por fora com Pix em aberto - o Pix é reconsultado e cancelado no Pagar.me, e o recebimento é registrado; "Registrar pagamento" no menu da venda. Entrada com segundo fator - código em 6 quadrados, numa etapa à parte. |
 | 03/11/2026 | Destino - link curto `/l/` da própria revenda pode ser informado em placa ou link; o sistema resolve para o destino final, exige link ativo e aplica as validações de domínio bloqueado e reputação, sem criar redirecionamento em cadeia. |
 | 31/10/2026 | Placa personalizada - serviço do catálogo com 1 a 4 QR, vendido com um destino por QR e sem teste gratuito; a operadora gera os códigos na ordem, baixa o QR e entrega, e os 12 meses contam da entrega; uma renovação e um aviso por placa; o cancelamento tira todos os códigos do ar sem voltar ao estoque, e a troca de código não vale (ADR 0032). |

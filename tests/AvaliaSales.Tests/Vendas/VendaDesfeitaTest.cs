@@ -173,6 +173,35 @@ public sealed class VendaDesfeitaTest(ApiDeTeste api)
         Assert.Equal("Pix", lida.GetProperty("pagoPor").GetString());
     }
 
+    [Fact]
+    public async Task Pagarme_recusando_cancelar_Pix_vencido_nao_impede_o_recebimento_por_fora_e_o_valido_mostra_o_motivo()
+    {
+        var revenda = await api.RevendaComEstoque("Revenda do Pix Que Não Cancela");
+        var codigo = revenda.Codigos[8];
+        await revenda.Dono.Postar("/vendas", Cenarios.Venda(codigo, revenda.ProdutoId, "11977770011"), HttpStatusCode.Created);
+        var venda = await VendaDe(revenda.Dono, codigo);
+        api.Gateway.FalhaAoCancelar = new Application.IntegracaoException("Pagar.me", 422, "{\"message\":\"Charge cannot be canceled.\"}");
+        try
+        {
+            // Pix ainda válido: o cliente pode pagar pelo QR, então a recusa do Pagar.me vale, com o motivo dele.
+            var recusa = await revenda.Dono.Postar($"/vendas/{venda}/recebimento", new { meio = "OutroPix" }, HttpStatusCode.UnprocessableEntity);
+            Assert.Contains("Charge cannot be canceled.", recusa.GetProperty("detail").GetString());
+
+            // QR vencido: não há mais como pagar por ele, a cobrança se cancela aqui e o recebimento por fora entra.
+            var cobranca = await CobrancaDa(revenda.Id);
+            api.Gateway.PorCodigo[cobranca] = api.Gateway.PorCodigo[cobranca] with { PixExpiraEm = DateTimeOffset.UtcNow.AddHours(-1) };
+            await revenda.Dono.Postar($"/vendas/{venda}/recebimento", new { meio = "OutroPix" }, HttpStatusCode.NoContent);
+        }
+        finally
+        {
+            api.Gateway.FalhaAoCancelar = null;
+        }
+
+        var lida = (await revenda.Dono.PegarItens("/vendas")).EnumerateArray().Single(v => v.GetProperty("id").GetGuid() == venda);
+        Assert.Equal("Paga", lida.GetProperty("pagamento").GetString());
+        Assert.Equal("OutroPix", lida.GetProperty("pagoPor").GetString());
+    }
+
     /// <summary>O código da cobrança pendente da revenda, que é a chave do pedido no Pagar.me.</summary>
     private async Task<string> CobrancaDa(Guid revendedorId)
     {
