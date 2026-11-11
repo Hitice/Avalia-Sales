@@ -1,0 +1,80 @@
+name: Qualidade
+
+# A análise do SonarCloud, fora do CI: o deploy não espera por ela, e a suíte não
+# roda duas vezes. Depois do CI verde de um push no main deste repositório, compila
+# o mesmo commit e usa a cobertura que o job api do CI gravou (artefato cobertura).
+# SonarCloud só com o segredo SONAR_TOKEN e as variáveis SONAR_ORGANIZACAO e
+# SONAR_PROJETO; sem eles, o passo avisa e sai sem falhar. O portão de qualidade
+# aparece no SonarCloud.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  sonarcloud:
+    # Repositório público: um pull request de fork também gera workflow_run do CI,
+    # e o artefato dele não pode chegar a um job com o SONAR_TOKEN.
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-24.04
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: 10.0.402
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: cobertura
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+      - name: Análise no SonarCloud
+        run: |
+          if [ -z "$SONAR_TOKEN" ]; then
+            echo "::notice::SONAR_TOKEN não configurado; análise do SonarCloud pulada."
+            exit 0
+          fi
+          # Falsos positivos conferidos: CSS do Tailwind (@utility aninhado), senha do
+          # Postgres efêmero do CI, scripts de migração rodados pela operadora com
+          # argumento dela, aleatório de teste e de demonstração (semente fixa), cookie
+          # Secure fora do desenvolvimento, entidade gravada só por SQL (LeituraDoDia) e imagens oficiais nginx/postgres no usuário padrão.
+          dotnet tool install --global dotnet-sonarscanner --version 11.3.0
+          dotnet sonarscanner begin /o:"${{ vars.SONAR_ORGANIZACAO }}" /k:"${{ vars.SONAR_PROJETO }}" \
+            /d:sonar.host.url=https://sonarcloud.io /d:sonar.token="$SONAR_TOKEN" \
+            /d:sonar.cs.vscoveragexml.reportsPaths=coverage.xml \
+            /d:sonar.exclusions="**/Migrations/**,**/bin/**,**/obj/**,web/node_modules/**,web/dist/**,web/storybook-static/**,web/public/**,web/src/api/esquema.d.ts,web/openapi.json,docs/contrato/**" \
+            /d:sonar.coverage.exclusions="web/**,tests/**,infra/**,**/Program.cs,**/InjecaoDeDependencias.cs" \
+            /d:sonar.issue.ignore.multicriteria=css1,css2,yaml1,py1,e2e1,demo1,cookie1,docker1,leitura1 \
+            /d:sonar.issue.ignore.multicriteria.css1.ruleKey="css:S8776" \
+            /d:sonar.issue.ignore.multicriteria.css1.resourceKey="web/src/index.css" \
+            /d:sonar.issue.ignore.multicriteria.css2.ruleKey="css:S8767" \
+            /d:sonar.issue.ignore.multicriteria.css2.resourceKey="web/src/index.css" \
+            /d:sonar.issue.ignore.multicriteria.yaml1.ruleKey="yaml:S2068" \
+            /d:sonar.issue.ignore.multicriteria.yaml1.resourceKey=".github/workflows/ci.yml" \
+            /d:sonar.issue.ignore.multicriteria.py1.ruleKey="pythonsecurity:S8707" \
+            /d:sonar.issue.ignore.multicriteria.py1.resourceKey="infra/migracao/**" \
+            /d:sonar.issue.ignore.multicriteria.e2e1.ruleKey="typescript:S2245" \
+            /d:sonar.issue.ignore.multicriteria.e2e1.resourceKey="web/e2e/**" \
+            /d:sonar.issue.ignore.multicriteria.demo1.ruleKey="csharpsquid:S2245" \
+            /d:sonar.issue.ignore.multicriteria.demo1.resourceKey="src/AvaliaSales.Api/Demonstracao.cs" \
+            /d:sonar.issue.ignore.multicriteria.cookie1.ruleKey="csharpsquid:S2092" \
+            /d:sonar.issue.ignore.multicriteria.cookie1.resourceKey="src/AvaliaSales.Api/Rotas/RotasDeAcesso.cs" \
+            /d:sonar.issue.ignore.multicriteria.docker1.ruleKey="docker:S6471" \
+            /d:sonar.issue.ignore.multicriteria.docker1.resourceKey="infra/**" \
+            /d:sonar.issue.ignore.multicriteria.leitura1.ruleKey="csharpsquid:S3453" \
+            /d:sonar.issue.ignore.multicriteria.leitura1.resourceKey="src/AvaliaSales.Domain/Placas/LeituraDoDia.cs"
+          dotnet build -c Release --no-incremental
+          dotnet sonarscanner end /d:sonar.token="$SONAR_TOKEN"

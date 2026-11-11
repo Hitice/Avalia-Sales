@@ -829,8 +829,11 @@ Revisão pela skill `seguranca` (OWASP ASVS 5.0).
   O front tem um job próprio no Node 24 LTS: `npm ci`, tipos, lint (oxlint,
   com as travas do design system), testes e build, mais o Storybook
   compilado. Os jobs `e2e` (Playwright com axe), `vulnerabilidades` (NuGet e
-  npm de produção), `segredos` (gitleaks), `documentacao` e `qualidade`
-  (SonarCloud) completam o CI.
+  npm de produção), `segredos` (gitleaks) e `documentacao` completam o CI.
+  A suíte da API roda uma vez só, no job `api`, já com a cobertura
+  (`dotnet-coverage`), guardada no artefato `cobertura`. O Chromium dos testes
+  no navegador vem do CDN do Playwright, sem o apt: as bibliotecas de sistema
+  já estão na imagem `ubuntu-24.04` do runner.
 - Documentação - no push ao `main` e em pull request, o job `documentacao`
   recusa mudança de código sem `docs/PDD.md` ou `docs/SDD.md`, salvo com
   `[sem-doc]` na mensagem do commit ou o rótulo `sem-mudanca-de-doc` no pull
@@ -850,12 +853,14 @@ Revisão pela skill `seguranca` (OWASP ASVS 5.0).
   `avalia_app`: as mesmas permissões e o mesmo RLS, sem trocar a senha que a
   API local usa. Teste de trava de segurança é conferido desligando a trava e
   vendo o teste falhar.
-- SonarCloud - projeto `Hitice_Avalia-Sales`, analisado pelo CI desde
-  25/10/2026. O job `qualidade` (`dotnet-sonarscanner` 11.3.0, C#,
-  TypeScript e a cobertura dos testes da API pelo `dotnet-coverage`) roda com
-  o segredo `SONAR_TOKEN` e as variáveis `SONAR_ORGANIZACAO` (`hitice`) e
-  `SONAR_PROJETO` (`Hitice_Avalia-Sales`); sem o token, avisa e passa. O job
-  roda em `continue-on-error`: não bloqueia o merge nem segura o deploy. O
+- SonarCloud - projeto `Hitice_Avalia-Sales`, analisado desde 25/10/2026.
+  O workflow `Qualidade` roda depois do CI verde de um push no `main` deste
+  repositório (as mesmas condições do Deploy, para o artefato de pull request
+  de fork não chegar ao token): compila o commit (`dotnet-sonarscanner`
+  11.3.0, C# e TypeScript) e usa a cobertura do artefato `cobertura` do CI,
+  sem rodar a suíte de novo. Roda com o segredo `SONAR_TOKEN` e as variáveis
+  `SONAR_ORGANIZACAO` (`hitice`) e `SONAR_PROJETO` (`Hitice_Avalia-Sales`);
+  sem o token, avisa e passa. Fora do CI, não segura o deploy. O
   token é pessoal (a conta gratuita não tem token de organização) e vence em
   24/11/2026.
 - Deploy - workflow `Deploy` no runner próprio do VPS, só depois do CI verde
@@ -942,6 +947,7 @@ As mudanças de 21 a 24/10/2026 estão em [historico/sdd-ate-24-10.md](historico
 
 | Data | Mudança |
 | --- | --- |
+| 11/11/2026 | CI sem trabalho repetido - a suíte da API roda uma vez, no job `api`, com a cobertura no artefato `cobertura`; o SonarCloud sai do CI para o workflow `Qualidade` (depois do CI verde de push no `main`, só compila e usa a cobertura), e o Deploy não espera por ele; o passo do apt sai dos jobs `web` e `e2e`. |
 | 11/11/2026 | `Cobrancas.Cancelar` - na recusa 4xx do Pagar.me, `FechadaApesarDaRecusa` reconsulta (`BuscarPorCodigo` e `Aplicar`): cancelada, falhou ou estornada lá encerra sem erro; Pix pendente vencido (`PixExpiraEm` passado, ou nulo e `CriadaEm` há mais de `ValidadeMaximaDoPix`, um dia) vira `Cancelada` aqui (pagamento tardio cai em `PagaDepoisDeCancelada`); paga recusa com "O Pix já foi pago no Pagar.me.". A recusa leva o `message` da resposta do Pagar.me. |
 | 11/11/2026 | CI - nos jobs `web` e `e2e`, o Chromium sai do CDN do Playwright (`playwright install chromium`) e o `install-deps` pelo apt é cortado em 2 minutos (`timeout 120`, passo com `continue-on-error`) e vira aviso quando o espelho do Ubuntu cai; a imagem `ubuntu-24.04` já traz as bibliotecas do Chrome. |
 | 11/11/2026 | Filtros das listagens paginadas na API (seção Listagens paginadas), com `Application.MesDoFiltro`; no front, `componentes/Filtro.tsx` e `filtros`/`filtrada` no `ListaPaginada`. `Vendas.ReceberPorFora` com cobrança pendente - `Cobrancas.Conferir` antes da transação (paga recusa com "Venda já paga."), e `Cobrancas.Cancelar` depois do limite do vendedor, na mesma transação do registro. Entrada com segundo fator - `componentes/CodigoEmQuadrados.tsx`, um campo `one-time-code` sob 6 quadrados. |

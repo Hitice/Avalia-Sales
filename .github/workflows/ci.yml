@@ -43,7 +43,15 @@ jobs:
       - name: Fluxo do backup (e-mail e bucket juntos)
         run: sh infra/backup/teste-do-fluxo.sh
       - run: dotnet build --no-restore -c Release
-      - run: dotnet test --no-build -c Release
+      # Uma rodada só da suíte, já com a cobertura: o fluxo Qualidade (SonarCloud) usa este
+      # arquivo e não roda os testes de novo. O collect devolve o código de saída do dotnet test.
+      - run: dotnet tool install --global dotnet-coverage --version 18.12.0
+      - run: dotnet-coverage collect "dotnet test --no-build -c Release" -f xml -o coverage.xml
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: cobertura
+          path: coverage.xml
+          retention-days: 3
 
   web:
     runs-on: ubuntu-24.04
@@ -67,14 +75,9 @@ jobs:
       - run: npm run typecheck
       - run: npm run lint
       # O npm test roda os testes de unidade e cada história do Storybook no Chromium, com o axe em modo erro.
-      # O Chromium vem do CDN do Playwright; as bibliotecas de sistema dele já estão na imagem ubuntu-24.04
-      # do runner (que traz o Chrome). O install-deps só completa pelo apt: espelho do Ubuntu fora do ar
-      # vira aviso, e não derruba o job; se faltar biblioteca de verdade, o teste no navegador falha.
+      # O Chromium vem do CDN do Playwright, sem o apt: as bibliotecas de sistema dele já estão na imagem
+      # ubuntu-24.04 do runner (que traz o Chrome). Se faltar alguma, o teste no navegador falha e diz qual.
       - run: npx playwright install chromium
-      - name: Dependências do Chromium pelo apt
-        # O apt fica tentando o espelho fora do ar: corta em 2 minutos e segue.
-        continue-on-error: true
-        run: timeout 120 npx playwright install-deps chromium || echo "::warning::apt do Ubuntu indisponível; seguindo com as bibliotecas da imagem do runner"
       - run: npm test
       - run: npm run build
       # O catálogo vivo precisa compilar: história quebrada falha aqui.
@@ -110,13 +113,9 @@ jobs:
           cache-dependency-path: web/package-lock.json
       - run: npm ci --ignore-scripts
         working-directory: web
-      # Como no job web: Chromium do CDN, dependências do apt sem derrubar o job.
+      # Como no job web: Chromium do CDN, sem o apt.
       - run: npx playwright install chromium
         working-directory: web
-      - name: Dependências do Chromium pelo apt
-        continue-on-error: true
-        working-directory: web
-        run: timeout 120 npx playwright install-deps chromium || echo "::warning::apt do Ubuntu indisponível; seguindo com as bibliotecas da imagem do runner"
       - name: API da demonstração
         run: web/e2e/api.sh
       - run: npm run e2e
@@ -177,80 +176,6 @@ jobs:
       - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  # SonarCloud só com o segredo SONAR_TOKEN e as variáveis SONAR_ORGANIZACAO e
-  # SONAR_PROJETO; sem eles, o passo avisa e sai sem falhar. Analisa o C# e o
-  # TypeScript do front, com a cobertura dos testes da API (rodam aqui contra um
-  # Postgres de verdade, como no job api). Não bloqueia o merge: o portão de
-  # qualidade aparece no SonarCloud e no pull request.
-  qualidade:
-    runs-on: ubuntu-24.04
-    # Falha da análise (SonarCloud fora do ar, token vencido) não pinta o CI de
-    # vermelho: o Deploy só roda com o CI verde.
-    continue-on-error: true
-    services:
-      postgres:
-        image: postgres:17
-        env:
-          POSTGRES_PASSWORD: postgres
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-    env:
-      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      AVALIA_SALES_PG_ADMIN: Host=localhost;Username=postgres;Password=postgres;Database=postgres
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
-        with:
-          # 10.0.403 já consta no índice da Microsoft, mas o download ainda não existe e quebrou o CI em 25/10/2026.
-          # O global.json aceita qualquer 10.0.x (latestFeature); aqui o CI instala uma versão que se sabe baixar.
-          dotnet-version: 10.0.402
-      - name: Análise no SonarCloud
-        run: |
-          if [ -z "$SONAR_TOKEN" ]; then
-            echo "::notice::SONAR_TOKEN não configurado; análise do SonarCloud pulada."
-            exit 0
-          fi
-          # Falsos positivos conferidos: CSS do Tailwind (@utility aninhado), senha do
-          # Postgres efêmero do CI, scripts de migração rodados pela operadora com
-          # argumento dela, aleatório de teste e de demonstração (semente fixa), cookie
-          # Secure fora do desenvolvimento, entidade gravada só por SQL (LeituraDoDia) e imagens oficiais nginx/postgres no usuário padrão.
-          dotnet tool install --global dotnet-sonarscanner --version 11.3.0
-          dotnet tool install --global dotnet-coverage --version 18.12.0
-          dotnet sonarscanner begin /o:"${{ vars.SONAR_ORGANIZACAO }}" /k:"${{ vars.SONAR_PROJETO }}" \
-            /d:sonar.host.url=https://sonarcloud.io /d:sonar.token="$SONAR_TOKEN" \
-            /d:sonar.cs.vscoveragexml.reportsPaths=coverage.xml \
-            /d:sonar.exclusions="**/Migrations/**,**/bin/**,**/obj/**,web/node_modules/**,web/dist/**,web/storybook-static/**,web/public/**,web/src/api/esquema.d.ts,web/openapi.json,docs/contrato/**" \
-            /d:sonar.coverage.exclusions="web/**,tests/**,infra/**,**/Program.cs,**/InjecaoDeDependencias.cs" \
-            /d:sonar.issue.ignore.multicriteria=css1,css2,yaml1,py1,e2e1,demo1,cookie1,docker1,leitura1 \
-            /d:sonar.issue.ignore.multicriteria.css1.ruleKey="css:S8776" \
-            /d:sonar.issue.ignore.multicriteria.css1.resourceKey="web/src/index.css" \
-            /d:sonar.issue.ignore.multicriteria.css2.ruleKey="css:S8767" \
-            /d:sonar.issue.ignore.multicriteria.css2.resourceKey="web/src/index.css" \
-            /d:sonar.issue.ignore.multicriteria.yaml1.ruleKey="yaml:S2068" \
-            /d:sonar.issue.ignore.multicriteria.yaml1.resourceKey=".github/workflows/ci.yml" \
-            /d:sonar.issue.ignore.multicriteria.py1.ruleKey="pythonsecurity:S8707" \
-            /d:sonar.issue.ignore.multicriteria.py1.resourceKey="infra/migracao/**" \
-            /d:sonar.issue.ignore.multicriteria.e2e1.ruleKey="typescript:S2245" \
-            /d:sonar.issue.ignore.multicriteria.e2e1.resourceKey="web/e2e/**" \
-            /d:sonar.issue.ignore.multicriteria.demo1.ruleKey="csharpsquid:S2245" \
-            /d:sonar.issue.ignore.multicriteria.demo1.resourceKey="src/AvaliaSales.Api/Demonstracao.cs" \
-            /d:sonar.issue.ignore.multicriteria.cookie1.ruleKey="csharpsquid:S2092" \
-            /d:sonar.issue.ignore.multicriteria.cookie1.resourceKey="src/AvaliaSales.Api/Rotas/RotasDeAcesso.cs" \
-            /d:sonar.issue.ignore.multicriteria.docker1.ruleKey="docker:S6471" \
-            /d:sonar.issue.ignore.multicriteria.docker1.resourceKey="infra/**" \
-            /d:sonar.issue.ignore.multicriteria.leitura1.ruleKey="csharpsquid:S3453" \
-            /d:sonar.issue.ignore.multicriteria.leitura1.resourceKey="src/AvaliaSales.Domain/Placas/LeituraDoDia.cs"
-          dotnet build -c Release --no-incremental
-          dotnet-coverage collect "dotnet test --no-build -c Release" -f xml -o coverage.xml
-          dotnet sonarscanner end /d:sonar.token="$SONAR_TOKEN"
 
   # Código que muda sem o PDD ou o SDD acompanhar não entra, no push ao main e em pull request.
   # Refatoração sem efeito visível passa com [sem-doc] na mensagem do commit (ou o rótulo
