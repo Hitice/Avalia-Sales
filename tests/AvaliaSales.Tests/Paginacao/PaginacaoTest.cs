@@ -500,7 +500,9 @@ public sealed class PaginacaoTest(ApiDeTeste api)
 
     private async Task<Dados> Montar()
     {
-        var marca = "Pg" + Guid.NewGuid().ToString("N")[..8];
+        // Só letras: a busca de pedidos e lotes também casa os dígitos do termo com o número do lote, e um
+        // sufixo com algarismos acharia o lote de outro teste (o total viria com um a mais).
+        var marca = "Pg" + new string(Guid.NewGuid().ToByteArray().Take(10).Select(b => (char)('a' + b % 26)).ToArray());
         var operadora = await api.ClienteLogado(await api.CriarOperadora());
         var nomeDeA = $"{marca} Revenda A";
         var a = await RevendaGrande(operadora, nomeDeA, 137);
