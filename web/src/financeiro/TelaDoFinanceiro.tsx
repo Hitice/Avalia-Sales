@@ -95,16 +95,18 @@ export function TelaDoFinanceiro() {
                 <Indicador rotulo="Despesas" valor={formatarCentavos(d.despesasCents)} />
                 <Indicador rotulo="Retiradas" valor={formatarCentavos(d.retiradasCents)} />
               </Indicadores>
-              {/* Computador: o demonstrativo (5 de 12 colunas), as saídas (4) e o caixa com as despesas (3); o histórico ocupa a linha de baixo inteira. */}
-              <div className="grid items-start gap-4 lg:grid-cols-12">
-                <Demonstrativo dre={d} className="lg:col-span-5" />
-                <Rosca titulo="Saídas" itens={ondeFoi} vazio="Nenhuma saída no mês." empilhada className="lg:col-span-4" />
-                <div className="grid content-start gap-4 lg:col-span-3">
+              {/* Computador largo: o demonstrativo à esquerda (5 de 12) e, à direita (7), caixa, saídas e despesas empilhados,
+                  com a rosca ao lado da legenda; as duas colunas terminam na mesma linha (o último cartão da direita estica).
+                  O histórico ocupa a linha de baixo inteira. Abaixo de xl, tudo em uma coluna. */}
+              <div className="grid gap-4 xl:grid-cols-12">
+                <Demonstrativo dre={d} className="xl:col-span-5" />
+                <div className="flex flex-col gap-4 xl:col-span-7">
                   <CartaoDoCaixa />
-                  <Rosca titulo="Despesas" vazio="Nenhuma despesa no mês." empilhada
+                  <Rosca titulo="Saídas" itens={ondeFoi} vazio="Nenhuma saída no mês." />
+                  <Rosca titulo="Despesas" vazio="Nenhuma despesa no mês." className="flex-1"
                     itens={d.despesasPorCategoria.map((c) => ({ nome: ROTULO_DA_DESPESA[c.categoria], valorCents: c.valorCents }))} />
                 </div>
-                {historico.data && <Historico meses={historico.data} className="lg:col-span-12" />}
+                {historico.data && <Historico meses={historico.data} className="xl:col-span-12" />}
               </div>
             </div>
           )}

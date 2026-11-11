@@ -27,7 +27,7 @@ function TabelaOculta({ titulo, linhas }: { titulo: string; linhas: string[][] }
  * marca (chart-1) e o percentual dela vai no centro; o resto divide as outras
  * três cores, da maior para a menor.
  */
-export function Rosca({ titulo, itens, vazio, primeira, className, empilhada = false }: { titulo: string; itens: Fatia[]; vazio: string; primeira?: Fatia; className?: string; empilhada?: boolean }) {
+export function Rosca({ titulo, itens, vazio, primeira, className }: { titulo: string; itens: Fatia[]; vazio: string; primeira?: Fatia; className?: string }) {
   const fixa = primeira && primeira.valorCents > 0 ? primeira : null
   // Com `primeira`, a cor da marca é dela: sem ela no mês (zero ou negativa), a cor fica sem uso, e não vai para outra parte.
   const deslocamento = primeira && !fixa ? 1 : 0
@@ -41,7 +41,7 @@ export function Rosca({ titulo, itens, vazio, primeira, className, empilhada = f
       <CardHeader><CardTitle>{titulo}</CardTitle></CardHeader>
       <CardContent>
         {partes.length === 0 ? <p className="text-sm text-muted-foreground">{vazio}</p> : (
-          <div className={empilhada ? 'grid items-center gap-4' : 'grid items-center gap-5 sm:lateral-e-lista-32'}>
+          <div className="grid items-center gap-5 sm:lateral-e-lista-32">
             <div className="relative mx-auto size-32">
               <ChartContainer config={config} className="aspect-square size-32">
                 <PieChart>
