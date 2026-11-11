@@ -72,8 +72,9 @@ jobs:
       # vira aviso, e não derruba o job; se faltar biblioteca de verdade, o teste no navegador falha.
       - run: npx playwright install chromium
       - name: Dependências do Chromium pelo apt
-        timeout-minutes: 5
-        run: npx playwright install-deps chromium || echo "::warning::apt do Ubuntu indisponível; seguindo com as bibliotecas da imagem do runner"
+        # O apt fica tentando o espelho fora do ar: corta em 2 minutos e segue.
+        continue-on-error: true
+        run: timeout 120 npx playwright install-deps chromium || echo "::warning::apt do Ubuntu indisponível; seguindo com as bibliotecas da imagem do runner"
       - run: npm test
       - run: npm run build
       # O catálogo vivo precisa compilar: história quebrada falha aqui.
@@ -113,9 +114,9 @@ jobs:
       - run: npx playwright install chromium
         working-directory: web
       - name: Dependências do Chromium pelo apt
-        timeout-minutes: 5
+        continue-on-error: true
         working-directory: web
-        run: npx playwright install-deps chromium || echo "::warning::apt do Ubuntu indisponível; seguindo com as bibliotecas da imagem do runner"
+        run: timeout 120 npx playwright install-deps chromium || echo "::warning::apt do Ubuntu indisponível; seguindo com as bibliotecas da imagem do runner"
       - name: API da demonstração
         run: web/e2e/api.sh
       - run: npm run e2e
