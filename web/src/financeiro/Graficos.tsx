@@ -3,7 +3,7 @@ import type { MesDoHistorico } from '@/api/tipos'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import { formatarCentavos } from '@/dinheiro/dinheiro'
-import { type Fatia, fatias, mesCurto, percentual } from './fatias'
+import { type Fatia, fatias, mesCurto, nomeDoMes, percentual } from './fatias'
 
 /** Quatro cores no máximo, todas dos tokens de gráfico; "Outros", quando há, fica no cinza (--chart-4). */
 const CORES = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)']
@@ -80,13 +80,25 @@ const configDoHistorico = {
   resultado: { label: 'Resultado', color: 'var(--chart-2)' },
 } satisfies ChartConfig
 
-/** Recebido e resultado dos últimos seis meses, lado a lado. Resultado negativo desce abaixo da linha do zero. */
+/** Abaixo disto, barras dizem pouco: a lista por mês mostra os valores e a proporção. */
+const MESES_PARA_O_GRAFICO = 3
+
+/**
+ * Recebido e resultado por mês, a partir do primeiro mês com movimento (os vazios de antes ficam de fora).
+ * Com menos de três meses, uma lista por mês, com o valor e uma barra fina proporcional; depois, as barras
+ * lado a lado, com o resultado negativo abaixo da linha do zero.
+ */
 export function Historico({ meses, className }: { meses: MesDoHistorico[]; className?: string }) {
-  const dados = meses.map((m) => ({ mes: mesCurto(m.competencia), recebido: m.recebidoCents / 100, resultado: m.resultadoCents / 100 }))
+  const inicio = meses.findIndex((m) => m.recebidoCents !== 0 || m.resultadoCents !== 0)
+  const comMovimento = inicio < 0 ? [] : meses.slice(inicio)
+  const dados = comMovimento.map((m) => ({ mes: mesCurto(m.competencia), recebido: m.recebidoCents / 100, resultado: m.resultadoCents / 100 }))
   return (
     <Card className={className}>
       <CardHeader><CardTitle>Histórico</CardTitle></CardHeader>
       <CardContent>
+        {comMovimento.length === 0 ? <p className="text-sm text-muted-foreground">Sem movimento ainda.</p>
+          : comMovimento.length < MESES_PARA_O_GRAFICO ? <HistoricoEmLista meses={comMovimento} /> : (
+        <>
         <ChartContainer config={configDoHistorico} className="aspect-auto h-48 w-full">
           <BarChart accessibilityLayer data={dados} margin={{ left: 4, right: 4 }}>
             <CartesianGrid vertical={false} />
@@ -108,8 +120,41 @@ export function Historico({ meses, className }: { meses: MesDoHistorico[]; class
             <span key={chave} className="flex items-center gap-1.5"><span aria-hidden className={`size-2.5 rounded-sm ${chave === 'recebido' ? 'bg-chart-1' : 'bg-chart-2'}`} />{c.label}</span>
           ))}
         </div>
-        <TabelaOculta titulo="Recebido e resultado por mês" linhas={meses.map((m) => [mesCurto(m.competencia), formatarCentavos(m.recebidoCents), formatarCentavos(m.resultadoCents)])} />
+        <TabelaOculta titulo="Recebido e resultado por mês" linhas={comMovimento.map((m) => [mesCurto(m.competencia), formatarCentavos(m.recebidoCents), formatarCentavos(m.resultadoCents)])} />
+        </>
+        )}
       </CardContent>
     </Card>
+  )
+}
+
+/** Os primeiros meses: o mais recente no topo, recebido e resultado com a barra proporcional ao maior valor. */
+function HistoricoEmLista({ meses }: { meses: MesDoHistorico[] }) {
+  const maior = Math.max(...meses.flatMap((m) => [m.recebidoCents, m.resultadoCents]), 1)
+  const linha = (rotulo: string, cents: number, cor: string) => (
+    <div className="grid gap-1">
+      <div className="flex justify-between gap-3 text-sm">
+        <span className="text-muted-foreground">{rotulo}</span>
+        <span className={cents < 0 ? 'font-medium text-destructive tabular-nums' : 'font-medium tabular-nums'}>{formatarCentavos(cents)}</span>
+      </div>
+      <div aria-hidden className="h-1.5 overflow-hidden rounded-full bg-muted">
+        {/* A largura é o dado: proporção do valor sobre o maior do período. */}
+        <div className={`h-full rounded-full ${cor}`} style={{ width: `${Math.max(0, Math.round((cents / maior) * 100))}%` }} />
+      </div>
+    </div>
+  )
+  return (
+    <ul className="grid gap-4 sm:grid-cols-2">
+      {[...meses].reverse().map((m) => {
+        const nome = nomeDoMes(m.competencia)
+        return (
+          <li key={m.competencia} className="grid gap-2">
+            <p className="text-sm font-medium">{nome.charAt(0).toUpperCase() + nome.slice(1)}</p>
+            {linha('Recebido', m.recebidoCents, 'bg-chart-1')}
+            {linha('Resultado', m.resultadoCents, 'bg-chart-2')}
+          </li>
+        )
+      })}
+    </ul>
   )
 }
