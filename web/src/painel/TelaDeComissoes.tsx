@@ -4,6 +4,7 @@ import { mensagemDoErro } from '@/api/cliente'
 import { formatarData, formatarDataHora, ROTULO_DO_MEIO } from '@/api/rotulos'
 import type { SaldoDeComissao } from '@/api/tipos'
 import { AcoesDaLinha } from '@/componentes/AcoesDaLinha'
+import { Filtro, mesesRecentes } from '@/componentes/Filtro'
 import { ListaPaginada } from '@/componentes/ListaPaginada'
 import { Cabecalho, Erro, EstadoDaConsulta, Rolagem } from '@/componentes/Tela'
 import { Badge } from '@/components/ui/badge'
@@ -16,7 +17,7 @@ import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { formatarCentavos } from '@/dinheiro/dinheiro'
 import { fimDoDiaEmBrasilia } from '@/lib/data'
-import { useConferirRecebimentos, useDesfazerRepasse, usePendentesDeConferencia, useRepassar, useRepasses, useSaldosDeComissao } from './consultas'
+import { useConferirRecebimentos, useDesfazerRepasse, useEquipe, usePendentesDeConferencia, useRepassar, useRepasses, useSaldosDeComissao } from './consultas'
 
 /**
  * O saldo de comissão de cada vendedor e o registro do Pix feito a ele. A
@@ -25,7 +26,10 @@ import { useConferirRecebimentos, useDesfazerRepasse, usePendentesDeConferencia,
  */
 export function TelaDeComissoes() {
   const saldos = useSaldosDeComissao()
-  const repasses = useRepasses()
+  const [vendedorId, setVendedorId] = useState<string>()
+  const [mes, setMes] = useState<string>()
+  const repasses = useRepasses({ vendedorId, mes })
+  const equipe = useEquipe()
   const desfazer = useDesfazerRepasse()
   const repassar = useRepassar()
   const [escolhido, setEscolhido] = useState<SaldoDeComissao | null>(null)
@@ -129,7 +133,13 @@ export function TelaDeComissoes() {
         <Card>
           <CardHeader><CardTitle>Repasses</CardTitle></CardHeader>
           <CardContent>
-            <ListaPaginada lista={repasses} textoVazio="Nenhum repasse registrado." nomeDaBusca="Buscar nos repasses" placeholder="Vendedor ou comprovante">
+            <ListaPaginada lista={repasses} textoVazio="Nenhum repasse registrado." nomeDaBusca="Buscar nos repasses" placeholder="Vendedor ou comprovante"
+              filtrada={!!(vendedorId || mes)}
+              filtros={<>
+                <Filtro rotulo="Vendedor" todos="Todos os vendedores" valor={vendedorId} aoMudar={setVendedorId}
+                  opcoes={(equipe.data ?? []).map((v) => ({ valor: v.id, rotulo: v.nome }))} />
+                <Filtro rotulo="Mês do pagamento" todos="Todos os meses" valor={mes} aoMudar={setMes} opcoes={mesesRecentes()} />
+              </>}>
               {(itens) => (
                 <Rolagem>
                   <Table semBusca>

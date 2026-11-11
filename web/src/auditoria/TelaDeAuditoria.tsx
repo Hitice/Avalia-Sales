@@ -2,8 +2,9 @@ import { Download } from 'lucide-react'
 import { useState } from 'react'
 import { chamarResposta, mensagemDoErro } from '@/api/cliente'
 import { ROTULO_DA_ACAO, formatarDataHora } from '@/api/rotulos'
-import type { RegistroDeAuditoria } from '@/api/tipos'
+import type { AcaoAuditada, RegistroDeAuditoria } from '@/api/tipos'
 import { AcoesDaLinha } from '@/componentes/AcoesDaLinha'
+import { Filtro, mesesRecentes } from '@/componentes/Filtro'
 import { ListaPaginada } from '@/componentes/ListaPaginada'
 import { Cabecalho, Erro, Rolagem } from '@/componentes/Tela'
 import { Badge } from '@/components/ui/badge'
@@ -14,14 +15,19 @@ import { useListaPaginada } from '@/lib/paginacao'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
 const POR_PAGINA = 20
+const ACOES = (Object.entries(ROTULO_DA_ACAO) as [AcaoAuditada, string][])
+  .map(([valor, rotulo]) => ({ valor, rotulo })).sort((a, b) => a.rotulo.localeCompare(b.rotulo, 'pt-BR'))
 
 /** O que mudou na revenda e quem mudou: destino, venda, comissão, equipe, marca, empresa e links. Só lê; ninguém apaga. */
 export function TelaDeAuditoria() {
   const [erroDaExportacao, setErroDaExportacao] = useState<unknown>(null)
   const [aberto, setAberto] = useState<RegistroDeAuditoria | null>(null)
-  const registros = useListaPaginada<RegistroDeAuditoria>(['auditoria'], '/auditoria', { tamanho: POR_PAGINA })
+  const [acao, setAcao] = useState<AcaoAuditada>()
+  const [mes, setMes] = useState<string>()
+  const registros = useListaPaginada<RegistroDeAuditoria>(['auditoria'], '/auditoria', { tamanho: POR_PAGINA, filtros: { acao, mes } })
   const busca = registros.termo.trim()
-  const filtro = new URLSearchParams(busca ? { busca } : {})
+  // A exportação leva os mesmos filtros da tela.
+  const filtro = new URLSearchParams({ ...(busca && { busca }), ...(acao && { acao }), ...(mes && { mes }) })
   const total = registros.total
 
   async function exportar() {
@@ -47,7 +53,12 @@ export function TelaDeAuditoria() {
       <Erro erro={erroDaExportacao ? mensagemDoErro(erroDaExportacao) : null} />
       <Card>
         <CardContent className="grid gap-4">
-          <ListaPaginada lista={registros} textoVazio="Nada registrado." nomeDaBusca="Buscar na auditoria" placeholder="Placa, cliente, vendedor ou ação">
+          <ListaPaginada lista={registros} textoVazio="Nada registrado." nomeDaBusca="Buscar na auditoria" placeholder="Placa, cliente, vendedor ou ação"
+            filtrada={!!(acao || mes)}
+            filtros={<>
+              <Filtro rotulo="Ação" todos="Todas as ações" valor={acao} aoMudar={setAcao} opcoes={ACOES} className="w-56" />
+              <Filtro rotulo="Mês" todos="Todos os meses" valor={mes} aoMudar={setMes} opcoes={mesesRecentes()} />
+            </>}>
             {(itens) => (
               <Rolagem>
                 <Table semBusca>

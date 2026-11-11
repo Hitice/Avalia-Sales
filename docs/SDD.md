@@ -90,6 +90,19 @@ formato, com o limite aplicado no servidor (`Application/Pagina.cs`):
   da faixa é corrigido, e não recusado. Página depois da última devolve
   `itens` vazio, o `total` certo e `proxima` nulo.
 - `total` é o do filtro (`busca` e filtros da rota), e não só da página.
+- Filtros da rota, somados à busca: situação (enum da rota), pessoa
+  (`vendedorId`, `revendedorId` só na operadora) e `mes` (2026-10, mês de
+  Brasília, por `Application.MesDoFiltro`; fora do formato responde 422).
+  `/vendas` - `situacao` (`Pagas`, `AReceber`, `Cortesias`, `Canceladas`),
+  `vendedorId` (ignorado para o vendedor), `mes`; `/clientes` - `situacao`
+  (`ComPlaca`, `SemPlaca`, `Anonimizados`), `mes` do cadastro; `/pedidos` e
+  `/operadora/pedidos` - `situacao`, `mes`, `revendedorId`; `/servicos` e
+  `/operadora/servicos` - `situacao`, `mes`, `revendedorId`; `/auditoria` -
+  `acao`, `mes`; `/operadora/auditoria` e `/operadora/destinos-bloqueados` -
+  `mes`; `/repasses` - `vendedorId`, `mes`; `/operadora/revendedores` -
+  `situacao` (`Ativas`, `EmDistrato`, `Suspensas`, `Encerradas`,
+  `ReaberturaPedida`), `contratoAssinado`; `/operadora/erp` - `situacao`,
+  `mes`, `revendedorId`. A exportação da auditoria leva os mesmos filtros.
   `proxima` é o número da próxima página, ou nulo na última.
 - Ordem total: o último critério é sempre o `Id`, para o Postgres não
   repetir nem pular item entre uma página e a outra quando o horário empata.
@@ -929,6 +942,7 @@ As mudanças de 21 a 24/10/2026 estão em [historico/sdd-ate-24-10.md](historico
 
 | Data | Mudança |
 | --- | --- |
+| 11/11/2026 | Filtros das listagens paginadas na API (seção Listagens paginadas), com `Application.MesDoFiltro`; no front, `componentes/Filtro.tsx` e `filtros`/`filtrada` no `ListaPaginada`. `Vendas.ReceberPorFora` com cobrança pendente - `Cobrancas.Conferir` antes da transação (paga recusa com "Venda já paga."), e `Cobrancas.Cancelar` depois do limite do vendedor, na mesma transação do registro. Entrada com segundo fator - `componentes/CodigoEmQuadrados.tsx`, um campo `one-time-code` sob 6 quadrados. |
 | 03/11/2026 | `Placas.ResolvedorDeDestino` - ao receber link da própria plataforma em `/l/{codigo}`, busca o link ativo no escopo da revenda e grava o destino final; vendas, placas e encurtador aplicam depois a lista de bloqueios e o Web Risk ao destino final, sem encadear redirecionamentos. |
 | 31/10/2026 | Placa personalizada (ADR 0032) - `produtos_da_plataforma.codigos_na_placa`, `destinos_da_venda` (RLS), `placas.placa_principal_id` e `ordens_de_servico.lote_id`, `codigos_na_placa` e `destinos_da_placa` (`PlacaPersonalizada`; a ordem grava a placa e os destinos quando nasce); `ItemDaVenda.Destinos`; `PlacasPersonalizadas.GerarCodigos` e `Entregar` por `IEscopoDaOrdem` (banco da revenda da ordem, aberto só para a operadora); `POST /operadora/servicos/{id}/codigos`; `Lote.EntregarParaOrdem`; renovação (só depois da entrega), aviso de vencimento e cancelamento seguem o código principal; a entrega nunca encurta o vencimento (`Placa.ComecarVigenciaNaEntrega`); gerar códigos pega a trava da cobrança da venda; troca e desfazer da baixa recusados. |
 | 31/10/2026 | `POST /operadora/pedidos/{id}/cancelamento` (reusa `PedidosDePlacas.Cancelar`, que avisa o dono quando quem cancela é a operadora); `PedidoDePlacas.Avulso` recusa valor com resto na divisão pela quantidade; `CriarAvulso` recusa revenda encerrada, em encerramento ou suspensa; `PedidoDePlacas.QuantidadeEscrita` nos avisos; a lista de revendas do diálogo lê todas as páginas. |

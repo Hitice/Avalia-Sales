@@ -1,9 +1,10 @@
 import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import { mensagemDoErro } from '@/api/cliente'
-import { formatarDataHora, rotuloDoPedido, TOM_DO_PEDIDO } from '@/api/rotulos'
-import type { Pedido } from '@/api/tipos'
+import { formatarDataHora, ROTULO_DO_PEDIDO, rotuloDoPedido, TOM_DO_PEDIDO } from '@/api/rotulos'
+import type { Pedido, SituacaoDoPedido } from '@/api/tipos'
 import { AcoesDaLinha } from '@/componentes/AcoesDaLinha'
+import { Filtro, mesesRecentes, opcoesDe } from '@/componentes/Filtro'
 import { ListaPaginada } from '@/componentes/ListaPaginada'
 import { Cabecalho, Erro, Rolagem } from '@/componentes/Tela'
 import { Badge } from '@/components/ui/badge'
@@ -15,12 +16,16 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { formatarCentavos, paraCentavos } from '@/dinheiro/dinheiro'
-import { useAbrirPedidoAvulso, useCancelarPedidoDaOperadora, useIniciarProducao, useLotesLivres, usePedidosDaOperadora, useRegistrarPagamento, useRevendasDoPedidoAvulso } from './consultas'
+import { useAbrirPedidoAvulso, useCancelarPedidoDaOperadora, useIniciarProducao, useLotesLivres, useOpcoesDeRevenda, usePedidosDaOperadora, useRegistrarPagamento, useRevendasDoPedidoAvulso } from './consultas'
 import { useDespacharComEnvio, useEstornarPedido, useFornecedoresDeLogistica } from './consultasDeEntregaEAcerto'
 
 /** A fila da operadora: pedido pago ganha um lote livre da mesma quantidade. */
 export function TelaDePedidos() {
-  const pedidos = usePedidosDaOperadora()
+  const [situacao, setSituacao] = useState<SituacaoDoPedido>()
+  const [mes, setMes] = useState<string>()
+  const [revendedorId, setRevendedorId] = useState<string>()
+  const revendas = useOpcoesDeRevenda()
+  const pedidos = usePedidosDaOperadora({ situacao, mes, revendedorId })
   const pagar = useRegistrarPagamento()
   const despachar = useDespacharComEnvio()
   const estornar = useEstornarPedido()
@@ -38,7 +43,13 @@ export function TelaDePedidos() {
       <Erro erro={pagar.error ?? producao.error ?? cancelar.error} />
       <Card className="mt-3">
         <CardContent>
-          <ListaPaginada lista={pedidos} textoVazio="Nenhum pedido ainda." nomeDaBusca="Buscar nos pedidos" placeholder="Revendedor, cupom ou lote">
+          <ListaPaginada lista={pedidos} textoVazio="Nenhum pedido ainda." nomeDaBusca="Buscar nos pedidos" placeholder="Revendedor, cupom ou lote"
+              filtrada={!!(situacao || mes || revendedorId)}
+              filtros={<>
+                <Filtro rotulo="Situação" todos="Todas as situações" valor={situacao} aoMudar={setSituacao} opcoes={opcoesDe(ROTULO_DO_PEDIDO)} />
+                <Filtro rotulo="Revenda" todos="Todas as revendas" valor={revendedorId} aoMudar={setRevendedorId} opcoes={revendas.data ?? []} className="w-52" />
+                <Filtro rotulo="Mês" todos="Todos os meses" valor={mes} aoMudar={setMes} opcoes={mesesRecentes()} />
+              </>}>
             {(itens) => (
               <Rolagem>
                 <Table semBusca>

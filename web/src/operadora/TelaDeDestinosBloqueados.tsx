@@ -1,10 +1,12 @@
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { mensagemDoErro } from '@/api/cliente'
 import { formatarData } from '@/api/rotulos'
 import { AcoesDaLinha } from '@/componentes/AcoesDaLinha'
 import { Campo } from '@/componentes/Campo'
+import { Filtro, mesesRecentes } from '@/componentes/Filtro'
 import { ListaPaginada } from '@/componentes/ListaPaginada'
 import { Cabecalho, Erro, Rolagem } from '@/componentes/Tela'
 import { Button } from '@/components/ui/button'
@@ -19,7 +21,8 @@ const VAZIO: Formulario = { dominio: '', motivo: '' }
 
 /** Domínios que a plataforma recusa como destino de QR Code e de link. */
 export function TelaDeDestinosBloqueados() {
-  const destinos = useDestinosBloqueados()
+  const [mes, setMes] = useState<string>()
+  const destinos = useDestinosBloqueados(mes)
   const bloquear = useBloquearDestino()
   const desbloquear = useDesbloquearDestino()
   const formulario = useForm<Formulario>({ resolver: zodResolver(esquema), mode: 'onChange', defaultValues: VAZIO })
@@ -41,7 +44,8 @@ export function TelaDeDestinosBloqueados() {
         <Erro erro={erro ? mensagemDoErro(erro) : null} />
         <Card className="mt-3">
           <CardContent>
-            <ListaPaginada lista={destinos} textoVazio="Nenhum domínio bloqueado." nomeDaBusca="Buscar nos bloqueios" placeholder="Domínio ou motivo">
+            <ListaPaginada lista={destinos} textoVazio="Nenhum domínio bloqueado." nomeDaBusca="Buscar nos bloqueios" placeholder="Domínio ou motivo"
+              filtrada={!!mes} filtros={<Filtro rotulo="Mês do bloqueio" todos="Todos os meses" valor={mes} aoMudar={setMes} opcoes={mesesRecentes()} />}>
               {(itens) => (
                 <Rolagem>
                   <Table semBusca>

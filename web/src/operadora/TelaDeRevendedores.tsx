@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { mensagemDoErro } from '@/api/cliente'
 import { formatarBps, formatarData, paraBps, type Tom } from '@/api/rotulos'
-import type { Revendedor } from '@/api/tipos'
+import type { Revendedor, SituacaoDaRevenda } from '@/api/tipos'
 import { AcoesDaLinha } from '@/componentes/AcoesDaLinha'
+import { Filtro } from '@/componentes/Filtro'
 import { ListaPaginada } from '@/componentes/ListaPaginada'
 import { Cabecalho, Erro, Rolagem } from '@/componentes/Tela'
 import { Badge } from '@/components/ui/badge'
@@ -18,6 +19,14 @@ import { useCadastroDoRevendedor, useLiberarDestinos } from './consultasDeEntreg
 
 const formatarCnpj = (c: string | null) => c ? c.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5') : '-'
 
+const SITUACOES: { valor: SituacaoDaRevenda; rotulo: string }[] = [
+  { valor: 'Ativas', rotulo: 'Ativas' },
+  { valor: 'EmDistrato', rotulo: 'Em distrato' },
+  { valor: 'Suspensas', rotulo: 'Suspensas' },
+  { valor: 'Encerradas', rotulo: 'Encerradas' },
+  { valor: 'ReaberturaPedida', rotulo: 'Reabertura pedida' },
+]
+
 /** A situação da conta, da mais grave à normal, com o detalhe que vai embaixo do selo. */
 function situacaoDaConta(r: Revendedor): { rotulo: string; tom: Tom; detalhe?: string } {
   if (r.encerradaEm && r.reaberturaPedidaEm) return { rotulo: 'Reabertura pedida', tom: 'atencao', detalhe: formatarData(r.reaberturaPedidaEm) }
@@ -29,7 +38,9 @@ function situacaoDaConta(r: Revendedor): { rotulo: string; tom: Tom; detalhe?: s
 
 /** Cadastro dos revendedores: conta de recebimento no Pagar.me, contrato assinado em papel e reabertura da conta encerrada. */
 export function TelaDeRevendedores() {
-  const revendedores = useRevendedores()
+  const [situacao, setSituacao] = useState<SituacaoDaRevenda>()
+  const [assinatura, setAssinatura] = useState<'sim' | 'nao'>()
+  const revendedores = useRevendedores({ situacao, contratoAssinado: assinatura && assinatura === 'sim' })
   const contrato = useContratoAssinado()
   const reabertura = useReabertura()
   const suspensao = useSuspensao()
@@ -48,7 +59,13 @@ export function TelaDeRevendedores() {
       <Erro erro={erro && !suspendendo ? mensagemDoErro(erro) : null} />
       <Card className="mt-3">
         <CardContent>
-          <ListaPaginada lista={revendedores} textoVazio="Nenhum revendedor ainda." nomeDaBusca="Buscar nos revendedores" placeholder="Nome ou CNPJ">
+          <ListaPaginada lista={revendedores} textoVazio="Nenhum revendedor ainda." nomeDaBusca="Buscar nos revendedores" placeholder="Nome ou CNPJ"
+            filtrada={!!(situacao || assinatura)}
+            filtros={<>
+              <Filtro rotulo="Situação" todos="Todas as situações" valor={situacao} aoMudar={setSituacao} opcoes={SITUACOES} />
+              <Filtro rotulo="Contrato" todos="Com e sem contrato" valor={assinatura} aoMudar={setAssinatura}
+                opcoes={[{ valor: 'sim', rotulo: 'Contrato assinado' }, { valor: 'nao', rotulo: 'Sem contrato' }]} />
+            </>}>
             {(itens) => (
               <Rolagem>
                 <Table semBusca>

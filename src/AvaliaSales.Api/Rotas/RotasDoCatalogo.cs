@@ -54,9 +54,10 @@ public static class RotasDoCatalogo
         }).Accepts<byte[]>("image/webp", "image/png", "image/jpeg").Produces<ProdutoDaPlataformaDto>();
         operadora.MapDelete("/{id:guid}/foto", (Guid id, CatalogoDaPlataforma c, CancellationToken ct) => c.RemoverFoto(id, ct));
 
-        rotas.MapGet("/servicos", (string? busca, Domain.Servicos.SituacaoDaOrdem? situacao, [AsParameters] PedidoDePagina pagina, Servicos s, CancellationToken ct) => s.Listar(busca, situacao, pagina, ct)).RequireAuthorization(Politicas.Dono).WithTags("Serviços");
+        rotas.MapGet("/servicos", (string? busca, Domain.Servicos.SituacaoDaOrdem? situacao, string? mes, [AsParameters] PedidoDePagina pagina, Servicos s, CancellationToken ct) => s.Listar(busca, situacao, pagina, ct, mes)).RequireAuthorization(Politicas.Dono).WithTags("Serviços");
         var servicos = rotas.MapGroup("/operadora/servicos").RequireAuthorization(Politicas.Operadora).WithTags("Serviços");
-        servicos.MapGet("/", (string? busca, Domain.Servicos.SituacaoDaOrdem? situacao, [AsParameters] PedidoDePagina pagina, Servicos s, CancellationToken ct) => s.Listar(busca, situacao, pagina, ct));
+        servicos.MapGet("/", (string? busca, Domain.Servicos.SituacaoDaOrdem? situacao, string? mes, Guid? revendedorId, [AsParameters] PedidoDePagina pagina, Servicos s, CancellationToken ct) =>
+            s.Listar(busca, situacao, pagina, ct, mes, revendedorId));
         servicos.MapPost("/{id:guid}/iniciar", async (Guid id, Servicos s, CancellationToken ct) => { await s.Iniciar(id, ct); return Results.NoContent(); });
         servicos.MapPost("/{id:guid}/entregar", async (Guid id, Servicos s, CancellationToken ct) => { await s.Entregar(id, ct); return Results.NoContent(); });
         // A placa personalizada: os códigos nascem na ordem, no estoque da revenda que vendeu (ADR 0032).

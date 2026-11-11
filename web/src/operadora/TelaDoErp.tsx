@@ -1,19 +1,25 @@
+import { useState } from 'react'
 import { mensagemDoErro } from '@/api/cliente'
 import { formatarDataHora } from '@/api/rotulos'
 import { AcoesDaLinha } from '@/componentes/AcoesDaLinha'
+import { Filtro, mesesRecentes, opcoesDe } from '@/componentes/Filtro'
 import { ListaPaginada } from '@/componentes/ListaPaginada'
 import { Aviso, Cabecalho, Erro, Rolagem } from '@/componentes/Tela'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { formatarCentavos } from '@/dinheiro/dinheiro'
-import { useFilaDoErp, useIntegracaoDoErp, useReenviarAoErp } from './consultas'
+import { useFilaDoErp, useIntegracaoDoErp, useOpcoesDeRevenda, useReenviarAoErp } from './consultas'
 
 const ROTULO = { Pendente: 'Na fila', Enviado: 'No ERP', Parado: 'Parado' } as const
 
 /** Os pedidos de placas pagos a caminho do Protheus, como pedido de venda. */
 export function TelaDoErp() {
-  const fila = useFilaDoErp()
+  const [situacao, setSituacao] = useState<keyof typeof ROTULO>()
+  const [mes, setMes] = useState<string>()
+  const [revendedorId, setRevendedorId] = useState<string>()
+  const revendas = useOpcoesDeRevenda()
+  const fila = useFilaDoErp({ situacao, mes, revendedorId })
   const integracao = useIntegracaoDoErp()
   const reenviar = useReenviarAoErp()
 
@@ -24,7 +30,13 @@ export function TelaDoErp() {
       <Erro erro={reenviar.error ? mensagemDoErro(reenviar.error) : null} />
       <Card className="mt-3">
         <CardContent>
-          <ListaPaginada lista={fila} textoVazio="Nenhum pedido pago ainda." nomeDaBusca="Buscar na fila do ERP" placeholder="Revendedor, pedido de venda ou situação">
+          <ListaPaginada lista={fila} textoVazio="Nenhum pedido pago ainda." nomeDaBusca="Buscar na fila do ERP" placeholder="Revendedor, pedido de venda ou situação"
+            filtrada={!!(situacao || mes || revendedorId)}
+            filtros={<>
+              <Filtro rotulo="Situação" todos="Todas as situações" valor={situacao} aoMudar={setSituacao} opcoes={opcoesDe(ROTULO)} />
+              <Filtro rotulo="Revenda" todos="Todas as revendas" valor={revendedorId} aoMudar={setRevendedorId} opcoes={revendas.data ?? []} className="w-52" />
+              <Filtro rotulo="Mês" todos="Todos os meses" valor={mes} aoMudar={setMes} opcoes={mesesRecentes()} />
+            </>}>
             {(itens) => (
               <Rolagem>
                 <Table semBusca>

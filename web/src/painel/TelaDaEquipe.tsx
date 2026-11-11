@@ -8,6 +8,7 @@ import { formatarBps, paraBps } from '@/api/rotulos'
 import type { Vendedor } from '@/api/tipos'
 import { Campo } from '@/componentes/Campo'
 import { AcoesDaLinha } from '@/componentes/AcoesDaLinha'
+import { Filtro } from '@/componentes/Filtro'
 import { Cabecalho, Erro, EstadoDaConsulta, Rolagem } from '@/componentes/Tela'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -118,6 +119,10 @@ function Convite({ vendedor, aoFechar }: { vendedor: Vendedor; aoFechar: () => v
 /** A equipe do dono, com a comissão de cada um. Vendedor com venda é desativado, e não excluído. */
 export function TelaDaEquipe() {
   const equipe = useEquipe()
+  // A equipe vem inteira (sem paginação): o filtro corre na tela.
+  const [situacao, setSituacao] = useState<'ativos' | 'convidados' | 'desativados'>()
+  const vendedores = (equipe.data ?? []).filter((v) => !situacao
+    || (situacao === 'desativados' ? !v.ativo : situacao === 'convidados' ? v.ativo && v.convitePendente : v.ativo && !v.convitePendente))
   const criar = useCriarVendedor()
   const alterar = useAlterarVendedor()
   const ativar = useAtivarVendedor()
@@ -159,6 +164,13 @@ export function TelaDaEquipe() {
           <CardContent>
             <EstadoDaConsulta carregando={equipe.isPending} erro={equipe.error} vazio={equipe.data?.length === 0} textoVazio="Nenhum vendedor." />
             {equipe.data && equipe.data.length > 0 && (
+              <div className="mb-3">
+                <Filtro rotulo="Situação" todos="Todas as situações" valor={situacao} aoMudar={setSituacao}
+                  opcoes={[{ valor: 'ativos', rotulo: 'Ativos' }, { valor: 'convidados', rotulo: 'Convidados' }, { valor: 'desativados', rotulo: 'Desativados' }]} />
+              </div>
+            )}
+            {situacao && vendedores.length === 0 && <p className="py-1 text-sm text-muted-foreground" role="status">Nada na lista com esses filtros.</p>}
+            {vendedores.length > 0 && (
               <Rolagem>
                 <Table>
                   <TableHeader>
@@ -171,7 +183,7 @@ export function TelaDaEquipe() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {equipe.data.map((v) => (
+                    {vendedores.map((v) => (
                       <TableRow key={v.id}>
                         <TableCell className="min-w-48 whitespace-normal">
                           <p className="font-medium">{v.nome}</p>

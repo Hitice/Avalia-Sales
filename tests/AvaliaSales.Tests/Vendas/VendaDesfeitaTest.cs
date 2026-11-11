@@ -132,11 +132,11 @@ public sealed class VendaDesfeitaTest(ApiDeTeste api)
         await caio.Postar("/vendas", Cenarios.Venda(codigo, revenda.ProdutoId, "11977770007"), HttpStatusCode.Created);
         var venda = await VendaDe(caio, codigo);
 
-        // Pix em aberto: o cliente ainda pode pagar pelo QR e pagaria duas vezes.
-        await caio.Postar($"/vendas/{venda}/recebimento", new { meio = "Dinheiro" }, HttpStatusCode.UnprocessableEntity);
-        await VencerPix(revenda.Id);
         await caio.Postar($"/vendas/{venda}/recebimento", new { meio = "Pix" }, HttpStatusCode.UnprocessableEntity);
+        // Com o Pix em aberto, o recebimento por fora o cancela no Pagar.me: o cliente não paga duas vezes pelo QR.
+        var pedido = Pedido(await CobrancaDa(revenda.Id));
         await caio.Postar($"/vendas/{venda}/recebimento", new { meio = "Dinheiro" }, HttpStatusCode.NoContent);
+        Assert.Contains(pedido, api.Gateway.Cancelados);
         await caio.Postar($"/vendas/{venda}/recebimento", new { meio = "OutroPix" }, HttpStatusCode.UnprocessableEntity);
 
         var razao = await revenda.Dono.Pegar("/razao");
@@ -154,6 +154,33 @@ public sealed class VendaDesfeitaTest(ApiDeTeste api)
         Assert.Equal(0, (await caio.Pegar("/comissoes")).EnumerateArray().Single().GetProperty("abertaCents").GetInt64());
         Assert.Equal("Estornada", (await caio.PegarItens("/vendas")).EnumerateArray().Single().GetProperty("pagamento").GetString());
     }
+
+    [Fact]
+    public async Task Pix_ja_pago_no_Pagarme_recusa_o_recebimento_por_fora_e_fica_pago()
+    {
+        var revenda = await api.RevendaComEstoque("Revenda do Pix que Caiu");
+        var codigo = revenda.Codigos[7];
+        await revenda.Dono.Postar("/vendas", Cenarios.Venda(codigo, revenda.ProdutoId, "11977770010"), HttpStatusCode.Created);
+        var venda = await VendaDe(revenda.Dono, codigo);
+        var cobranca = await CobrancaDa(revenda.Id);
+        api.Gateway.PorCodigo[cobranca] = api.Gateway.PorCodigo[cobranca] with { Situacao = Domain.Pagamentos.SituacaoDaCobranca.Paga, PagoEm = DateTimeOffset.UtcNow };
+
+        await revenda.Dono.Postar($"/vendas/{venda}/recebimento", new { meio = "OutroPix" }, HttpStatusCode.UnprocessableEntity);
+
+        Assert.DoesNotContain(Pedido(cobranca), api.Gateway.Cancelados);
+        var lida = (await revenda.Dono.PegarItens("/vendas")).EnumerateArray().Single(v => v.GetProperty("id").GetGuid() == venda);
+        Assert.Equal("Paga", lida.GetProperty("pagamento").GetString());
+        Assert.Equal("Pix", lida.GetProperty("pagoPor").GetString());
+    }
+
+    /// <summary>O código da cobrança pendente da revenda, que é a chave do pedido no Pagar.me.</summary>
+    private async Task<string> CobrancaDa(Guid revendedorId)
+    {
+        await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
+        return await banco.Texto($"select replace(id::text, '-', '') from cobrancas where revendedor_id = '{revendedorId}' and situacao = 'Pendente'");
+    }
+
+    private string Pedido(string cobranca) => api.Gateway.PorCodigo[cobranca].Id;
 
     [Fact]
     public async Task Renovacao_recebida_por_fora_estende_a_placa_depois_do_Pix_vencer()

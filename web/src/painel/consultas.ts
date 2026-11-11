@@ -1,15 +1,16 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { chamarApi, enviarJson } from '@/api/cliente'
-import type { EstadoDaPlaca, LoteDaRevenda, MinhaRevenda, MotivoDaBaixa, MotivoDoCancelamento, PlacaDaVendaCancelada, Pacote, Pagina, PaginaDePlacas, Pedido, Repasse, ResumoDoMes, ResumoDasVendas, LancamentoDoRazao, DetalheDaVenda, ResumoDoVendedor, PlacaDaCarteira, SaldoDeComissao, PendenteDeConferencia, LimitesDePorFora, VendaDaLista, VendaRegistrada, Vendedor } from '@/api/tipos'
+import type { EstadoDaPlaca, LoteDaRevenda, MinhaRevenda, MotivoDaBaixa, MotivoDoCancelamento, PlacaDaVendaCancelada, Pacote, Pagina, PaginaDePlacas, Pedido, Repasse, ResumoDoMes, ResumoDasVendas, LancamentoDoRazao, DetalheDaVenda, ResumoDoVendedor, PlacaDaCarteira, SaldoDeComissao, PendenteDeConferencia, LimitesDePorFora, SituacaoDoPedido, SituacaoNaLista, VendaDaLista, VendaRegistrada, Vendedor } from '@/api/tipos'
 import { paraQuery, useListaPaginada } from '@/lib/paginacao'
 
 export type FiltroDePlacas = { estado?: EstadoDaPlaca; consignadaA?: string; codigo?: string; pagina?: number; tamanho?: number }
 
 export const useMinhaRevenda = (ativa = true) => useQuery({ queryKey: ['revenda'], queryFn: () => chamarApi<MinhaRevenda>('/revenda'), enabled: ativa })
 export const usePacotes = () => useQuery({ queryKey: ['pacotes'], queryFn: () => chamarApi<Pacote[]>('/pacotes') })
-export const usePedidos = () => useListaPaginada<Pedido>(['pedidos'], '/pedidos')
-export const useEquipe = () => useQuery({ queryKey: ['equipe'], queryFn: () => chamarApi<Vendedor[]>('/equipe') })
-export const useVendas = () => useListaPaginada<VendaDaLista>(['vendas', 'lista'], '/vendas')
+export const usePedidos = (filtros: { situacao?: SituacaoDoPedido; mes?: string } = {}) => useListaPaginada<Pedido>(['pedidos'], '/pedidos', { filtros })
+export const useEquipe = (ativa = true) => useQuery({ queryKey: ['equipe'], queryFn: () => chamarApi<Vendedor[]>('/equipe'), enabled: ativa })
+export type FiltrosDasVendas = { situacao?: SituacaoNaLista; vendedorId?: string; mes?: string }
+export const useVendas = (filtros: FiltrosDasVendas = {}) => useListaPaginada<VendaDaLista>(['vendas', 'lista'], '/vendas', { filtros })
 /** As vendas somadas inteiras (totais, mês, 30 dias): a tela não soma a página que abriu. */
 export const useResumoDasVendas = () => useQuery({ queryKey: ['vendas', 'resumo'], queryFn: () => chamarApi<ResumoDasVendas>('/vendas/resumo') })
 /** As mais recentes, para o Início: a primeira página da lista, sem busca. */
@@ -82,7 +83,7 @@ export const useConferirRecebimentos = () =>
   useGravar((cobrancaIds: string[] | null) => chamarApi<{ conferidos: number }>('/comissoes/conferencia', enviarJson('POST', { cobrancaIds })), ['comissoes', 'auditoria'], 'Dinheiro confirmado.')
 export const useDefinirLimitesPorFora = () =>
   useGravar(({ id, ...limites }: LimitesDePorFora & { id: string }) => chamarApi(`/equipe/${id}/limites-por-fora`, enviarJson('PUT', limites)), ['equipe', 'auditoria'], 'Limites salvos.')
-export const useRepasses = () => useListaPaginada<Repasse>(['repasses'], '/repasses')
+export const useRepasses = (filtros: { vendedorId?: string; mes?: string } = {}) => useListaPaginada<Repasse>(['repasses'], '/repasses', { filtros })
 export const useRepassar = () =>
   useGravar((r: { vendedorId: string; ate: string | null; comprovante: string | null }) => chamarApi<Repasse>('/repasses', enviarJson('POST', r)), ['comissoes', 'repasses', 'razao', 'financeiro'], 'Repasse registrado.')
 export const useCorrigirVenda = () =>

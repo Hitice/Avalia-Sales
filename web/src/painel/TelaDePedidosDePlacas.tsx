@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { mensagemDoErro } from '@/api/cliente'
-import { formatarDataHora, rotuloDoPedido, TOM_DO_PEDIDO } from '@/api/rotulos'
+import { formatarDataHora, ROTULO_DO_PEDIDO, rotuloDoPedido, TOM_DO_PEDIDO } from '@/api/rotulos'
+import type { SituacaoDoPedido } from '@/api/tipos'
 import { AcoesDaLinha } from '@/componentes/AcoesDaLinha'
+import { Filtro, mesesRecentes, opcoesDe } from '@/componentes/Filtro'
 import { ListaPaginada } from '@/componentes/ListaPaginada'
 import { Cabecalho, Erro, Rolagem } from '@/componentes/Tela'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -17,7 +19,9 @@ import { PacotesParaPedir } from './PacotesParaPedir'
 
 /** Pedir placas e ativar o lote que chegou. */
 export function TelaDePedidosDePlacas() {
-  const pedidos = usePedidos()
+  const [situacao, setSituacao] = useState<SituacaoDoPedido>()
+  const [mes, setMes] = useState<string>()
+  const pedidos = usePedidos({ situacao, mes })
   const cancelar = useCancelarPedido()
   const ativar = useAtivarLote()
   const pagar = usePagarPedido()
@@ -37,7 +41,12 @@ export function TelaDePedidosDePlacas() {
           <CardHeader><CardTitle>Meus pedidos</CardTitle></CardHeader>
           <CardContent>
             <Erro erro={cancelar.error || pagar.error ? mensagemDoErro(cancelar.error ?? pagar.error) : null} />
-            <ListaPaginada lista={pedidos} textoVazio="Nenhum pedido ainda." nomeDaBusca="Buscar nos pedidos" placeholder="Cupom ou lote">
+            <ListaPaginada lista={pedidos} textoVazio="Nenhum pedido ainda." nomeDaBusca="Buscar nos pedidos" placeholder="Cupom ou lote"
+              filtrada={!!(situacao || mes)}
+              filtros={<>
+                <Filtro rotulo="Situação" todos="Todas as situações" valor={situacao} aoMudar={setSituacao} opcoes={opcoesDe(ROTULO_DO_PEDIDO)} />
+                <Filtro rotulo="Mês" todos="Todos os meses" valor={mes} aoMudar={setMes} opcoes={mesesRecentes()} />
+              </>}>
               {(itens) => (
                 <Rolagem>
                   <Table semBusca>

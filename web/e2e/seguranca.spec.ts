@@ -53,8 +53,8 @@ test('o dono liga o segundo fator, a entrada pede o código e ele desliga', asyn
   await entrar()
   await expect(page.getByLabel('Código do app autenticador')).toBeVisible()
   await semViolacaoGrave(page)
+  // Os 6 dígitos completos conferem sozinhos, sem o botão.
   await page.getByLabel('Código do app autenticador').fill(codigoTotp(chave))
-  await page.getByRole('button', { name: 'Entrar' }).click()
   await expect(page.getByRole('heading', { name: 'Início' })).toBeVisible()
 
   await page.goto('/conta/seguranca')

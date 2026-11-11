@@ -55,10 +55,21 @@ public sealed class Comissoes(IBancoDeDados banco, IUsuarioAtual usuario, IConta
     }
 
     /// <summary>Do mais novo ao mais antigo; a busca vale para o nome do vendedor e o comprovante. O vendedor vê só os dele.</summary>
-    public async Task<Pagina<RepasseDto>> Repasses(string? busca, PedidoDePagina pedido, CancellationToken ct)
+    public async Task<Pagina<RepasseDto>> Repasses(string? busca, PedidoDePagina pedido, CancellationToken ct, Guid? vendedorId = null, string? mes = null)
     {
         var consulta = banco.Repasses.AsNoTracking()
             .Where(r => usuario.Papel != Papel.Vendedor || r.VendedorId == usuario.UsuarioId);
+        if (vendedorId is { } vendedor)
+        {
+            consulta = consulta.Where(r => r.VendedorId == vendedor);
+        }
+
+        // O mês é o do pagamento ao vendedor.
+        if (MesDoFiltro.Intervalo(mes) is var (inicio, fim))
+        {
+            consulta = consulta.Where(r => r.PagoEm >= inicio && r.PagoEm < fim);
+        }
+
         var termo = Paginacao.Termo(busca);
         if (termo.Length > 0)
         {

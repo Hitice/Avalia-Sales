@@ -17,9 +17,15 @@ public sealed record BloquearDestino(string Dominio, string? Motivo);
 public sealed class DestinosBloqueados(IBancoDeDados banco, IUsuarioAtual usuario, TimeProvider relogio, IReputacaoDeEnderecos reputacao,
     Revendedores.LimiteDeDestinos limite)
 {
-    public async Task<Pagina<DestinoBloqueadoDto>> Listar(string? busca, PedidoDePagina pedido, CancellationToken ct)
+    /// <summary>Do mais novo ao mais antigo; o mês é o do bloqueio.</summary>
+    public async Task<Pagina<DestinoBloqueadoDto>> Listar(string? busca, PedidoDePagina pedido, CancellationToken ct, string? mes = null)
     {
         var consulta = banco.DestinosBloqueados.AsNoTracking();
+        if (MesDoFiltro.Intervalo(mes) is var (inicio, fim))
+        {
+            consulta = consulta.Where(d => d.CriadoEm >= inicio && d.CriadoEm < fim);
+        }
+
         var termo = Paginacao.Termo(busca);
         if (termo.Length > 0)
         {

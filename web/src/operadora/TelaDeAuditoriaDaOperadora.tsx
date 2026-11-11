@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { baixarArquivo } from '@/lib/arquivo'
 import { useListaPaginada } from '@/lib/paginacao'
+import { Filtro, mesesRecentes } from '@/componentes/Filtro'
 
 const POR_PAGINA = 20
 
@@ -61,9 +62,11 @@ function corpoLegivel(corpo: string) {
 export function TelaDeAuditoriaDaOperadora() {
   const [aberto, setAberto] = useState<RegistroDaOperadora | null>(null)
   const [erroDaExportacao, setErroDaExportacao] = useState<unknown>(null)
-  const registros = useListaPaginada<RegistroDaOperadora>(['operadora', 'auditoria'], '/operadora/auditoria', { tamanho: POR_PAGINA })
+  const [mes, setMes] = useState<string>()
+  const registros = useListaPaginada<RegistroDaOperadora>(['operadora', 'auditoria'], '/operadora/auditoria', { tamanho: POR_PAGINA, filtros: { mes } })
   const busca = registros.termo.trim()
-  const filtro = new URLSearchParams(busca ? { busca } : {})
+  // A exportação leva os mesmos filtros da tela.
+  const filtro = new URLSearchParams({ ...(busca && { busca }), ...(mes && { mes }) })
   const total = registros.total
 
   async function exportar() {
@@ -83,7 +86,8 @@ export function TelaDeAuditoriaDaOperadora() {
       <Erro erro={erroDaExportacao ? mensagemDoErro(erroDaExportacao) : null} />
       <Card>
         <CardContent className="grid gap-4">
-          <ListaPaginada lista={registros} textoVazio="Nada registrado." nomeDaBusca="Buscar pela ação ou pelo alvo" placeholder="Pedido, cupom, despacho ou id">
+          <ListaPaginada lista={registros} textoVazio="Nada registrado." nomeDaBusca="Buscar pela ação ou pelo alvo" placeholder="Pedido, cupom, despacho ou id"
+            filtrada={!!mes} filtros={<Filtro rotulo="Mês" todos="Todos os meses" valor={mes} aoMudar={setMes} opcoes={mesesRecentes()} />}>
             {(itens) => (
               <Rolagem>
                 <Table semBusca>

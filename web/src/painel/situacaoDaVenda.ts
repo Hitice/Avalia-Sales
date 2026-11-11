@@ -29,13 +29,15 @@ export const nomeDoProduto = (v: VendaDaLista) => (v.quantidade > 1 ? `${v.quant
 export const podeGerarCobranca = (v: VendaDaLista) =>
   v.situacao === 'Registrada' && !v.cortesia && !v.doSistemaAnterior && (v.pagamento === null || v.pagamento === 'Falhou' || v.pagamento === 'Cancelada')
 
+/** O cliente pagou fora do Pagar.me (dinheiro, outro Pix): com ou sem Pix em aberto, que é cancelado. */
+export const podeRegistrarPagamento = (v: VendaDaLista) =>
+  v.situacao === 'Registrada' && !v.cortesia && !v.doSistemaAnterior && v.valorCents > 0 && v.pagamento !== 'Paga'
+
 /**
  * Se o modal de depois do balcão (AcoesDaVenda) tem o que oferecer: receber
  * por fora, trocar a placa, corrigir, dar de cortesia ou cancelar.
  */
 export function temAcoesDaVenda(v: VendaDaLista, dono: boolean): boolean {
   if (v.situacao !== 'Registrada') return false
-  const viva = v.pagamento === 'Pendente' || v.pagamento === 'Paga'
-  const podeReceber = !v.cortesia && !v.doSistemaAnterior && v.valorCents > 0 && !viva
-  return dono || podeReceber || !!v.codigo
+  return dono || podeRegistrarPagamento(v) || !!v.codigo
 }

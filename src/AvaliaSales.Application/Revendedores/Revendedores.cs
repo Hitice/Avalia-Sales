@@ -12,14 +12,38 @@ public sealed record RevendedorDto(Guid Id, string Nome, string? Cnpj, int Comis
 
 public sealed record MinhaRevenda(RevendedorDto Revendedor, SituacaoDoContrato? Contrato);
 
+/// <summary>A situação da conta no filtro da lista, na mesma ordem de gravidade do selo da tela.</summary>
+public enum SituacaoDaRevenda
+{
+    Ativas,
+    EmDistrato,
+    Suspensas,
+    Encerradas,
+    ReaberturaPedida,
+}
+
 /// <summary>O cadastro dos revendedores visto pela operadora, e a própria revenda vista pelo dono.</summary>
 public sealed class Revendedores(IBancoDeDados banco, IRevendedorAtual atual, IUsuarioAtual usuario, Equipe.IContas contas, Avisos.FilaDeEmails emails,
     Notificacoes.Notificacoes notificacoes, IOptions<OpcoesDaPlataforma> plataforma, TimeProvider relogio, AcoesSensiveisDaOperadora sensiveis)
 {
-    /// <summary>Por nome; a busca vale para o nome e o CNPJ.</summary>
-    public async Task<Pagina<RevendedorDto>> Listar(string? busca, PedidoDePagina pedido, CancellationToken ct)
+    /// <summary>Por nome; a busca vale para o nome e o CNPJ. A situação e o contrato somam à busca.</summary>
+    public async Task<Pagina<RevendedorDto>> Listar(string? busca, PedidoDePagina pedido, CancellationToken ct, SituacaoDaRevenda? situacao = null, bool? contratoAssinado = null)
     {
         var consulta = banco.Revendedores.AsNoTracking();
+        consulta = situacao switch
+        {
+            SituacaoDaRevenda.ReaberturaPedida => consulta.Where(r => r.EncerradaEm != null && r.ReaberturaPedidaEm != null),
+            SituacaoDaRevenda.Encerradas => consulta.Where(r => r.EncerradaEm != null && r.ReaberturaPedidaEm == null),
+            SituacaoDaRevenda.Suspensas => consulta.Where(r => r.EncerradaEm == null && r.SuspensaEm != null),
+            SituacaoDaRevenda.EmDistrato => consulta.Where(r => r.EncerradaEm == null && r.SuspensaEm == null && r.EncerramentoPedidoEm != null),
+            SituacaoDaRevenda.Ativas => consulta.Where(r => r.EncerradaEm == null && r.SuspensaEm == null && r.EncerramentoPedidoEm == null),
+            _ => consulta,
+        };
+        if (contratoAssinado is { } assinado)
+        {
+            consulta = assinado ? consulta.Where(r => r.ContratoAssinadoEm != null) : consulta.Where(r => r.ContratoAssinadoEm == null);
+        }
+
         var termo = Paginacao.Termo(busca);
         var digitos = new string(termo.Where(char.IsAsciiDigit).ToArray());
         if (termo.Length > 0)

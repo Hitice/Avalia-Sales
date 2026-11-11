@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { VendaDaLista } from '@/api/tipos'
-import { rotuloDaVenda, tomDaVenda } from './situacaoDaVenda'
+import { podeRegistrarPagamento, rotuloDaVenda, tomDaVenda } from './situacaoDaVenda'
 
 const base: VendaDaLista = {
   id: 'v', codigo: 'K7M2PX', cliente: 'Padaria', produto: 'Placa', vendedorId: 'u', vendedor: 'Bruna', valorCents: 9990, comissaoCents: 2000,
@@ -31,5 +31,17 @@ describe('selo da venda', () => {
     expect(tomDaVenda({ ...base, cortesia: true })).toBe('neutro')
     expect(tomDaVenda({ ...base, pagamento: null })).toBe('neutro')
     expect(tomDaVenda({ ...base, testeAte: '2026-10-30T00:00:00Z', testeExpiradoEm: '2026-10-30T00:00:00Z' })).toBe('atencao')
+  })
+})
+
+describe('registrar pagamento por fora', () => {
+  it('vale com Pix em aberto, falho ou sem cobrança; não com venda paga, cortesia, importada ou cancelada', () => {
+    const podem: VendaDaLista[] = [base, { ...base, pagamento: 'Falhou' }, { ...base, pagamento: null }]
+    const naoPodem: VendaDaLista[] = [
+      { ...base, pagamento: 'Paga' }, { ...base, cortesia: true }, { ...base, doSistemaAnterior: true },
+      { ...base, situacao: 'Cancelada' }, { ...base, valorCents: 0 },
+    ]
+    expect(podem.map(podeRegistrarPagamento)).toEqual([true, true, true])
+    expect(naoPodem.map(podeRegistrarPagamento)).toEqual([false, false, false, false, false])
   })
 })

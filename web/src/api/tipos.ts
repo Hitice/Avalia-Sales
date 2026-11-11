@@ -30,6 +30,7 @@ export type MinhaRevenda = Esquema['MinhaRevenda']
 export type PaginaDePlacas = Omit<Esquema['PaginaDePlacas'], 'porEstado'> & { porEstado: Partial<Record<EstadoDaPlaca, number>> }
 export type Vendedor = Esquema['VendedorDto']
 export type VendaDaLista = Esquema['VendaDaLista']
+export type SituacaoNaLista = NonNullable<Esquema['SituacaoNaLista']>
 export type DetalheDaVenda = Esquema['DetalheDaVenda']
 export type ResumoDoVendedor = Esquema['ResumoDoVendedor']
 export type PlacaDaCarteira = Esquema['PlacaDaCarteira']
@@ -101,3 +102,5 @@ export type SaldoAAcertar = Esquema['SaldoAAcertarDto']
 export type Acerto = Esquema['AcertoDto']
 
 export type SituacaoDoLimite = Esquema['SituacaoDoLimite']
+export type SituacaoDoCliente = NonNullable<Esquema['SituacaoDoCliente']>
+export type SituacaoDaRevenda = NonNullable<Esquema['SituacaoDaRevenda']>

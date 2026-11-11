@@ -6,6 +6,7 @@ import { mensagemDoErro } from '@/api/cliente'
 import type { Pacote } from '@/api/tipos'
 import { Campo } from '@/componentes/Campo'
 import { AcoesDaLinha } from '@/componentes/AcoesDaLinha'
+import { Filtro } from '@/componentes/Filtro'
 import { Cabecalho, Erro, EstadoDaConsulta, Rolagem } from '@/componentes/Tela'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -25,6 +26,9 @@ const VAZIO: Formulario = { quantidade: '', preco: '' }
 /** Os pacotes que os revendedores podem pedir. O pedido copia quantidade e preço. */
 export function TelaDePacotes() {
   const pacotes = usePacotesDaOperadora()
+  // Os pacotes vêm inteiros (sem paginação): o filtro corre na tela.
+  const [situacao, setSituacao] = useState<'aVenda' | 'fora'>()
+  const lista = (pacotes.data ?? []).filter((p) => !situacao || p.ativo === (situacao === 'aVenda'))
   const criar = useCriarPacote()
   const alterar = useAlterarPacote()
   const ativar = useAtivarPacote()
@@ -57,6 +61,13 @@ export function TelaDePacotes() {
           <CardContent>
             <EstadoDaConsulta carregando={pacotes.isPending} erro={pacotes.error} vazio={pacotes.data?.length === 0} textoVazio="Nenhum pacote ainda." />
             {pacotes.data && pacotes.data.length > 0 && (
+              <div className="mb-3">
+                <Filtro rotulo="Situação" todos="Todas as situações" valor={situacao} aoMudar={setSituacao}
+                  opcoes={[{ valor: 'aVenda', rotulo: 'À venda' }, { valor: 'fora', rotulo: 'Fora de venda' }]} />
+              </div>
+            )}
+            {situacao && lista.length === 0 && <p className="py-1 text-sm text-muted-foreground" role="status">Nada na lista com esses filtros.</p>}
+            {lista.length > 0 && (
               <Rolagem>
                 <Table>
                   <TableHeader>
@@ -69,7 +80,7 @@ export function TelaDePacotes() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {pacotes.data.map((pacote) => (
+                    {lista.map((pacote) => (
                       <TableRow key={pacote.id}>
                         <TableCell className="font-medium tabular-nums">{pacote.quantidade} placas</TableCell>
                         <TableCell>{formatarCentavos(pacote.precoCents)}</TableCell>

@@ -133,7 +133,7 @@ maiúscula ("otica" acha "Ótica").
 | Início do revendedor | Revendedor | Computador e celular | Quatro números do mês (placas em estoque, placas no ar, vendas e recebido), vendas por dia nos últimos 30 dias, o Financeiro do mês (recebido, comissões, custo das placas, parte da Avalia quando há serviço, despesas e resultado, com Abrir para o Financeiro) e as vendas de hoje com a situação |
 | Início do vendedor | Vendedor | Celular | Vendas do mês, comissão a receber, esperando pagamento e recebida, placas com ele; meta do mês com a barra de progresso, ranking da equipe, vendas dos últimos 30 dias e a rosca da comissão |
 | Nova venda | Revendedor e vendedor | Celular | Itens (a placa abre a leitura do QR e o destino; o serviço entra com a quantidade, a partir do pedido mínimo), cliente, cobrança de tudo numa vez e gravação do NFC de cada placa |
-| Vendas | Revendedor e vendedor | Computador e celular | Lista das vendas, com a quantidade do serviço ("10x Kit Mesa") e as vendas feitas juntas marcadas. Ações - gerar cobrança, receber por fora, trocar a placa, corrigir valor e vendedor, cortesia e cancelamento. O vendedor vê só as dele |
+| Vendas | Revendedor e vendedor | Computador e celular | Lista das vendas, com a quantidade do serviço ("10x Kit Mesa") e as vendas feitas juntas marcadas. Filtros por situação (pagas, a receber, cortesias, canceladas), vendedor (só o revendedor) e mês. Ações - gerar cobrança, receber por fora, trocar a placa, corrigir valor e vendedor, cortesia e cancelamento. O vendedor vê só as dele |
 | Detalhe da venda | Revendedor e vendedor | Computador e celular | Aberto pelo nome do cliente na lista. Produto, placa, valor, vendedor, comissão (e se já foi repassada), vencimento, cancelamento com motivo; o cliente (o nome abre a ficha dele em Clientes; aqui ficam só o responsável e o telefone, e o aviso de que falta CNPJ ou CPF e e-mail para cobrar); o pagamento (situação, meio, valor, estornado, datas); os itens da mesma cobrança; as ordens de serviço; o Pix em aberto, para copiar ou mandar pelo WhatsApp; as linhas do razão, só para o revendedor. As ações são as da lista. O vendedor só abre a venda dele |
 | Ficha da placa | Revendedor e vendedor | Celular | Destino, vencimento, leituras dos últimos 30 dias, histórico e troca; o cliente (link para a ficha dele), o produto, a data da venda e o botão Ver a venda, que leva ao detalhe com valor, vendedor, comissão e pagamento; a renovação só aparece para o revendedor |
 | Carteira | Revendedor e vendedor | Celular e computador | Placas vendidas, com o nome do cliente (link para a ficha dele, só para o revendedor), o vencimento e as leituras dos últimos 30 dias, com os botões Renovar (só o revendedor) e WhatsApp (mensagem pronta). O vendedor vê a dele e chama o cliente; o revendedor vê a da revenda inteira e renova |
@@ -202,6 +202,9 @@ maiúscula ("otica" acha "Ótica").
   acesso lembra que a Avalia nunca pede o código por telefone ou mensagem.
 - Troca de senha logada, para todos os papéis - pede a senha atual, encerra
   os outros aparelhos e avisa por e-mail. Vale também com a conta encerrada.
+- Na entrada com segundo fator, o código é uma etapa à parte, depois da
+  senha - 6 quadrados que conferem sozinhos ao completar, ou um código de
+  recuperação pelo botão "Usar código de recuperação".
 - Segundo fator opcional para o revendedor e a operadora. Desativar pede um
   código novo enviado ao e-mail cadastrado; o código do app e os de
   recuperação também valem.
@@ -314,7 +317,10 @@ maiúscula ("otica" acha "Ótica").
   qualquer placa livre. Reimpressão de placa com defeito sai
   num lote novo, com o título dizendo de que lote é.
 - Recebido por fora - pagamento em dinheiro ou por outro Pix, confirmado pelo
-  vendedor ou pelo revendedor, só sem Pix em aberto e sem pagamento. O razão
+  vendedor ou pelo revendedor ("Registrar pagamento" no menu da venda), só sem
+  pagamento. Com Pix ou cartão em aberto no Pagar.me, a cobrança é
+  reconsultada antes: se já caiu lá, vale o pagamento e o registro é recusado;
+  se não, ela é cancelada no Pagar.me e o recebimento é registrado. O razão
   recebe a venda como se o Pix tivesse caído, com a comissão devida. O que
   seria da Avalia pelo split (a parte dela no serviço) fica "a acertar"; a
   placa e a renovação recebidas por fora não deixam nada a acertar. A
@@ -932,6 +938,7 @@ As mudanças de 21 a 24/10/2026 estão em [historico/pdd-ate-24-10.md](historico
 
 | Data | Mudança |
 | --- | --- |
+| 11/11/2026 | Toda tabela ganha filtro além da busca - situação, pessoa e mês quando a linha tiver (vendas, clientes, pedidos, serviços, auditoria, repasses, revendedores, ERP, destinos bloqueados, equipe e pacotes). Recebido por fora com Pix em aberto - o Pix é reconsultado e cancelado no Pagar.me, e o recebimento é registrado; "Registrar pagamento" no menu da venda. Entrada com segundo fator - código em 6 quadrados, numa etapa à parte. |
 | 03/11/2026 | Destino - link curto `/l/` da própria revenda pode ser informado em placa ou link; o sistema resolve para o destino final, exige link ativo e aplica as validações de domínio bloqueado e reputação, sem criar redirecionamento em cadeia. |
 | 31/10/2026 | Placa personalizada - serviço do catálogo com 1 a 4 QR, vendido com um destino por QR e sem teste gratuito; a operadora gera os códigos na ordem, baixa o QR e entrega, e os 12 meses contam da entrega; uma renovação e um aviso por placa; o cancelamento tira todos os códigos do ar sem voltar ao estoque, e a troca de código não vale (ADR 0032). |
 | 31/10/2026 | Pedido avulso - recusa revenda suspensa ou em encerramento e valor que não divide pela quantidade; a operadora cancela o pedido antes do pagamento, e a revenda é avisada. Avisos com "1 placa" no singular e limites escritos como "1.000". |

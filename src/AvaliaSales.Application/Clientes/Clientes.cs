@@ -7,6 +7,14 @@ namespace AvaliaSales.Application.Clientes;
 
 public sealed record ClienteDaLista(Guid Id, string Nome, string Responsavel, string Telefone, string? Documento, string? Email, int Placas, DateTimeOffset CriadoEm, bool Anonimizado);
 
+/// <summary>O filtro da lista de clientes: com placa vendida de pé, sem nenhuma, ou anonimizados pela LGPD.</summary>
+public enum SituacaoDoCliente
+{
+    ComPlaca,
+    SemPlaca,
+    Anonimizados,
+}
+
 public sealed record AlterarCliente(string Nome, string Responsavel, string? Telefone, string? Documento, string? Email, string? LugarNoGoogle);
 
 /// <summary><paramref name="Estado"/> - o EstadoDaPlaca de hoje, por nome; nulo na venda de serviço.</summary>
@@ -32,11 +40,25 @@ public sealed record DadosDoCliente(
 public sealed class Clientes(IBancoDeDados banco, IRevendedorAtual atual, Auditoria.Auditoria auditoria, TimeProvider relogio)
 {
     /// <summary>Por nome (o Id desempata); a busca vale para o nome, o responsável, o telefone e o documento.</summary>
-    public async Task<Pagina<ClienteDaLista>> Listar(string? busca, PedidoDePagina pedido, CancellationToken ct)
+    public async Task<Pagina<ClienteDaLista>> Listar(string? busca, PedidoDePagina pedido, CancellationToken ct, SituacaoDoCliente? situacao = null, string? mes = null)
     {
         var termo = Paginacao.Termo(busca);
         var digitos = new string(termo.Where(char.IsAsciiDigit).ToArray());
         var consulta = banco.Clientes.AsNoTracking();
+        // O mês é o do cadastro (coluna Desde).
+        if (MesDoFiltro.Intervalo(mes) is var (inicio, fim))
+        {
+            consulta = consulta.Where(c => c.CriadoEm >= inicio && c.CriadoEm < fim);
+        }
+
+        consulta = situacao switch
+        {
+            SituacaoDoCliente.ComPlaca => consulta.Where(c => banco.Vendas.Any(v => v.ClienteId == c.Id && v.PlacaId != null && v.Situacao == Domain.Vendas.SituacaoDaVenda.Registrada)),
+            SituacaoDoCliente.SemPlaca => consulta.Where(c => c.AnonimizadoEm == null
+                && !banco.Vendas.Any(v => v.ClienteId == c.Id && v.PlacaId != null && v.Situacao == Domain.Vendas.SituacaoDaVenda.Registrada)),
+            SituacaoDoCliente.Anonimizados => consulta.Where(c => c.AnonimizadoEm != null),
+            _ => consulta,
+        };
         if (termo.Length > 0)
         {
             consulta = consulta.Where(c => Busca.Normalizar(c.Nome).Contains(Busca.Normalizar(termo)) || Busca.Normalizar(c.Responsavel).Contains(Busca.Normalizar(termo))

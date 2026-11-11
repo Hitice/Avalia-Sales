@@ -42,9 +42,25 @@ public sealed class PedidosDePlacas(
     /// no cupom ou no número do lote. <see cref="PedidoDto.HaLoteLivre"/> diz se a operadora tem lote gerado e ainda
     /// não despachado com a quantidade do pedido.
     /// </summary>
-    public async Task<Pagina<PedidoDto>> Listar(string? busca, PedidoDePagina pedido, CancellationToken ct)
+    public async Task<Pagina<PedidoDto>> Listar(string? busca, PedidoDePagina pedido, CancellationToken ct, SituacaoDoPedido? situacao = null, string? mes = null, Guid? revendedorId = null)
     {
         var consulta = banco.Pedidos.AsNoTracking();
+        if (situacao is { } escolhida)
+        {
+            consulta = consulta.Where(p => p.Situacao == escolhida);
+        }
+
+        if (MesDoFiltro.Intervalo(mes) is var (inicio, fim))
+        {
+            consulta = consulta.Where(p => p.CriadoEm >= inicio && p.CriadoEm < fim);
+        }
+
+        // Só a operadora vê pedidos de mais de uma revenda; para a revenda, o RLS já deixa só os dela.
+        if (revendedorId is { } revenda)
+        {
+            consulta = consulta.Where(p => p.RevendedorId == revenda);
+        }
+
         var termo = Paginacao.Termo(busca);
         if (termo.Length > 0)
         {

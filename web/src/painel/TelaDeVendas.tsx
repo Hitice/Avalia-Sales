@@ -5,7 +5,9 @@ import { mensagemDoErro } from '@/api/cliente'
 import { formatarDataHora } from '@/api/rotulos'
 import { useSessao } from '@/acesso/sessao'
 import { useContaEncerrada } from '@/app/contaEncerrada'
+import type { SituacaoNaLista } from '@/api/tipos'
 import { AcoesDaLinha } from '@/componentes/AcoesDaLinha'
+import { Filtro, mesesRecentes } from '@/componentes/Filtro'
 import { ListaPaginada } from '@/componentes/ListaPaginada'
 import { Aviso, Cabecalho, Erro, Rolagem } from '@/componentes/Tela'
 import { Badge } from '@/components/ui/badge'
@@ -14,8 +16,8 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { formatarCentavos } from '@/dinheiro/dinheiro'
 import { AcoesDaVenda } from './AcoesDaVenda'
-import { useCobrarDeNovo, useResumoDasVendas, useSaldosDeComissao, useVendas } from './consultas'
-import { nomeDoProduto, podeGerarCobranca, rotuloDaVenda, temAcoesDaVenda, tomDaVenda } from './situacaoDaVenda'
+import { useCobrarDeNovo, useEquipe, useResumoDasVendas, useSaldosDeComissao, useVendas } from './consultas'
+import { nomeDoProduto, podeGerarCobranca, podeRegistrarPagamento, rotuloDaVenda, temAcoesDaVenda, tomDaVenda } from './situacaoDaVenda'
 
 /**
  * As vendas e a comissão de cada uma (a comissão só conta quando o cliente
@@ -37,9 +39,23 @@ export function TelaDeVendas() {
   )
 }
 
+const SITUACOES: { valor: SituacaoNaLista; rotulo: string }[] = [
+  { valor: 'Pagas', rotulo: 'Pagas' },
+  { valor: 'AReceber', rotulo: 'A receber' },
+  { valor: 'Cortesias', rotulo: 'Cortesias' },
+  { valor: 'Canceladas', rotulo: 'Canceladas' },
+]
+
 function ListaDeVendas({ dono }: { dono: boolean }) {
   const encerrada = useContaEncerrada()
-  const vendas = useVendas()
+  const [situacao, setSituacao] = useState<SituacaoNaLista>()
+  const [vendedorId, setVendedorId] = useState<string>()
+  const [mes, setMes] = useState<string>()
+  const vendas = useVendas({ situacao, vendedorId, mes })
+  const equipe = useEquipe(dono)
+  const eu = useSessao((s) => s.perfil)
+  // O dono também vende: ele entra na lista dos vendedores.
+  const vendedores = [...(eu ? [{ valor: eu.id, rotulo: 'Eu' }] : []), ...(equipe.data ?? []).filter((v) => v.id !== eu?.id).map((v) => ({ valor: v.id, rotulo: v.nome }))]
   const resumo = useResumoDasVendas().data
   const cobrar = useCobrarDeNovo()
   const saldo = useSaldosDeComissao()
@@ -64,6 +80,12 @@ function ListaDeVendas({ dono }: { dono: boolean }) {
       <Card>
         <CardContent>
           <ListaPaginada lista={vendas} textoVazio="Nenhuma venda ainda." nomeDaBusca="Buscar nas vendas" placeholder="Cliente, placa, produto ou vendedor"
+            filtrada={!!(situacao || vendedorId || mes)}
+            filtros={<>
+              <Filtro rotulo="Situação" todos="Todas as situações" valor={situacao} aoMudar={setSituacao} opcoes={SITUACOES} />
+              {dono && <Filtro rotulo="Vendedor" todos="Todos os vendedores" valor={vendedorId} aoMudar={setVendedorId} opcoes={vendedores} />}
+              <Filtro rotulo="Mês" todos="Todos os meses" valor={mes} aoMudar={setMes} opcoes={mesesRecentes()} />
+            </>}
             acaoVazia={!encerrada && <Button asChild variant="outline"><Link to="/vender">Nova venda</Link></Button>}>
             {(itens) => (
               <Rolagem>
@@ -104,6 +126,7 @@ function ListaDeVendas({ dono }: { dono: boolean }) {
                             principal={podeGerarCobranca(v) && { rotulo: 'Gerar cobrança', desabilitada: cobrar.isPending, aoClicar: () => cobrar.mutate(v.id) }}
                             outras={[
                               { rotulo: 'Abrir a venda', para: `${dono ? '/painel/vendas' : '/vendedor/vendas'}/${v.id}` },
+                              podeRegistrarPagamento(v) && { rotulo: 'Registrar pagamento', aoClicar: () => setEditando(v.id) },
                               temAcoesDaVenda(v, dono) && { rotulo: 'Editar ou cancelar', aoClicar: () => setEditando(v.id) },
                             ]} />
                         </TableCell>

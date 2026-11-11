@@ -13,19 +13,24 @@ public sealed record RegistroDaOperadoraDto(Guid Id, string Acao, string? Refere
 /// </summary>
 public sealed class AuditoriaDaOperadora(IBancoDeDados banco, IContas contas)
 {
-    public async Task<Pagina<RegistroDaOperadoraDto>> Listar(string? busca, PedidoDePagina pedido, CancellationToken ct)
+    public async Task<Pagina<RegistroDaOperadoraDto>> Listar(string? busca, PedidoDePagina pedido, CancellationToken ct, string? mes = null)
     {
-        var pagina = await Filtrar(busca).OrderByDescending(r => r.OcorridoEm).ThenByDescending(r => r.Id).PaginarAsync(pedido, ct);
+        var pagina = await Filtrar(busca, mes).OrderByDescending(r => r.OcorridoEm).ThenByDescending(r => r.Id).PaginarAsync(pedido, ct);
         return new Pagina<RegistroDaOperadoraDto>(await ParaDto(pagina.Itens, ct), pagina.Total, pagina.Proxima);
     }
 
-    public async Task<IReadOnlyList<RegistroDaOperadoraDto>> Exportar(string? busca, CancellationToken ct) =>
-        await ParaDto(await Filtrar(busca).OrderByDescending(r => r.OcorridoEm).ThenByDescending(r => r.Id).Take(Auditoria.ExportadosNoMaximo).ToListAsync(ct), ct);
+    public async Task<IReadOnlyList<RegistroDaOperadoraDto>> Exportar(string? busca, CancellationToken ct, string? mes = null) =>
+        await ParaDto(await Filtrar(busca, mes).OrderByDescending(r => r.OcorridoEm).ThenByDescending(r => r.Id).Take(Auditoria.ExportadosNoMaximo).ToListAsync(ct), ct);
 
-    /// <summary>A busca acha pela rota ou pelo alvo: "despacho", "cupons", o id do pedido.</summary>
-    private IQueryable<RegistroDaOperadora> Filtrar(string? busca)
+    /// <summary>A busca acha pela rota ou pelo alvo: "despacho", "cupons", o id do pedido. O mês soma à busca.</summary>
+    private IQueryable<RegistroDaOperadora> Filtrar(string? busca, string? mes)
     {
         var consulta = banco.AuditoriaDaOperadora.AsNoTracking();
+        if (MesDoFiltro.Intervalo(mes) is var (inicio, fim))
+        {
+            consulta = consulta.Where(r => r.OcorridoEm >= inicio && r.OcorridoEm < fim);
+        }
+
         if (!string.IsNullOrWhiteSpace(busca))
         {
             var termo = Paginacao.Termo(busca);

@@ -34,9 +34,24 @@ public sealed class FilaDoErp(IBancoDeDados banco, IErp erp, TimeProvider relogi
     }
 
     /// <summary>A fila do ERP, do mais novo ao mais antigo; a busca vale para o cliente, o número no ERP e a situação.</summary>
-    public async Task<Pagina<EnvioDto>> Listar(string? busca, PedidoDePagina pedido, CancellationToken ct)
+    public async Task<Pagina<EnvioDto>> Listar(string? busca, PedidoDePagina pedido, CancellationToken ct, SituacaoDoEnvio? situacao = null, string? mes = null, Guid? revendedorId = null)
     {
         var consulta = banco.EnviosAoErp.AsNoTracking();
+        if (situacao is { } escolhida)
+        {
+            consulta = consulta.Where(e => e.Situacao == escolhida);
+        }
+
+        if (MesDoFiltro.Intervalo(mes) is var (inicio, fim))
+        {
+            consulta = consulta.Where(e => e.CriadoEm >= inicio && e.CriadoEm < fim);
+        }
+
+        if (revendedorId is { } revenda)
+        {
+            consulta = consulta.Where(e => e.RevendedorId == revenda);
+        }
+
         var termo = Paginacao.Termo(busca);
         if (termo.Length > 0)
         {

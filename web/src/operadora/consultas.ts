@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { chamarApi, chamarResposta, enviarJson } from '@/api/cliente'
-import type { CategoriaDoLote, Cupom, EnvioAoErp, IntegracaoDoErp, Lote, Pacote, Pagina, PaginaDeLotes, Pedido, Revendedor } from '@/api/tipos'
+import type { CategoriaDoLote, Cupom, EnvioAoErp, IntegracaoDoErp, Lote, Pacote, Pagina, PaginaDeLotes, Pedido, Revendedor, SituacaoDaRevenda, SituacaoDoPedido } from '@/api/tipos'
 import { useListaPaginada } from '@/lib/paginacao'
 
 const chaves = {
@@ -10,7 +10,8 @@ const chaves = {
   revendedores: ['operadora', 'revendedores'] as const,
 }
 
-export const usePedidosDaOperadora = () => useListaPaginada<Pedido>(chaves.pedidos, '/operadora/pedidos')
+export type FiltrosDosPedidos = { situacao?: SituacaoDoPedido; mes?: string; revendedorId?: string }
+export const usePedidosDaOperadora = (filtros: FiltrosDosPedidos = {}) => useListaPaginada<Pedido>(chaves.pedidos, '/operadora/pedidos', { filtros })
 /** Sem os arquivados, a menos que a tela peça; `bruto.arquivados` diz quantos ficaram de fora. */
 export const useLotes = (arquivados: boolean) =>
   useListaPaginada<Lote, PaginaDeLotes>([...chaves.lotes, 'lista'], '/operadora/lotes', { filtros: { arquivados } })
@@ -18,22 +19,27 @@ export const useLotes = (arquivados: boolean) =>
 export const useLotesLivres = (quantidade: number) =>
   useQuery({ queryKey: [...chaves.lotes, 'livres', quantidade], queryFn: () => chamarApi<Pagina<Lote>>(`/operadora/lotes?livres=true&quantidade=${quantidade}&tamanho=100`) })
 export const usePacotesDaOperadora = () => useQuery({ queryKey: chaves.pacotes, queryFn: () => chamarApi<Pacote[]>('/operadora/pacotes') })
-export const useRevendedores = () => useListaPaginada<Revendedor>(chaves.revendedores, '/operadora/revendedores')
-/** As revendas que podem receber pedido avulso: ativas, sem encerramento e com contrato assinado. Lê todas as páginas. */
+export const useRevendedores = (filtros: { situacao?: SituacaoDaRevenda; contratoAssinado?: boolean } = {}) =>
+  useListaPaginada<Revendedor>(chaves.revendedores, '/operadora/revendedores', { filtros })
+/** Todas as revendas, lidas página a página: as opções do filtro de revenda e do pedido avulso. */
+const todasAsRevendas = {
+  queryKey: [...chaves.revendedores, 'todas'],
+  queryFn: async () => {
+    const todas: Revendedor[] = []
+    for (let pagina: number | null = 1; pagina !== null;) {
+      const resposta: Pagina<Revendedor> = await chamarApi<Pagina<Revendedor>>(`/operadora/revendedores?tamanho=100&pagina=${pagina}`)
+      todas.push(...resposta.itens)
+      pagina = resposta.proxima ?? null
+    }
+    return todas
+  },
+}
+/** As revendas como opção do `Filtro`, por nome. */
+export const useOpcoesDeRevenda = (ativa = true) =>
+  useQuery({ ...todasAsRevendas, enabled: ativa, select: (revendas) => revendas.map((r) => ({ valor: r.id, rotulo: r.nome })).sort((a, b) => a.rotulo.localeCompare(b.rotulo, 'pt-BR')) })
+/** As revendas que podem receber pedido avulso: ativas, sem encerramento e com contrato assinado. */
 export const useRevendasDoPedidoAvulso = () =>
-  useQuery({
-    queryKey: [...chaves.revendedores, 'pedido-avulso'],
-    queryFn: async () => {
-      const todas: Revendedor[] = []
-      for (let pagina: number | null = 1; pagina !== null;) {
-        const resposta: Pagina<Revendedor> = await chamarApi<Pagina<Revendedor>>(`/operadora/revendedores?tamanho=100&pagina=${pagina}`)
-        todas.push(...resposta.itens)
-        pagina = resposta.proxima ?? null
-      }
-      return todas
-    },
-    select: (revendas) => revendas.filter((r) => r.contratoAssinadoEm && !r.encerradaEm && !r.encerramentoPedidoEm && !r.suspensaEm),
-  })
+  useQuery({ ...todasAsRevendas, select: (revendas) => revendas.filter((r) => r.contratoAssinadoEm && !r.encerradaEm && !r.encerramentoPedidoEm && !r.suspensaEm) })
 
 /** Toda gravação da operadora refaz as listas dela: pedido, lote e revendedor andam juntos. */
 function useGravar<T>(fazer: (dados: T) => Promise<unknown>) {
@@ -92,5 +98,6 @@ export const useExcluirCupom = () => useGravar((id: string) => chamarApi(`/opera
 
 /** Desligada sem o endereço do Protheus: nenhum pedido pago entra na fila. */
 export const useIntegracaoDoErp = () => useQuery({ queryKey: ['operadora', 'erp', 'integracao'], queryFn: () => chamarApi<IntegracaoDoErp>('/operadora/erp/integracao') })
-export const useFilaDoErp = () => useListaPaginada<EnvioAoErp>(['operadora', 'erp'], '/operadora/erp')
+export const useFilaDoErp = (filtros: { situacao?: EnvioAoErp['situacao']; mes?: string; revendedorId?: string } = {}) =>
+  useListaPaginada<EnvioAoErp>(['operadora', 'erp'], '/operadora/erp', { filtros })
 export const useReenviarAoErp = () => useGravar((pedidoId: string) => chamarApi(`/operadora/erp/${pedidoId}/reenvio`, enviarJson('POST', {})))

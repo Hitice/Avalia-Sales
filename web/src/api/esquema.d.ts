@@ -275,6 +275,7 @@ export interface paths {
                 query?: {
                     busca?: string;
                     situacao?: components["schemas"]["SituacaoDaOrdem"];
+                    mes?: string;
                     Pagina?: number;
                     Tamanho?: number;
                 };
@@ -1427,6 +1428,8 @@ export interface paths {
                 query?: {
                     busca?: string;
                     situacao?: components["schemas"]["SituacaoDaOrdem"];
+                    mes?: string;
+                    revendedorId?: string;
                     Pagina?: number;
                     Tamanho?: number;
                 };
@@ -2259,6 +2262,7 @@ export interface paths {
             parameters: {
                 query?: {
                     busca?: string;
+                    mes?: string;
                     Pagina?: number;
                     Tamanho?: number;
                 };
@@ -2772,6 +2776,9 @@ export interface paths {
             parameters: {
                 query?: {
                     busca?: string;
+                    situacao?: components["schemas"]["SituacaoDoPedido"];
+                    mes?: string;
+                    revendedorId?: string;
                     Pagina?: number;
                     Tamanho?: number;
                 };
@@ -3050,6 +3057,9 @@ export interface paths {
             parameters: {
                 query?: {
                     busca?: string;
+                    situacao?: components["schemas"]["SituacaoDoEnvio"];
+                    mes?: string;
+                    revendedorId?: string;
                     Pagina?: number;
                     Tamanho?: number;
                 };
@@ -3124,6 +3134,8 @@ export interface paths {
             parameters: {
                 query?: {
                     busca?: string;
+                    situacao?: components["schemas"]["SituacaoDaRevenda"];
+                    contratoAssinado?: boolean;
                     Pagina?: number;
                     Tamanho?: number;
                 };
@@ -3486,6 +3498,7 @@ export interface paths {
             parameters: {
                 query?: {
                     busca?: string;
+                    mes?: string;
                     Pagina?: number;
                     Tamanho?: number;
                 };
@@ -3525,6 +3538,7 @@ export interface paths {
             parameters: {
                 query?: {
                     busca?: string;
+                    mes?: string;
                 };
                 header?: never;
                 path?: never;
@@ -4269,6 +4283,8 @@ export interface paths {
             parameters: {
                 query?: {
                     busca?: string;
+                    situacao?: components["schemas"]["SituacaoDoPedido"];
+                    mes?: string;
                     Pagina?: number;
                     Tamanho?: number;
                 };
@@ -5396,6 +5412,7 @@ export interface paths {
                     referencia?: string;
                     acao?: components["schemas"]["AcaoAuditada"];
                     busca?: string;
+                    mes?: string;
                     Pagina?: number;
                     Tamanho?: number;
                 };
@@ -5437,6 +5454,7 @@ export interface paths {
                     referencia?: string;
                     acao?: components["schemas"]["AcaoAuditada"];
                     busca?: string;
+                    mes?: string;
                 };
                 header?: never;
                 path?: never;
@@ -5474,6 +5492,8 @@ export interface paths {
             parameters: {
                 query?: {
                     busca?: string;
+                    situacao?: components["schemas"]["SituacaoDoCliente"];
+                    mes?: string;
                     Pagina?: number;
                     Tamanho?: number;
                 };
@@ -6985,6 +7005,9 @@ export interface paths {
             parameters: {
                 query?: {
                     busca?: string;
+                    situacao?: components["schemas"]["SituacaoNaLista"];
+                    vendedorId?: string;
+                    mes?: string;
                     Pagina?: number;
                     Tamanho?: number;
                 };
@@ -9923,9 +9946,13 @@ export interface components {
         /** @enum {unknown} */
         SituacaoDaPlaca: "EmEstoque" | "Ativa" | "Suspensa" | "Baixada";
         /** @enum {unknown} */
+        SituacaoDaRevenda: "Ativas" | "EmDistrato" | "Suspensas" | "Encerradas" | "ReaberturaPedida" | null;
+        /** @enum {unknown} */
         SituacaoDaVenda: "Registrada" | "Cancelada";
         /** @enum {unknown} */
         SituacaoDoChamado: "AguardandoAvalia" | "AguardandoRevenda" | "Resolvido";
+        /** @enum {unknown} */
+        SituacaoDoCliente: "ComPlaca" | "SemPlaca" | "Anonimizados" | null;
         /** @enum {unknown} */
         SituacaoDoContrato: "Rascunho" | "AguardandoAssinatura" | "Assinado" | "Cancelado" | null;
         /** @enum {unknown} */
@@ -9946,6 +9973,8 @@ export interface components {
             meio: null | components["schemas"]["MeioDoSegundoFator"];
             emailConfirmado: boolean;
         };
+        /** @enum {unknown} */
+        SituacaoNaLista: "Pagas" | "AReceber" | "Cortesias" | "Canceladas" | null;
         SocioDto: {
             /** Format: uuid */
             id: string;

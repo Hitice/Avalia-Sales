@@ -32,7 +32,9 @@ public static class RotasDaEquipe
         // O dono vê o saldo de todos; o vendedor, só o dele.
         equipe.MapGet("/comissoes", (Comissoes comissoes, CancellationToken ct) => comissoes.Saldos(ct));
 
-        equipe.MapGet("/vendas", (string? busca, [AsParameters] PedidoDePagina pagina, Vendas vendas, CancellationToken ct) => vendas.Listar(busca, pagina, ct));
+        // O vendedor só vê as dele: o filtro de vendedor vale para o dono.
+        equipe.MapGet("/vendas", (string? busca, SituacaoNaLista? situacao, Guid? vendedorId, string? mes, [AsParameters] PedidoDePagina pagina, Vendas vendas, CancellationToken ct) =>
+            vendas.Listar(new FiltroDeVendas(busca, situacao, vendedorId, mes), pagina, ct));
         equipe.MapGet("/vendas/resumo", (Vendas vendas, CancellationToken ct) => vendas.Resumo(ct));
         // A meta, o ranking da equipe no mês e a carteira das placas vendidas (o vendedor, só a dele).
         equipe.MapGet("/painel-do-vendedor", (PainelDoVendedor painel, CancellationToken ct) => painel.Resumo(ct));

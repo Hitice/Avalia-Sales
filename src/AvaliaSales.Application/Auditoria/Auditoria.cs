@@ -23,23 +23,28 @@ public sealed class Auditoria(IBancoDeDados banco, IUsuarioAtual usuario, IConta
     /// <paramref name="acao"/>, só aquela ação; com <paramref name="busca"/>, o texto no alvo, no código,
     /// no antes e no depois, no nome da ação ou no nome do vendedor que fez.
     /// </summary>
-    public async Task<Pagina<RegistroDto>> Listar(string? referencia, AcaoAuditada? acao, PedidoDePagina pedido, CancellationToken ct, string? busca = null)
+    public async Task<Pagina<RegistroDto>> Listar(string? referencia, AcaoAuditada? acao, PedidoDePagina pedido, CancellationToken ct, string? busca = null, string? mes = null)
     {
-        var consulta = await Buscar(Filtrar(referencia, acao), busca, ct);
+        var consulta = await Buscar(Filtrar(referencia, acao, mes), busca, ct);
         var pagina = await consulta.OrderByDescending(r => r.OcorridoEm).ThenByDescending(r => r.Id).PaginarAsync(pedido, ct);
         return new Pagina<RegistroDto>(await ParaDto(pagina.Itens, ct), pagina.Total, pagina.Proxima);
     }
 
     /// <summary>Tudo o que o filtro pega, do mais novo ao mais antigo, até o teto, para o dono guardar ou entregar.</summary>
-    public async Task<IReadOnlyList<RegistroDto>> Exportar(string? referencia, AcaoAuditada? acao, CancellationToken ct, string? busca = null)
+    public async Task<IReadOnlyList<RegistroDto>> Exportar(string? referencia, AcaoAuditada? acao, CancellationToken ct, string? busca = null, string? mes = null)
     {
-        var registros = await (await Buscar(Filtrar(referencia, acao), busca, ct)).OrderByDescending(r => r.OcorridoEm).ThenByDescending(r => r.Id).Take(ExportadosNoMaximo).ToListAsync(ct);
+        var registros = await (await Buscar(Filtrar(referencia, acao, mes), busca, ct)).OrderByDescending(r => r.OcorridoEm).ThenByDescending(r => r.Id).Take(ExportadosNoMaximo).ToListAsync(ct);
         return await ParaDto(registros, ct);
     }
 
-    private IQueryable<RegistroDeAuditoria> Filtrar(string? referencia, AcaoAuditada? acao)
+    private IQueryable<RegistroDeAuditoria> Filtrar(string? referencia, AcaoAuditada? acao, string? mes)
     {
         var consulta = banco.Auditoria.AsNoTracking();
+        if (MesDoFiltro.Intervalo(mes) is var (inicio, fim))
+        {
+            consulta = consulta.Where(r => r.OcorridoEm >= inicio && r.OcorridoEm < fim);
+        }
+
         if (!string.IsNullOrWhiteSpace(referencia))
         {
             consulta = consulta.Where(r => r.Referencia == referencia.Trim());

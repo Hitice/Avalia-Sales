@@ -24,9 +24,20 @@ public sealed class Servicos(IBancoDeDados banco, IRevendedorAtual atual, Notifi
     /// A fila primeiro (a fazer e em andamento, da mais antiga); o encerrado depois, da mais recente. A busca vale
     /// para o produto, o cliente, o número e o nome do revendedor.
     /// </summary>
-    public async Task<Pagina<OrdemDto>> Listar(string? busca, SituacaoDaOrdem? situacao, PedidoDePagina pedido, CancellationToken ct)
+    public async Task<Pagina<OrdemDto>> Listar(string? busca, SituacaoDaOrdem? situacao, PedidoDePagina pedido, CancellationToken ct, string? mes = null, Guid? revendedorId = null)
     {
         var consulta = banco.OrdensDeServico.AsNoTracking();
+        // O mês é o da abertura da ordem; a revenda só filtra para a operadora (para a revenda, o RLS já deixa só as dela).
+        if (MesDoFiltro.Intervalo(mes) is var (inicio, fim))
+        {
+            consulta = consulta.Where(o => o.CriadaEm >= inicio && o.CriadaEm < fim);
+        }
+
+        if (revendedorId is { } revenda)
+        {
+            consulta = consulta.Where(o => o.RevendedorId == revenda);
+        }
+
         if (situacao is { } desta)
         {
             consulta = consulta.Where(o => o.Situacao == desta);

@@ -67,7 +67,7 @@ public static class RotasDaOperadora
             return Results.NoContent();
         });
 
-        operadora.MapGet("/destinos-bloqueados", (string? busca, [AsParameters] PedidoDePagina pagina, DestinosBloqueados bloqueados, CancellationToken ct) => bloqueados.Listar(busca, pagina, ct));
+        operadora.MapGet("/destinos-bloqueados", (string? busca, string? mes, [AsParameters] PedidoDePagina pagina, DestinosBloqueados bloqueados, CancellationToken ct) => bloqueados.Listar(busca, pagina, ct, mes));
         operadora.MapPost("/destinos-bloqueados", async (BloquearDestino pedido, DestinosBloqueados bloqueados, CancellationToken ct) =>
             Results.Created("/operadora/destinos-bloqueados", await bloqueados.Bloquear(pedido, ct)));
         operadora.MapDelete("/destinos-bloqueados/{id:guid}", async (Guid id, DestinosBloqueados bloqueados, CancellationToken ct) =>
@@ -125,7 +125,8 @@ public static class RotasDaOperadora
             await revendedores.Reativar(id, ct);
             return Results.NoContent();
         });
-        operadora.MapGet("/pedidos", (string? busca, [AsParameters] PedidoDePagina pagina, PedidosDePlacas pedidos, CancellationToken ct) => pedidos.Listar(busca, pagina, ct));
+        operadora.MapGet("/pedidos", (string? busca, Domain.Pedidos.SituacaoDoPedido? situacao, string? mes, Guid? revendedorId, [AsParameters] PedidoDePagina pagina, PedidosDePlacas pedidos, CancellationToken ct) =>
+            pedidos.Listar(busca, pagina, ct, situacao, mes, revendedorId));
         operadora.MapPost("/pedidos", async (AbrirPedidoAvulso pedido, PedidosDePlacas pedidos, CancellationToken ct) =>
             Results.Created("/operadora/pedidos", await pedidos.CriarAvulso(pedido.RevendedorId, pedido.Quantidade, pedido.ValorCents, ct)));
         // O pedido avulso aberto errado (revenda ou valor) sai daqui, antes do pagamento, com o link do Pagar.me junto.
@@ -157,14 +158,16 @@ public static class RotasDaOperadora
 
         // Ligada só com o endereço do Protheus (Protheus:UrlBase); desligada, nenhum pedido pago entra na fila.
         operadora.MapGet("/erp/integracao", (Application.Erp.FilaDoErp fila) => fila.Integracao());
-        operadora.MapGet("/erp", (string? busca, [AsParameters] PedidoDePagina pagina, Application.Erp.FilaDoErp fila, CancellationToken ct) => fila.Listar(busca, pagina, ct));
+        operadora.MapGet("/erp", (string? busca, Domain.Erp.SituacaoDoEnvio? situacao, string? mes, Guid? revendedorId, [AsParameters] PedidoDePagina pagina, Application.Erp.FilaDoErp fila, CancellationToken ct) =>
+            fila.Listar(busca, pagina, ct, situacao, mes, revendedorId));
         operadora.MapPost("/erp/{pedidoId:guid}/reenvio", async (Guid pedidoId, Application.Erp.FilaDoErp fila, CancellationToken ct) =>
         {
             await fila.Reenviar(pedidoId, ct);
             return Results.NoContent();
         });
 
-        operadora.MapGet("/revendedores", (string? busca, [AsParameters] PedidoDePagina pagina, Revendedores revendedores, CancellationToken ct) => revendedores.Listar(busca, pagina, ct));
+        operadora.MapGet("/revendedores", (string? busca, SituacaoDaRevenda? situacao, bool? contratoAssinado, [AsParameters] PedidoDePagina pagina, Revendedores revendedores, CancellationToken ct) =>
+            revendedores.Listar(busca, pagina, ct, situacao, contratoAssinado));
         operadora.MapPut("/revendedores/{id:guid}/recebedor", async (Guid id, DefinirRecebedor pedido, Revendedores revendedores, CancellationToken ct) =>
         {
             await revendedores.DefinirRecebedor(id, pedido.Recebedor, ct);
@@ -223,11 +226,11 @@ public static class RotasDaOperadora
         MapearFinanceiroDaOperadora(operadora);
 
         // O que a operadora mudou na plataforma, registrado pelo middleware AuditoriaDaOperadoraNaRota.
-        operadora.MapGet("/auditoria", (string? busca, [AsParameters] PedidoDePagina pagina, Application.Auditoria.AuditoriaDaOperadora auditoria, CancellationToken ct) =>
-            auditoria.Listar(busca, pagina, ct));
-        operadora.MapGet("/auditoria/exportar", async (string? busca, Application.Auditoria.AuditoriaDaOperadora auditoria, CancellationToken ct) =>
+        operadora.MapGet("/auditoria", (string? busca, string? mes, [AsParameters] PedidoDePagina pagina, Application.Auditoria.AuditoriaDaOperadora auditoria, CancellationToken ct) =>
+            auditoria.Listar(busca, pagina, ct, mes));
+        operadora.MapGet("/auditoria/exportar", async (string? busca, string? mes, Application.Auditoria.AuditoriaDaOperadora auditoria, CancellationToken ct) =>
         {
-            var json = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(await auditoria.Exportar(busca, ct), RotasDaRevenda.Exportacao);
+            var json = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(await auditoria.Exportar(busca, ct, mes), RotasDaRevenda.Exportacao);
             return Results.File(json, "application/json", $"auditoria-da-operadora-{DateTime.UtcNow:yyyy-MM-dd}.json");
         }).Produces<IReadOnlyList<Application.Auditoria.RegistroDaOperadoraDto>>();
     }

@@ -3,7 +3,8 @@ import { chamarApi, enviarJson } from '@/api/cliente'
 import type { DestinoBloqueado } from '@/api/tipos'
 import { useListaPaginada } from '@/lib/paginacao'
 
-export const useDestinosBloqueados = () => useListaPaginada<DestinoBloqueado>(['operadora', 'destinos-bloqueados'], '/operadora/destinos-bloqueados')
+export const useDestinosBloqueados = (mes?: string) =>
+  useListaPaginada<DestinoBloqueado>(['operadora', 'destinos-bloqueados'], '/operadora/destinos-bloqueados', { filtros: { mes } })
 
 function useGravar<T>(fazer: (dados: T) => Promise<unknown>) {
   const cliente = useQueryClient()

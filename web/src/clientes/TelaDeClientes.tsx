@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { chamarApi, enviarJson, mensagemDoErro } from '@/api/cliente'
 import { formatarData, formatarTelefone } from '@/api/rotulos'
-import type { ClienteDaLista } from '@/api/tipos'
+import type { ClienteDaLista, SituacaoDoCliente } from '@/api/tipos'
 import { ListaPaginada } from '@/componentes/ListaPaginada'
 import { Cabecalho, Erro, Rolagem } from '@/componentes/Tela'
 import { Badge } from '@/components/ui/badge'
@@ -15,7 +15,14 @@ import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { digitos, mascaraDocumento, mascaraTelefone } from '@/lib/mascaras'
 import { useListaPaginada } from '@/lib/paginacao'
+import { Filtro, mesesRecentes } from '@/componentes/Filtro'
 import { FichaDoCliente } from './FichaDoCliente'
+
+const SITUACOES: { valor: SituacaoDoCliente; rotulo: string }[] = [
+  { valor: 'ComPlaca', rotulo: 'Com placa' },
+  { valor: 'SemPlaca', rotulo: 'Sem placa' },
+  { valor: 'Anonimizados', rotulo: 'Anonimizados' },
+]
 
 /**
  * Os clientes da revenda. A ficha de cada um (clique no nome) edita, junta
@@ -27,7 +34,9 @@ export function TelaDeClientes() {
   const aberto = parametros.get('cliente')
   const setAberto = (id: string | null) => setParametros(id ? { cliente: id } : {}, { replace: true })
   const [cadastrando, setCadastrando] = useState(false)
-  const clientes = useListaPaginada<ClienteDaLista>(['clientes', 'lista'], '/clientes')
+  const [situacao, setSituacao] = useState<SituacaoDoCliente>()
+  const [mes, setMes] = useState<string>()
+  const clientes = useListaPaginada<ClienteDaLista>(['clientes', 'lista'], '/clientes', { filtros: { situacao, mes } })
 
   return (
     <>
@@ -37,6 +46,11 @@ export function TelaDeClientes() {
       <Card className="mt-3">
         <CardContent>
           <ListaPaginada lista={clientes} textoVazio="Nenhum cliente encontrado." nomeDaBusca="Buscar cliente" placeholder="Nome, telefone ou CNPJ"
+            filtrada={!!(situacao || mes)}
+            filtros={<>
+              <Filtro rotulo="Placas" todos="Com e sem placa" valor={situacao} aoMudar={setSituacao} opcoes={SITUACOES} />
+              <Filtro rotulo="Mês do cadastro" todos="Todos os meses" valor={mes} aoMudar={setMes} opcoes={mesesRecentes()} />
+            </>}
             acaoVazia={<Button variant="outline" onClick={() => setCadastrando(true)}>Cadastrar cliente</Button>}>
             {(itens) => (
               <Rolagem>

@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { formatarCentavos, paraCentavos } from '@/dinheiro/dinheiro'
-import { temAcoesDaVenda } from './situacaoDaVenda'
+import { podeRegistrarPagamento, temAcoesDaVenda } from './situacaoDaVenda'
 import { useCancelarVenda, useCorrigirVenda, useCortesia, useDesfazerRecebimento, useEquipe, useReceberPorFora, useTrocarPlaca } from './consultas'
 
 type Acao = 'Dinheiro' | 'OutroPix' | 'desfazer' | 'cortesia' | 'cancelar'
@@ -37,7 +37,7 @@ const CONFIRMACAO: Record<Acao, string> = {
 
 /**
  * O que se faz com a venda depois do balcão. A API recusa o que não cabe
- * (Pix em aberto, comissão já repassada); a tela só esconde o que nunca cabe.
+ * (Pix já pago, comissão já repassada); a tela só esconde o que nunca cabe.
  */
 export function AcoesDaVenda({ venda, dono, aoFechar }: { venda: VendaDaLista; dono: boolean; aoFechar?: () => void }) {
   // Com aoFechar, a lista abre o modal pelo menu da linha; sem, a página da venda tem o botão.
@@ -63,7 +63,8 @@ export function AcoesDaVenda({ venda, dono, aoFechar }: { venda: VendaDaLista; d
 
   const viva = venda.pagamento === 'Pendente' || venda.pagamento === 'Paga'
   const ativa = venda.situacao === 'Registrada'
-  const podeReceber = ativa && !venda.cortesia && !venda.doSistemaAnterior && venda.valorCents > 0 && !viva
+  // Com Pix em aberto, a API reconsulta o Pagar.me e cancela o Pix antes de registrar o recebimento.
+  const podeReceber = podeRegistrarPagamento(venda)
   const recebidaPorFora = venda.pagamento === 'Paga' && (venda.pagoPor === 'Dinheiro' || venda.pagoPor === 'OutroPix')
   const podeDesfazerVenda = dono && ativa && !viva && !venda.doSistemaAnterior
   // Cancelar vale com cobrança viva: o Pix em aberto é cancelado e o pago volta ao cliente.
@@ -105,7 +106,7 @@ export function AcoesDaVenda({ venda, dono, aoFechar }: { venda: VendaDaLista; d
           <DialogDescription>{venda.cliente}, {formatarCentavos(venda.valorCents)}{venda.cortesia ? ', cortesia' : ''}</DialogDescription>
         </DialogHeader>
         <Erro erro={erro ? mensagemDoErro(erro) : null} />
-        {venda.pagamento === 'Pendente' && <p className="text-muted-foreground">Pix em aberto.</p>}
+        {venda.pagamento === 'Pendente' && <p className="text-muted-foreground">Pix em aberto. Receber por fora cancela o Pix.</p>}
 
         {confirmando === 'cancelar' && (
           <div className="grid gap-3">

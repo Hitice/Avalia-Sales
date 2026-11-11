@@ -198,6 +198,13 @@
             }
           },
           {
+            "name": "mes",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "Pagina",
             "in": "query",
             "schema": {
@@ -1054,6 +1061,21 @@
             }
           },
           {
+            "name": "mes",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "revendedorId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
             "name": "Pagina",
             "in": "query",
             "schema": {
@@ -1766,6 +1788,13 @@
             }
           },
           {
+            "name": "mes",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "Pagina",
             "in": "query",
             "schema": {
@@ -2289,6 +2318,28 @@
             }
           },
           {
+            "name": "situacao",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/SituacaoDoPedido"
+            }
+          },
+          {
+            "name": "mes",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "revendedorId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
             "name": "Pagina",
             "in": "query",
             "schema": {
@@ -2507,6 +2558,28 @@
             }
           },
           {
+            "name": "situacao",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/SituacaoDoEnvio"
+            }
+          },
+          {
+            "name": "mes",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "revendedorId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
             "name": "Pagina",
             "in": "query",
             "schema": {
@@ -2571,6 +2644,20 @@
             "in": "query",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "situacao",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/SituacaoDaRevenda"
+            }
+          },
+          {
+            "name": "contratoAssinado",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
             }
           },
           {
@@ -2883,6 +2970,13 @@
             }
           },
           {
+            "name": "mes",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "Pagina",
             "in": "query",
             "schema": {
@@ -2921,6 +3015,13 @@
         "parameters": [
           {
             "name": "busca",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "mes",
             "in": "query",
             "schema": {
               "type": "string"
@@ -3583,6 +3684,20 @@
         "parameters": [
           {
             "name": "busca",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "situacao",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/SituacaoDoPedido"
+            }
+          },
+          {
+            "name": "mes",
             "in": "query",
             "schema": {
               "type": "string"
@@ -4259,6 +4374,21 @@
             }
           },
           {
+            "name": "vendedorId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "mes",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "Pagina",
             "in": "query",
             "schema": {
@@ -4455,6 +4585,13 @@
             }
           },
           {
+            "name": "mes",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "Pagina",
             "in": "query",
             "schema": {
@@ -4511,6 +4648,13 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "mes",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -4538,6 +4682,20 @@
         "parameters": [
           {
             "name": "busca",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "situacao",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/SituacaoDoCliente"
+            }
+          },
+          {
+            "name": "mes",
             "in": "query",
             "schema": {
               "type": "string"
@@ -5866,6 +6024,28 @@
         "parameters": [
           {
             "name": "busca",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "situacao",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/SituacaoNaLista"
+            }
+          },
+          {
+            "name": "vendedorId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "mes",
             "in": "query",
             "schema": {
               "type": "string"
@@ -13001,6 +13181,16 @@
           "Baixada"
         ]
       },
+      "SituacaoDaRevenda": {
+        "enum": [
+          "Ativas",
+          "EmDistrato",
+          "Suspensas",
+          "Encerradas",
+          "ReaberturaPedida",
+          null
+        ]
+      },
       "SituacaoDaVenda": {
         "enum": [
           "Registrada",
@@ -13012,6 +13202,14 @@
           "AguardandoAvalia",
           "AguardandoRevenda",
           "Resolvido"
+        ]
+      },
+      "SituacaoDoCliente": {
+        "enum": [
+          "ComPlaca",
+          "SemPlaca",
+          "Anonimizados",
+          null
         ]
       },
       "SituacaoDoContrato": {
@@ -13093,6 +13291,15 @@
             "type": "boolean"
           }
         }
+      },
+      "SituacaoNaLista": {
+        "enum": [
+          "Pagas",
+          "AReceber",
+          "Cortesias",
+          "Canceladas",
+          null
+        ]
       },
       "SocioDto": {
         "required": [

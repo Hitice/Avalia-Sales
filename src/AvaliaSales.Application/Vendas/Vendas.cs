@@ -96,6 +96,18 @@ public sealed record VendaDaLista(
     Guid? GrupoId = null,
     int ItensNoGrupo = 1);
 
+/// <summary>Os grupos do filtro da lista de vendas: pagas, a receber (sem pagamento, com ou sem cobrança viva), cortesias e canceladas.</summary>
+public enum SituacaoNaLista
+{
+    Pagas,
+    AReceber,
+    Cortesias,
+    Canceladas,
+}
+
+/// <summary>Os filtros da lista de vendas. <see cref="Mes"/> é o mês de Brasília no formato 2026-10.</summary>
+public sealed record FiltroDeVendas(string? Busca = null, SituacaoNaLista? Situacao = null, Guid? VendedorId = null, string? Mes = null);
+
 /// <summary>
 /// A venda no balcão: placa, produto, cliente, destino e cobrança. A venda é
 /// gravada antes da cobrança: o Pagar.me fora do ar não segura o vendedor, e a
@@ -403,9 +415,10 @@ public sealed class Vendas(
             : [venda];
 
     /// <summary>
-    /// O cliente pagou no balcão, em dinheiro ou por outro Pix. Só sem cobrança
-    /// em aberto: o Pix em aberto ainda pode ser pago pelo QR, e o cliente
-    /// pagaria duas vezes. A comissão passa a ser devida como no Pix.
+    /// O cliente pagou no balcão, em dinheiro ou por outro Pix. Com cobrança do
+    /// Pagar.me em aberto, ela é reconsultada antes: se já foi paga lá, vale o
+    /// pagamento e o registro é recusado; se não, é cancelada lá, para o cliente
+    /// não pagar duas vezes pelo QR. A comissão passa a ser devida como no Pix.
     /// </summary>
     public async Task ReceberPorFora(Guid vendaId, MeioDePagamento meio, CancellationToken ct)
     {
@@ -417,13 +430,32 @@ public sealed class Vendas(
             throw new RegraDeNegocioException("Venda sem valor a receber.");
         }
 
+        // A reconsulta grava o que o Pagar.me disser antes da transação: o Pix que caiu fica pago mesmo com a recusa.
+        var abertas = await banco.Cobrancas.Where(c => c.Origem == OrigemDaCobranca.Venda && c.OrigemId == venda.CobradaPor
+            && c.Situacao == SituacaoDaCobranca.Pendente).Select(c => c.Id).ToListAsync(ct);
+        foreach (var aberta in abertas)
+        {
+            await cobrancas.Conferir(aberta, relogio.GetUtcNow(), ct);
+        }
+
+        if (await banco.Cobrancas.AnyAsync(c => c.Origem == OrigemDaCobranca.Venda && c.OrigemId == venda.CobradaPor && c.Situacao == SituacaoDaCobranca.Paga, ct))
+        {
+            throw new RegraDeNegocioException("Venda já paga.");
+        }
+
         // O vendedor travado: dois cliques seguidos não passam juntos pelo limite do dia.
         await using var transacao = await banco.Database.BeginTransactionAsync(ct);
         await banco.TravarVendedor(venda.VendedorId, ct);
-        await ExigirSemCobrancaViva(venda, "Venda com Pix aberto ou já paga.", ct);
         var grupo = await DoGrupo(venda, ct);
         var total = grupo.Sum(v => v.ValorCents);
         await porFora.ExigirDentroDoLimite(venda.VendedorId, total, ct);
+        // O limite passou: só agora o Pix em aberto deixa de valer no Pagar.me.
+        foreach (var aberta in await banco.Cobrancas.Where(c => c.Origem == OrigemDaCobranca.Venda && c.OrigemId == venda.CobradaPor
+                     && c.Situacao == SituacaoDaCobranca.Pendente).ToListAsync(ct))
+        {
+            await cobrancas.Cancelar(aberta, ct);
+        }
+
         var cobranca = await cobrancas.RegistrarPorFora(OrigemDaCobranca.Venda, venda.CobradaPor, meio, total, ct, grupo.Sum(v => v.ParteDaAvaliaCents));
         await RegistrarNaPlaca(venda, AcaoAuditada.RecebidoPorFora, $"{meio}, {Financeiro.RecebimentosPorFora.Reais(total)}", ct);
         var nomeDoCliente = await banco.Clientes.AsNoTracking().Where(c => c.Id == venda.ClienteId).Select(c => c.Nome).SingleAsync(ct);
@@ -783,12 +815,12 @@ public sealed class Vendas(
 
     /// <summary>
     /// A página das vendas, da mais nova para a mais antiga (o Id desempata). O vendedor só vê as dele.
-    /// Com <paramref name="busca"/>, o texto no cliente, no produto, na placa ou no nome do vendedor.
+    /// A busca procura o texto no cliente, no produto, na placa ou no nome do vendedor; os outros filtros somam a ela.
     /// </summary>
-    public async Task<Pagina<VendaDaLista>> Listar(string? busca, PedidoDePagina pedido, CancellationToken ct)
+    public async Task<Pagina<VendaDaLista>> Listar(FiltroDeVendas filtro, PedidoDePagina pedido, CancellationToken ct)
     {
         var (pagina, tamanho) = Paginacao.Normalizar(pedido);
-        var (itens, total) = await Ler(null, busca, Paginacao.Pular(pagina, tamanho), tamanho, ct);
+        var (itens, total) = await Ler(null, filtro, Paginacao.Pular(pagina, tamanho), tamanho, ct);
         return Paginacao.Montar(itens, total, pagina, tamanho);
     }
 
@@ -841,9 +873,9 @@ public sealed class Vendas(
         return new ResumoDasVendas(soma?.Total ?? 0, soma?.Pagas ?? 0, soma?.ComissaoPaga ?? 0, soma?.NoMes ?? 0, soma?.Recebido ?? 0, soma?.Esperando ?? 0, porDia);
     }
 
-    private async Task<IReadOnlyList<VendaDaLista>> Listar(Guid so, CancellationToken ct) => (await Ler(so, null, 0, 1, ct)).Itens;
+    private async Task<IReadOnlyList<VendaDaLista>> Listar(Guid so, CancellationToken ct) => (await Ler(so, new FiltroDeVendas(), 0, 1, ct)).Itens;
 
-    private async Task<(IReadOnlyList<VendaDaLista> Itens, int Total)> Ler(Guid? so, string? busca, int pular, int tamanho, CancellationToken ct)
+    private async Task<(IReadOnlyList<VendaDaLista> Itens, int Total)> Ler(Guid? so, FiltroDeVendas filtro, int pular, int tamanho, CancellationToken ct)
     {
         var consulta = banco.Vendas.AsNoTracking();
         if (so is { } apenas)
@@ -855,8 +887,36 @@ public sealed class Vendas(
         {
             consulta = consulta.Where(v => v.VendedorId == usuario.UsuarioId);
         }
+        else if (filtro.VendedorId is { } vendedorId)
+        {
+            consulta = consulta.Where(v => v.VendedorId == vendedorId);
+        }
 
-        var termo = Paginacao.Termo(busca);
+        if (MesDoFiltro.Intervalo(filtro.Mes) is var (inicio, fim))
+        {
+            consulta = consulta.Where(v => v.VendidaEm >= inicio && v.VendidaEm < fim);
+        }
+
+        if (filtro.Situacao is { } situacao)
+        {
+            // Paga é a mesma conta do resumo: a última cobrança do grupo paga, ou a receita lançada da venda trazida do sistema anterior.
+            var comPagamento = consulta.Select(v => new
+            {
+                v,
+                Paga = banco.Cobrancas.Where(k => k.Origem == OrigemDaCobranca.Venda && k.OrigemId == (v.GrupoId ?? v.Id))
+                        .OrderByDescending(k => k.CriadaEm).ThenByDescending(k => k.Id).Select(k => (SituacaoDaCobranca?)k.Situacao).FirstOrDefault() == SituacaoDaCobranca.Paga
+                    || (v.DoSistemaAnterior && banco.Lancamentos.Any(l => l.OrigemId == v.Id && l.Tipo == TipoDeLancamento.Receita && l.EstornaId == null)),
+            });
+            consulta = situacao switch
+            {
+                SituacaoNaLista.Pagas => comPagamento.Where(x => x.v.Situacao == SituacaoDaVenda.Registrada && !x.v.Cortesia && x.Paga).Select(x => x.v),
+                SituacaoNaLista.AReceber => comPagamento.Where(x => x.v.Situacao == SituacaoDaVenda.Registrada && !x.v.Cortesia && !x.Paga).Select(x => x.v),
+                SituacaoNaLista.Cortesias => consulta.Where(v => v.Situacao == SituacaoDaVenda.Registrada && v.Cortesia),
+                _ => consulta.Where(v => v.Situacao == SituacaoDaVenda.Cancelada),
+            };
+        }
+
+        var termo = Paginacao.Termo(filtro.Busca);
         var juntas =
             from v in consulta
             join p in banco.Placas on v.PlacaId equals p.Id into placas

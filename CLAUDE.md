@@ -60,6 +60,10 @@ se for regra de negócio, perguntar antes (seção Documentação).
   `SemIdempotencia()`.
 - Rota GET de lista que cresce com o uso nasce paginada (`PedidoDePagina`,
   `Pagina<T>`, máximo 100; skill `padroes`).
+- Toda tabela tem filtro além da busca: situação, pessoa (vendedor, revenda)
+  e período (mês) quando a linha tiver; na lista paginada o filtro vai à API
+  (`MesDoFiltro` no mês de Brasília), e não à página aberta (`Filtro` em
+  `web/src/componentes/Filtro.tsx`, `filtros` do `ListaPaginada`).
 - Migration só aditiva: a versão anterior continua lendo o banco novo.
 - Ação da operadora que mexe em dinheiro de revenda passa por
   `AcoesSensiveisDaOperadora.Exigir` (segundo fator ligado; ADR 0027).
