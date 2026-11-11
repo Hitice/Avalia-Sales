@@ -5,9 +5,10 @@ import { mensagemDoErro } from '@/api/cliente'
 import { formatarDataHora } from '@/api/rotulos'
 import { useSessao } from '@/acesso/sessao'
 import { useContaEncerrada } from '@/app/contaEncerrada'
-import type { SituacaoNaLista } from '@/api/tipos'
+import type { SituacaoNaLista, VendaDaLista } from '@/api/tipos'
 import { AcoesDaLinha } from '@/componentes/AcoesDaLinha'
 import { Filtro, mesesRecentes } from '@/componentes/Filtro'
+import { centavosNoCsv, dataNoCsv, type Exportacao } from '@/lib/exportacao'
 import { ListaPaginada } from '@/componentes/ListaPaginada'
 import { Aviso, Cabecalho, Erro, Rolagem } from '@/componentes/Tela'
 import { Badge } from '@/components/ui/badge'
@@ -46,6 +47,21 @@ const SITUACOES: { valor: SituacaoNaLista; rotulo: string }[] = [
   { valor: 'Canceladas', rotulo: 'Canceladas' },
 ]
 
+const EXPORTACAO: Exportacao<VendaDaLista> = {
+  arquivo: 'vendas',
+  colunas: [
+    { titulo: 'Data', valor: (v) => dataNoCsv(v.vendidaEm, true) },
+    { titulo: 'Cliente', valor: (v) => v.cliente },
+    { titulo: 'Produto', valor: (v) => nomeDoProduto(v) },
+    { titulo: 'Placa', valor: (v) => v.codigo },
+    { titulo: 'Vendedor', valor: (v) => v.vendedor },
+    { titulo: 'Valor', valor: (v) => centavosNoCsv(v.valorCents) },
+    { titulo: 'Comissão', valor: (v) => centavosNoCsv(v.comissaoCents) },
+    { titulo: 'Pagamento', valor: (v) => rotuloDaVenda(v) },
+    { titulo: 'Pago em', valor: (v) => dataNoCsv(v.pagaEm, true) },
+  ],
+}
+
 function ListaDeVendas({ dono }: { dono: boolean }) {
   const encerrada = useContaEncerrada()
   const [situacao, setSituacao] = useState<SituacaoNaLista>()
@@ -80,7 +96,7 @@ function ListaDeVendas({ dono }: { dono: boolean }) {
       <Card>
         <CardContent>
           <ListaPaginada lista={vendas} textoVazio="Nenhuma venda ainda." nomeDaBusca="Buscar nas vendas" placeholder="Cliente, placa, produto ou vendedor"
-            filtrada={!!(situacao || vendedorId || mes)}
+            filtrada={!!(situacao || vendedorId || mes)} exportar={EXPORTACAO}
             filtros={<>
               <Filtro rotulo="Situação" todos="Todas as situações" valor={situacao} aoMudar={setSituacao} opcoes={SITUACOES} />
               {dono && <Filtro rotulo="Vendedor" todos="Todos os vendedores" valor={vendedorId} aoMudar={setVendedorId} opcoes={vendedores} />}

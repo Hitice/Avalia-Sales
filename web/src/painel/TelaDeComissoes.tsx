@@ -6,6 +6,7 @@ import type { SaldoDeComissao } from '@/api/tipos'
 import { AcoesDaLinha } from '@/componentes/AcoesDaLinha'
 import { Filtro, mesesRecentes } from '@/componentes/Filtro'
 import { ListaPaginada } from '@/componentes/ListaPaginada'
+import { centavosNoCsv, dataNoCsv } from '@/lib/exportacao'
 import { Cabecalho, Erro, EstadoDaConsulta, Rolagem } from '@/componentes/Tela'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -135,6 +136,15 @@ export function TelaDeComissoes() {
           <CardContent>
             <ListaPaginada lista={repasses} textoVazio="Nenhum repasse registrado." nomeDaBusca="Buscar nos repasses" placeholder="Vendedor ou comprovante"
               filtrada={!!(vendedorId || mes)}
+              exportar={{ arquivo: 'repasses', colunas: [
+                { titulo: 'Pago em', valor: (r) => dataNoCsv(r.pagoEm, true) },
+                { titulo: 'Vendedor', valor: (r) => r.vendedor },
+                { titulo: 'Valor', valor: (r) => centavosNoCsv(r.valorCents) },
+                { titulo: 'Vendas', valor: (r) => r.vendas },
+                { titulo: 'Até as vendas de', valor: (r) => dataNoCsv(r.ateVendaEm) },
+                { titulo: 'Comprovante', valor: (r) => r.comprovante },
+                { titulo: 'Situação', valor: (r) => (r.desfeitoEm ? 'Desfeito' : 'Pago') },
+              ] }}
               filtros={<>
                 <Filtro rotulo="Vendedor" todos="Todos os vendedores" valor={vendedorId} aoMudar={setVendedorId}
                   opcoes={(equipe.data ?? []).map((v) => ({ valor: v.id, rotulo: v.nome }))} />

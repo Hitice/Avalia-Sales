@@ -1,6 +1,10 @@
-import type { ReactNode } from 'react'
+import { Download } from 'lucide-react'
+import { type ReactNode, useState } from 'react'
+import { mensagemDoErro } from '@/api/cliente'
 import { BuscaDaLista, Paginacao } from '@/componentes/Paginacao'
 import { Carregando, Erro, Vazio } from '@/componentes/Tela'
+import { Button } from '@/components/ui/button'
+import { baixarCsv, type Exportacao, paraCsv } from '@/lib/exportacao'
 import type { EstadoDaLista } from '@/lib/paginacao'
 
 /**
@@ -10,8 +14,10 @@ import type { EstadoDaLista } from '@/lib/paginacao'
  * anterior fica na tela, esmaecida. Quem usa passa a tabela com `<Table semBusca>`.
  * Os filtros da tabela (`Filtro`) vão em `filtros`, ao lado da busca, e
  * `filtrada` diz se algum está ligado: a lista vazia então é do filtro, não da tela.
+ * Com `exportar`, o botão Exportar grava em CSV todas as páginas com a busca e os
+ * filtros de agora, nas colunas que a tela declara.
  */
-export function ListaPaginada<T>({ lista, textoVazio, acaoVazia, nomeDaBusca = 'Buscar na lista', placeholder, filtros, filtrada = false, children }: {
+export function ListaPaginada<T>({ lista, textoVazio, acaoVazia, nomeDaBusca = 'Buscar na lista', placeholder, filtros, filtrada = false, exportar, children }: {
   lista: EstadoDaLista<T>
   textoVazio: string
   acaoVazia?: ReactNode
@@ -19,12 +25,28 @@ export function ListaPaginada<T>({ lista, textoVazio, acaoVazia, nomeDaBusca = '
   placeholder?: string
   filtros?: ReactNode
   filtrada?: boolean
+  exportar?: Exportacao<T>
   children: (itens: T[]) => ReactNode
 }) {
+  const [exportando, setExportando] = useState(false)
+  const [erroDaExportacao, setErroDaExportacao] = useState<unknown>(null)
   const { consulta, itens, total, pagina, tamanho, termo } = lista
   const atualizando = consulta.isPlaceholderData || lista.esperandoBusca || (consulta.isFetching && !consulta.isPending)
   const buscando = termo.trim() !== ''
   const comBusca = total > 0 || buscando || filtrada
+
+  async function exportarTudo() {
+    if (!exportar || !lista.baixarTodos) return
+    setExportando(true)
+    setErroDaExportacao(null)
+    try {
+      baixarCsv(exportar.arquivo, paraCsv(await lista.baixarTodos(), exportar.colunas))
+    } catch (e) {
+      setErroDaExportacao(e)
+    } finally {
+      setExportando(false)
+    }
+  }
 
   return (
     <div className="grid gap-3">
@@ -32,8 +54,14 @@ export function ListaPaginada<T>({ lista, textoVazio, acaoVazia, nomeDaBusca = '
         <div className="flex flex-wrap gap-2">
           <BuscaDaLista valor={termo} aoMudar={lista.mudarTermo} rotulo={nomeDaBusca} placeholder={placeholder} />
           {filtros}
+          {exportar && lista.baixarTodos && (
+            <Button variant="outline" className="sm:ml-auto" disabled={exportando || total === 0} onClick={() => void exportarTudo()}>
+              <Download aria-hidden />{exportando ? 'Exportando...' : 'Exportar'}
+            </Button>
+          )}
         </div>
       )}
+      <Erro erro={erroDaExportacao ? mensagemDoErro(erroDaExportacao) : null} />
       {consulta.isPending && <Carregando />}
       {consulta.error != null && !itens && <Erro erro={consulta.error} />}
       {itens && itens.length === 0 && (buscando

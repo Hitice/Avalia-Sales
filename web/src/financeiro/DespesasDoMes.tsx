@@ -16,6 +16,7 @@ import { Field, FieldLabel } from '@/components/ui/field'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { formatarCentavos, paraCentavos } from '@/dinheiro/dinheiro'
+import { centavosNoCsv, dataNoCsv } from '@/lib/exportacao'
 import type { EstadoDaLista } from '@/lib/paginacao'
 import { reais, texto } from '@/lib/esquemas'
 import { hoje } from './fatias'
@@ -119,7 +120,14 @@ export function DespesasDoMes<C extends string, D extends DespesaDoMes<C>>({ lis
       <Erro erro={excluir.error ? mensagemDoErro(excluir.error) : null} />
       <Card>
         <CardContent>
-          <ListaPaginada lista={lista} textoVazio={textoVazio} nomeDaBusca="Buscar nas despesas" placeholder="Descrição ou categoria">
+          <ListaPaginada lista={lista} textoVazio={textoVazio} nomeDaBusca="Buscar nas despesas" placeholder="Descrição ou categoria"
+            exportar={{ arquivo: 'despesas', colunas: [
+              { titulo: 'Data', valor: (d) => dataNoCsv(d.data) },
+              { titulo: 'Despesa', valor: (d) => d.descricao },
+              { titulo: 'Categoria', valor: (d) => rotulos[d.categoria] },
+              ...(fornecedor ? [{ titulo: 'Fornecedor', valor: (d: D) => d.fornecedor }] : []),
+              { titulo: 'Valor', valor: (d) => centavosNoCsv(d.valorCents) },
+            ] }}>
             {(itens) => (
               <Rolagem>
                 <Table semBusca>

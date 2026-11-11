@@ -9,6 +9,7 @@ import type { NaturezaDaRetirada, Retirada, Socio } from '@/api/tipos'
 import { AcoesDaLinha } from '@/componentes/AcoesDaLinha'
 import { Campo } from '@/componentes/Campo'
 import { ListaPaginada } from '@/componentes/ListaPaginada'
+import { centavosNoCsv, dataNoCsv } from '@/lib/exportacao'
 import { Erro, EstadoDaConsulta } from '@/componentes/Tela'
 import { Button } from '@/components/ui/button'
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -143,7 +144,14 @@ export function PainelDeSocios({ competencia }: { competencia: string | undefine
           <CardAction><Button size="sm" disabled={lista.length === 0} onClick={() => setRetirada('nova')}>Nova retirada</Button></CardAction>
         </CardHeader>
         <CardContent>
-          <ListaPaginada lista={retiradas} textoVazio={lista.length === 0 ? 'Cadastre os sócios do contrato para lançar retirada.' : 'Nenhuma retirada no mês.'} nomeDaBusca="Buscar nas retiradas" placeholder="Sócio ou observação">
+          <ListaPaginada lista={retiradas} textoVazio={lista.length === 0 ? 'Cadastre os sócios do contrato para lançar retirada.' : 'Nenhuma retirada no mês.'} nomeDaBusca="Buscar nas retiradas" placeholder="Sócio ou observação"
+            exportar={{ arquivo: 'retiradas', colunas: [
+              { titulo: 'Data', valor: (r) => dataNoCsv(r.data) },
+              { titulo: 'Sócio', valor: (r) => r.socio },
+              { titulo: 'Natureza', valor: (r) => ROTULO_DA_RETIRADA[r.natureza] },
+              { titulo: 'Valor', valor: (r) => centavosNoCsv(r.valorCents) },
+              { titulo: 'Observação', valor: (r) => r.observacao },
+            ] }}>
             {(itens) => (
               <Table semBusca>
                 <TableHeader>

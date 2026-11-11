@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { formatarDataHora, ROTULO_DO_LANCAMENTO as ROTULO } from '@/api/rotulos'
 import { ListaPaginada } from '@/componentes/ListaPaginada'
+import { centavosNoCsv, dataNoCsv } from '@/lib/exportacao'
 import { Rolagem } from '@/componentes/Tela'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
@@ -42,7 +43,14 @@ export function PainelDoRazao() {
       </Indicadores>
       <Card className="mt-4">
         <CardContent>
-          <ListaPaginada lista={razao} textoVazio="Nenhum lançamento neste mês." nomeDaBusca="Buscar nos lançamentos" placeholder="Descrição">
+          <ListaPaginada lista={razao} textoVazio="Nenhum lançamento neste mês." nomeDaBusca="Buscar nos lançamentos" placeholder="Descrição"
+            exportar={{ arquivo: `lancamentos-${competencia ?? r?.competencia ?? ''}`, colunas: [
+              { titulo: 'Data', valor: (l) => dataNoCsv(l.ocorridoEm, true) },
+              { titulo: 'Tipo', valor: (l) => ROTULO[l.tipo] },
+              { titulo: 'Estorno', valor: (l) => (l.estorno ? 'Sim' : '') },
+              { titulo: 'Descrição', valor: (l) => l.descricao },
+              { titulo: 'Valor', valor: (l) => centavosNoCsv(l.valorCents) },
+            ] }}>
             {(itens) => (
               <Rolagem>
                 <Table semBusca>

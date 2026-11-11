@@ -123,4 +123,22 @@ describe('useListaPaginada', () => {
     await waitFor(() => expect(result.current.consulta.error).toBeTruthy())
     expect(result.current.itens).toBeUndefined()
   })
+
+  it('exportar baixa todas as páginas, de 100, com os filtros e a busca de agora', async () => {
+    api.mockResolvedValue(pagina(['a'], 1))
+    const { result, rerender } = montar()
+    rerender({ filtros: { mes: '2026-10' } })
+    act(() => result.current.mudarTermo('otica'))
+    await waitFor(() => expect(result.current.esperandoBusca).toBe(false))
+    await waitFor(() => expect(result.current.consulta.isFetching).toBe(false))
+    api.mockReset()
+    api.mockResolvedValueOnce(pagina(['a', 'b'], 3, 2)).mockResolvedValueOnce(pagina(['c'], 3, null))
+
+    const todos = await result.current.baixarTodos!()
+
+    expect(todos.map((i) => i.id)).toEqual(['a', 'b', 'c'])
+    expect(api).toHaveBeenNthCalledWith(1, '/lista?mes=2026-10&busca=otica&pagina=1&tamanho=100')
+    expect(api).toHaveBeenNthCalledWith(2, '/lista?mes=2026-10&busca=otica&pagina=2&tamanho=100')
+    expect(api).toHaveBeenCalledTimes(2)
+  })
 })

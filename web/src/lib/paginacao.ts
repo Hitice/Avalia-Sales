@@ -2,6 +2,7 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { chamarApi } from '@/api/cliente'
 import type { Pagina } from '@/api/tipos'
+import { LINHAS_MAXIMAS } from './exportacao'
 
 /** O tamanho que a tela pede; a API devolve no máximo 100, peça o que pedir. */
 export const TAMANHO_DA_PAGINA = 50
@@ -29,6 +30,8 @@ export type EstadoDaLista<T> = {
   esperandoBusca: boolean
   mudarTermo: (termo: string) => void
   irParaPagina: (pagina: number) => void
+  /** Todas as páginas com a busca e os filtros de agora, até LINHAS_MAXIMAS: o que a exportação grava. */
+  baixarTodos?: () => Promise<T[]>
 }
 
 /** A query string sem o que está vazio, na ordem das chaves. */
@@ -104,5 +107,14 @@ export function useListaPaginada<T, R = Pagina<T>>(
     },
     /** A busca digitada ainda não foi à API: a lista na tela é a da busca anterior. */
     esperandoBusca: termo.trim() !== busca,
+    baixarTodos: async () => {
+      const todos: T[] = []
+      for (let proxima: number | null = 1; proxima !== null && todos.length < LINHAS_MAXIMAS;) {
+        const lida: Pagina<T> = extrair(await chamarApi<R>(`${caminho}?${paraQuery({ ...filtros, busca: termo.trim(), pagina: proxima, tamanho: 100 })}`))
+        todos.push(...lida.itens)
+        proxima = lida.proxima ?? null
+      }
+      return todos.slice(0, LINHAS_MAXIMAS)
+    },
   }
 }
