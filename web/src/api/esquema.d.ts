@@ -5205,6 +5205,8 @@ export interface paths {
             parameters: {
                 query?: {
                     busca?: string;
+                    vendedorId?: string;
+                    mes?: string;
                     Pagina?: number;
                     Tamanho?: number;
                 };
