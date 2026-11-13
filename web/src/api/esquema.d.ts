@@ -8516,6 +8516,7 @@ export interface components {
             /** Format: date-time */
             venceEm: null | string;
             comissaoRepassada: boolean;
+            link?: null | components["schemas"]["LinkDaVenda"];
         };
         Devolver: {
             /** Format: uuid */
@@ -8891,6 +8892,14 @@ export interface components {
             eliminacoesCents: number;
             /** Format: int64 */
             consolidadoCents: number;
+        };
+        /** @description O /L/ do negócio que a venda criou (destino na avaliação do Google), para o vendedor achar depois de sair da tela. */
+        LinkDaVenda: {
+            /** Format: uuid */
+            id: string;
+            endereco: string;
+            titulo: string;
+            ativo: boolean;
         };
         LinkDto: {
             /** Format: uuid */

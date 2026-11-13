@@ -8600,6 +8600,16 @@
           },
           "comissaoRepassada": {
             "type": "boolean"
+          },
+          "link": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/LinkDaVenda"
+              }
+            ]
           }
         },
         "description": "A venda no balc\u00E3o: placa, produto, cliente, destino e cobran\u00E7a. A venda \u00E9\ngravada antes da cobran\u00E7a: o Pagar.me fora do ar n\u00E3o segura o vendedor, e a\ncobran\u00E7a \u00E9 gerada de novo pela lista de vendas."
@@ -9852,6 +9862,31 @@
           }
         },
         "description": "Uma linha do resultado, em positivo: receita soma, custo subtrai. O consolidado \u00E9 a soma das tr\u00EAs colunas."
+      },
+      "LinkDaVenda": {
+        "required": [
+          "id",
+          "endereco",
+          "titulo",
+          "ativo"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "endereco": {
+            "type": "string"
+          },
+          "titulo": {
+            "type": "string"
+          },
+          "ativo": {
+            "type": "boolean"
+          }
+        },
+        "description": "O /L/ do neg\u00F3cio que a venda criou (destino na avalia\u00E7\u00E3o do Google), para o vendedor achar depois de sair da tela."
       },
       "LinkDto": {
         "required": [

@@ -124,7 +124,11 @@ public sealed record DetalheDaVenda(
     string? ObservacaoDoCancelamento,
     DateTimeOffset? CanceladaEm,
     DateTimeOffset? VenceEm,
-    bool ComissaoRepassada);
+    bool ComissaoRepassada,
+    LinkDaVenda? Link = null);
+
+/// <summary>O /L/ do negócio que a venda criou (destino na avaliação do Google), para o vendedor achar depois de sair da tela.</summary>
+public sealed record LinkDaVenda(Guid Id, string Endereco, string Titulo, bool Ativo);
 
 public sealed record ClienteDaVenda(Guid Id, string Nome, string Responsavel, string Telefone, string? Documento, string? Email);
 
@@ -806,11 +810,17 @@ public sealed class Vendas(
             .Select(o => new OrdemDaVenda(o.Numero, o.Produto, o.Quantidade, o.Situacao, o.CriadaEm, o.EntregueEm)).ToListAsync(ct);
         var razao = vendedor ? [] : await banco.Lancamentos.AsNoTracking().Where(l => l.VendaId == id).OrderBy(l => l.OcorridoEm)
             .Select(l => new LinhaDaVenda(l.Tipo, l.Descricao, l.ValorCents, l.Competencia, l.OcorridoEm, l.EstornaId != null)).ToListAsync(ct);
-        var venceEm = venda.PlacaId is { } placa
-            ? await banco.Placas.AsNoTracking().Where(p => p.Id == placa).Select(p => p.VenceEm).SingleOrDefaultAsync(ct)
+        var daPlaca = venda.PlacaId is { } placa
+            ? await banco.Placas.AsNoTracking().Where(p => p.Id == placa).Select(p => new { p.VenceEm, p.Destino }).SingleOrDefaultAsync(ct)
+            : null;
+        // O mesmo link que a venda criou (Links.DoNegocio): o do cliente com o destino da placa.
+        var link = daPlaca?.Destino is { } destinoDaPlaca
+            ? await banco.Links.AsNoTracking().Where(l => l.ClienteId == venda.ClienteId && l.Destino == destinoDaPlaca)
+                .OrderBy(l => l.CriadoEm).Select(l => new { l.Id, l.Codigo, l.Titulo, l.Ativo }).FirstOrDefaultAsync(ct)
             : null;
 
-        return new DetalheDaVenda(linha, cliente, cobranca, itens, ordens, razao, venda.ObservacaoDoCancelamento, venda.CanceladaEm, venceEm, venda.RepasseId is not null);
+        return new DetalheDaVenda(linha, cliente, cobranca, itens, ordens, razao, venda.ObservacaoDoCancelamento, venda.CanceladaEm, daPlaca?.VenceEm, venda.RepasseId is not null,
+            link is null ? null : new LinkDaVenda(link.Id, plataforma.Value.EnderecoDoLink(link.Codigo), link.Titulo, link.Ativo));
     }
 
     /// <summary>

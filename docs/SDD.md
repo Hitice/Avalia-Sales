@@ -947,6 +947,7 @@ As mudanças de 21 a 24/10/2026 estão em [historico/sdd-ate-24-10.md](historico
 
 | Data | Mudança |
 | --- | --- |
+| 13/11/2026 | `DetalheDaVenda.Link` (`LinkDaVenda`: id, endereço, título, ativo) - o link do cliente com o destino da placa, o mesmo de `Links.DoNegocio`. |
 | 11/11/2026 | Exportação das listas no front - `lib/exportacao.ts` (`paraCsv` com `;`, BOM UTF-8 e apóstrofo antes de texto que viraria fórmula, contra injeção de CSV) e `baixarTodos` do `useListaPaginada`, que percorre as páginas de 100 com os filtros e a busca de agora, até 10.000 linhas; `exportar` no `ListaPaginada`. Sem rota nova: usa as GET paginadas. |
 | 11/11/2026 | CI sem trabalho repetido - a suíte da API roda uma vez, no job `api`, com a cobertura no artefato `cobertura`; o SonarCloud sai do CI para o workflow `Qualidade` (depois do CI verde de push no `main`, só compila e usa a cobertura), e o Deploy não espera por ele; o passo do apt sai dos jobs `web` e `e2e`. |
 | 11/11/2026 | `Cobrancas.Cancelar` - na recusa 4xx do Pagar.me, `FechadaApesarDaRecusa` reconsulta (`BuscarPorCodigo` e `Aplicar`): cancelada, falhou ou estornada lá encerra sem erro; Pix pendente vencido (`PixExpiraEm` passado, ou nulo e `CriadaEm` há mais de `ValidadeMaximaDoPix`, um dia) vira `Cancelada` aqui (pagamento tardio cai em `PagaDepoisDeCancelada`); paga recusa com "O Pix já foi pago no Pagar.me.". A recusa leva o `message` da resposta do Pagar.me. |

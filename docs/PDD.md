@@ -942,6 +942,7 @@ As mudanças de 21 a 24/10/2026 estão em [historico/pdd-ate-24-10.md](historico
 
 | Data | Mudança |
 | --- | --- |
+| 13/11/2026 | Venda em demonstração que o cliente decide pagar - "Gerar cobrança" na lista abre a venda já com o Pix para copiar ou mandar pelo WhatsApp. Detalhe da venda - mostra o link curto que a venda criou (copiar, mandar pelo WhatsApp, trocar o destino pela ficha da placa; editar o link só o revendedor). |
 | 11/11/2026 | Exportar em CSV - Vendas, Despesas (revenda e operadora), Retiradas, Lançamentos e Repasses ganham o botão Exportar: grava todas as páginas com a busca e os filtros da tela (até 10.000 linhas), separado por ponto e vírgula, com valor em reais com vírgula, para abrir direto no Excel. |
 | 11/11/2026 | Financeiro - o Histórico começa no primeiro mês com movimento; com menos de três meses, mostra cada mês com recebido e resultado em valor e barra proporcional, e as barras lado a lado a partir do terceiro. |
 | 11/11/2026 | Recusa do Pagar.me ao cancelar - a cobrança é reconsultada; já cancelada ou vencida lá, vale; Pix com o QR vencido, ou sem vencimento e criado há mais de um dia, se cancela aqui e o recebimento por fora ou o cancelamento da venda seguem; com o QR válido, a recusa mostra o motivo do Pagar.me. |

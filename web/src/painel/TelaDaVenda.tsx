@@ -115,6 +115,8 @@ export function TelaDaVenda() {
         </CardContent>
       </Card>
 
+      {d.link && <LinkDaVenda link={d.link} codigo={v.codigo} cliente={d.cliente} dono={dono} />}
+
       {d.itens.length > 0 && (
         <Card>
           <CardHeader><CardTitle>Na mesma cobrança</CardTitle></CardHeader>
@@ -193,3 +195,36 @@ function EnviarPix({ codigo, valorCents, cliente }: { codigo: string; valorCents
     </div>
   )
 }
+
+/**
+ * O /L/ que a venda criou para a avaliação no Google: copiar, mandar ao cliente e, para mudar para onde leva,
+ * a ficha da placa (vendedor e dono) ou a tela de links (só o dono edita o link).
+ */
+function LinkDaVenda({ link, codigo, cliente, dono }: {
+  link: { endereco: string; titulo: string; ativo: boolean }
+  codigo: string
+  cliente: { responsavel: string; telefone: string }
+  dono: boolean
+}) {
+  const texto = `Olá, ${cliente.responsavel}! Este é o link para os seus clientes avaliarem você no Google:\n\n${link.endereco}`
+  return (
+    <Card>
+      <CardHeader><CardTitle>Link curto</CardTitle></CardHeader>
+      <CardContent className="grid gap-3">
+        <p className="flex flex-wrap items-center gap-2 text-sm">
+          <span className="font-medium break-all">{link.endereco}</span>
+          {!link.ativo && <Badge variant="neutro">Desligado</Badge>}
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={async () => (await copiar(link.endereco)) ? toast.success('Link copiado.') : toast.error('Não deu para copiar. Selecione o link e copie.')}>Copiar link</Button>
+          {!telefoneMascarado(cliente.telefone) && (
+            <Button asChild variant="outline"><a href={linkDoWhatsapp(cliente.telefone, texto)} target="_blank" rel="noreferrer noopener"><MessageCircle aria-hidden />Enviar pelo WhatsApp</a></Button>
+          )}
+          {codigo && <Button asChild variant="ghost"><Link to={`/placa/${codigo}`}>Trocar destino</Link></Button>}
+          {dono && <Button asChild variant="ghost"><Link to="/links?aba=link">Editar link</Link></Button>}
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+

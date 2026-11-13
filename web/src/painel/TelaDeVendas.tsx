@@ -1,6 +1,6 @@
 import { Layers } from 'lucide-react'
 import { useState } from 'react'
-import { Link, Navigate, useSearchParams } from 'react-router'
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router'
 import { mensagemDoErro } from '@/api/cliente'
 import { formatarDataHora } from '@/api/rotulos'
 import { useSessao } from '@/acesso/sessao'
@@ -74,6 +74,7 @@ function ListaDeVendas({ dono }: { dono: boolean }) {
   const vendedores = [...(eu ? [{ valor: eu.id, rotulo: 'Eu' }] : []), ...(equipe.data ?? []).filter((v) => v.id !== eu?.id).map((v) => ({ valor: v.id, rotulo: v.nome }))]
   const resumo = useResumoDasVendas().data
   const cobrar = useCobrarDeNovo()
+  const navegar = useNavigate()
   const saldo = useSaldosDeComissao()
   const meu = dono ? undefined : saldo.data?.[0]
   const [editando, setEditando] = useState<string | null>(null)
@@ -139,7 +140,9 @@ function ListaDeVendas({ dono }: { dono: boolean }) {
                         <TableCell><Badge variant={tomDaVenda(v)}>{rotuloDaVenda(v)}</Badge></TableCell>
                         <TableCell>
                           <AcoesDaLinha nome={`venda de ${v.cliente}`}
-                            principal={podeGerarCobranca(v) && { rotulo: 'Gerar cobrança', desabilitada: cobrar.isPending, aoClicar: () => cobrar.mutate(v.id) }}
+                            principal={podeGerarCobranca(v) && { rotulo: 'Gerar cobrança', desabilitada: cobrar.isPending,
+                              // A venda abre já com o Pix para copiar ou mandar pelo WhatsApp (o cliente da demonstração que decidiu aderir).
+                              aoClicar: () => cobrar.mutate(v.id, { onSuccess: () => navegar(`${dono ? '/painel/vendas' : '/vendedor/vendas'}/${v.id}`) }) }}
                             outras={[
                               { rotulo: 'Abrir a venda', para: `${dono ? '/painel/vendas' : '/vendedor/vendas'}/${v.id}` },
                               podeRegistrarPagamento(v) && { rotulo: 'Registrar pagamento', aoClicar: () => setEditando(v.id) },

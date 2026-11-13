@@ -18,7 +18,11 @@ public sealed class LinksDoVendedorTest(ApiDeTeste api)
         var (ana, anaId) = await Vendedor(revenda, "Ana Lima");
         await revenda.Dono.Postar("/estoque/consignacao", new { vendedorId = ruiId, codigos = new[] { revenda.Codigos[0] } });
         await revenda.Dono.Postar("/estoque/consignacao", new { vendedorId = anaId, codigos = new[] { revenda.Codigos[1] } });
-        var doRui = (await rui.Postar("/vendas", Venda(revenda, 0, "11911110001", "ChIJruiruiruiruirui"), HttpStatusCode.Created)).GetProperty("linkCurto").GetString()!;
+        var vendaDoRui = await rui.Postar("/vendas", Venda(revenda, 0, "11911110001", "ChIJruiruiruiruirui"), HttpStatusCode.Created);
+        var doRui = vendaDoRui.GetProperty("linkCurto").GetString()!;
+        // Depois de sair da tela, o link da venda continua na ficha da venda.
+        var detalhe = await rui.Pegar($"/vendas/{vendaDoRui.GetProperty("vendaId").GetGuid()}");
+        Assert.Equal(doRui, detalhe.GetProperty("link").GetProperty("endereco").GetString());
         var daAna = (await ana.Postar("/vendas", Venda(revenda, 1, "11911110002", "ChIJanaanaanaanaana"), HttpStatusCode.Created)).GetProperty("linkCurto").GetString()!;
 
         Assert.Equal([daAna], await Enderecos(ana));

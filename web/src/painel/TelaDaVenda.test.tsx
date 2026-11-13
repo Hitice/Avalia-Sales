@@ -15,9 +15,9 @@ const venda = {
   meio: 'Pix', pagamento: null, vendidaEm: '2026-10-20T15:00:00Z', situacao: 'Registrada', cortesia: false, doSistemaAnterior: false,
 }
 
-function abrir(cliente: object, papel: 'Dono' | 'Vendedor' = 'Dono') {
+function abrir(cliente: object, papel: 'Dono' | 'Vendedor' = 'Dono', link: object | null = null) {
   useSessao.setState({ perfil: { id: 'u1', papel, nome: 'Ju', email: 'ju@x.com', emailConfirmado: true, revendedor: 'Loja' } as never })
-  const detalhe = { venda, cliente, cobranca: null, itens: [], ordens: [], razao: [], observacaoDoCancelamento: null, canceladaEm: null, venceEm: null, comissaoRepassada: false }
+  const detalhe = { venda, cliente, cobranca: null, itens: [], ordens: [], razao: [], observacaoDoCancelamento: null, canceladaEm: null, venceEm: null, comissaoRepassada: false, link }
   vi.stubGlobal('fetch', vi.fn(async (url: string) => new Response(JSON.stringify(url.endsWith('/revenda') ? { revendedor: { encerradaEm: null } } : detalhe), { status: 200 })))
   render(
     <MemoryRouter initialEntries={['/painel/vendas/v1']}>
@@ -50,5 +50,27 @@ describe('cartão Cliente da venda', () => {
     abrir(cliente, 'Vendedor')
     await screen.findByText('Responsável')
     expect(screen.queryByRole('link', { name: 'Padaria Sol' })).toBeNull()
+  })
+})
+
+describe('link curto da venda', () => {
+  const link = { id: 'l1', endereco: 'HTTPS://AVALIAONE.COM.BR/L/K7M2PX', titulo: 'Avaliação no Google - Padaria Sol', ativo: true }
+
+  it('o vendedor acha o link depois de sair da tela, troca o destino pela placa e não edita o link', async () => {
+    abrir(cliente, 'Vendedor', link)
+    expect(await screen.findByText(link.endereco)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Trocar destino' })).toHaveAttribute('href', '/placa/ABC123')
+    expect(screen.queryByRole('link', { name: 'Editar link' })).toBeNull()
+  })
+
+  it('o dono também edita o link', async () => {
+    abrir(cliente, 'Dono', link)
+    expect(await screen.findByRole('link', { name: 'Editar link' })).toHaveAttribute('href', '/links?aba=link')
+  })
+
+  it('venda sem link não mostra o cartão', async () => {
+    abrir(cliente)
+    await screen.findByRole('link', { name: 'Padaria Sol' })
+    expect(screen.queryByText('Link curto')).toBeNull()
   })
 })
