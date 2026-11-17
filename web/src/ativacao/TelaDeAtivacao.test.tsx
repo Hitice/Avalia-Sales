@@ -57,7 +57,7 @@ describe('TelaDeAtivacao', () => {
   it('pede o código do lote e mostra a recusa da API', async () => {
     api(null)
     abrir()
-    const campo = screen.getByLabelText('Código que veio com as placas')
+    const campo = screen.getByLabelText('Digite seu código de ativação')
     const continuar = screen.getByRole('button', { name: 'Continuar' })
     expect(continuar).toBeDisabled()
     fireEvent.change(campo, { target: { value: 'zzzzzz' } })

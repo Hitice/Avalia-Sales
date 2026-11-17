@@ -173,7 +173,7 @@ maiúscula ("otica" acha "Ótica").
 | --- | --- |
 | Página do QR (`/q/{codigo}`) | Redireciona ao destino e conta a leitura; placa não ativada, vencida, suspensa ou baixada mostra uma página que explica, no tema claro, com o código, Copiar e, menos na baixada, o botão Entrar (Nova venda na não ativada; ficha na vencida, na suspensa e na de endereço bloqueado) |
 | Link curto (`/l/{codigo}`) | Redireciona ao destino e conta o clique |
-| Ativação (`/ativar`) | O comprador do lote vendido no digital digita o código que veio com as placas, sem login. Avaliação - escolhe a placa (código impresso ou QR lido pela câmera), informa empresa e telefone com DDD e busca o estabelecimento no Google ou cola o link de avaliação. Cardápio - cola o link do cardápio, que vale para todas as placas do lote. Depois copia o endereço, grava o NFC (Chrome no Android, NFC Tools no iPhone) e confere a tag. Placa já ativada abre a troca de destino |
+| Ativação (`/ativar`) | O comprador do lote vendido no digital digita o código de ativação que veio com as placas, sem login (campo "Digite seu código de ativação"). Avaliação - escolhe a placa (código impresso ou QR lido pela câmera), informa empresa e telefone com DDD e busca o estabelecimento no Google ou cola o link de avaliação. Cardápio - cola o link do cardápio, que vale para todas as placas do lote. Depois copia o endereço, grava o NFC (Chrome no Android, NFC Tools no iPhone) e confere a tag. Placa já ativada abre a troca de destino |
 
 ## 6. Regras de negócio
 

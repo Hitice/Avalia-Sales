@@ -73,7 +73,7 @@ function PassoDoCodigo({ inicial, erro, aoEntrar }: { inicial: string; erro: unk
   return (
     <form className="grid gap-4" onSubmit={(e) => { e.preventDefault(); if (completo) aoEntrar(valor) }}>
       <Field data-invalid={!!erro}>
-        <FieldLabel htmlFor="codigo-do-lote">Código que veio com as placas</FieldLabel>
+        <FieldLabel htmlFor="codigo-do-lote">Digite seu código de ativação</FieldLabel>
         <Input id="codigo-do-lote" autoFocus autoComplete="off" autoCapitalize="characters" spellCheck={false}
           className="h-12 text-center font-mono text-2xl tracking-widest uppercase" maxLength={8} placeholder="K7M2PX"
           aria-invalid={!!erro} value={valor} onChange={(e) => setValor(normalizarCodigoDoLote(e.target.value))} />
