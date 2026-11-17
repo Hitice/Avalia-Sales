@@ -80,13 +80,16 @@ export function EscolhaDeDestino({ valor, aoMudar, nomeSugerido, lugar, aoEscolh
  * formulários de outras telas, e form dentro de form faz o navegador enviar o
  * de fora e recarregar a página. O Enter no campo busca.
  */
-export function BuscaNoGoogle({ nomeSugerido, escolhido, lugar, aoEscolher }: {
+export function BuscaNoGoogle({ nomeSugerido, escolhido, lugar, aoEscolher, fonte, rotulo = 'Nome do negócio no Google' }: {
   nomeSugerido: string
   escolhido: string | null
   lugar?: Lugar | null
   aoEscolher: (lugar: Lugar) => void
+  /** De onde vem a busca; sem ela, a rota da equipe logada. */
+  fonte?: (texto: string) => Promise<Lugar[]>
+  rotulo?: string
 }) {
-  const buscar = useBuscarLugar()
+  const buscar = useBuscarLugar(fonte)
   const [busca, setBusca] = useState(nomeSugerido)
   const pronta = busca.trim().length >= 3
 
@@ -94,7 +97,7 @@ export function BuscaNoGoogle({ nomeSugerido, escolhido, lugar, aoEscolher }: {
     <div className="grid gap-4">
       <div className="flex gap-2">
         <Input
-          aria-label="Nome do negócio no Google"
+          aria-label={rotulo}
           enterKeyHint="search"
           value={busca}
           onChange={(e) => setBusca(e.target.value)}

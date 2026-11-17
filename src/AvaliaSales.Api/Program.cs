@@ -130,6 +130,7 @@ builder.Services.AddAuthorization(Politicas.Registrar);
 var entradasPorMinuto = builder.Configuration.GetValue("Limites:EntradasPorMinuto", 20);
 var cadastrosPorHora = builder.Configuration.GetValue("Limites:CadastrosPorHoraPorIp", 10);
 var renovacoesPorMinuto = builder.Configuration.GetValue("Limites:RenovacoesPorMinuto", 300);
+var ativacoesPorMinuto = builder.Configuration.GetValue("Limites:AtivacoesPorMinuto", 30);
 builder.Services.AddRateLimiter(limites =>
 {
     limites.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -145,6 +146,10 @@ builder.Services.AddRateLimiter(limites =>
     limites.AddPolicy(RotasDeWebhook.LimiteDeWebhook, http => RateLimitPartition.GetFixedWindowLimiter(
         http.Connection.RemoteIpAddress?.ToString() ?? "sem-ip",
         _ => new FixedWindowRateLimiterOptions { PermitLimit = 120, Window = TimeSpan.FromMinutes(1) }));
+    // O código do lote é a única chave da ativação: o limite por IP segura quem tentar adivinhar.
+    limites.AddPolicy(RotasDaAtivacao.LimiteDeAtivacao, http => RateLimitPartition.GetFixedWindowLimiter(
+        http.Connection.RemoteIpAddress?.ToString() ?? "sem-ip",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = ativacoesPorMinuto, Window = TimeSpan.FromMinutes(1) }));
     // Generoso: uma loja cheia lê a placa em sequência pelo mesmo Wi-Fi.
     limites.AddPolicy(RotasDaLeitura.LimiteDeLeitura, http => RateLimitPartition.GetFixedWindowLimiter(
         http.Connection.RemoteIpAddress?.ToString() ?? "sem-ip",
@@ -296,6 +301,7 @@ app.MapearMarca();
 app.MapearChat();
 app.MapearConta();
 app.MapearLeitura();
+app.MapearAtivacao();
 app.MapearWebhooks();
 app.MapearSimulador();
 // A conexão ao vivo cai quando o token de acesso vence (ADR 0006): sessão encerrada não segue ouvindo avisos. O app reconecta com o token renovado.

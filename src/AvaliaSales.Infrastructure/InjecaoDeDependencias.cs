@@ -54,6 +54,7 @@ public static class InjecaoDeDependencias
         servicos.AddScoped<ITransferenciaDeClientes, TransferenciaDeClientes>();
         servicos.AddScoped<AvaliaSales.Application.Financeiro.IEscopoDeRevenda, EscopoDeRevenda>();
         servicos.AddScoped<AvaliaSales.Application.Servicos.IEscopoDaOrdem, EscopoDaOrdem>();
+        servicos.AddScoped<AvaliaSales.Application.Placas.IGravacaoNaRevenda, GravacaoNaRevenda>();
         servicos.AdicionarCasosDeUso();
 
         servicos

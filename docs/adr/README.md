@@ -38,3 +38,4 @@ apagada, ganha a situação Substituída e o número da que a substitui.
 | [0030](0030-segredos-do-segundo-fator-cifrados-em-repouso.md) | Segredos do segundo fator cifrados em repouso | Aceita |
 | [0031](0031-google-web-risk-no-cadastro-do-destino.md) | Google Web Risk no cadastro do destino | Aceita |
 | [0032](0032-placa-personalizada-com-codigos-gerados-na-ordem.md) | Placa personalizada com códigos gerados na ordem de serviço | Aceita |
+| [0033](0033-venda-digital-e-ativacao-pelo-comprador-com-codigo-do-lote.md) | Venda digital e ativação pelo comprador com o código do lote | Aceita |

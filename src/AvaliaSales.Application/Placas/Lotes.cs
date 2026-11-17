@@ -5,7 +5,11 @@ using Microsoft.EntityFrameworkCore;
 namespace AvaliaSales.Application.Placas;
 
 public sealed record LoteDto(Guid Id, string Rotulo, int Numero, int Quantidade, DateTimeOffset CriadoEm, string? Revendedor, DateTimeOffset? DespachadoEm, DateTimeOffset? AtivadoEm,
-    string? Titulo = null, CategoriaDoLote Categoria = CategoriaDoLote.Placa, DateTimeOffset? ArquivadoEm = null, DateTimeOffset? BaixadoEm = null, bool PodeExcluir = false);
+    string? Titulo = null, CategoriaDoLote Categoria = CategoriaDoLote.Placa, DateTimeOffset? ArquivadoEm = null, DateTimeOffset? BaixadoEm = null, bool PodeExcluir = false,
+    string? CodigoDeAtivacao = null, DateTimeOffset? VendidoNoDigitalEm = null, long? ValorDoDigitalCents = null, CanalDigital? Canal = null, string? PedidoNoCanal = null);
+
+/// <summary>A baixa manual da venda digital: a revenda que vendeu (a da Avalia, no varejo), o que entrou e onde.</summary>
+public sealed record VendaDigitalDoLote(Guid RevendedorId, long ValorCents, CanalDigital Canal, string? PedidoNoCanal = null);
 
 /// <summary>A página dos lotes no formato comum, com quantos arquivados o filtro deixou de fora (para "Ver arquivados").</summary>
 public sealed record PaginaDeLotes(IReadOnlyList<LoteDto> Itens, int Total, int? Proxima, int Arquivados);
@@ -26,7 +30,7 @@ public sealed record ImpressaoDoLote(string Rotulo, IReadOnlyList<PlacaParaImpri
 /// sorteados sem repetir nenhum já emitido nem reservado, e a sequência da
 /// plataforma contínua entre lotes.
 /// </summary>
-public sealed class Lotes(IBancoDeDados banco, TimeProvider relogio)
+public sealed class Lotes(IBancoDeDados banco, TimeProvider relogio, IGravacaoNaRevenda gravacao, Revendedores.AcoesSensiveisDaOperadora sensiveis)
 {
     private const int RodadasDeSorteio = 20;
 
@@ -68,7 +72,8 @@ public sealed class Lotes(IBancoDeDados banco, TimeProvider relogio)
     }
 
     private static LoteDto Dto(Lote l, string? revendedor) => new(l.Id, l.Rotulo, l.Numero, l.Quantidade, l.CriadoEm, revendedor,
-        l.DespachadoEm, l.AtivadoEm, l.Titulo, l.Categoria, l.ArquivadoEm, l.BaixadoEm, l.PodeExcluir);
+        l.DespachadoEm, l.AtivadoEm, l.Titulo, l.Categoria, l.ArquivadoEm, l.BaixadoEm, l.PodeExcluir,
+        l.CodigoDeAtivacao, l.VendidoNoDigitalEm, l.ValorDoDigitalCents, l.Canal, l.PedidoNoCanal);
 
     public Task<LoteDto> Gerar(int quantidade, CancellationToken ct) => Gerar(new GerarLote(quantidade), ct);
 
@@ -86,11 +91,72 @@ public sealed class Lotes(IBancoDeDados banco, TimeProvider relogio)
             banco.PlacasEmitidas.Add(new PlacaEmitida(codigo, ++sequencia, lote.Id));
         }
 
+        lote.DarCodigoDeAtivacao(await SortearCodigoDeAtivacao(banco, ct));
         banco.Lotes.Add(lote);
         await banco.SaveChangesAsync(ct);
         await transacao.CommitAsync(ct);
         return Dto(lote, null);
     }
+
+    /// <summary>
+    /// O código do lote para o comprador: sorteado como o da placa e fora de todos os códigos de lote, de placa e
+    /// reservados, para nunca ser lido como outra coisa. Quem chama segura a trava da geração de lotes; o índice único é
+    /// a última palavra.
+    /// </summary>
+    internal static async Task<string> SortearCodigoDeAtivacao(IBancoDeDados banco, CancellationToken ct)
+    {
+        for (var rodada = 0; rodada < RodadasDeSorteio; rodada++)
+        {
+            var codigo = CodigoDaPlaca.Sortear();
+            var usado = await banco.Lotes.AnyAsync(l => l.CodigoDeAtivacao == codigo, ct)
+                || await banco.PlacasEmitidas.AnyAsync(p => p.Codigo == codigo, ct)
+                || await banco.CodigosReservados.AnyAsync(c => c.Codigo == codigo, ct);
+            if (!usado)
+            {
+                return codigo;
+            }
+        }
+
+        throw new InvalidOperationException("Não sobrou código de ativação livre depois de 20 rodadas.");
+    }
+
+    /// <summary>
+    /// A baixa manual da venda digital: o lote livre vai para a revenda escolhida, as placas entram no estoque dela sem
+    /// custo de pedido e reservadas ao comprador, e o valor recebido no canal entra no razão dela como receita, numa linha
+    /// só, no dia da baixa. O comprador ativa depois pelo código do lote, sem passar pelo balcão.
+    /// </summary>
+    public async Task<LoteDto> VenderNoDigital(Guid loteId, VendaDigitalDoLote pedido, CancellationToken ct)
+    {
+        await sensiveis.Exigir("Lançar a venda digital do lote", ct);
+        return await gravacao.Gravar(pedido.RevendedorId, async b =>
+        {
+            var revenda = await b.Revendedores.SingleAsync(r => r.Id == pedido.RevendedorId, ct);
+            revenda.ExigirAtiva();
+            var lote = await b.TravarLotePorId(loteId, ct) ?? throw new RegraDeNegocioException("Lote não encontrado.");
+            var agora = relogio.GetUtcNow();
+            lote.VenderNoDigital(pedido.RevendedorId, pedido.ValorCents, pedido.Canal, pedido.PedidoNoCanal, agora);
+            foreach (var emitida in await b.PlacasEmitidas.Where(p => p.LoteId == lote.Id).OrderBy(p => p.Sequencia).ToListAsync(ct))
+            {
+                emitida.EntregarA(pedido.RevendedorId);
+                // Sem custo de pedido: a revenda não comprou o pacote, a produção é da Avalia.
+                b.Placas.Add(new Placa(emitida, 0, agora));
+            }
+
+            var onde = lote.PedidoNoCanal is { } numero ? $"{NomeDoCanal(lote.Canal!.Value)}, pedido {numero}" : NomeDoCanal(lote.Canal!.Value);
+            b.Lancamentos.Add(new Domain.Financeiro.Lancamento(Domain.Financeiro.TipoDeLancamento.Receita, lote.Id, pedido.ValorCents,
+                $"Venda digital do lote {lote.Rotulo} ({onde})", agora));
+            b.AvisarAoVivo("estoque", pedido.RevendedorId, operadora: true);
+            return Dto(lote, revenda.Nome);
+        }, ct);
+    }
+
+    public static string NomeDoCanal(CanalDigital canal) => canal switch
+    {
+        CanalDigital.MercadoLivre => "Mercado Livre",
+        CanalDigital.TikTokShop => "TikTok Shop",
+        CanalDigital.Shopee => "Shopee",
+        _ => "outro canal",
+    };
 
     public async Task<LoteDto> Descrever(Guid loteId, DescreverLote pedido, CancellationToken ct)
     {

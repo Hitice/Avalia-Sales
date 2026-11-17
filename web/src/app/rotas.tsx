@@ -29,6 +29,7 @@ export const rotas = createBrowserRouter([{
   { path: '/entrar', element: <TelaDeEntrada /> },
   { path: '/privacidade', lazy: tela(() => import('@/legal/PoliticaDePrivacidade'), 'PoliticaDePrivacidade') },
   { path: '/cadastro', lazy: tela(() => import('@/acesso/TelaDeCadastro'), 'TelaDeCadastro') },
+  { path: '/ativar', lazy: tela(() => import('@/ativacao/TelaDeAtivacao'), 'TelaDeAtivacao') },
   { path: '/confirmar-cadastro', lazy: tela(() => import('@/acesso/TelaDeSenha'), 'TelaDeSenha') },
   { path: '/convite', lazy: tela(() => import('@/acesso/TelaDeSenha'), 'TelaDeSenha') },
   { path: '/senha', lazy: tela(() => import('@/acesso/TelaDeSenha'), 'TelaDeSenha') },

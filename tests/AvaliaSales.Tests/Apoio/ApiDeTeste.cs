@@ -60,6 +60,7 @@ public sealed class ApiDeTeste : IAsyncLifetime
         ["Google:ChaveDoServidor"] = "",
         ["Limites:EntradasPorMinuto"] = "100000",
         ["Limites:RenovacoesPorMinuto"] = "100000",
+        ["Limites:AtivacoesPorMinuto"] = "100000",
         ["Limites:CadastrosPorHoraPorIp"] = "100000",
         ["Cadastro:EmailsPorDia"] = "100000",
         ["Cadastro:TentativasPorCnpjPorHora"] = "1000",

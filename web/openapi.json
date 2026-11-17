@@ -2220,6 +2220,46 @@
         }
       }
     },
+    "/operadora/lotes/{id}/venda-digital": {
+      "post": {
+        "tags": [
+          "Operadora"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VendaDigitalDoLote"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoteDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/operadora/lotes/{id}/impressao": {
       "get": {
         "tags": [
@@ -6859,6 +6899,150 @@
         }
       }
     },
+    "/ativacao/{codigo}": {
+      "get": {
+        "tags": [
+          "Ativa\u00E7\u00E3o"
+        ],
+        "parameters": [
+          {
+            "name": "codigo",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoteParaAtivar"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Ativa\u00E7\u00E3o"
+        ],
+        "parameters": [
+          {
+            "name": "codigo",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AtivacaoDoComprador"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlacasAtivadas"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ativacao/{codigo}/destino": {
+      "put": {
+        "tags": [
+          "Ativa\u00E7\u00E3o"
+        ],
+        "parameters": [
+          {
+            "name": "codigo",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrocaDeDestinoDoComprador"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlacasAtivadas"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ativacao/{codigo}/lugares": {
+      "get": {
+        "tags": [
+          "Ativa\u00E7\u00E3o"
+        ],
+        "parameters": [
+          {
+            "name": "codigo",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "texto",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Lugar"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/webhooks/pagarme/{segredo}": {
       "post": {
         "tags": [
@@ -7259,6 +7443,33 @@
           }
         }
       },
+      "AtivacaoDoComprador": {
+        "required": [
+          "codigoDaPlaca",
+          "empresa",
+          "telefone",
+          "destino"
+        ],
+        "type": "object",
+        "properties": {
+          "codigoDaPlaca": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "empresa": {
+            "type": "string"
+          },
+          "telefone": {
+            "type": "string"
+          },
+          "destino": {
+            "$ref": "#/components/schemas/DestinoInformado"
+          }
+        },
+        "description": "CodigoDaPlaca \u00E9 o c\u00F3digo impresso na placa, obrigat\u00F3rio no lote de avalia\u00E7\u00E3o com mais de uma placa;\n        no card\u00E1pio o link vale para todas e o c\u00F3digo \u00E9 ignorado."
+      },
       "AtivacaoDto": {
         "required": [
           "lote",
@@ -7376,6 +7587,15 @@
           }
         },
         "description": "Sem saldo inicial, string? CaixaDto.Inicio \u00E9 nulo e o resto \u00E9 zero: o caixa ainda n\u00E3o \u00E9 contado."
+      },
+      "CanalDigital": {
+        "enum": [
+          "MercadoLivre",
+          "TikTokShop",
+          "Shopee",
+          "Outro",
+          null
+        ]
       },
       "CancelarVenda": {
         "type": "object",
@@ -10083,8 +10303,73 @@
           "podeExcluir": {
             "type": "boolean",
             "default": false
+          },
+          "codigoDeAtivacao": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "vendidoNoDigitalEm": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "valorDoDigitalCents": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          },
+          "canal": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CanalDigital"
+              }
+            ]
+          },
+          "pedidoNoCanal": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
+      },
+      "LoteParaAtivar": {
+        "required": [
+          "rotulo",
+          "tipo",
+          "placas"
+        ],
+        "type": "object",
+        "properties": {
+          "rotulo": {
+            "type": "string"
+          },
+          "tipo": {
+            "$ref": "#/components/schemas/TipoDeAtivacao"
+          },
+          "placas": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlacaParaAtivar"
+            }
+          },
+          "placaUnica": {
+            "type": "boolean"
+          },
+          "todasAtivas": {
+            "type": "boolean"
+          }
+        },
+        "description": "O que o comprador v\u00EA depois de digitar o c\u00F3digo do lote."
       },
       "Lugar": {
         "required": [
@@ -12350,6 +12635,51 @@
           }
         }
       },
+      "PlacaParaAtivar": {
+        "required": [
+          "codigo",
+          "ativa",
+          "destino",
+          "endereco"
+        ],
+        "type": "object",
+        "properties": {
+          "codigo": {
+            "type": "string"
+          },
+          "ativa": {
+            "type": "boolean"
+          },
+          "destino": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "endereco": {
+            "type": "string"
+          }
+        }
+      },
+      "PlacasAtivadas": {
+        "required": [
+          "destino",
+          "placas"
+        ],
+        "type": "object",
+        "properties": {
+          "destino": {
+            "type": "string"
+          },
+          "placas": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlacaParaAtivar"
+            }
+          }
+        },
+        "description": "As placas que passaram a levar ao destino, com o endere\u00E7o que vai na tag NFC (o mesmo do QR)."
+      },
       "PosicaoNoRanking": {
         "required": [
           "posicao",
@@ -13400,6 +13730,13 @@
           "Resultado"
         ]
       },
+      "TipoDeAtivacao": {
+        "enum": [
+          "Avaliacao",
+          "Cardapio"
+        ],
+        "description": "Avalia\u00E7\u00E3o leva cada placa ao Google do estabelecimento; card\u00E1pio leva todas as placas do lote a um link s\u00F3."
+      },
       "TipoDeDestino": {
         "enum": [
           "Google",
@@ -13445,6 +13782,24 @@
           },
           "perfil": {
             "$ref": "#/components/schemas/Perfil"
+          }
+        }
+      },
+      "TrocaDeDestinoDoComprador": {
+        "required": [
+          "codigoDaPlaca",
+          "destino"
+        ],
+        "type": "object",
+        "properties": {
+          "codigoDaPlaca": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "destino": {
+            "$ref": "#/components/schemas/DestinoInformado"
           }
         }
       },
@@ -13694,8 +14049,40 @@
             "type": "integer",
             "format": "int32",
             "default": 1
+          },
+          "doCanalDigital": {
+            "type": "boolean",
+            "default": false
           }
         }
+      },
+      "VendaDigitalDoLote": {
+        "required": [
+          "revendedorId",
+          "valorCents",
+          "canal"
+        ],
+        "type": "object",
+        "properties": {
+          "revendedorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "valorCents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "canal": {
+            "$ref": "#/components/schemas/CanalDigital"
+          },
+          "pedidoNoCanal": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "A baixa manual da venda digital: a revenda que vendeu (a da Avalia, no varejo), o que entrou e onde."
       },
       "VendaDoCliente": {
         "required": [
@@ -14046,6 +14433,9 @@
     },
     {
       "name": "Conta"
+    },
+    {
+      "name": "Ativa\u00E7\u00E3o"
     },
     {
       "name": "RotasDeWebhook"

@@ -1940,11 +1940,22 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("baixado_em");
 
+                    b.Property<string>("Canal")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("canal");
+
                     b.Property<string>("Categoria")
                         .IsRequired()
                         .HasMaxLength(12)
                         .HasColumnType("character varying(12)")
                         .HasColumnName("categoria");
+
+                    b.Property<string>("CodigoDeAtivacao")
+                        .HasMaxLength(6)
+                        .HasColumnType("character(6)")
+                        .HasColumnName("codigo_de_ativacao")
+                        .IsFixedLength();
 
                     b.Property<DateTimeOffset>("CriadoEm")
                         .HasColumnType("timestamp with time zone")
@@ -1962,6 +1973,11 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("pedido_id");
 
+                    b.Property<string>("PedidoNoCanal")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("pedido_no_canal");
+
                     b.Property<int>("Quantidade")
                         .HasColumnType("integer")
                         .HasColumnName("quantidade");
@@ -1975,8 +1991,20 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .HasColumnType("character varying(120)")
                         .HasColumnName("titulo");
 
+                    b.Property<long?>("ValorDoDigitalCents")
+                        .HasColumnType("bigint")
+                        .HasColumnName("valor_do_digital_cents");
+
+                    b.Property<DateTimeOffset?>("VendidoNoDigitalEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("vendido_no_digital_em");
+
                     b.HasKey("Id")
                         .HasName("pk_lotes");
+
+                    b.HasIndex("CodigoDeAtivacao")
+                        .IsUnique()
+                        .HasDatabaseName("ix_lotes_codigo_de_ativacao");
 
                     b.HasIndex("Numero")
                         .IsUnique()
@@ -2608,6 +2636,10 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                     b.Property<long>("CustoCents")
                         .HasColumnType("bigint")
                         .HasColumnName("custo_cents");
+
+                    b.Property<bool>("DoCanalDigital")
+                        .HasColumnType("boolean")
+                        .HasColumnName("do_canal_digital");
 
                     b.Property<bool>("DoSistemaAnterior")
                         .HasColumnType("boolean")

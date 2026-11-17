@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { chamarApi, chamarResposta, enviarJson } from '@/api/cliente'
-import type { CategoriaDoLote, Cupom, EnvioAoErp, IntegracaoDoErp, Lote, Pacote, Pagina, PaginaDeLotes, Pedido, Revendedor, SituacaoDaRevenda, SituacaoDoPedido } from '@/api/tipos'
+import type { CanalDigital, CategoriaDoLote, Cupom, EnvioAoErp, IntegracaoDoErp, Lote, Pacote, Pagina, PaginaDeLotes, Pedido, Revendedor, SituacaoDaRevenda, SituacaoDoPedido } from '@/api/tipos'
 import { useListaPaginada } from '@/lib/paginacao'
 
 const chaves = {
@@ -101,3 +101,10 @@ export const useIntegracaoDoErp = () => useQuery({ queryKey: ['operadora', 'erp'
 export const useFilaDoErp = (filtros: { situacao?: EnvioAoErp['situacao']; mes?: string; revendedorId?: string } = {}) =>
   useListaPaginada<EnvioAoErp>(['operadora', 'erp'], '/operadora/erp', { filtros })
 export const useReenviarAoErp = () => useGravar((pedidoId: string) => chamarApi(`/operadora/erp/${pedidoId}/reenvio`, enviarJson('POST', {})))
+/** A baixa manual da venda digital: o lote vai à revenda escolhida, e o comprador ativa pelo código do lote. */
+export const useVenderNoDigital = () => useGravar(({ id, ...venda }: { id: string; revendedorId: string; valorCents: number; canal: CanalDigital; pedidoNoCanal: string | null }) =>
+  chamarApi<Lote>(`/operadora/lotes/${id}/venda-digital`, enviarJson('POST', venda)))
+/** As revendas que recebem a venda digital: ativas e sem encerramento; a do grupo da operadora vem primeiro. */
+export const useRevendasDaVendaDigital = () =>
+  useQuery({ ...todasAsRevendas, select: (revendas) => revendas.filter((r) => !r.encerradaEm && !r.encerramentoPedidoEm && !r.suspensaEm)
+    .sort((a, b) => Number(b.doGrupoDaOperadora) - Number(a.doGrupoDaOperadora) || a.nome.localeCompare(b.nome, 'pt-BR')) })

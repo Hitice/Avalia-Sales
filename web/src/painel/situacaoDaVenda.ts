@@ -9,6 +9,7 @@ export function rotuloDaVenda(v: VendaDaLista): string {
     return v.testeExpiradoEm ? 'Teste vencido' : `Teste até ${formatarData(v.testeAte).slice(0, 5)}`
   }
   if (v.doSistemaAnterior) return 'Importada'
+  if (v.doCanalDigital) return 'Venda digital'
   if (v.pagamento === 'Paga' && (v.pagoPor === 'Dinheiro' || v.pagoPor === 'OutroPix')) return 'Por fora'
   return v.pagamento ? ROTULO_DO_PAGAMENTO[v.pagamento] : 'Sem cobrança'
 }
@@ -18,7 +19,7 @@ export function tomDaVenda(v: VendaDaLista): Tom {
   if (v.situacao === 'Cancelada') return 'erro'
   if (v.cortesia) return 'neutro'
   if (v.testeAte && !v.testeConvertidoEm && v.pagamento !== 'Paga') return v.testeExpiradoEm ? 'atencao' : 'info'
-  if (v.doSistemaAnterior) return 'sucesso'
+  if (v.doSistemaAnterior || v.doCanalDigital) return 'sucesso'
   return v.pagamento ? TOM_DO_PAGAMENTO[v.pagamento] : 'neutro'
 }
 
@@ -27,11 +28,11 @@ export const nomeDoProduto = (v: VendaDaLista) => (v.quantidade > 1 ? `${v.quant
 
 /** A venda sem cobrança viva pede outra: Pix que falhou, foi cancelado ou nunca saiu. */
 export const podeGerarCobranca = (v: VendaDaLista) =>
-  v.situacao === 'Registrada' && !v.cortesia && !v.doSistemaAnterior && (v.pagamento === null || v.pagamento === 'Falhou' || v.pagamento === 'Cancelada')
+  v.situacao === 'Registrada' && !v.cortesia && !v.doSistemaAnterior && !v.doCanalDigital && (v.pagamento === null || v.pagamento === 'Falhou' || v.pagamento === 'Cancelada')
 
 /** O cliente pagou fora do Pagar.me (dinheiro, outro Pix): com ou sem Pix em aberto, que é cancelado. */
 export const podeRegistrarPagamento = (v: VendaDaLista) =>
-  v.situacao === 'Registrada' && !v.cortesia && !v.doSistemaAnterior && v.valorCents > 0 && v.pagamento !== 'Paga'
+  v.situacao === 'Registrada' && !v.cortesia && !v.doSistemaAnterior && !v.doCanalDigital && v.valorCents > 0 && v.pagamento !== 'Paga'
 
 /**
  * Se o modal de depois do balcão (AcoesDaVenda) tem o que oferecer: receber

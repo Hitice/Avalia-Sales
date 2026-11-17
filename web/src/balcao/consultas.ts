@@ -40,8 +40,9 @@ export function useVenderItens() {
   })
 }
 
-export function useBuscarLugar() {
-  return useMutation({ mutationFn: (texto: string) => chamarApi<Lugar[]>(`/lugares?texto=${encodeURIComponent(texto)}`) })
+/** Pela equipe logada, ou por outra fonte: a ativação pelo comprador busca com o código do lote. */
+export function useBuscarLugar(fonte?: (texto: string) => Promise<Lugar[]>) {
+  return useMutation({ mutationFn: (texto: string) => fonte ? fonte(texto) : chamarApi<Lugar[]>(`/lugares?texto=${encodeURIComponent(texto)}`) })
 }
 
 export function useApontar(codigo: string) {

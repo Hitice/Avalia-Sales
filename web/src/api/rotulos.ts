@@ -1,4 +1,4 @@
-import type { AcaoAuditada, CategoriaDeDespesa, CategoriaDeDespesaDaOperadora, MeioDePagamento, TipoDeLancamento, CategoriaDoLote, EstadoDaPlaca, MotivoDaBaixa, MotivoDoCancelamento, Pedido, SituacaoDaCobranca, SituacaoDaOrdem, SituacaoDoContrato, SituacaoDoPedido, SituacaoDoProduto, NaturezaDaRetirada, TipoDeProduto } from './tipos'
+import type { AcaoAuditada, CanalDigital, CategoriaDeDespesa, CategoriaDeDespesaDaOperadora, MeioDePagamento, TipoDeLancamento, CategoriaDoLote, EstadoDaPlaca, MotivoDaBaixa, MotivoDoCancelamento, Pedido, SituacaoDaCobranca, SituacaoDaOrdem, SituacaoDoContrato, SituacaoDoPedido, SituacaoDoProduto, NaturezaDaRetirada, TipoDeProduto } from './tipos'
 import { FUSO_DE_BRASILIA } from '@/lib/data'
 
 /** Os nomes que a tela mostra para cada situação da API. */
@@ -17,6 +17,14 @@ export const ROTULO_DA_CATEGORIA: Record<CategoriaDoLote, string> = {
   Cardapio: 'Cardápio',
   Teste: 'Teste',
   Outro: 'Avulso',
+}
+
+/** Onde o lote da venda digital foi vendido. */
+export const ROTULO_DO_CANAL: Record<CanalDigital, string> = {
+  MercadoLivre: 'Mercado Livre',
+  TikTokShop: 'TikTok Shop',
+  Shopee: 'Shopee',
+  Outro: 'Outro',
 }
 
 /** Só os motivos que o dono escolhe; troca, lote arquivado e encerramento vêm do sistema. */

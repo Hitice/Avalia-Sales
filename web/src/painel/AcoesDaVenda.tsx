@@ -66,9 +66,9 @@ export function AcoesDaVenda({ venda, dono, aoFechar }: { venda: VendaDaLista; d
   // Com Pix em aberto, a API reconsulta o Pagar.me e cancela o Pix antes de registrar o recebimento.
   const podeReceber = podeRegistrarPagamento(venda)
   const recebidaPorFora = venda.pagamento === 'Paga' && (venda.pagoPor === 'Dinheiro' || venda.pagoPor === 'OutroPix')
-  const podeDesfazerVenda = dono && ativa && !viva && !venda.doSistemaAnterior
+  const podeDesfazerVenda = dono && ativa && !viva && !venda.doSistemaAnterior && !venda.doCanalDigital
   // Cancelar vale com cobrança viva: o Pix em aberto é cancelado e o pago volta ao cliente.
-  const podeCancelar = dono && ativa && !venda.doSistemaAnterior
+  const podeCancelar = dono && ativa && !venda.doSistemaAnterior && !venda.doCanalDigital
   // O vendedor troca na venda dele, com placa que está com ele; a API confere.
   const podeTrocar = ativa && !!venda.codigo
   if (!temAcoesDaVenda(venda, dono)) return null

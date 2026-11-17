@@ -567,6 +567,12 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
             l.Ignore(x => x.PodeExcluir);
             l.Property(x => x.Titulo).HasMaxLength(Lote.TituloMaximo);
             l.Property(x => x.Categoria).HasConversion<string>().HasMaxLength(12);
+            l.Ignore(x => x.DaVendaDigital);
+            l.Ignore(x => x.AtivaUmLinkParaTodas);
+            l.Property(x => x.CodigoDeAtivacao).HasMaxLength(CodigoDaPlaca.Tamanho).IsFixedLength();
+            l.HasIndex(x => x.CodigoDeAtivacao).IsUnique();
+            l.Property(x => x.Canal).HasConversion<string>().HasMaxLength(16);
+            l.Property(x => x.PedidoNoCanal).HasMaxLength(Lote.PedidoNoCanalMaximo);
             l.HasOne<Revendedor>().WithMany().HasForeignKey(x => x.RevendedorId).OnDelete(DeleteBehavior.Restrict);
         });
 
@@ -859,6 +865,9 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
 
     public Task<Lote?> TravarLote(int numero, CancellationToken ct) =>
         Lotes.FromSql($"select * from lotes where numero = {numero} for update").SingleOrDefaultAsync(ct);
+
+    public Task<Lote?> TravarLotePorId(Guid id, CancellationToken ct) =>
+        Lotes.FromSql($"select * from lotes where id = {id} for update").SingleOrDefaultAsync(ct);
 
     public Task<Placa?> TravarPlaca(string codigo, CancellationToken ct) =>
         Placas.FromSql($"select * from placas where codigo = {codigo} for update").SingleOrDefaultAsync(ct);

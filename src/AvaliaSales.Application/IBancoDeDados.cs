@@ -95,6 +95,8 @@ public interface IBancoDeDados
 
     Task<Lote?> TravarLote(int numero, CancellationToken ct);
 
+    Task<Lote?> TravarLotePorId(Guid id, CancellationToken ct);
+
     Task<Placa?> TravarPlaca(string codigo, CancellationToken ct);
 
     Task<List<Placa>> TravarPlacas(IReadOnlyCollection<string> codigos, CancellationToken ct);

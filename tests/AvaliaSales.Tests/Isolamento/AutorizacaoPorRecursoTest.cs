@@ -111,6 +111,8 @@ public sealed class AutorizacaoPorRecursoTest(ApiDeTeste api)
             "/auth/email", "/auth/entrar", "/auth/entrar/codigo", "/auth/entrar/codigo/reenvio", "/auth/renovar", "/auth/sair", "/auth/senha",
             "/auth/senha/link", "/cadastro", "/cadastro/reenvio", "/cadastro/cep/{cep}", "/cadastro/cnpj/{cnpj}", "/catalogo/{id:guid}/foto", "/l/{codigo}", "/q/{codigo}",
             "/webhooks/d4sign", "/webhooks/pagarme/{segredo}",
+            // A ativação pelo comprador: o código do lote é a chave, sem login.
+            "/ativacao/{codigo}", "/ativacao/{codigo}/destino", "/ativacao/{codigo}/lugares",
             // Sem papel: saúde do contêiner, e o documento da API (só mapeado em desenvolvimento, que é o ambiente do teste).
             "/health", "/openapi/{documentName}.json",
         };

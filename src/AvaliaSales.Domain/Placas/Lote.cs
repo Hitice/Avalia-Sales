@@ -12,6 +12,15 @@ public enum CategoriaDoLote
     Outro = 4,
 }
 
+/// <summary>Onde o lote foi vendido quando a venda é fora da plataforma.</summary>
+public enum CanalDigital
+{
+    MercadoLivre = 1,
+    TikTokShop = 2,
+    Shopee = 3,
+    Outro = 4,
+}
+
 /// <summary>
 /// Uma tiragem de placas gerada pela operadora. Não pertence a revendedor até
 /// o despacho: é estoque da Avalia, e por isso a tabela não tem RLS. O
@@ -48,6 +57,30 @@ public sealed class Lote
 
     public bool PodeExcluir => BaixadoEm is null && DespachadoEm is null && PedidoId is null;
 
+    /// <summary>
+    /// O código que vai com o lote para o comprador ativar as placas em /ativar, sem login. Mesmo alfabeto do código da
+    /// placa (<see cref="CodigoDaPlaca"/>), único entre os lotes. Nulo nos lotes gerados antes dele.
+    /// </summary>
+    public string? CodigoDeAtivacao { get; private set; }
+
+    /// <summary>A baixa manual da venda digital (Mercado Livre, TikTok Shop, Shopee): o lote foi vendido fora da plataforma.</summary>
+    public DateTimeOffset? VendidoNoDigitalEm { get; private set; }
+
+    /// <summary>O que entrou pela venda do lote inteiro, como o canal mostra no "Você recebe".</summary>
+    public long? ValorDoDigitalCents { get; private set; }
+
+    public CanalDigital? Canal { get; private set; }
+
+    public const int PedidoNoCanalMaximo = 60;
+
+    /// <summary>O número do pedido no canal, para achar a venda lá.</summary>
+    public string? PedidoNoCanal { get; private set; }
+
+    public bool DaVendaDigital => VendidoNoDigitalEm is not null;
+
+    /// <summary>Avaliação e cardápio são os dois lotes que o comprador ativa; o cardápio leva um link só para todas as placas.</summary>
+    public bool AtivaUmLinkParaTodas => Categoria == CategoriaDoLote.Cardapio;
+
     private Lote()
     {
     }
@@ -70,6 +103,70 @@ public sealed class Lote
         var limpo = string.IsNullOrWhiteSpace(titulo) ? null : titulo.Trim();
         Titulo = limpo is null || limpo.Length <= TituloMaximo ? limpo : throw new RegraDeNegocioException($"Título com até {TituloMaximo} caracteres.");
         Categoria = Enum.IsDefined(categoria) ? categoria : throw new RegraDeNegocioException("Categoria desconhecida.");
+    }
+
+    /// <summary>Uma vez só: o código já pode ter ido ao comprador.</summary>
+    public void DarCodigoDeAtivacao(string codigo) =>
+        CodigoDeAtivacao = CodigoDeAtivacao is null && CodigoDaPlaca.Normalizar(codigo) == codigo
+            ? codigo
+            : throw new InvalidOperationException($"Lote {Rotulo} já tem código de ativação ou o código é inválido.");
+
+    /// <summary>
+    /// A baixa manual da venda digital: o lote vai para a revenda que vendeu, sem pedido, despacho nem ativação pelo
+    /// revendedor, porque a venda foi paga no canal. Daí em diante o comprador ativa as placas pelo código do lote.
+    /// </summary>
+    public void VenderNoDigital(Guid revendedorId, long valorCents, CanalDigital canal, string? pedidoNoCanal, DateTimeOffset agora)
+    {
+        if (CodigoDeAtivacao is null)
+        {
+            throw new RegraDeNegocioException($"Lote {Rotulo} sem código de ativação. Gere um lote novo para a venda digital.");
+        }
+
+        if (DespachadoEm is not null || RevendedorId is not null)
+        {
+            throw new RegraDeNegocioException($"Lote {Rotulo} já entregue.");
+        }
+
+        if (ArquivadoEm is not null)
+        {
+            throw new RegraDeNegocioException($"Lote {Rotulo} arquivado.");
+        }
+
+        if (Categoria is not (CategoriaDoLote.Placa or CategoriaDoLote.Cardapio))
+        {
+            throw new RegraDeNegocioException("Venda digital só para lote de placa de avaliação ou de cardápio.");
+        }
+
+        if (valorCents <= 0)
+        {
+            throw new RegraDeNegocioException("Informe o valor recebido pela venda.");
+        }
+
+        if (!Enum.IsDefined(canal))
+        {
+            throw new RegraDeNegocioException("Canal desconhecido.");
+        }
+
+        var pedido = string.IsNullOrWhiteSpace(pedidoNoCanal) ? null : pedidoNoCanal.Trim();
+        if (pedido is { Length: > PedidoNoCanalMaximo })
+        {
+            throw new RegraDeNegocioException($"Número do pedido com até {PedidoNoCanalMaximo} caracteres.");
+        }
+
+        RevendedorId = revendedorId;
+        DespachadoEm = agora;
+        AtivadoEm = agora;
+        VendidoNoDigitalEm = agora;
+        ValorDoDigitalCents = valorCents;
+        Canal = canal;
+        PedidoNoCanal = pedido;
+    }
+
+    /// <summary>A parte de cada placa no valor do lote: o resto da divisão fica na primeira, para a soma bater.</summary>
+    public long ValorDaPlacaNoDigital(int posicao)
+    {
+        var valor = ValorDoDigitalCents ?? throw new InvalidOperationException($"Lote {Rotulo} sem venda digital.");
+        return valor / Quantidade + (posicao == 0 ? valor % Quantidade : 0);
     }
 
     public void Arquivar(DateTimeOffset agora) => ArquivadoEm ??= agora;

@@ -46,6 +46,7 @@ public sealed class PainelDoVendedor(IBancoDeDados banco, IUsuarioAtual usuario,
             where v.VendidaEm >= inicio && v.Situacao == SituacaoDaVenda.Registrada && !v.Cortesia
                 && (banco.Cobrancas.Any(c => c.Origem == OrigemDaCobranca.Venda && c.OrigemId == (v.GrupoId ?? v.Id) && c.Situacao == SituacaoDaCobranca.Paga)
                     // Venda paga no sistema anterior: sem cobrança aqui, com a receita lançada pelo histórico.
+                    || v.DoCanalDigital
                     || (v.DoSistemaAnterior && banco.Lancamentos.Any(l => l.OrigemId == v.Id && l.Tipo == TipoDeLancamento.Receita && l.EstornaId == null)))
             group v by v.VendedorId into g
             select new { VendedorId = g.Key, Vendas = g.Count(), ValorCents = g.Sum(v => v.ValorCents) }).ToListAsync(ct);

@@ -1,7 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { mensagemDoErro } from '@/api/cliente'
-import { formatarDataHora, ROTULO_DA_CATEGORIA } from '@/api/rotulos'
+import { formatarDataHora, ROTULO_DA_CATEGORIA, ROTULO_DO_CANAL } from '@/api/rotulos'
 import type { CategoriaDoLote, Lote } from '@/api/tipos'
 import { AcoesDaLinha } from '@/componentes/AcoesDaLinha'
 import { ListaPaginada } from '@/componentes/ListaPaginada'
@@ -13,9 +13,14 @@ import { Field, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { ModalDaVendaDigital } from './ModalDaVendaDigital'
 import { baixarImpressao, type FormatoDaImpressao, useArquivarLote, useDescreverLote, useExcluirLote, useGerarLote, useLotes } from './consultas'
 
 const CATEGORIAS = Object.keys(ROTULO_DA_CATEGORIA) as CategoriaDoLote[]
+
+/** Só o lote livre, com código de ativação, de placa de avaliação ou de cardápio. */
+const podeVenderNoDigital = (lote: Lote) =>
+  !lote.revendedor && !lote.arquivadoEm && !!lote.codigoDeAtivacao && (lote.categoria === 'Placa' || lote.categoria === 'Cardapio')
 
 /**
  * A tiragem das placas: gerar o lote (ou um avulso, de crachá, cardápio...) e
@@ -31,6 +36,7 @@ export function TelaDeLotes() {
   const arquivar = useArquivarLote()
   const excluir = useExcluirLote()
   const [editando, setEditando] = useState<Lote | null>(null)
+  const [vendendo, setVendendo] = useState<Lote | null>(null)
   const [quantidade, setQuantidade] = useState('20')
   const [titulo, setTitulo] = useState('')
   const [categoria, setCategoria] = useState<CategoriaDoLote>('Placa')
@@ -89,12 +95,16 @@ export function TelaDeLotes() {
                     <TableBody>
                       {itens.map((lote) => (
                         <TableRow key={lote.id}>
-                          <TableCell className="font-medium tabular-nums">{lote.rotulo}</TableCell>
+                          <TableCell className="font-medium tabular-nums">
+                            {lote.rotulo}
+                            {lote.codigoDeAtivacao && <span className="block font-mono text-xs font-normal text-muted-foreground" title="Código de ativação">{lote.codigoDeAtivacao}</span>}
+                          </TableCell>
                           <TableCell className="min-w-40 whitespace-normal">
                             <span className="flex flex-wrap items-center gap-1.5">
                               {lote.titulo ?? '-'}
                               {lote.categoria && lote.categoria !== 'Placa' && <Badge variant="outline">{ROTULO_DA_CATEGORIA[lote.categoria]}</Badge>}
                               {lote.arquivadoEm && <Badge variant="neutro">Arquivado</Badge>}
+                              {lote.canal && <Badge variant="outline">{ROTULO_DO_CANAL[lote.canal]}</Badge>}
                             </span>
                           </TableCell>
                           <TableCell>{lote.quantidade}</TableCell>
@@ -105,6 +115,7 @@ export function TelaDeLotes() {
                               { rotulo: 'Só SVG', aoClicar: () => baixar(lote, 'Svg') },
                               { rotulo: 'Só PNG', aoClicar: () => baixar(lote, 'Png') },
                               { rotulo: 'Editar', aoClicar: () => editar(lote) },
+                              podeVenderNoDigital(lote) && { rotulo: 'Venda digital', aoClicar: () => setVendendo(lote) },
                               !lote.revendedor && { rotulo: lote.arquivadoEm ? 'Desarquivar' : 'Arquivar', aoClicar: () => arquivar.mutate({ id: lote.id, arquivado: !lote.arquivadoEm }) },
                               lote.podeExcluir && { rotulo: 'Excluir', destrutiva: true, aoClicar: () => excluir.mutate(lote.id) },
                             ]} />
@@ -119,6 +130,7 @@ export function TelaDeLotes() {
           </CardContent>
         </Card>
       </div>
+      <ModalDaVendaDigital lote={vendendo} aoFechar={() => setVendendo(null)} />
       <Card className="self-start">
         <CardHeader><CardTitle>{editando ? `Editar ${editando.rotulo}` : 'Novo lote'}</CardTitle></CardHeader>
         <CardContent>

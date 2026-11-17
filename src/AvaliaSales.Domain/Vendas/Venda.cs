@@ -81,6 +81,13 @@ public sealed class Venda : IDoRevendedor
     /// </summary>
     public bool DoSistemaAnterior { get; private set; }
 
+    /// <summary>
+    /// Venda do lote vendido fora da plataforma (Mercado Livre, TikTok Shop, Shopee), nascida quando o comprador ativa a
+    /// placa pelo código do lote. Já paga no canal: a receita entrou no razão na baixa do lote, e aqui ela não se cobra,
+    /// não se cancela nem vira cortesia.
+    /// </summary>
+    public bool DoCanalDigital { get; private set; }
+
     /// <summary>O repasse que pagou a comissão desta venda ao vendedor.</summary>
     public Guid? RepasseId { get; private set; }
 
@@ -169,6 +176,28 @@ public sealed class Venda : IDoRevendedor
                 Meio = MeioDePagamento.Pix,
                 VendidaEm = vendidaEm,
                 DoSistemaAnterior = true,
+            };
+
+    /// <summary>
+    /// A venda da placa ativada pelo comprador: o valor é a parte da placa no que o lote rendeu no canal, sem tabela nem
+    /// comissão, e o vendedor é o dono da revenda, que fez a baixa.
+    /// </summary>
+    public static Venda Digital(Guid placaId, Guid clienteId, Guid produtoId, Guid vendedorId, long valorCents, long custoCents, DateTimeOffset agora) =>
+        valorCents < 0
+            ? throw new RegraDeNegocioException("Valor de venda negativo.")
+            : new Venda
+            {
+                PlacaId = placaId,
+                ClienteId = clienteId,
+                ProdutoId = produtoId,
+                VendedorId = vendedorId,
+                ValorCents = valorCents,
+                TabelaCents = valorCents,
+                CustoCents = custoCents,
+                ComissaoBps = 0,
+                Meio = MeioDePagamento.Pix,
+                VendidaEm = agora,
+                DoCanalDigital = true,
             };
 
     /// <summary>Desfeita sem cobrança em aberto nem paga: quem chama confere isso antes.</summary>

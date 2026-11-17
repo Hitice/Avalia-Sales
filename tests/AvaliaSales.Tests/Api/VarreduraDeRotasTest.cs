@@ -19,7 +19,7 @@ public sealed partial class VarreduraDeRotasTest(ApiDeTeste api)
     /// <summary>Rotas sem login por desenho: cadastro, entrada, leitura da placa, webhooks e a foto do catálogo.</summary>
     private static readonly string[] Publicas =
     [
-        "/cadastro", "/auth/", "/q/", "/l/", "/webhooks/", "/catalogo/{id}/foto", "/simulador",
+        "/cadastro", "/auth/", "/q/", "/l/", "/ativacao/", "/webhooks/", "/catalogo/{id}/foto", "/simulador",
     ];
 
     /// <summary>Rotas que um teste de varredura não pode disparar: trocam a própria senha ou o segundo fator do login de teste.</summary>

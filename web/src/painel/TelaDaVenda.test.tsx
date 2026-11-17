@@ -12,7 +12,7 @@ afterEach(() => {
 
 const venda = {
   id: 'v1', codigo: 'ABC123', cliente: 'Padaria Sol', produto: 'Placa', vendedorId: 'u1', vendedor: 'Ju', valorCents: 10_000, comissaoCents: 1_000,
-  meio: 'Pix', pagamento: null, vendidaEm: '2026-10-20T15:00:00Z', situacao: 'Registrada', cortesia: false, doSistemaAnterior: false,
+  meio: 'Pix', pagamento: null, vendidaEm: '2026-10-20T15:00:00Z', situacao: 'Registrada', cortesia: false, doSistemaAnterior: false, doCanalDigital: false,
 }
 
 function abrir(cliente: object, papel: 'Dono' | 'Vendedor' = 'Dono', link: object | null = null) {

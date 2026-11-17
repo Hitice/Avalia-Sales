@@ -94,7 +94,8 @@ public sealed record VendaDaLista(
     DateTimeOffset? TesteConvertidoEm = null,
     int Quantidade = 1,
     Guid? GrupoId = null,
-    int ItensNoGrupo = 1);
+    int ItensNoGrupo = 1,
+    bool DoCanalDigital = false);
 
 /// <summary>Os grupos do filtro da lista de vendas: pagas, a receber (sem pagamento, com ou sem cobrança viva), cortesias e canceladas.</summary>
 public enum SituacaoNaLista
@@ -301,6 +302,11 @@ public sealed class Vendas(
             // Código de outro revendedor responde como inexistente: o código está impresso e qualquer um lê.
             var placa = (codigo.Length == 0 ? null : await banco.TravarPlaca(codigo, ct))
                 ?? throw new RegraDeNegocioException("Código não encontrado.");
+            if (await banco.Lotes.AnyAsync(l => l.Id == placa.LoteId && l.VendidoNoDigitalEm != null, ct))
+            {
+                throw new RegraDeNegocioException($"Placa {placa.Codigo} de lote vendido no digital. O comprador ativa pelo código do lote.");
+            }
+
             var venda = new Venda(placa.Id, cliente.Id, produto.Id, produto.PrecoCents, vendedorId, item.ValorCents,
                 placa.CustoCents, comissaoBps, pedido.Meio, agora, doCatalogo?.ParteDaAvaliaCents ?? 0);
             placa.Vender(venda.Id, destino, agora);
@@ -767,6 +773,11 @@ public sealed class Vendas(
         {
             throw new RegraDeNegocioException("Venda paga no sistema anterior.");
         }
+
+        if (venda.DoCanalDigital)
+        {
+            throw new RegraDeNegocioException("Venda paga no canal digital. O lote foi lançado pela operadora.");
+        }
     }
 
     private async Task ExigirSemCobrancaViva(Venda venda, string recusa, CancellationToken ct)
@@ -864,7 +875,8 @@ public sealed class Vendas(
             Pagamento = banco.Cobrancas.Where(k => k.Origem == OrigemDaCobranca.Venda && k.OrigemId == (v.GrupoId ?? v.Id))
                 .OrderByDescending(k => k.CriadaEm).ThenByDescending(k => k.Id).Select(k => (SituacaoDaCobranca?)k.Situacao).FirstOrDefault(),
             // Venda trazida do sistema anterior não tem cobrança aqui: o histórico lança a receita dela no razão, com a própria venda de origem.
-            PagaNoAnterior = v.DoSistemaAnterior && banco.Lancamentos.Any(l => l.OrigemId == v.Id && l.Tipo == TipoDeLancamento.Receita && l.EstornaId == null),
+            // A venda do canal digital foi paga lá: a receita entrou no razão na baixa do lote.
+            PagaNoAnterior = v.DoCanalDigital || (v.DoSistemaAnterior && banco.Lancamentos.Any(l => l.OrigemId == v.Id && l.Tipo == TipoDeLancamento.Receita && l.EstornaId == null)),
         });
         var soma = await comPagamento.GroupBy(_ => 1).Select(g => new
         {
@@ -915,6 +927,7 @@ public sealed class Vendas(
                 v,
                 Paga = banco.Cobrancas.Where(k => k.Origem == OrigemDaCobranca.Venda && k.OrigemId == (v.GrupoId ?? v.Id))
                         .OrderByDescending(k => k.CriadaEm).ThenByDescending(k => k.Id).Select(k => (SituacaoDaCobranca?)k.Situacao).FirstOrDefault() == SituacaoDaCobranca.Paga
+                    || v.DoCanalDigital
                     || (v.DoSistemaAnterior && banco.Lancamentos.Any(l => l.OrigemId == v.Id && l.Tipo == TipoDeLancamento.Receita && l.EstornaId == null)),
             });
             consulta = situacao switch
@@ -964,7 +977,7 @@ public sealed class Vendas(
             nomes.GetValueOrDefault(l.v.VendedorId, "Não identificado"), l.v.ValorCents, l.v.ComissaoCents, l.v.Meio,
             l.Cobranca?.Situacao, l.v.VendidaEm, l.Cobranca?.PagaEm, l.v.Situacao, l.v.Cortesia, l.Cobranca?.Meio, l.v.DoSistemaAnterior,
             l.v.MotivoDoCancelamento, l.v.TesteAte, l.v.TesteExpiradoEm, l.v.TesteConvertidoEm, l.v.Quantidade, l.v.GrupoId,
-            l.v.GrupoId is { } g ? itensDoGrupo.GetValueOrDefault(g, 1) : 1)).ToList(), total);
+            l.v.GrupoId is { } g ? itensDoGrupo.GetValueOrDefault(g, 1) : 1, l.v.DoCanalDigital)).ToList(), total);
     }
 
     /// <summary>

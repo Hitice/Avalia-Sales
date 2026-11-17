@@ -2670,6 +2670,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/operadora/lotes/{id}/venda-digital": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["VendaDigitalDoLote"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LoteDto"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/operadora/lotes/{id}/impressao": {
         parameters: {
             query?: never;
@@ -7997,6 +8038,148 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/ativacao/{codigo}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    codigo: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LoteParaAtivar"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    codigo: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AtivacaoDoComprador"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PlacasAtivadas"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/ativacao/{codigo}/destino": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    codigo: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["TrocaDeDestinoDoComprador"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PlacasAtivadas"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/ativacao/{codigo}/lugares": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    texto?: string;
+                };
+                header?: never;
+                path: {
+                    codigo: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Lugar"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/webhooks/pagarme/{segredo}": {
         parameters: {
             query?: never;
@@ -8152,6 +8335,16 @@ export interface components {
         ArquivarLote: {
             arquivado: boolean;
         };
+        /**
+         * @description CodigoDaPlaca é o código impresso na placa, obrigatório no lote de avaliação com mais de uma placa;
+         *             no cardápio o link vale para todas e o código é ignorado.
+         */
+        AtivacaoDoComprador: {
+            codigoDaPlaca: null | string;
+            empresa: string;
+            telefone: string;
+            destino: components["schemas"]["DestinoInformado"];
+        };
         AtivacaoDto: {
             lote: string;
             /** Format: int32 */
@@ -8186,6 +8379,8 @@ export interface components {
             /** Format: int64 */
             saldoCents: number;
         };
+        /** @enum {unknown} */
+        CanalDigital: "MercadoLivre" | "TikTokShop" | "Shopee" | "Outro" | null;
         CancelarVenda: {
             motivo?: components["schemas"]["MotivoDoCancelamento"];
             observacao?: null | string;
@@ -8962,6 +9157,21 @@ export interface components {
             baixadoEm?: null | string;
             /** @default false */
             podeExcluir: boolean;
+            codigoDeAtivacao?: null | string;
+            /** Format: date-time */
+            vendidoNoDigitalEm?: null | string;
+            /** Format: int64 */
+            valorDoDigitalCents?: null | number;
+            canal?: null | components["schemas"]["CanalDigital"];
+            pedidoNoCanal?: null | string;
+        };
+        /** @description O que o comprador vê depois de digitar o código do lote. */
+        LoteParaAtivar: {
+            rotulo: string;
+            tipo: components["schemas"]["TipoDeAtivacao"];
+            placas: components["schemas"]["PlacaParaAtivar"][];
+            placaUnica?: boolean;
+            todasAtivas?: boolean;
         };
         Lugar: {
             id: string;
@@ -9682,6 +9892,17 @@ export interface components {
             venceEm: null | string;
             destino: null | string;
         };
+        PlacaParaAtivar: {
+            codigo: string;
+            ativa: boolean;
+            destino: null | string;
+            endereco: string;
+        };
+        /** @description As placas que passaram a levar ao destino, com o endereço que vai na tag NFC (o mesmo do QR). */
+        PlacasAtivadas: {
+            destino: string;
+            placas: components["schemas"]["PlacaParaAtivar"][];
+        };
         /** @description Uma linha do ranking do mês: posição, primeiro nome e vendas pagas. Valor e comissão dos outros não aparecem. */
         PosicaoNoRanking: {
             /** Format: int32 */
@@ -10002,6 +10223,11 @@ export interface components {
         };
         /** @enum {unknown} */
         TipoDaLinhaDoResultado: "Receita" | "Custo" | "Total" | "Resultado";
+        /**
+         * @description Avaliação leva cada placa ao Google do estabelecimento; cardápio leva todas as placas do lote a um link só.
+         * @enum {unknown}
+         */
+        TipoDeAtivacao: "Avaliacao" | "Cardapio";
         /** @enum {unknown} */
         TipoDeDestino: "Google" | "Link";
         /**
@@ -10016,6 +10242,10 @@ export interface components {
             /** Format: date-time */
             expiraEm: string;
             perfil: components["schemas"]["Perfil"];
+        };
+        TrocaDeDestinoDoComprador: {
+            codigoDaPlaca: null | string;
+            destino: components["schemas"]["DestinoInformado"];
         };
         TrocaDeSenha: {
             atual: null | string;
@@ -10086,6 +10316,17 @@ export interface components {
              * @default 1
              */
             itensNoGrupo: number;
+            /** @default false */
+            doCanalDigital: boolean;
+        };
+        /** @description A baixa manual da venda digital: a revenda que vendeu (a da Avalia, no varejo), o que entrou e onde. */
+        VendaDigitalDoLote: {
+            /** Format: uuid */
+            revendedorId: string;
+            /** Format: int64 */
+            valorCents: number;
+            canal: components["schemas"]["CanalDigital"];
+            pedidoNoCanal?: null | string;
         };
         /** @description Estado - o EstadoDaPlaca de hoje, por nome; nulo na venda de serviço. */
         VendaDoCliente: {
