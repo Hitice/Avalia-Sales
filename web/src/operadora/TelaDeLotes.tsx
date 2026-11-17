@@ -85,6 +85,7 @@ export function TelaDeLotes() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Lote</TableHead>
+                        <TableHead>Código</TableHead>
                         <TableHead>Título</TableHead>
                         <TableHead tipo="numero">Placas</TableHead>
                         <TableHead tipo="data">Gerado em</TableHead>
@@ -95,10 +96,8 @@ export function TelaDeLotes() {
                     <TableBody>
                       {itens.map((lote) => (
                         <TableRow key={lote.id}>
-                          <TableCell className="font-medium tabular-nums">
-                            {lote.rotulo}
-                            {lote.codigoDeAtivacao && <span className="block font-mono text-xs font-normal text-muted-foreground" title="Código de ativação">{lote.codigoDeAtivacao}</span>}
-                          </TableCell>
+                          <TableCell className="font-medium tabular-nums">{lote.rotulo}</TableCell>
+                          <TableCell className="font-mono text-xs text-muted-foreground">{lote.codigoDeAtivacao ?? '-'}</TableCell>
                           <TableCell className="min-w-40 whitespace-normal">
                             <span className="flex flex-wrap items-center gap-1.5">
                               {lote.titulo ?? '-'}
