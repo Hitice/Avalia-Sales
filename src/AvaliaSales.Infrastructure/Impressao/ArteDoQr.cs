@@ -8,7 +8,7 @@ namespace AvaliaSales.Infrastructure.Impressao;
 /// O desenho do QR das placas, o mesmo do Sales da Avalia, que a gráfica já
 /// conhece: caminho único em SVG, medida em milímetros, zona de silêncio dentro
 /// do desenho, fundo transparente e a marca no miolo, sobre um vão aberto na
-/// grade e transparente, com a marca pequena, branca e chapada, sem moldura
+/// grade e transparente, com a marca pequena, preta e chapada, sem moldura
 /// (Pedro, 24/10/2026). O desenho sai só do código:
 /// a tiragem de hoje pode ser refeita idêntica depois.
 /// </summary>
@@ -26,7 +26,8 @@ internal static class ArteDoQr
     /// </summary>
     private const int Vao = Logo + 4;
 
-    private static readonly string Marca = Recurso("marca/marca-da-avalia.svg", leitor => new StreamReader(leitor).ReadToEnd());
+    private static readonly string Marca = Recurso("marca/marca-da-avalia.svg", leitor => new StreamReader(leitor).ReadToEnd())
+        .Replace("#ffffff", "#000000", StringComparison.OrdinalIgnoreCase);
     private static readonly (int Lado, byte[] Rgba) MarcaEmPixels = Recurso("marca/marca-da-avalia.png", leitor =>
     {
         var (largura, _, rgba) = Impressao.Png.Ler(leitor);
@@ -120,7 +121,7 @@ internal static class ArteDoQr
     }
 
     /// <summary>
-    /// A marca branca e chapada no vão transparente: só a forma vem da imagem
+    /// A marca preta e chapada no vão transparente: só a forma vem da imagem
     /// embutida, reduzida por média de área.
     /// </summary>
     private static void PorMarca(byte[] rgba, int pixels, int inicio, int tamanho)
@@ -151,7 +152,7 @@ internal static class ArteDoQr
                 }
 
                 var p = ((inicio + y) * pixels + inicio + x) * 4;
-                rgba[p] = rgba[p + 1] = rgba[p + 2] = 255;
+                rgba[p] = rgba[p + 1] = rgba[p + 2] = 0;
                 rgba[p + 3] = (byte)Math.Round(255 * a / amostras);
             }
         }
