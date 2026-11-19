@@ -79,8 +79,10 @@ export const useReabertura = () => useGravar(({ id, aprovar }: { id: string; apr
 /** SVG para o Corel, PNG para a mala direta; os dois por padrão. */
 export type FormatoDaImpressao = 'SvgEPng' | 'Svg' | 'Png'
 
-export async function baixarImpressao(lote: Pick<Lote, 'id' | 'rotulo'>, formato: FormatoDaImpressao = 'SvgEPng') {
-  const resposta = await chamarResposta(`/operadora/lotes/${lote.id}/impressao?formato=${formato}`)
+export async function baixarImpressao(lote: Pick<Lote, 'id' | 'rotulo'>, formato: FormatoDaImpressao = 'SvgEPng', pastaDestino?: string) {
+  const parametros = new URLSearchParams({ formato })
+  if (pastaDestino) parametros.set('pastaDestino', pastaDestino)
+  const resposta = await chamarResposta(`/operadora/lotes/${lote.id}/impressao?${parametros}`)
   const url = URL.createObjectURL(await resposta.blob())
   const link = document.createElement('a')
   link.href = url

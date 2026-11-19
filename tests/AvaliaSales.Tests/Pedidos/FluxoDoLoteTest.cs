@@ -290,6 +290,35 @@ public sealed class FluxoDoLoteTest(ApiDeTeste api)
     }
 
     [Fact]
+    public async Task CSV_da_impressao_usa_caminho_absoluto_da_pasta_escolhida_e_corresponde_a_todos_os_PNGs()
+    {
+        var operadora = await api.ClienteLogado(await api.CriarOperadora());
+        var lote = await operadora.Postar("/operadora/lotes", new { quantidade = 3 }, HttpStatusCode.Created);
+        var pastaDestino = "/Users/pedrohenriquemorais/Downloads/";
+
+        var resposta = await operadora.GetAsync(
+            $"/operadora/lotes/{lote.GetProperty("id").GetGuid()}/impressao?pastaDestino={Uri.EscapeDataString(pastaDestino)}",
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, resposta.StatusCode);
+        using var zip = new System.IO.Compression.ZipArchive(await resposta.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken));
+        var pasta = "lote-" + lote.GetProperty("rotulo").GetString()!.ToLowerInvariant();
+        using var csv = new StreamReader(zip.GetEntry($"{pasta}/{pasta}.csv")!.Open());
+        var linhas = (await csv.ReadToEndAsync(TestContext.Current.CancellationToken)).Split("\r\n", StringSplitOptions.RemoveEmptyEntries);
+        var pngs = zip.Entries.Where(e => e.FullName.EndsWith(".png", StringComparison.Ordinal)).ToArray();
+
+        Assert.Equal("codigo,photo", linhas[0]);
+        Assert.Equal(pngs.Length, linhas.Length - 1);
+        for (var i = 0; i < pngs.Length; i++)
+        {
+            var campos = linhas[i + 1].Split(',', 2);
+            var caminho = campos[1];
+            Assert.Equal(pngs[i].FullName, caminho[(pastaDestino.TrimEnd('/') + "/").Length..]);
+            Assert.EndsWith("-" + campos[0] + ".png", caminho, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
     public async Task Impressao_so_em_svg_aponta_o_csv_para_o_svg()
     {
         var operadora = await api.ClienteLogado(await api.CriarOperadora());

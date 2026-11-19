@@ -2722,6 +2722,7 @@ export interface paths {
             parameters: {
                 query?: {
                     formato?: components["schemas"]["FormatoDaImpressao"];
+                    pastaDestino?: string;
                 };
                 header?: never;
                 path: {

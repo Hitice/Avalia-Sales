@@ -109,11 +109,17 @@ public static class RotasDaOperadora
         });
         operadora.MapPost("/lotes/{id:guid}/venda-digital", (Guid id, VendaDigitalDoLote pedido, Lotes lotes, CancellationToken ct) =>
             lotes.VenderNoDigital(id, pedido, ct));
-        operadora.MapGet("/lotes/{id:guid}/impressao", async (Guid id, FormatoDaImpressao? formato, Lotes lotes, IOptions<OpcoesDaPlataforma> plataforma,
+        operadora.MapGet("/lotes/{id:guid}/impressao", async (Guid id, FormatoDaImpressao? formato, string? pastaDestino, Lotes lotes, IOptions<OpcoesDaPlataforma> plataforma,
             IConfiguration configuracao, CancellationToken ct) =>
         {
             var impressao = await lotes.Impressao(id, ct);
-            var zip = ArquivoDeImpressao.Gerar(impressao, plataforma.Value.UrlPublica, configuracao["Lotes:PastaLocal"], formato ?? FormatoDaImpressao.SvgEPng);
+            var pastaLocal = string.IsNullOrWhiteSpace(pastaDestino) ? configuracao["Lotes:PastaLocal"] : pastaDestino;
+            if (!string.IsNullOrWhiteSpace(pastaLocal) && !CaminhoAbsoluto(pastaLocal))
+            {
+                return Results.Problem("Informe um caminho absoluto.", statusCode: StatusCodes.Status400BadRequest);
+            }
+
+            var zip = ArquivoDeImpressao.Gerar(impressao, plataforma.Value.UrlPublica, pastaLocal, formato ?? FormatoDaImpressao.SvgEPng);
             return Results.File(zip, "application/zip", $"lote-{impressao.Rotulo.ToLowerInvariant()}.zip");
         });
 
@@ -295,4 +301,8 @@ public static class RotasDaOperadora
             return Results.NoContent();
         });
     }
+
+    private static bool CaminhoAbsoluto(string caminho) => caminho.StartsWith('/')
+        || caminho.StartsWith("\\\\", StringComparison.Ordinal)
+        || caminho.Length >= 3 && char.IsAsciiLetter(caminho[0]) && caminho[1] == ':' && (caminho[2] == '/' || caminho[2] == '\\');
 }

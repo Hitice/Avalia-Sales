@@ -52,8 +52,8 @@ public static class ArquivoDeImpressao
 
                 // O Corel lê o caminho da imagem do CSV: absoluto quando a operadora informa a pasta onde extrai o ZIP.
                 var caminho = string.IsNullOrWhiteSpace(pastaLocal)
-                    ? $"{pasta}/{nome}{extensao}"
-                    : Path.Combine(pastaLocal, pasta, nome + extensao);
+                    ? JuntarCaminho(pasta, nome + extensao, '/')
+                    : JuntarCaminho(pastaLocal, $"{pasta}/{nome}{extensao}", Separador(pastaLocal));
                 csv.Append(Campo(placa.Codigo)).Append(',').Append(Campo(caminho)).Append("\r\n");
             }
 
@@ -64,9 +64,14 @@ public static class ArquivoDeImpressao
         return memoria.ToArray();
     }
 
-    /// <summary>Aspas só quando o caminho tem vírgula, aspas ou espaço (pasta do Windows).</summary>
+    /// <summary>Escapa campos CSV com pontuação, espaço ou quebra de linha.</summary>
     private static string Campo(string valor) =>
-        valor.IndexOfAny([',', '"', ' ']) >= 0 ? "\"" + valor.Replace("\"", "\"\"", StringComparison.Ordinal) + "\"" : valor;
+        valor.IndexOfAny([',', '"', ' ', '\r', '\n']) >= 0 ? "\"" + valor.Replace("\"", "\"\"", StringComparison.Ordinal) + "\"" : valor;
+
+    private static char Separador(string pasta) => pasta.Contains('\\') ? '\\' : '/';
+
+    private static string JuntarCaminho(string raiz, string relativo, char separador) =>
+        raiz.TrimEnd('/', '\\') + separador + relativo.Replace('/', separador);
 
     private static void Escrever(ZipArchive zip, string nome, byte[] conteudo)
     {

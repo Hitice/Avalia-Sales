@@ -395,10 +395,12 @@ confirmar, em Comissões, que ele chegou. Só o
   sequência das placas contínua entre lotes, título e categoria (placa,
   crachá, cardápio, teste, avulso).
 - Impressão - ZIP com o QR em SVG e PNG por placa ("0001-CODIGO"), só SVG ou
-  só PNG, e um CSV `codigo,photo` para a mala direta do Corel. A arte segue a
-  da gráfica: caminho único, 30 mm, fundo transparente, miolo vazado e a marca
-  pequena, branca e chapada. O QR grava a URL em maiúsculas, com nível H de
-  correção.
+  só PNG, e um CSV `codigo,photo` para a mala direta do Corel. Ao baixar, a
+  operadora informa a pasta no computador onde o ZIP será extraído; cada linha
+  aponta para o caminho absoluto da imagem dentro da pasta do lote. A arte
+  segue a da gráfica: caminho único, 30 mm, fundo transparente, miolo vazado e
+  a marca pequena, preta e chapada. O QR grava a URL em maiúsculas, com nível H
+  de correção.
 - Exclusão e arquivamento - o lote só se exclui antes do primeiro download e
   sem despacho; os códigos dele ficam reservados. Depois, só se arquiva: a
   operadora arquiva o lote livre, e o revendedor, o lote que já está no
@@ -966,6 +968,7 @@ As mudanças de 21 a 24/10/2026 estão em [historico/pdd-ate-24-10.md](historico
 
 | Data | Mudança |
 | --- | --- |
+| 18/11/2026 | Impressão do lote - o download pede a pasta de destino no computador e o CSV `codigo,photo` aponta cada imagem pelo caminho absoluto, com a pasta do lote uma única vez. |
 | 17/11/2026 | Venda digital e ativação pelo comprador - todo lote novo nasce com código de ativação; a operadora lança o lote vendido no Mercado Livre, TikTok Shop ou Shopee (revenda, valor recebido, canal e pedido), que entra no estoque e no razão da revenda; o comprador ativa em `/ativar` só com o código: placa de avaliação pelo Google, cardápio com um link para todas, troca de destino da placa já ativada, cópia do endereço e gravação e conferência do NFC. |
 | 13/11/2026 | Venda em demonstração que o cliente decide pagar - "Gerar cobrança" na lista abre a venda já com o Pix para copiar ou mandar pelo WhatsApp. Detalhe da venda - mostra o link curto que a venda criou (copiar, mandar pelo WhatsApp, trocar o destino pela ficha da placa; editar o link só o revendedor). |
 | 11/11/2026 | Exportar em CSV - Vendas, Despesas (revenda e operadora), Retiradas, Lançamentos e Repasses ganham o botão Exportar: grava todas as páginas com a busca e os filtros da tela (até 10.000 linhas), separado por ponto e vírgula, com valor em reais com vírgula, para abrir direto no Excel. |

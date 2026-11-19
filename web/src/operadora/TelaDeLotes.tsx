@@ -9,6 +9,7 @@ import { Cabecalho, Erro, Rolagem } from '@/componentes/Tela'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Field, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -17,6 +18,10 @@ import { ModalDaVendaDigital } from './ModalDaVendaDigital'
 import { baixarImpressao, type FormatoDaImpressao, useArquivarLote, useDescreverLote, useExcluirLote, useGerarLote, useLotes } from './consultas'
 
 const CATEGORIAS = Object.keys(ROTULO_DA_CATEGORIA) as CategoriaDoLote[]
+
+type DownloadDeImpressao = { lote: Lote; formato: FormatoDaImpressao }
+
+const caminhoAbsoluto = (caminho: string) => caminho.startsWith('/') || /^[A-Za-z]:[\\/]/.test(caminho) || caminho.startsWith('\\\\')
 
 /** Só o lote livre, com código de ativação, de placa de avaliação ou de cardápio. */
 const podeVenderNoDigital = (lote: Lote) =>
@@ -41,13 +46,23 @@ export function TelaDeLotes() {
   const [titulo, setTitulo] = useState('')
   const [categoria, setCategoria] = useState<CategoriaDoLote>('Placa')
   const [erroDoArquivo, setErroDoArquivo] = useState<string | null>(null)
+  const [download, setDownload] = useState<DownloadDeImpressao | null>(null)
+  const [pastaDestino, setPastaDestino] = useState(() => localStorage.getItem('pasta-destino-impressao') ?? '')
   const falha = [gerar, descrever, arquivar, excluir].map((m) => m.error).find(Boolean)
   const arquivados = lotes.bruto?.arquivados ?? 0
 
-  async function baixar(lote: Lote, formato?: FormatoDaImpressao) {
+  function baixar(lote: Lote, formato?: FormatoDaImpressao) {
+    setDownload({ lote, formato: formato ?? 'SvgEPng' })
+  }
+
+  async function confirmarDownload() {
+    if (!download || !caminhoAbsoluto(pastaDestino.trim())) return
     setErroDoArquivo(null)
     try {
-      await baixarImpressao(lote, formato)
+      const destino = pastaDestino.trim()
+      await baixarImpressao(download.lote, download.formato, destino)
+      localStorage.setItem('pasta-destino-impressao', destino)
+      setDownload(null)
       void cliente.invalidateQueries({ queryKey: ['operadora', 'lotes'] })
     } catch (erro) {
       setErroDoArquivo(mensagemDoErro(erro))
@@ -130,6 +145,26 @@ export function TelaDeLotes() {
         </Card>
       </div>
       <ModalDaVendaDigital lote={vendendo} aoFechar={() => setVendendo(null)} />
+      {download && (
+        <Dialog open onOpenChange={(aberto) => !aberto && setDownload(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Baixar impressão</DialogTitle>
+              <DialogDescription>Informe onde vai extrair o ZIP; o CSV incluirá a pasta do lote no caminho.</DialogDescription>
+            </DialogHeader>
+            <form className="grid gap-4" onSubmit={(evento) => { evento.preventDefault(); void confirmarDownload() }}>
+              <Field>
+                <FieldLabel htmlFor="pasta-destino-impressao">Pasta de destino no computador</FieldLabel>
+                <Input id="pasta-destino-impressao" autoComplete="off" placeholder="/Users/nome/Downloads/" value={pastaDestino} aria-invalid={pastaDestino !== '' && !caminhoAbsoluto(pastaDestino.trim())} onChange={(evento) => setPastaDestino(evento.target.value)} />
+              </Field>
+              <DialogFooter>
+                <Button type="button" variant="ghost" onClick={() => setDownload(null)}>Cancelar</Button>
+                <Button type="submit" disabled={!caminhoAbsoluto(pastaDestino.trim())}>Baixar impressão</Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      )}
       <Card className="self-start">
         <CardHeader><CardTitle>{editando ? `Editar ${editando.rotulo}` : 'Novo lote'}</CardTitle></CardHeader>
         <CardContent>

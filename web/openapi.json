@@ -2281,6 +2281,13 @@
             "schema": {
               "$ref": "#/components/schemas/FormatoDaImpressao"
             }
+          },
+          {
+            "name": "pastaDestino",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
