@@ -133,6 +133,7 @@ const MOTIVO_DO_SISTEMA: Record<MotivoDaBaixa, string> = {
   NaoImpressa: 'Não impressa',
   LoteArquivado: 'Lote arquivado',
   Encerramento: 'Conta encerrada',
+  Devolucao: 'Devolvida',
 }
 
 /** Os lotes que vieram para a revenda: o de teste ou de campanha que não saiu se arquiva aqui. */

@@ -2700,11 +2700,83 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["LoteDto"];
+                        "application/json": components["schemas"]["VendaDigitalParcial"];
                     };
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/operadora/grupos-de-ativacao/{id}/cancelamento": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/operadora/lotes/{id}/vendas-digitais": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["VendaDigitalDoLoteDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -9166,7 +9238,7 @@ export interface components {
             canal?: null | components["schemas"]["CanalDigital"];
             pedidoNoCanal?: null | string;
         };
-        /** @description O que o comprador vê depois de digitar o código do lote. */
+        /** @description O que o comprador vê depois de digitar o código de ativação do pedido. */
         LoteParaAtivar: {
             rotulo: string;
             tipo: components["schemas"]["TipoDeAtivacao"];
@@ -9249,9 +9321,9 @@ export interface components {
          * @description Por que a placa saiu de circulação.
          * @enum {unknown}
          */
-        MotivoDaBaixa: "Troca" | "DefeitoDeImpressao" | "Perdida" | "Quebrada" | "NaoImpressa" | "LoteArquivado" | "Encerramento";
+        MotivoDaBaixa: "Troca" | "DefeitoDeImpressao" | "Perdida" | "Quebrada" | "NaoImpressa" | "LoteArquivado" | "Encerramento" | "Devolucao";
         /** @enum {unknown} */
-        MotivoDoCancelamento: "ErroDeCadastro" | "Inadimplencia" | "Desistencia" | "Defeito" | "Outro" | null;
+        MotivoDoCancelamento: "ErroDeCadastro" | "Inadimplencia" | "Desistencia" | "Defeito" | "Outro" | "Devolucao" | null;
         /** @enum {unknown} */
         NaturezaDaRetirada: "ProLabore" | "DistribuicaoDeLucros" | "Adiantamento" | "Aporte";
         NotificacaoDto: {
@@ -10320,14 +10392,30 @@ export interface components {
             /** @default false */
             doCanalDigital: boolean;
         };
-        /** @description A baixa manual da venda digital: a revenda que vendeu (a da Avalia, no varejo), o que entrou e onde. */
+        /** @description A baixa digital das placas separadas para um pedido, com valor total, canal e revenda que fará a ativação. */
         VendaDigitalDoLote: {
             /** Format: uuid */
             revendedorId: string;
             /** Format: int64 */
             valorCents: number;
             canal: components["schemas"]["CanalDigital"];
+            codigosDasPlacas: string[];
             pedidoNoCanal?: null | string;
+        };
+        VendaDigitalDoLoteDto: {
+            /** Format: uuid */
+            grupoId: string;
+            codigoDeAtivacao: string;
+            /** Format: int32 */
+            quantidade: number;
+        };
+        VendaDigitalParcial: {
+            /** Format: uuid */
+            grupoId: string;
+            lote: string;
+            /** Format: int32 */
+            quantidade: number;
+            codigoDeAtivacao: string;
         };
         /** @description Estado - o EstadoDaPlaca de hoje, por nome; nulo na venda de serviço. */
         VendaDoCliente: {

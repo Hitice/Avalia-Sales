@@ -2252,7 +2252,63 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/LoteDto"
+                  "$ref": "#/components/schemas/VendaDigitalParcial"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/operadora/grupos-de-ativacao/{id}/cancelamento": {
+      "post": {
+        "tags": [
+          "Operadora"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/operadora/lotes/{id}/vendas-digitais": {
+      "get": {
+        "tags": [
+          "Operadora"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/VendaDigitalDoLoteDto"
+                  }
                 }
               }
             }
@@ -10376,7 +10432,7 @@
             "type": "boolean"
           }
         },
-        "description": "O que o comprador v\u00EA depois de digitar o c\u00F3digo do lote."
+        "description": "O que o comprador v\u00EA depois de digitar o c\u00F3digo de ativa\u00E7\u00E3o do pedido."
       },
       "Lugar": {
         "required": [
@@ -10649,7 +10705,8 @@
           "Quebrada",
           "NaoImpressa",
           "LoteArquivado",
-          "Encerramento"
+          "Encerramento",
+          "Devolucao"
         ],
         "description": "Por que a placa saiu de circula\u00E7\u00E3o."
       },
@@ -10660,6 +10717,7 @@
           "Desistencia",
           "Defeito",
           "Outro",
+          "Devolucao",
           null
         ]
       },
@@ -14067,7 +14125,8 @@
         "required": [
           "revendedorId",
           "valorCents",
-          "canal"
+          "canal",
+          "codigosDasPlacas"
         ],
         "type": "object",
         "properties": {
@@ -14082,6 +14141,12 @@
           "canal": {
             "$ref": "#/components/schemas/CanalDigital"
           },
+          "codigosDasPlacas": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "pedidoNoCanal": {
             "type": [
               "null",
@@ -14089,7 +14154,53 @@
             ]
           }
         },
-        "description": "A baixa manual da venda digital: a revenda que vendeu (a da Avalia, no varejo), o que entrou e onde."
+        "description": "A baixa digital das placas separadas para um pedido, com valor total, canal e revenda que far\u00E1 a ativa\u00E7\u00E3o."
+      },
+      "VendaDigitalDoLoteDto": {
+        "required": [
+          "grupoId",
+          "codigoDeAtivacao",
+          "quantidade"
+        ],
+        "type": "object",
+        "properties": {
+          "grupoId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "codigoDeAtivacao": {
+            "type": "string"
+          },
+          "quantidade": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "VendaDigitalParcial": {
+        "required": [
+          "grupoId",
+          "lote",
+          "quantidade",
+          "codigoDeAtivacao"
+        ],
+        "type": "object",
+        "properties": {
+          "grupoId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "lote": {
+            "type": "string"
+          },
+          "quantidade": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "codigoDeAtivacao": {
+            "type": "string"
+          }
+        }
       },
       "VendaDoCliente": {
         "required": [

@@ -18,7 +18,7 @@ public enum TipoDeAtivacao
 
 public sealed record PlacaParaAtivar(string Codigo, bool Ativa, string? Destino, string Endereco);
 
-/// <summary>O que o comprador vê depois de digitar o código do lote.</summary>
+/// <summary>O que o comprador vê depois de digitar o código de ativação do pedido.</summary>
 public sealed record LoteParaAtivar(string Rotulo, TipoDeAtivacao Tipo, IReadOnlyList<PlacaParaAtivar> Placas)
 {
     public bool PlacaUnica => Placas.Count == 1;
@@ -38,9 +38,9 @@ public sealed record TrocaDeDestinoDoComprador(string? CodigoDaPlaca, DestinoInf
 public sealed record PlacasAtivadas(string Destino, IReadOnlyList<PlacaParaAtivar> Placas);
 
 /// <summary>
-/// A ativação da placa pelo próprio comprador, em /ativar, só com o código que veio com o lote: sem login, sem cobrança
-/// e sem vendedor. Roda no escopo da revenda dona do lote, que a rota pública assume depois de achar o lote pelo código.
-/// O lote precisa ter tido a baixa da venda digital: a venda de cada placa nasce aqui, já paga no canal.
+/// A ativação da placa pelo próprio comprador, em /ativar, só com o código do grupo: sem login, sem cobrança e sem vendedor.
+/// Roda no escopo da revenda dona das placas, que a rota pública assume depois de achar o grupo pelo código. Lotes antigos
+/// continuam usando o código de lote; grupos novos ativam somente as placas separadas para aquele pedido.
 /// </summary>
 public sealed class AtivacaoPeloComprador(
     IBancoDeDados banco,
@@ -67,16 +67,26 @@ public sealed class AtivacaoPeloComprador(
             return null;
         }
 
+        var grupo = await semRevenda.PlacasEmitidas.AsNoTracking()
+            .Where(p => p.CodigoDeAtivacao == normalizado && p.GrupoDeAtivacaoId != null && p.RevendedorId != null)
+            .Select(p => new { p.LoteId, p.RevendedorId, p.GrupoDeAtivacaoId })
+            .FirstOrDefaultAsync(ct);
+        if (grupo is not null && await semRevenda.Lotes.AnyAsync(l => l.Id == grupo.LoteId && l.ArquivadoEm == null, ct))
+            return (grupo.LoteId, grupo.RevendedorId!.Value);
+
         var lote = await semRevenda.Lotes.AsNoTracking()
             .Where(l => l.CodigoDeAtivacao == normalizado && l.VendidoNoDigitalEm != null && l.ArquivadoEm == null && l.RevendedorId != null)
             .Select(l => new { l.Id, l.RevendedorId }).SingleOrDefaultAsync(ct);
         return lote is null ? null : (lote.Id, lote.RevendedorId!.Value);
     }
 
-    public async Task<LoteParaAtivar> Ler(Guid loteId, CancellationToken ct)
+    public async Task<LoteParaAtivar> Ler(Guid loteId, string codigo, CancellationToken ct)
     {
-        var lote = await Lote(loteId, ct);
-        var placas = await banco.Placas.AsNoTracking().Where(p => p.LoteId == loteId && p.Situacao != SituacaoDaPlaca.Baixada)
+        var (lote, grupo) = await Contexto(loteId, codigo, ct);
+        var codigos = banco.PlacasEmitidas.AsNoTracking().Where(p => p.LoteId == loteId);
+        if (grupo is not null) codigos = codigos.Where(p => p.GrupoDeAtivacaoId == grupo.Id);
+        var placasDoAcesso = await codigos.Select(p => p.Codigo).ToListAsync(ct);
+        var placas = await banco.Placas.AsNoTracking().Where(p => placasDoAcesso.Contains(p.Codigo) && p.Situacao != SituacaoDaPlaca.Baixada)
             .OrderBy(p => p.Sequencia).ToListAsync(ct);
         return new LoteParaAtivar(lote.Rotulo, Tipo(lote), placas.Select(Dto).ToList());
     }
@@ -86,14 +96,17 @@ public sealed class AtivacaoPeloComprador(
     /// placa com a parte dela no valor do lote, e a placa no ar por 12 meses a partir de agora. No cardápio, todas as
     /// placas livres do lote recebem o mesmo link.
     /// </summary>
-    public async Task<PlacasAtivadas> Ativar(Guid loteId, AtivacaoDoComprador pedido, CancellationToken ct)
+    public async Task<PlacasAtivadas> Ativar(Guid loteId, string codigo, AtivacaoDoComprador pedido, CancellationToken ct)
     {
-        var lote = await Lote(loteId, ct);
+        var (lote, grupo) = await Contexto(loteId, codigo, ct);
         var destino = await Destino(lote, pedido.Destino, ct);
         var agora = relogio.GetUtcNow();
 
         await using var transacao = await banco.Database.BeginTransactionAsync(ct);
-        var placas = await Alvos(lote, pedido.CodigoDaPlaca, ct);
+        _ = await banco.TravarLotePorId(lote.Id, ct) ?? throw new RegraDeNegocioException(NaoEncontrado);
+        if (grupo is not null && await banco.GruposDeAtivacao.AnyAsync(g => g.Id == grupo.Id && g.CanceladoEm != null, ct))
+            throw new RegraDeNegocioException(NaoEncontrado);
+        var placas = await Alvos(lote, grupo, pedido.CodigoDaPlaca, ct);
         var livres = placas.Where(p => p.Situacao == SituacaoDaPlaca.EmEstoque && p.VendaId is null).ToList();
         if (livres.Count == 0)
         {
@@ -105,31 +118,38 @@ public sealed class AtivacaoPeloComprador(
         var lugar = pedido.Destino.Tipo == TipoDeDestino.Google ? pedido.Destino.LugarNoGoogle : null;
         var cliente = await Cliente(pedido.Empresa, pedido.Telefone, lugar, agora, ct);
         var produto = await Produto(ct);
-        var dono = await Dono(lote.RevendedorId!.Value, ct);
-        var posicoes = await banco.PlacasEmitidas.AsNoTracking().Where(p => p.LoteId == lote.Id).OrderBy(p => p.Sequencia)
+        var revendedorId = grupo?.RevendedorId ?? lote.RevendedorId!.Value;
+        var dono = await Dono(revendedorId, ct);
+        var emitidas = banco.PlacasEmitidas.AsNoTracking().Where(p => p.LoteId == lote.Id);
+        if (grupo is not null) emitidas = emitidas.Where(p => p.GrupoDeAtivacaoId == grupo.Id);
+        var posicoes = await emitidas.OrderBy(p => p.Sequencia)
             .Select(p => p.Codigo).ToListAsync(ct);
         foreach (var placa in livres)
         {
-            var venda = Venda.Digital(placa.Id, cliente.Id, produto.Id, dono, lote.ValorDaPlacaNoDigital(posicoes.IndexOf(placa.Codigo)), placa.CustoCents, agora);
+            var valor = grupo is null ? lote.ValorDaPlacaNoDigital(posicoes.IndexOf(placa.Codigo)) : grupo.ValorDaPlaca(posicoes.IndexOf(placa.Codigo), posicoes.Count);
+            var venda = Venda.Digital(placa.Id, cliente.Id, produto.Id, dono, valor, placa.CustoCents, agora);
             placa.Vender(venda.Id, destino, agora);
             banco.Vendas.Add(venda);
             auditoria.Registrar(AcaoAuditada.DestinoDefinido, $"Placa {placa.Codigo}", placa.Codigo, null, destino);
         }
 
-        banco.AvisarAoVivo("venda", lote.RevendedorId);
+        banco.AvisarAoVivo("venda", revendedorId);
         await banco.SaveChangesAsync(ct);
         await transacao.CommitAsync(ct);
         return new PlacasAtivadas(destino, livres.Select(Dto).ToList());
     }
 
     /// <summary>A placa já ativada troca de destino só com o código do lote; no cardápio, todas as do lote juntas.</summary>
-    public async Task<PlacasAtivadas> TrocarDestino(Guid loteId, TrocaDeDestinoDoComprador pedido, CancellationToken ct)
+    public async Task<PlacasAtivadas> TrocarDestino(Guid loteId, string codigo, TrocaDeDestinoDoComprador pedido, CancellationToken ct)
     {
-        var lote = await Lote(loteId, ct);
+        var (lote, grupo) = await Contexto(loteId, codigo, ct);
         var destino = await Destino(lote, pedido.Destino, ct);
 
         await using var transacao = await banco.Database.BeginTransactionAsync(ct);
-        var ativas = (await Alvos(lote, pedido.CodigoDaPlaca, ct)).Where(p => p.VendaId is not null).ToList();
+        _ = await banco.TravarLotePorId(lote.Id, ct) ?? throw new RegraDeNegocioException(NaoEncontrado);
+        if (grupo is not null && await banco.GruposDeAtivacao.AnyAsync(g => g.Id == grupo.Id && g.CanceladoEm != null, ct))
+            throw new RegraDeNegocioException(NaoEncontrado);
+        var ativas = (await Alvos(lote, grupo, pedido.CodigoDaPlaca, ct)).Where(p => p.VendaId is not null).ToList();
         if (ativas.Count == 0)
         {
             throw new RegraDeNegocioException("Placa ainda não ativada. Ative antes de trocar o destino.");
@@ -179,9 +199,11 @@ public sealed class AtivacaoPeloComprador(
     /// As placas travadas que a ação alcança: no cardápio, todas as do lote que não saíram de circulação; na avaliação,
     /// a do código informado, ou a única do lote. Código de outro lote responde como inexistente.
     /// </summary>
-    private async Task<List<Placa>> Alvos(Lote lote, string? codigoDaPlaca, CancellationToken ct)
+    private async Task<List<Placa>> Alvos(Lote lote, GrupoDeAtivacao? grupo, string? codigoDaPlaca, CancellationToken ct)
     {
-        var doLote = await banco.PlacasEmitidas.AsNoTracking().Where(p => p.LoteId == lote.Id).OrderBy(p => p.Sequencia)
+        var emitidas = banco.PlacasEmitidas.AsNoTracking().Where(p => p.LoteId == lote.Id);
+        if (grupo is not null) emitidas = emitidas.Where(p => p.GrupoDeAtivacaoId == grupo.Id);
+        var doLote = await emitidas.OrderBy(p => p.Sequencia)
             .Select(p => p.Codigo).ToListAsync(ct);
         IReadOnlyCollection<string> codigos;
         if (lote.AtivaUmLinkParaTodas || doLote.Count == 1)
@@ -201,6 +223,18 @@ public sealed class AtivacaoPeloComprador(
 
         var placas = await banco.TravarPlacas(codigos, ct);
         return placas.Where(p => p.Situacao != SituacaoDaPlaca.Baixada).OrderBy(p => p.Sequencia).ToList();
+    }
+
+    private async Task<(Lote Lote, GrupoDeAtivacao? Grupo)> Contexto(Guid loteId, string codigo, CancellationToken ct)
+    {
+        var normalizado = CodigoDaPlaca.Normalizar(codigo);
+        var grupo = await banco.GruposDeAtivacao.AsNoTracking().SingleOrDefaultAsync(g => g.Codigo == normalizado && g.CanceladoEm == null, ct);
+        var lote = grupo is not null
+            ? await banco.Lotes.AsNoTracking().SingleOrDefaultAsync(l => l.Id == grupo.LoteId && l.ArquivadoEm == null, ct)
+            : await Lote(loteId, ct);
+        if (lote is null || lote.Id != loteId || grupo is null && lote.VendidoNoDigitalEm is null)
+            throw new RegraDeNegocioException(NaoEncontrado);
+        return (lote, grupo);
     }
 
     /// <summary>O mesmo cliente para o mesmo telefone sem documento; a empresa é também o responsável, porque o comprador só informa os dois.</summary>

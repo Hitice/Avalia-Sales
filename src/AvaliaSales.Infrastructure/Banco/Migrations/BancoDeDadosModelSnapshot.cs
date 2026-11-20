@@ -1894,6 +1894,67 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                     b.ToTable("codigos_reservados", (string)null);
                 });
 
+            modelBuilder.Entity("AvaliaSales.Domain.Placas.GrupoDeAtivacao", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Canal")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("canal");
+
+                    b.Property<DateTimeOffset?>("CanceladoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("cancelado_em");
+
+                    b.Property<string>("Codigo")
+                        .IsRequired()
+                        .HasMaxLength(6)
+                        .HasColumnType("character(6)")
+                        .HasColumnName("codigo")
+                        .IsFixedLength();
+
+                    b.Property<Guid>("LoteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("lote_id");
+
+                    b.Property<string>("PedidoNoCanal")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("pedido_no_canal");
+
+                    b.Property<Guid>("RevendedorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("revendedor_id");
+
+                    b.Property<long>("ValorCents")
+                        .HasColumnType("bigint")
+                        .HasColumnName("valor_cents");
+
+                    b.Property<DateTimeOffset>("VendidoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("vendido_em");
+
+                    b.HasKey("Id")
+                        .HasName("pk_grupos_de_ativacao");
+
+                    b.HasIndex("Codigo")
+                        .IsUnique()
+                        .HasDatabaseName("ix_grupos_de_ativacao_codigo");
+
+                    b.HasIndex("LoteId")
+                        .HasDatabaseName("ix_grupos_de_ativacao_lote_id");
+
+                    b.HasIndex("RevendedorId", "LoteId")
+                        .HasDatabaseName("ix_grupos_de_ativacao_revendedor_id_lote_id");
+
+                    b.ToTable("grupos_de_ativacao", (string)null);
+                });
+
             modelBuilder.Entity("AvaliaSales.Domain.Placas.LeituraDoDia", b =>
                 {
                     b.Property<Guid>("PlacaId")
@@ -2154,6 +2215,16 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .HasColumnName("codigo")
                         .IsFixedLength();
 
+                    b.Property<string>("CodigoDeAtivacao")
+                        .HasMaxLength(6)
+                        .HasColumnType("character(6)")
+                        .HasColumnName("codigo_de_ativacao")
+                        .IsFixedLength();
+
+                    b.Property<Guid?>("GrupoDeAtivacaoId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("grupo_de_ativacao_id");
+
                     b.Property<Guid>("LoteId")
                         .HasColumnType("uuid")
                         .HasColumnName("lote_id");
@@ -2168,6 +2239,12 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
 
                     b.HasKey("Codigo")
                         .HasName("pk_placas_emitidas");
+
+                    b.HasIndex("CodigoDeAtivacao")
+                        .HasDatabaseName("ix_placas_emitidas_codigo_de_ativacao");
+
+                    b.HasIndex("GrupoDeAtivacaoId")
+                        .HasDatabaseName("ix_placas_emitidas_grupo_de_ativacao_id");
 
                     b.HasIndex("LoteId")
                         .HasDatabaseName("ix_placas_emitidas_lote_id");
@@ -3671,6 +3748,23 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .HasConstraintName("fk_pedidos_placas_revendedores_revendedor_id");
                 });
 
+            modelBuilder.Entity("AvaliaSales.Domain.Placas.GrupoDeAtivacao", b =>
+                {
+                    b.HasOne("AvaliaSales.Domain.Placas.Lote", null)
+                        .WithMany()
+                        .HasForeignKey("LoteId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_grupos_de_ativacao_lotes_lote_id");
+
+                    b.HasOne("AvaliaSales.Domain.Revendedores.Revendedor", null)
+                        .WithMany()
+                        .HasForeignKey("RevendedorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_grupos_de_ativacao_revendedores_revendedor_id");
+                });
+
             modelBuilder.Entity("AvaliaSales.Domain.Placas.LeituraDoDia", b =>
                 {
                     b.HasOne("AvaliaSales.Domain.Placas.Placa", null)
@@ -3722,6 +3816,12 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
 
             modelBuilder.Entity("AvaliaSales.Domain.Placas.PlacaEmitida", b =>
                 {
+                    b.HasOne("AvaliaSales.Domain.Placas.GrupoDeAtivacao", null)
+                        .WithMany()
+                        .HasForeignKey("GrupoDeAtivacaoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_placas_emitidas_grupos_de_ativacao_grupo_de_ativacao_id");
+
                     b.HasOne("AvaliaSales.Domain.Placas.Lote", null)
                         .WithMany()
                         .HasForeignKey("LoteId")

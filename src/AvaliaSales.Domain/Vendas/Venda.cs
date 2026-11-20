@@ -22,6 +22,7 @@ public enum MotivoDoCancelamento
 
     Defeito = 4,
     Outro = 5,
+    Devolucao = 6,
 }
 
 /// <summary>

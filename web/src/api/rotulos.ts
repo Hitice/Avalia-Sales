@@ -41,6 +41,7 @@ export const ROTULO_DO_CANCELAMENTO: Record<MotivoDoCancelamento, string> = {
   Desistencia: 'desistência',
   Defeito: 'defeito',
   Outro: 'outro motivo',
+  Devolucao: 'devolução',
 }
 
 export const ROTULO_DO_PEDIDO: Record<SituacaoDoPedido, string> = {

@@ -30,6 +30,9 @@ public enum MotivoDaBaixa
 
     /// <summary>A revenda encerrou a conta.</summary>
     Encerramento = 7,
+
+    /// <summary>Cliente devolveu uma placa ativada; o QR sai de circulação.</summary>
+    Devolucao = 8,
 }
 
 /// <summary>A situação gravada mais o prazo: carência e vencida saem da data, não de coluna.</summary>

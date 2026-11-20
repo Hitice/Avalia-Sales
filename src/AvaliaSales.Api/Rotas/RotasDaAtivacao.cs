@@ -7,9 +7,8 @@ using AvaliaSales.Infrastructure.Banco;
 namespace AvaliaSales.Api.Rotas;
 
 /// <summary>
-/// A ativação pelo comprador, em /ativar no front: sem login, só com o código que veio com o lote. Cada rota acha o lote
-/// pelo código na tabela da plataforma e abre um escopo que assume a revenda dona dele, como a leitura do QR. Código
-/// errado, lote arquivado ou sem venda digital respondem igual, como não encontrado.
+/// A ativação pelo comprador, em /ativar no front: sem login, só com o código do grupo. Cada rota acha a revenda pelas
+/// placas emitidas da plataforma e abre um escopo para ela, como a leitura do QR. Códigos antigos de lote continuam válidos.
 /// </summary>
 public static class RotasDaAtivacao
 {
@@ -20,13 +19,13 @@ public static class RotasDaAtivacao
         var ativacao = rotas.MapGroup("/ativacao").AllowAnonymous().RequireRateLimiting(LimiteDeAtivacao).WithTags("Ativação");
 
         ativacao.MapGet("/{codigo}", (string codigo, BancoDeDados banco, IServiceScopeFactory escopos, CancellationToken ct) =>
-            NaRevenda(codigo, banco, escopos, (s, loteId) => s.GetRequiredService<AtivacaoPeloComprador>().Ler(loteId, ct), ct));
+            NaRevenda(codigo, banco, escopos, (s, loteId) => s.GetRequiredService<AtivacaoPeloComprador>().Ler(loteId, codigo, ct), ct));
 
         ativacao.MapPost("/{codigo}", (string codigo, AtivacaoDoComprador pedido, BancoDeDados banco, IServiceScopeFactory escopos, CancellationToken ct) =>
-            NaRevenda(codigo, banco, escopos, (s, loteId) => s.GetRequiredService<AtivacaoPeloComprador>().Ativar(loteId, pedido, ct), ct));
+            NaRevenda(codigo, banco, escopos, (s, loteId) => s.GetRequiredService<AtivacaoPeloComprador>().Ativar(loteId, codigo, pedido, ct), ct));
 
         ativacao.MapPut("/{codigo}/destino", (string codigo, TrocaDeDestinoDoComprador pedido, BancoDeDados banco, IServiceScopeFactory escopos, CancellationToken ct) =>
-            NaRevenda(codigo, banco, escopos, (s, loteId) => s.GetRequiredService<AtivacaoPeloComprador>().TrocarDestino(loteId, pedido, ct), ct));
+            NaRevenda(codigo, banco, escopos, (s, loteId) => s.GetRequiredService<AtivacaoPeloComprador>().TrocarDestino(loteId, codigo, pedido, ct), ct));
 
         // A busca no Google gasta cota da Avalia: só com um código de lote válido.
         ativacao.MapGet("/{codigo}/lugares", async (string codigo, string? texto, BancoDeDados banco, ILugares lugares, CancellationToken ct) =>

@@ -108,7 +108,13 @@ public static class RotasDaOperadora
             return Results.NoContent();
         });
         operadora.MapPost("/lotes/{id:guid}/venda-digital", (Guid id, VendaDigitalDoLote pedido, Lotes lotes, CancellationToken ct) =>
-            lotes.VenderNoDigital(id, pedido, ct));
+            lotes.VenderPlacasNoDigital(id, pedido, ct));
+        operadora.MapPost("/grupos-de-ativacao/{id:guid}/cancelamento", async (Guid id, Lotes lotes, CancellationToken ct) =>
+        {
+            await lotes.CancelarVendaDigital(id, ct);
+            return Results.NoContent();
+        });
+        operadora.MapGet("/lotes/{id:guid}/vendas-digitais", (Guid id, Lotes lotes, CancellationToken ct) => lotes.VendasDigitais(id, ct));
         operadora.MapGet("/lotes/{id:guid}/impressao", async (Guid id, FormatoDaImpressao? formato, string? pastaDestino, Lotes lotes, IOptions<OpcoesDaPlataforma> plataforma,
             IConfiguration configuracao, CancellationToken ct) =>
         {

@@ -32,6 +32,7 @@ public interface IBancoDeDados
     DbSet<PedidoDePlacas> Pedidos { get; }
     DbSet<Lote> Lotes { get; }
     DbSet<PlacaEmitida> PlacasEmitidas { get; }
+    DbSet<GrupoDeAtivacao> GruposDeAtivacao { get; }
     DbSet<CodigoReservado> CodigosReservados { get; }
     DbSet<Placa> Placas { get; }
     DbSet<LeituraDoDia> Leituras { get; }

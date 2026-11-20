@@ -4,7 +4,7 @@ namespace AvaliaSales.Domain.Placas;
 /// O código de uma placa impressa e de quem ela é. Tabela da plataforma, sem
 /// RLS: a leitura do QR chega sem login e é por aqui que descobre o revendedor.
 /// Guarda só identificadores; destino, venda e situação ficam na placa do
-/// revendedor.
+/// revendedor. O código de ativação roteia ao grupo sem expor seus dados de venda.
 /// </summary>
 public sealed class PlacaEmitida
 {
@@ -15,6 +15,8 @@ public sealed class PlacaEmitida
 
     public Guid LoteId { get; private set; }
     public Guid? RevendedorId { get; private set; }
+    public Guid? GrupoDeAtivacaoId { get; private set; }
+    public string? CodigoDeAtivacao { get; private set; }
 
     private PlacaEmitida() => Codigo = string.Empty;
 
@@ -33,4 +35,19 @@ public sealed class PlacaEmitida
         RevendedorId = RevendedorId is null || RevendedorId == revendedorId
             ? revendedorId
             : throw new InvalidOperationException($"A placa {Codigo} já é de outro revendedor.");
+
+    public void VincularAoGrupo(Guid revendedorId, Guid grupoId, string codigo)
+    {
+        if (GrupoDeAtivacaoId is not null && CodigoDeAtivacao is not null || RevendedorId is not null && RevendedorId != revendedorId)
+            throw new RegraDeNegocioException($"A placa {Codigo} já foi separada para uma venda.");
+        EntregarA(revendedorId);
+        GrupoDeAtivacaoId = grupoId;
+        CodigoDeAtivacao = codigo;
+    }
+
+    public void LiberarDoGrupo(Guid grupoId)
+    {
+        if (GrupoDeAtivacaoId != grupoId) throw new InvalidOperationException($"A placa {Codigo} não pertence ao grupo.");
+        CodigoDeAtivacao = null;
+    }
 }

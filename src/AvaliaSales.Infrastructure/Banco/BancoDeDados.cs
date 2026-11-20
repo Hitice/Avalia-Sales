@@ -41,6 +41,7 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
     public DbSet<PedidoDePlacas> Pedidos => Set<PedidoDePlacas>();
     public DbSet<Lote> Lotes => Set<Lote>();
     public DbSet<PlacaEmitida> PlacasEmitidas => Set<PlacaEmitida>();
+    public DbSet<GrupoDeAtivacao> GruposDeAtivacao => Set<GrupoDeAtivacao>();
     public DbSet<CodigoReservado> CodigosReservados => Set<CodigoReservado>();
     public DbSet<Placa> Placas => Set<Placa>();
     public DbSet<LeituraDoDia> Leituras => Set<LeituraDoDia>();
@@ -581,10 +582,27 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
             p.ToTable("placas_emitidas");
             p.HasKey(x => x.Codigo);
             p.Property(x => x.Codigo).HasMaxLength(CodigoDaPlaca.Tamanho).IsFixedLength();
+            p.Property(x => x.CodigoDeAtivacao).HasMaxLength(CodigoDaPlaca.Tamanho).IsFixedLength();
             p.HasIndex(x => x.Sequencia).IsUnique();
             p.HasIndex(x => x.LoteId);
+            p.HasIndex(x => x.CodigoDeAtivacao);
+            p.HasIndex(x => x.GrupoDeAtivacaoId);
             p.HasOne<Lote>().WithMany().HasForeignKey(x => x.LoteId).OnDelete(DeleteBehavior.Restrict);
             p.HasOne<Revendedor>().WithMany().HasForeignKey(x => x.RevendedorId).OnDelete(DeleteBehavior.Restrict);
+            p.HasOne<GrupoDeAtivacao>().WithMany().HasForeignKey(x => x.GrupoDeAtivacaoId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelo.Entity<GrupoDeAtivacao>(g =>
+        {
+            g.ToTable("grupos_de_ativacao");
+            g.HasKey(x => x.Id);
+            g.HasIndex(x => new { x.RevendedorId, x.LoteId });
+            g.HasIndex(x => x.Codigo).IsUnique();
+            g.Property(x => x.Codigo).HasMaxLength(CodigoDaPlaca.Tamanho).IsFixedLength();
+            g.Property(x => x.Canal).HasConversion<string>().HasMaxLength(16);
+            g.Property(x => x.PedidoNoCanal).HasMaxLength(Lote.PedidoNoCanalMaximo);
+            g.HasOne<Revendedor>().WithMany().HasForeignKey(x => x.RevendedorId).OnDelete(DeleteBehavior.Restrict);
+            g.HasOne<Lote>().WithMany().HasForeignKey(x => x.LoteId).OnDelete(DeleteBehavior.Restrict);
         });
 
         modelo.Entity<CodigoReservado>(c =>
