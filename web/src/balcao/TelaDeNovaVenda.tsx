@@ -369,21 +369,21 @@ function PassoDaCobranca({ linhas, erro, meio, aoMudarMeio, testeCabe, faltaDado
   return (
     <Card>
       <CardHeader><CardTitle>Cobrança</CardTitle></CardHeader>
-      <CardContent className="grid gap-4">
+      <CardContent className="grid grid-cols-1 gap-4">
         <Erro erro={erro ? mensagemDoErro(erro) : null} />
         {linhas.length === 0
           ? <Aviso>Nenhum item na venda.</Aviso>
           : (
-              <ul aria-label="Resumo da venda" className="grid gap-1 border-y py-3 text-sm">
+              <ul aria-label="Resumo da venda" className="grid grid-cols-1 gap-1 border-y py-3 text-sm">
                 {linhas.map((l) => (
                   <li key={l.id} className="flex justify-between gap-3">
                     <span className="min-w-0 truncate">{nomeDaLinha(l)}</span>
-                    <span className="tabular-nums">{formatarCentavos(totalDaLinha(l))}</span>
+                    <span className="shrink-0 whitespace-nowrap tabular-nums">{formatarCentavos(totalDaLinha(l))}</span>
                   </li>
                 ))}
                 <li className="mt-1 flex justify-between gap-3 border-t pt-2 font-semibold">
                   <span>Total</span>
-                  <span className="tabular-nums">{formatarCentavos(base)}</span>
+                  <span className="shrink-0 whitespace-nowrap tabular-nums">{formatarCentavos(base)}</span>
                 </li>
               </ul>
             )}
