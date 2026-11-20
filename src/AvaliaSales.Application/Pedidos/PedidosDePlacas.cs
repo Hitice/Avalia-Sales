@@ -92,7 +92,8 @@ public sealed class PedidosDePlacas(
         var linkDe = links.GroupBy(l => l.OrigemId!.Value).ToDictionary(g => g.Key, g => g.OrderByDescending(l => l.CriadaEm).First().UrlDoLink);
         var quantidades = pedidos.Where(p => p.Situacao is SituacaoDoPedido.Pago or SituacaoDoPedido.EmProducao).Select(p => p.Quantidade).Distinct().ToList();
         var comLoteLivre = await banco.Lotes.AsNoTracking()
-            .Where(l => l.DespachadoEm == null && l.ArquivadoEm == null && quantidades.Contains(l.Quantidade))
+            .Where(l => l.DespachadoEm == null && l.ArquivadoEm == null && quantidades.Contains(l.Quantidade)
+                && !banco.PlacasEmitidas.Any(p => p.LoteId == l.Id && p.RevendedorId != null))
             .Select(l => l.Quantidade).Distinct().ToListAsync(ct);
         return pedidos.Select(p => new PedidoDto(
             p.Id, p.RevendedorId, revendedores.GetValueOrDefault(p.RevendedorId, ""), p.Quantidade, p.ValorCents, p.Situacao,
@@ -366,6 +367,12 @@ public sealed class PedidosDePlacas(
         var pedido = await Achar(id, ct);
         var lote = await banco.Lotes.SingleOrDefaultAsync(l => l.Numero == numeroDoLote, ct)
             ?? throw new RegraDeNegocioException($"Lote {Lote.Rotular(numeroDoLote)} não encontrado.");
+        // Placa separada na venda digital já é de uma revenda: o lote não vai inteiro numa caixa.
+        if (await banco.PlacasEmitidas.AnyAsync(p => p.LoteId == lote.Id && p.RevendedorId != null, ct))
+        {
+            throw new RegraDeNegocioException($"Lote {lote.Rotulo} tem placas da venda digital. Escolha outro lote.");
+        }
+
         var agora = relogio.GetUtcNow();
 
         await using var transacao = await banco.Database.BeginTransactionAsync(ct);

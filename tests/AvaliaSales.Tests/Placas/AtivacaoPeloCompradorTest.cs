@@ -1,8 +1,11 @@
 using System.Net;
 using System.Text.Json;
 using AvaliaSales.Domain;
+using AvaliaSales.Domain.Financeiro;
 using AvaliaSales.Domain.Placas;
+using AvaliaSales.Infrastructure.Banco;
 using AvaliaSales.Tests.Apoio;
+using Microsoft.EntityFrameworkCore;
 
 namespace AvaliaSales.Tests.Placas;
 
@@ -152,6 +155,11 @@ public sealed class AtivacaoPeloCompradorTest(ApiDeTeste api)
         Assert.Equal(2, await banco.Contar($"select count(*) from placas where lote_id = '{loteId}' and revendedor_id = '{revendedorId}' and situacao = 'EmEstoque' and venda_id is null"));
         Assert.Equal(0, await banco.Contar($"select coalesce(sum(valor_cents), 0) from lancamentos where origem_id = '{grupoId}'"));
         Assert.Equal(1, await banco.Contar($"select count(*) from lancamentos where origem_id = '{grupoId}' and estorna_id is not null"));
+        // O código do grupo devolvido fica reservado: o sorteio não o entrega a outro comprador.
+        Assert.Equal(1, await banco.Contar($"select count(*) from codigos_reservados where codigo = '{codigo}'"));
+        // Devolver de novo não estorna outra vez.
+        await operadora.Postar($"/operadora/grupos-de-ativacao/{grupoId}/cancelamento", new { }, HttpStatusCode.NoContent);
+        Assert.Equal(2, await banco.Contar($"select count(*) from lancamentos where origem_id = '{grupoId}'"));
     }
 
     [Fact]
@@ -291,5 +299,132 @@ public sealed class AtivacaoPeloCompradorTest(ApiDeTeste api)
         await dono.Postar($"/vendas/{venda.GetProperty("id").GetGuid()}/cancelamento",
             new { motivo = "Desistencia", placa = "VoltaAoEstoque" }, HttpStatusCode.UnprocessableEntity);
         Assert.Equal(JsonValueKind.True, venda.GetProperty("doCanalDigital").ValueKind);
+    }
+
+    private sealed record RevendaFixa(Guid? RevendedorId, bool Operadora = false) : AvaliaSales.Application.IRevendedorAtual;
+
+    /// <summary>
+    /// O lote vendido inteiro pelo fluxo antigo (ADR 0033), gravado como a baixa daquele tempo gravava: código no lote,
+    /// placas no estoque da revenda sem custo e a receita do lote no razão.
+    /// </summary>
+    private async Task<(string Codigo, List<string> Placas, Guid RevendedorId, Guid LoteId)> LoteVendidoInteiroNoFluxoAntigo(string nome, int quantidade, long valorCents)
+    {
+        var operadora = await api.ClienteLogado(await api.CriarOperadora());
+        var (revendedorId, _) = await api.CriarRevendedor(nome);
+        var loteId = (await operadora.Postar("/operadora/lotes", new { quantidade, categoria = "Placa" }, HttpStatusCode.Created)).GetProperty("id").GetGuid();
+        var quem = new RevendaFixa(revendedorId);
+        await using var banco = new BancoDeDados(new DbContextOptionsBuilder<BancoDeDados>()
+            .UseNpgsql(api.ConexaoDaAplicacao).UseSnakeCaseNamingConvention().AddInterceptors(new RevendedorNaConexao(quem)).Options, quem);
+        await using var transacao = await banco.Database.BeginTransactionAsync(Ct);
+        var lote = await banco.Lotes.SingleAsync(l => l.Id == loteId, Ct);
+        var codigo = CodigoDaPlaca.Sortear();
+        lote.DarCodigoDeAtivacao(codigo);
+        var agora = DateTimeOffset.UtcNow;
+        lote.VenderNoDigital(revendedorId, valorCents, CanalDigital.MercadoLivre, null, agora);
+        var emitidas = await banco.PlacasEmitidas.Where(p => p.LoteId == loteId).OrderBy(p => p.Sequencia).ToListAsync(Ct);
+        foreach (var emitida in emitidas)
+        {
+            emitida.EntregarA(revendedorId);
+            banco.Placas.Add(new Placa(emitida, 0, agora));
+        }
+
+        banco.Lancamentos.Add(new Lancamento(TipoDeLancamento.Receita, loteId, valorCents, $"Venda digital do lote {lote.Rotulo}", agora));
+        await banco.SaveChangesAsync(Ct);
+        await transacao.CommitAsync(Ct);
+        return (codigo, emitidas.Select(e => e.Codigo).ToList(), revendedorId, loteId);
+    }
+
+    [Fact]
+    public async Task Devolucao_do_lote_vendido_inteiro_no_fluxo_antigo_revoga_o_codigo_e_estorna()
+    {
+        var (codigo, placas, revendedorId, loteId) = await LoteVendidoInteiroNoFluxoAntigo("Revenda do Lote Antigo Devolvido", 2, 8_000);
+        var comprador = Comprador();
+        await comprador.Postar($"/ativacao/{codigo}", new { codigoDaPlaca = placas[0], empresa = "Loja Antiga", telefone = "11988887711", destino = Google(Avaliacao) });
+        var operadora = await api.ClienteLogado(await api.CriarOperadora());
+
+        await operadora.Postar($"/operadora/lotes/{loteId}/devolucao-digital", new { }, HttpStatusCode.NoContent);
+        await operadora.Postar($"/operadora/lotes/{loteId}/devolucao-digital", new { }, HttpStatusCode.UnprocessableEntity);
+
+        await comprador.Pegar($"/ativacao/{codigo}", HttpStatusCode.UnprocessableEntity);
+        await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
+        Assert.Equal(1, await banco.Contar($"select count(*) from placas where codigo = '{placas[0]}' and situacao = 'Baixada' and motivo_da_baixa = 'Devolucao'"));
+        Assert.Equal(1, await banco.Contar($"select count(*) from placas where codigo = '{placas[1]}' and revendedor_id = '{revendedorId}' and situacao = 'EmEstoque' and venda_id is null"));
+        Assert.Equal(0, await banco.Contar($"select coalesce(sum(valor_cents), 0) from lancamentos where origem_id = '{loteId}'"));
+        Assert.Equal(1, await banco.Contar($"select count(*) from codigos_reservados where codigo = '{codigo}'"));
+    }
+
+    [Fact]
+    public async Task Lote_com_placas_da_venda_digital_nao_vai_num_pedido_e_lote_a_caminho_nao_vende_no_digital()
+    {
+        var operadora = await api.ClienteLogado(await api.CriarOperadora());
+        var (digital, _) = await api.CriarRevendedor("Revenda que Recebe o Digital");
+        var (compradora, email) = await api.CriarRevendedor("Revenda que Pede o Pacote");
+        var dono = await api.ClienteLogado(email);
+        var pacoteId = await Cenarios.PacoteDaQuantidade(operadora, 10, 15_000L);
+        var separado = await operadora.Postar("/operadora/lotes", new { quantidade = 10 }, HttpStatusCode.Created);
+        await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
+        var codigo = await banco.Texto($"select codigo from placas_emitidas where lote_id = '{separado.GetProperty("id").GetGuid()}' order by sequencia limit 1");
+        await operadora.Postar($"/operadora/lotes/{separado.GetProperty("id").GetGuid()}/venda-digital",
+            new { revendedorId = digital, valorCents = 5_000, canal = "Shopee", codigosDasPlacas = new[] { codigo } });
+
+        var pedido = (await dono.Postar("/pedidos", new { pacoteId }, HttpStatusCode.Created)).GetProperty("id").GetGuid();
+        await operadora.Postar($"/operadora/pedidos/{pedido}/pagamento", new { }, HttpStatusCode.NoContent);
+        await operadora.Postar($"/operadora/pedidos/{pedido}/despacho", new { lote = separado.GetProperty("numero").GetInt32() }, HttpStatusCode.UnprocessableEntity);
+
+        var livre = await operadora.Postar("/operadora/lotes", new { quantidade = 10 }, HttpStatusCode.Created);
+        await operadora.Postar($"/operadora/pedidos/{pedido}/despacho", new { lote = livre.GetProperty("numero").GetInt32() }, HttpStatusCode.NoContent);
+        var aCaminho = await banco.Texto($"select codigo from placas_emitidas where lote_id = '{livre.GetProperty("id").GetGuid()}' order by sequencia limit 1");
+        await operadora.Postar($"/operadora/lotes/{livre.GetProperty("id").GetGuid()}/venda-digital",
+            new { revendedorId = compradora, valorCents = 5_000, canal = "Shopee", codigosDasPlacas = new[] { aCaminho } }, HttpStatusCode.UnprocessableEntity);
+
+        // Ativada a caixa, a placa é do estoque dela e pode sair num pedido digital da mesma revenda.
+        await dono.Postar("/lotes/ativacao", new { numero = livre.GetProperty("rotulo").GetString() });
+        await operadora.Postar($"/operadora/lotes/{livre.GetProperty("id").GetGuid()}/venda-digital",
+            new { revendedorId = compradora, valorCents = 5_000, canal = "Shopee", codigosDasPlacas = new[] { aCaminho } });
+    }
+
+    [Fact]
+    public async Task Venda_digital_entra_na_dre_em_doze_meses_com_o_custo_das_placas_da_revenda()
+    {
+        var revenda = await api.RevendaComEstoque("Revenda do Digital na DRE");
+        var operadora = await api.ClienteLogado(await api.CriarOperadora());
+        await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
+        var loteId = await banco.Texto($"select lote_id::text from placas_emitidas where codigo = '{revenda.Codigos[0]}'");
+
+        await operadora.Postar($"/operadora/lotes/{loteId}/venda-digital",
+            new { revendedorId = revenda.Id, valorCents = 12_000, canal = "MercadoLivre", codigosDasPlacas = revenda.Codigos.Take(2).ToArray() });
+
+        // Duas placas de R$ 15,00 (pacote de 10 por R$ 150,00): R$ 120,00 de receita e R$ 30,00 de custo, em doze partes.
+        var dre = await revenda.Dono.Pegar("/financeiro/dre");
+        Assert.Equal(1_000, dre.GetProperty("receitaReconhecidaCents").GetInt64());
+        Assert.Equal(250, dre.GetProperty("custoDasPlacasCents").GetInt64());
+        Assert.Equal(11_000, dre.GetProperty("aReconhecerCents").GetInt64());
+    }
+
+    [Fact]
+    public async Task Placa_separada_para_o_comprador_nao_da_baixa_nao_sai_com_vendedor_nem_arquiva_o_lote()
+    {
+        var revenda = await api.RevendaComEstoque("Revenda com Placas Separadas");
+        var operadora = await api.ClienteLogado(await api.CriarOperadora());
+        await using var banco = new BancoDeDadosDoDono(api.ConexaoDoDono);
+        var loteId = await banco.Texto($"select lote_id::text from placas_emitidas where codigo = '{revenda.Codigos[0]}'");
+        var separadas = revenda.Codigos.Take(2).ToArray();
+        var grupo = await operadora.Postar($"/operadora/lotes/{loteId}/venda-digital",
+            new { revendedorId = revenda.Id, valorCents = 9_000, canal = "TikTokShop", codigosDasPlacas = separadas });
+
+        await revenda.Dono.Postar($"/placas/{separadas[0]}/baixa", new { motivo = "Quebrada" }, HttpStatusCode.UnprocessableEntity);
+        await revenda.Dono.Colocar($"/lotes/{loteId}/arquivado", new { arquivado = true }, HttpStatusCode.UnprocessableEntity);
+        var vendedorId = (await revenda.Dono.Postar("/equipe", new { nome = "Vendedor do Estoque", email = $"v{Guid.NewGuid():N}@exemplo.com.br", senha = ApiDeTeste.Senha },
+            HttpStatusCode.Created)).GetProperty("id").GetGuid();
+        await revenda.Dono.Postar("/estoque/consignacao", new { vendedorId, codigos = new[] { separadas[1] } }, HttpStatusCode.UnprocessableEntity);
+        // Pela quantidade, só as livres: 10 no estoque menos as 2 separadas.
+        await revenda.Dono.Postar("/estoque/consignacao", new { vendedorId, quantidade = 10 }, HttpStatusCode.UnprocessableEntity);
+        Assert.Equal(8, (await revenda.Dono.Postar("/estoque/consignacao", new { vendedorId, quantidade = 8 })).GetProperty("placas").GetInt32());
+
+        // Devolvido o pedido, as placas voltam a ser do estoque comum.
+        var grupoId = Guid.Parse(await banco.Texto($"select grupo_de_ativacao_id::text from placas_emitidas where codigo = '{separadas[0]}'"));
+        Assert.Equal(grupo.GetProperty("grupoId").GetGuid(), grupoId);
+        await operadora.Postar($"/operadora/grupos-de-ativacao/{grupoId}/cancelamento", new { }, HttpStatusCode.NoContent);
+        await revenda.Dono.Postar($"/placas/{separadas[0]}/baixa", new { motivo = "Quebrada" }, HttpStatusCode.NoContent);
     }
 }

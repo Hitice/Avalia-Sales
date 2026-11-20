@@ -8,7 +8,7 @@ namespace AvaliaSales.Application.Placas;
 public sealed record PlacaDaLista(
     string Codigo, long Sequencia, EstadoDaPlaca Estado, Guid? ConsignadaA, string? ConsignadaANome,
     string? Destino, DateTimeOffset? VendidaEm, DateTimeOffset? VenceEm, long TotalLeituras, DateTimeOffset? UltimaLeituraEm,
-    MotivoDaBaixa? MotivoDaBaixa = null);
+    MotivoDaBaixa? MotivoDaBaixa = null, bool NoPedidoDigital = false);
 
 /// <summary>A página das placas no formato comum (<see cref="Pagina{T}"/>), com a contagem por estado de tudo o que o filtro de código e de vendedor pega.</summary>
 public sealed record PaginaDePlacas(IReadOnlyList<PlacaDaLista> Itens, int Total, int? Proxima, IReadOnlyDictionary<EstadoDaPlaca, int> PorEstado);
@@ -98,11 +98,19 @@ public sealed class Estoque(IBancoDeDados banco, IUsuarioAtual usuario, IRevende
         var nomes = await banco.Vendedores.AsNoTracking()
             .Where(v => consignadas.Contains(v.Id))
             .ToDictionaryAsync(v => v.Id, v => v.Nome, ct);
+        // As da página separadas para um comprador do digital (AtivacaoPeloComprador.ReservadaAoComprador): a tela tira a baixa delas.
+        var codigos = placas.Where(p => p.Situacao == SituacaoDaPlaca.EmEstoque && p.VendaId == null).Select(p => p.Codigo).ToList();
+        var lotes = placas.Select(p => p.LoteId).Distinct().ToList();
+        var lotesReservados = await banco.Lotes.AsNoTracking()
+            .Where(l => lotes.Contains(l.Id) && l.VendidoNoDigitalEm != null && l.CodigoDeAtivacao != null).Select(l => l.Id).ToListAsync(ct);
+        var reservadas = (await banco.PlacasEmitidas.AsNoTracking()
+            .Where(e => codigos.Contains(e.Codigo) && e.CodigoDeAtivacao != null).Select(e => e.Codigo).ToListAsync(ct)).ToHashSet();
 
         return new PaginaDePlacas(
             placas.Select(p => new PlacaDaLista(p.Codigo, p.Sequencia, p.Estado(agora), p.ConsignadaA,
                 p.ConsignadaA is { } c ? nomes.GetValueOrDefault(c) : null, p.Destino, p.VendidaEm, p.VenceEm,
-                p.TotalLeituras, p.UltimaLeituraEm, p.MotivoDaBaixa)).ToList(),
+                p.TotalLeituras, p.UltimaLeituraEm, p.MotivoDaBaixa,
+                p.Situacao == SituacaoDaPlaca.EmEstoque && p.VendaId == null && (reservadas.Contains(p.Codigo) || lotesReservados.Contains(p.LoteId)))).ToList(),
             total,
             (long)pagina * tamanho < total ? pagina + 1 : null,
             porEstado);
@@ -164,6 +172,11 @@ public sealed class Estoque(IBancoDeDados banco, IUsuarioAtual usuario, IRevende
 
         foreach (var placa in placas)
         {
+            if (await AtivacaoPeloComprador.ReservadaAoComprador(banco, placa, ct))
+            {
+                throw new RegraDeNegocioException($"Placa {placa.Codigo} separada para um pedido digital. A operadora registra a devolução antes.");
+            }
+
             placa.Consignar(vendedorId);
         }
 
@@ -219,6 +232,13 @@ public sealed class Estoque(IBancoDeDados banco, IUsuarioAtual usuario, IRevende
         var lote = await banco.Lotes.SingleOrDefaultAsync(l => l.Id == loteId && l.RevendedorId == revendedor.RevendedorId, ct)
             ?? throw new RegraDeNegocioException("Lote não encontrado.");
         var agora = relogio.GetUtcNow();
+        // Placa separada para um comprador do digital sairia com o lote, e o código dele deixaria de ativar.
+        if (arquivar && (await banco.PlacasEmitidas.AnyAsync(e => e.LoteId == loteId && e.CodigoDeAtivacao != null, ct)
+            || lote.VendidoNoDigitalEm is not null && lote.CodigoDeAtivacao is not null))
+        {
+            throw new RegraDeNegocioException($"Lote {lote.Rotulo} tem placas separadas para pedidos digitais. A operadora registra a devolução antes.");
+        }
+
         if (arquivar)
         {
             lote.Arquivar(agora);
@@ -256,6 +276,11 @@ public sealed class Estoque(IBancoDeDados banco, IUsuarioAtual usuario, IRevende
         }
 
         var placa = await PlacaDoCodigo(codigo, ct);
+        if (await AtivacaoPeloComprador.ReservadaAoComprador(banco, placa, ct))
+        {
+            throw new RegraDeNegocioException($"Placa {placa.Codigo} separada para um pedido digital. A operadora registra a devolução antes.");
+        }
+
         var agora = relogio.GetUtcNow();
         placa.Baixar(motivo, agora);
         custoDasPlacas.Baixada(placa, agora);

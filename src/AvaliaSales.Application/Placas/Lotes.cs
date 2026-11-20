@@ -6,7 +6,7 @@ namespace AvaliaSales.Application.Placas;
 
 public sealed record LoteDto(Guid Id, string Rotulo, int Numero, int Quantidade, DateTimeOffset CriadoEm, string? Revendedor, DateTimeOffset? DespachadoEm, DateTimeOffset? AtivadoEm,
     string? Titulo = null, CategoriaDoLote Categoria = CategoriaDoLote.Placa, DateTimeOffset? ArquivadoEm = null, DateTimeOffset? BaixadoEm = null, bool PodeExcluir = false,
-    string? CodigoDeAtivacao = null, DateTimeOffset? VendidoNoDigitalEm = null, long? ValorDoDigitalCents = null, CanalDigital? Canal = null, string? PedidoNoCanal = null);
+    string? CodigoDeAtivacao = null, DateTimeOffset? VendidoNoDigitalEm = null, long? ValorDoDigitalCents = null, CanalDigital? Canal = null, string? PedidoNoCanal = null, int NoDigital = 0);
 
 /// <summary>A baixa digital das placas separadas para um pedido, com valor total, canal e revenda que fará a ativação.</summary>
 public sealed record VendaDigitalDoLote(Guid RevendedorId, long ValorCents, CanalDigital Canal, IReadOnlyList<string> CodigosDasPlacas, string? PedidoNoCanal = null);
@@ -70,7 +70,12 @@ public sealed class Lotes(IBancoDeDados banco, TimeProvider relogio, IGravacaoNa
         var nomes = await banco.Revendedores.AsNoTracking()
             .Where(r => lotes.Select(l => l.RevendedorId).Contains(r.Id))
             .ToDictionaryAsync(r => r.Id, r => r.Nome, ct);
-        return new PaginaDeLotes(lotes.Select(l => Dto(l, l.RevendedorId is { } r ? nomes.GetValueOrDefault(r) : null)).ToList(), pagina.Total, pagina.Proxima, arquivados);
+        // Placas do lote livre que já saíram em pedidos digitais: o lote não é mais inteiro.
+        var ids = lotes.Where(l => l.RevendedorId is null).Select(l => l.Id).ToList();
+        var noDigital = await banco.PlacasEmitidas.AsNoTracking().Where(e => ids.Contains(e.LoteId) && e.RevendedorId != null)
+            .GroupBy(e => e.LoteId).Select(g => new { g.Key, Quantas = g.Count() }).ToDictionaryAsync(x => x.Key, x => x.Quantas, ct);
+        return new PaginaDeLotes(lotes.Select(l => Dto(l, l.RevendedorId is { } r ? nomes.GetValueOrDefault(r) : null) with { NoDigital = noDigital.GetValueOrDefault(l.Id) }).ToList(),
+            pagina.Total, pagina.Proxima, arquivados);
     }
 
     private static LoteDto Dto(Lote l, string? revendedor) => new(l.Id, l.Rotulo, l.Numero, l.Quantidade, l.CriadoEm, revendedor,
@@ -122,37 +127,6 @@ public sealed class Lotes(IBancoDeDados banco, TimeProvider relogio, IGravacaoNa
         throw new InvalidOperationException("Não sobrou código de ativação livre depois de 20 rodadas.");
     }
 
-    /// <summary>
-    /// A baixa manual da venda digital: o lote livre vai para a revenda escolhida, as placas entram no estoque dela sem
-    /// custo de pedido e reservadas ao comprador, e o valor recebido no canal entra no razão dela como receita, numa linha
-    /// só, no dia da baixa. O comprador ativa depois pelo código do lote, sem passar pelo balcão.
-    /// </summary>
-    public async Task<LoteDto> VenderNoDigital(Guid loteId, VendaDigitalDoLote pedido, CancellationToken ct)
-    {
-        await sensiveis.Exigir("Lançar a venda digital do lote", ct);
-        return await gravacao.Gravar(pedido.RevendedorId, async b =>
-        {
-            var revenda = await b.Revendedores.SingleAsync(r => r.Id == pedido.RevendedorId, ct);
-            revenda.ExigirAtiva();
-            var lote = await b.TravarLotePorId(loteId, ct) ?? throw new RegraDeNegocioException("Lote não encontrado.");
-            await b.TravarGeracaoDeLotes(ct);
-            var agora = relogio.GetUtcNow();
-            lote.VenderNoDigital(pedido.RevendedorId, pedido.ValorCents, pedido.Canal, pedido.PedidoNoCanal, agora);
-            foreach (var emitida in await b.PlacasEmitidas.Where(p => p.LoteId == lote.Id).OrderBy(p => p.Sequencia).ToListAsync(ct))
-            {
-                emitida.EntregarA(pedido.RevendedorId);
-                // Sem custo de pedido: a revenda não comprou o pacote, a produção é da Avalia.
-                b.Placas.Add(new Placa(emitida, 0, agora));
-            }
-
-            var onde = lote.PedidoNoCanal is { } numero ? $"{NomeDoCanal(lote.Canal!.Value)}, pedido {numero}" : NomeDoCanal(lote.Canal!.Value);
-            b.Lancamentos.Add(new Domain.Financeiro.Lancamento(Domain.Financeiro.TipoDeLancamento.Receita, lote.Id, pedido.ValorCents,
-                $"Venda digital do lote {lote.Rotulo} ({onde})", agora));
-            b.AvisarAoVivo("estoque", pedido.RevendedorId, operadora: true);
-            return Dto(lote, revenda.Nome);
-        }, ct);
-    }
-
     /// <summary>Separa apenas as placas do pedido e cria um acesso exclusivo para esse grupo.</summary>
     public async Task<VendaDigitalParcial> VenderPlacasNoDigital(Guid loteId, VendaDigitalDoLote pedido, CancellationToken ct)
     {
@@ -168,6 +142,12 @@ public sealed class Lotes(IBancoDeDados banco, TimeProvider relogio, IGravacaoNa
             var lote = await b.TravarLotePorId(loteId, ct) ?? throw new RegraDeNegocioException("Lote não encontrado.");
             if (lote.ArquivadoEm is not null || lote.Categoria is not (CategoriaDoLote.Placa or CategoriaDoLote.Cardapio))
                 throw new RegraDeNegocioException("Lote indisponível para venda digital.");
+            // Lote a caminho da revenda: as placas entram no estoque dela na ativação da caixa, e separar uma agora a quebraria.
+            if (lote.DespachadoEm is not null && lote.AtivadoEm is null)
+                throw new RegraDeNegocioException($"Lote {lote.Rotulo} despachado e ainda não ativado pela revenda.");
+            // Lote vendido inteiro no fluxo antigo, com o código ainda valendo: as placas já são do comprador dele.
+            if (lote.DaVendaDigital && lote.CodigoDeAtivacao is not null)
+                throw new RegraDeNegocioException($"Lote {lote.Rotulo} vendido inteiro no digital.");
             if (codigos.Count > lote.Quantidade) throw new RegraDeNegocioException($"Lote {lote.Rotulo} tem {lote.Quantidade} placas.");
             if (pedido.ValorCents <= 0 || !Enum.IsDefined(pedido.Canal)) throw new RegraDeNegocioException("Informe o valor e o canal da venda.");
 
@@ -176,12 +156,14 @@ public sealed class Lotes(IBancoDeDados banco, TimeProvider relogio, IGravacaoNa
                 throw new RegraDeNegocioException("Há códigos fora do lote ou já separados para outra venda.");
 
             var agora = relogio.GetUtcNow();
-            var codigoAtivacao = await SortearCodigoDeAtivacao(b, ct);
-            var grupo = new GrupoDeAtivacao(pedido.RevendedorId, lote.Id, codigoAtivacao, pedido.ValorCents, pedido.Canal, pedido.PedidoNoCanal, agora);
-            b.GruposDeAtivacao.Add(grupo);
             var codigosExistentes = await b.Placas.Where(p => codigos.Contains(p.Codigo)).ToDictionaryAsync(p => p.Codigo, ct);
             if (codigosExistentes.Values.Any(p => p.Situacao != SituacaoDaPlaca.EmEstoque || p.VendaId is not null))
                 throw new RegraDeNegocioException("Há placas ativadas ou fora de estoque. Confira os códigos.");
+            var codigoAtivacao = await SortearCodigoDeAtivacao(b, ct);
+            // O custo vai junto da receita na DRE: a placa que já era da revenda leva o preço que ela pagou no pedido.
+            var grupo = new GrupoDeAtivacao(pedido.RevendedorId, lote.Id, codigoAtivacao, pedido.ValorCents, pedido.Canal, pedido.PedidoNoCanal, agora,
+                emitidas.Count, codigosExistentes.Values.Sum(p => p.CustoCents));
+            b.GruposDeAtivacao.Add(grupo);
             foreach (var emitida in emitidas)
             {
                 emitida.VincularAoGrupo(pedido.RevendedorId, grupo.Id, codigoAtivacao);
@@ -197,7 +179,11 @@ public sealed class Lotes(IBancoDeDados banco, TimeProvider relogio, IGravacaoNa
         }, ct);
     }
 
-    /// <summary>Devolução antes da ativação: revoga o link, desfaz a receita e devolve as placas ao estoque da mesma revenda.</summary>
+    /// <summary>
+    /// Devolução do pedido digital: revoga o código, estorna a receita do grupo e devolve as placas não ativadas ao estoque
+    /// da mesma revenda; a placa já ativada tem a venda cancelada e sai de circulação, porque o QR dela já está com alguém.
+    /// O código fica reservado, para o sorteio nunca entregá-lo a outro comprador.
+    /// </summary>
     public async Task CancelarVendaDigital(Guid grupoId, CancellationToken ct)
     {
         await sensiveis.Exigir("Registrar devolução da venda digital", ct);
@@ -207,30 +193,58 @@ public sealed class Lotes(IBancoDeDados banco, TimeProvider relogio, IGravacaoNa
             ?? throw new RegraDeNegocioException("Venda digital não encontrada.");
         await gravacao.Gravar(revendedorId, async b =>
         {
-            var atual = await b.GruposDeAtivacao.SingleAsync(g => g.Id == grupoId, ct);
-            if (atual.CanceladoEm is not null) return true;
-            _ = await b.TravarLotePorId(atual.LoteId, ct) ?? throw new RegraDeNegocioException("Venda digital não encontrada.");
-            if ((await b.GruposDeAtivacao.SingleAsync(g => g.Id == grupoId, ct)).CanceladoEm is not null) return true;
-            var emitidas = await b.PlacasEmitidas.Where(p => p.GrupoDeAtivacaoId == grupoId).ToListAsync(ct);
-            var placas = await b.Placas.Where(p => emitidas.Select(e => e.Codigo).Contains(p.Codigo)).ToListAsync(ct);
-            if (placas.Count != emitidas.Count || placas.Any(p => p.VendaId is null && p.Situacao != SituacaoDaPlaca.EmEstoque))
-                throw new RegraDeNegocioException("Há placa fora do estoque. Confira o grupo antes da devolução.");
-            var receita = await b.Lancamentos.SingleAsync(l => l.OrigemId == grupoId && l.Tipo == Domain.Financeiro.TipoDeLancamento.Receita && l.EstornaId == null, ct);
+            var loteId = await b.GruposDeAtivacao.AsNoTracking().Where(g => g.Id == grupoId).Select(g => (Guid?)g.LoteId).SingleOrDefaultAsync(ct)
+                ?? throw new RegraDeNegocioException("Venda digital não encontrada.");
+            // Lido depois da trava do lote: duas devoluções ao mesmo tempo estornam uma vez só.
+            _ = await b.TravarLotePorId(loteId, ct) ?? throw new RegraDeNegocioException("Venda digital não encontrada.");
+            var grupo = await b.GruposDeAtivacao.SingleAsync(g => g.Id == grupoId, ct);
+            if (grupo.CanceladoEm is not null) return true;
+            var emitidas = await b.PlacasEmitidas.Where(p => p.GrupoDeAtivacaoId == grupoId && p.CodigoDeAtivacao != null).ToListAsync(ct);
             var agora = relogio.GetUtcNow();
-            foreach (var placa in placas.Where(p => p.VendaId is not null))
-            {
-                var venda = await b.Vendas.SingleAsync(v => v.Id == placa.VendaId && v.DoCanalDigital, ct);
-                venda.Cancelar(Domain.Vendas.MotivoDoCancelamento.Devolucao, "Devolução do pedido digital", agora);
-                placa.DesfazerVenda();
-                placa.Baixar(MotivoDaBaixa.Devolucao, agora);
-            }
-
-            atual.Cancelar(agora);
+            await DesfazerVendaDigital(b, emitidas.Select(e => e.Codigo).ToList(), grupoId, revendedorId, agora, ct);
+            grupo.Cancelar(agora);
             foreach (var emitida in emitidas) emitida.LiberarDoGrupo(grupoId);
-            b.Lancamentos.Add(receita.Estorno("devolução do pedido digital", agora));
-            b.AvisarAoVivo("estoque", revendedorId, operadora: true);
+            b.CodigosReservados.Add(new CodigoReservado(grupo.Codigo, "Grupo de ativação devolvido"));
             return true;
         }, ct);
+    }
+
+    /// <summary>A mesma devolução para o lote vendido inteiro pelo fluxo antigo (ADR 0033), que o comprador ativa com o código do lote.</summary>
+    public async Task DevolverLoteDigital(Guid loteId, CancellationToken ct)
+    {
+        await sensiveis.Exigir("Registrar devolução da venda digital", ct);
+        var revendedorId = await banco.Lotes.AsNoTracking()
+            .Where(l => l.Id == loteId && l.VendidoNoDigitalEm != null && l.CodigoDeAtivacao != null)
+            .Select(l => l.RevendedorId).SingleOrDefaultAsync(ct)
+            ?? throw new RegraDeNegocioException("Venda digital não encontrada.");
+        await gravacao.Gravar(revendedorId, async b =>
+        {
+            var lote = await b.TravarLotePorId(loteId, ct) ?? throw new RegraDeNegocioException("Venda digital não encontrada.");
+            if (lote.CodigoDeAtivacao is not { } codigo) return true;
+            var codigos = await b.PlacasEmitidas.Where(p => p.LoteId == loteId).Select(p => p.Codigo).ToListAsync(ct);
+            await DesfazerVendaDigital(b, codigos, loteId, revendedorId, relogio.GetUtcNow(), ct);
+            lote.RevogarVendaDigital();
+            b.CodigosReservados.Add(new CodigoReservado(codigo, $"Lote {lote.Rotulo} devolvido"));
+            return true;
+        }, ct);
+    }
+
+    private static async Task DesfazerVendaDigital(IBancoDeDados b, List<string> codigos, Guid origemDaReceita, Guid revendedorId, DateTimeOffset agora, CancellationToken ct)
+    {
+        var placas = await b.TravarPlacas(codigos, ct);
+        if (placas.Count != codigos.Count || placas.Any(p => p.VendaId is null && p.Situacao != SituacaoDaPlaca.EmEstoque))
+            throw new RegraDeNegocioException("Há placa fora do estoque. Confira as placas antes da devolução.");
+        var receita = await b.Lancamentos.SingleAsync(l => l.OrigemId == origemDaReceita && l.Tipo == Domain.Financeiro.TipoDeLancamento.Receita && l.EstornaId == null, ct);
+        foreach (var placa in placas.Where(p => p.VendaId is not null))
+        {
+            var venda = await b.Vendas.SingleAsync(v => v.Id == placa.VendaId && v.DoCanalDigital, ct);
+            venda.Cancelar(Domain.Vendas.MotivoDoCancelamento.Devolucao, "Devolução do pedido digital", agora);
+            placa.DesfazerVenda();
+            placa.Baixar(MotivoDaBaixa.Devolucao, agora);
+        }
+
+        b.Lancamentos.Add(receita.Estorno("devolução do pedido digital", agora));
+        b.AvisarAoVivo("estoque", revendedorId, operadora: true);
     }
 
     /// <summary>Grupos ativos do lote, apenas com os identificadores necessários para reenviar ou revogar o acesso.</summary>

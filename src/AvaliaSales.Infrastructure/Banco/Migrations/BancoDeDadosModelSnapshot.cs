@@ -1918,6 +1918,10 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .HasColumnName("codigo")
                         .IsFixedLength();
 
+                    b.Property<long>("CustoCents")
+                        .HasColumnType("bigint")
+                        .HasColumnName("custo_cents");
+
                     b.Property<Guid>("LoteId")
                         .HasColumnType("uuid")
                         .HasColumnName("lote_id");
@@ -1926,6 +1930,10 @@ namespace AvaliaSales.Infrastructure.Banco.Migrations
                         .HasMaxLength(60)
                         .HasColumnType("character varying(60)")
                         .HasColumnName("pedido_no_canal");
+
+                    b.Property<int>("Quantidade")
+                        .HasColumnType("integer")
+                        .HasColumnName("quantidade");
 
                     b.Property<Guid>("RevendedorId")
                         .HasColumnType("uuid")

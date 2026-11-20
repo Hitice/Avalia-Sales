@@ -13,11 +13,19 @@ public sealed class GrupoDeAtivacao : IDoRevendedor
     public DateTimeOffset VendidoEm { get; private set; }
     public DateTimeOffset? CanceladoEm { get; private set; }
 
+    /// <summary>As placas separadas na venda, fixas depois dela: a devolução pode revender a placa noutro grupo.</summary>
+    public int Quantidade { get; private set; }
+
+    /// <summary>O custo das placas na revenda no dia da venda: zero para placa da plataforma, o preço do pedido para a dela.</summary>
+    public long CustoCents { get; private set; }
+
     private GrupoDeAtivacao() => Codigo = string.Empty;
 
     public GrupoDeAtivacao(Guid revendedorId, Guid loteId, string codigo, long valorCents, CanalDigital canal,
-        string? pedidoNoCanal, DateTimeOffset vendidoEm)
+        string? pedidoNoCanal, DateTimeOffset vendidoEm, int quantidade, long custoCents)
     {
+        Quantidade = quantidade > 0 ? quantidade : throw new RegraDeNegocioException("Informe as placas da venda.");
+        CustoCents = custoCents >= 0 ? custoCents : throw new ArgumentOutOfRangeException(nameof(custoCents));
         RevendedorId = revendedorId;
         LoteId = loteId;
         Codigo = CodigoDaPlaca.Normalizar(codigo) == codigo ? codigo : throw new RegraDeNegocioException("Código de ativação inválido.");

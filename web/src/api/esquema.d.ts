@@ -2746,6 +2746,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/operadora/lotes/{id}/devolucao-digital": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/operadora/lotes/{id}/vendas-digitais": {
         parameters: {
             query?: never;
@@ -9237,6 +9272,11 @@ export interface components {
             valorDoDigitalCents?: null | number;
             canal?: null | components["schemas"]["CanalDigital"];
             pedidoNoCanal?: null | string;
+            /**
+             * Format: int32
+             * @default 0
+             */
+            noDigital: number;
         };
         /** @description O que o comprador vê depois de digitar o código de ativação do pedido. */
         LoteParaAtivar: {
@@ -9949,6 +9989,8 @@ export interface components {
             /** Format: date-time */
             ultimaLeituraEm: null | string;
             motivoDaBaixa?: null | components["schemas"]["MotivoDaBaixa"];
+            /** @default false */
+            noPedidoDigital: boolean;
         };
         /**
          * @description O que acontece com a placa da venda desfeita.

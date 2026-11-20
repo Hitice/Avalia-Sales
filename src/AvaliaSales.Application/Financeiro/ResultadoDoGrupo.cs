@@ -179,7 +179,8 @@ public sealed class ResultadoDoGrupo(IBancoDeDados banco, IEscopoDeRevenda escop
 
     // ---- A revenda do grupo, lida na sessão dela ----
 
-    private sealed record PlacaDaReceita(Guid Id, long ValorCents, string Competencia, int Meses, Guid? EstornaId, Guid LoteId, bool ComCusto);
+    /// <summary>A receita de placa: uma placa no balcão; no digital, as placas do grupo ou do lote antigo.</summary>
+    private sealed record PlacaDaReceita(Guid Id, long ValorCents, string Competencia, int Meses, Guid? EstornaId, Guid LoteId, bool ComCusto, int Placas = 1);
 
     private sealed record PlacaSemReceita(long ValorCents, Guid LoteId);
 
@@ -206,6 +207,20 @@ public sealed class ResultadoDoGrupo(IBancoDeDados banco, IEscopoDeRevenda escop
             .Where(r => string.CompareOrdinal(r.Competencia, mes) <= 0)
             .Select(r => new PlacaDaReceita(r.Id, r.ValorCents, r.Competencia, r.DoHistorico ? 1 : Reconhecimento.MesesDaPlaca, r.EstornaId, r.LoteId, r.DaVenda || r.DoHistorico))
             .ToList();
+        // A venda digital: a receita é do grupo, ou do lote inteiro no fluxo antigo, e leva todas as placas dele.
+        var digitais = (await (
+            from l in b.Lancamentos.AsNoTracking()
+            where l.Tipo == TipoDeLancamento.Receita && l.VendaId == null
+            join g in b.GruposDeAtivacao on l.OrigemId equals g.Id into grupos
+            from g in grupos.DefaultIfEmpty()
+            join lo in b.Lotes on l.OrigemId equals lo.Id into lotes
+            from lo in lotes.DefaultIfEmpty()
+            where g != null || (lo != null && lo.VendidoNoDigitalEm != null)
+            select new { l.Id, l.ValorCents, l.Competencia, l.EstornaId, LoteId = g != null ? g.LoteId : lo!.Id, Placas = g != null ? g.Quantidade : lo!.Quantidade })
+            .ToListAsync(ct))
+            .Where(r => string.CompareOrdinal(r.Competencia, mes) <= 0)
+            .Select(r => new PlacaDaReceita(r.Id, r.ValorCents, r.Competencia, Reconhecimento.MesesDaPlaca, r.EstornaId, r.LoteId, true, r.Placas));
+        receitas.AddRange(digitais);
         var semReceita = await (
             from l in b.Lancamentos.AsNoTracking()
             where (l.Tipo == TipoDeLancamento.Perda || l.Tipo == TipoDeLancamento.CustoDaPlaca) && l.Competencia == mes && l.PlacaId != null
@@ -233,10 +248,10 @@ public sealed class ResultadoDoGrupo(IBancoDeDados banco, IEscopoDeRevenda escop
         foreach (var leitura in leituras)
         {
             var apropriadas = leitura.Receitas.Where(r => r.ComCusto && custoPorPlaca.GetValueOrDefault(r.LoteId) > 0)
-                .Select(r => new LinhaApropriada(r.Id, -Math.Sign(r.ValorCents) * custoPorPlaca[r.LoteId], r.Competencia, r.Meses, r.EstornaId)).ToList();
+                .Select(r => new LinhaApropriada(r.Id, -Math.Sign(r.ValorCents) * custoPorPlaca[r.LoteId] * r.Placas, r.Competencia, r.Meses, r.EstornaId)).ToList();
             custo += -Reconhecimento.NoMes(apropriadas, mes);
             custo += leitura.SemReceita.Where(s => custoPorPlaca.GetValueOrDefault(s.LoteId) > 0).Sum(s => -Math.Sign(s.ValorCents) * custoPorPlaca[s.LoteId]);
-            semCusto += leitura.Receitas.Count(r => r.ComCusto && r.EstornaId is null && r.Competencia == mes && custoPorPlaca.GetValueOrDefault(r.LoteId) <= 0);
+            semCusto += leitura.Receitas.Where(r => r.ComCusto && r.EstornaId is null && r.Competencia == mes && custoPorPlaca.GetValueOrDefault(r.LoteId) <= 0).Sum(r => r.Placas);
         }
 
         return (custo, semCusto);

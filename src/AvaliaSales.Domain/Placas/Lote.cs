@@ -162,6 +162,11 @@ public sealed class Lote
         PedidoNoCanal = pedido;
     }
 
+    /// <summary>Devolução da venda digital do lote inteiro: o código deixa de ativar. A data da venda fica, para o razão e a DRE.</summary>
+    public void RevogarVendaDigital() => CodigoDeAtivacao = VendidoNoDigitalEm is not null
+        ? null
+        : throw new InvalidOperationException($"Lote {Rotulo} sem venda digital.");
+
     /// <summary>A parte de cada placa no valor do lote: o resto da divisão fica na primeira, para a soma bater.</summary>
     public long ValorDaPlacaNoDigital(int posicao)
     {

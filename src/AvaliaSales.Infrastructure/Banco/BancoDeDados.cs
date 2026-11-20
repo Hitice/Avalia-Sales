@@ -896,6 +896,9 @@ public sealed class BancoDeDados(DbContextOptions<BancoDeDados> opcoes, IRevende
     public Task<List<Placa>> TravarPlacasLivres(int quantidade, CancellationToken ct) =>
         Placas.FromSql($"""
             select * from placas where situacao = 'EmEstoque' and consignada_a is null
+              -- A separada para um comprador do digital não sai com vendedor (AtivacaoPeloComprador.ReservadaAoComprador).
+              and not exists (select 1 from placas_emitidas e where e.codigo = placas.codigo and e.codigo_de_ativacao is not null)
+              and not exists (select 1 from lotes l where l.id = placas.lote_id and l.vendido_no_digital_em is not null and l.codigo_de_ativacao is not null)
             order by sequencia limit {quantidade} for update skip locked
             """).ToListAsync(ct);
 

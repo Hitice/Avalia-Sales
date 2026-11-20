@@ -302,9 +302,7 @@ public sealed class Vendas(
             // Código de outro revendedor responde como inexistente: o código está impresso e qualquer um lê.
             var placa = (codigo.Length == 0 ? null : await banco.TravarPlaca(codigo, ct))
                 ?? throw new RegraDeNegocioException("Código não encontrado.");
-            // Vendida no digital: o lote inteiro (fluxo antigo) ou a placa separada num grupo de ativação ainda aberto.
-            if (await banco.Lotes.AnyAsync(l => l.Id == placa.LoteId && l.VendidoNoDigitalEm != null, ct)
-                || await banco.PlacasEmitidas.AnyAsync(e => e.Codigo == placa.Codigo && e.CodigoDeAtivacao != null, ct))
+            if (await Placas.AtivacaoPeloComprador.ReservadaAoComprador(banco, placa, ct))
             {
                 throw new RegraDeNegocioException($"Placa {placa.Codigo} vendida no digital. O comprador ativa pelo código que recebeu.");
             }
@@ -715,6 +713,11 @@ public sealed class Vendas(
         if (nova.Id == antiga.Id)
         {
             throw new RegraDeNegocioException("Placa nova igual à da venda.");
+        }
+
+        if (await Placas.AtivacaoPeloComprador.ReservadaAoComprador(banco, nova, ct))
+        {
+            throw new RegraDeNegocioException($"Placa {nova.Codigo} separada para um pedido digital. A operadora registra a devolução antes.");
         }
 
         if (usuario.Papel == Papel.Vendedor && nova.ConsignadaA != usuario.UsuarioId)

@@ -104,7 +104,8 @@ public sealed class Dre(IBancoDeDados banco, TimeProvider relogio)
     /// <summary>
     /// As linhas até o mês. A receita leva junto a venda e a cobrança: placa
     /// apropria em 12 meses, e a receita da venda da placa (não a da renovação)
-    /// traz o custo dela, com o mesmo sinal da receita e o mesmo estorno.
+    /// traz o custo dela, com o mesmo sinal da receita e o mesmo estorno. A venda
+    /// digital entra igual: o grupo guarda o custo das placas no dia da venda.
     /// </summary>
     private async Task<(List<Linha> Linhas, List<LinhaApropriada> Receitas, List<LinhaApropriada> Custos)> Carregar(string ate, CancellationToken ct)
     {
@@ -119,12 +120,18 @@ public sealed class Dre(IBancoDeDados banco, TimeProvider relogio)
             from v in vendas.DefaultIfEmpty()
             join c in banco.Cobrancas on l.OrigemId equals c.Id into cobrancas
             from c in cobrancas.DefaultIfEmpty()
+            // Venda digital: a receita é do grupo (ou do lote, no fluxo antigo), sem venda ligada, e é de placa como no balcão.
+            join g in banco.GruposDeAtivacao on l.OrigemId equals g.Id into grupos
+            from g in grupos.DefaultIfEmpty()
+            join lo in banco.Lotes on l.OrigemId equals lo.Id into lotes
+            from lo in lotes.DefaultIfEmpty()
+            let digital = g != null || (lo != null && lo.VendidoNoDigitalEm != null)
             select new
             {
                 l.Id, l.ValorCents, l.Competencia, l.EstornaId,
-                DaPlaca = v != null && v.PlacaId != null,
-                Custo = v == null ? 0 : v.CustoCents,
-                DaVenda = c != null && c.Origem == OrigemDaCobranca.Venda,
+                DaPlaca = (v != null && v.PlacaId != null) || digital,
+                Custo = v != null ? v.CustoCents : g != null ? g.CustoCents : 0,
+                DaVenda = (c != null && c.Origem == OrigemDaCobranca.Venda) || digital,
                 // Histórico trazido do sistema anterior: a linha não tem cobrança. A renovação paga aqui, sim.
                 DoHistorico = v != null && v.DoSistemaAnterior && c == null,
             }).ToListAsync(ct);

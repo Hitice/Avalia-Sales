@@ -2283,6 +2283,29 @@
         }
       }
     },
+    "/operadora/lotes/{id}/devolucao-digital": {
+      "post": {
+        "tags": [
+          "Operadora"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/operadora/lotes/{id}/vendas-digitais": {
       "get": {
         "tags": [
@@ -10402,6 +10425,11 @@
               "null",
               "string"
             ]
+          },
+          "noDigital": {
+            "type": "integer",
+            "format": "int32",
+            "default": 0
           }
         }
       },
@@ -12650,6 +12678,10 @@
                 "$ref": "#/components/schemas/MotivoDaBaixa"
               }
             ]
+          },
+          "noPedidoDigital": {
+            "type": "boolean",
+            "default": false
           }
         }
       },

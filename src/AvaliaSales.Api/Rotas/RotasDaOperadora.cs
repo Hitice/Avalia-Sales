@@ -114,6 +114,11 @@ public static class RotasDaOperadora
             await lotes.CancelarVendaDigital(id, ct);
             return Results.NoContent();
         });
+        operadora.MapPost("/lotes/{id:guid}/devolucao-digital", async (Guid id, Lotes lotes, CancellationToken ct) =>
+        {
+            await lotes.DevolverLoteDigital(id, ct);
+            return Results.NoContent();
+        });
         operadora.MapGet("/lotes/{id:guid}/vendas-digitais", (Guid id, Lotes lotes, CancellationToken ct) => lotes.VendasDigitais(id, ct));
         operadora.MapGet("/lotes/{id:guid}/impressao", async (Guid id, FormatoDaImpressao? formato, string? pastaDestino, Lotes lotes, IOptions<OpcoesDaPlataforma> plataforma,
             IConfiguration configuracao, CancellationToken ct) =>

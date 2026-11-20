@@ -80,6 +80,15 @@ public sealed class AtivacaoPeloComprador(
         return lote is null ? null : (lote.Id, lote.RevendedorId!.Value);
     }
 
+    /// <summary>
+    /// A placa separada para um comprador do digital, que ele ainda pode ativar: num grupo aberto, ou num lote vendido
+    /// inteiro no fluxo antigo com o código valendo. Ela fica no estoque da revenda, mas não vende, não troca, não sai
+    /// com vendedor nem dá baixa; para tirá-la do comprador, a operadora registra a devolução.
+    /// </summary>
+    public static async Task<bool> ReservadaAoComprador(IBancoDeDados banco, Placa placa, CancellationToken ct) =>
+        await banco.PlacasEmitidas.AnyAsync(e => e.Codigo == placa.Codigo && e.CodigoDeAtivacao != null, ct)
+        || await banco.Lotes.AnyAsync(l => l.Id == placa.LoteId && l.VendidoNoDigitalEm != null && l.CodigoDeAtivacao != null, ct);
+
     public async Task<LoteParaAtivar> Ler(Guid loteId, string codigo, CancellationToken ct)
     {
         var (lote, grupo) = await Contexto(loteId, codigo, ct);
