@@ -42,3 +42,14 @@ acesso que alcance apenas as placas enviadas a ele.
   valendo.
 - O cancelamento após ativação precisa seguir o fluxo de encerramento e
   reposição, para impedir que um QR já conhecido seja vendido a outro cliente.
+- (20/11/2026) A receita do grupo é de placa na DRE, em 12 partes a partir da
+  baixa, com o custo das placas guardado no grupo no dia da venda, para a
+  revenda que vende no digital placas que comprou no pedido. O código
+  devolvido vai a `codigos_reservados`. A placa separada fica travada no
+  estoque até a ativação ou a devolução, e o lote com placa no digital não
+  vai num pedido de placas.
+- Venda digital para revenda que não é do grupo da operadora: o canal paga a
+  Avalia, mas a receita entra no razão da revenda, e não há acerto da Avalia
+  para a revenda (o "a acertar" da ADR 0028 só vai da revenda à Avalia).
+  Decisão pendente: restringir a venda digital às revendas do grupo, ou criar
+  esse acerto.

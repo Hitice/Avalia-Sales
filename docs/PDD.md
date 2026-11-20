@@ -417,9 +417,13 @@ confirmar, em Comissões, que ele chegou. Só o
   código de ativação próprio. Na baixa manual pela operadora em Lotes, são
   informados os códigos separados para um pedido, a revenda, o valor total
   recebido por esse grupo, o canal e o número do pedido. Cada código pode ser
-  vendido uma vez. As placas selecionadas entram no estoque da revenda sem
-  custo de pedido; o valor total entra como receita numa linha do razão, e a
-  ação exige o segundo fator da operadora. O grupo recebe um código de acesso
+  vendido uma vez. O lote pode estar livre ou já no estoque da revenda (lote
+  ativado por ela); o lote despachado e ainda não ativado, não. A placa livre
+  entra no estoque da revenda sem custo de pedido, e a que já era dela leva o
+  custo que ela pagou; o grupo guarda a quantidade e esse custo. O valor total
+  entra como receita numa linha do razão, e a ação exige o segundo fator da
+  operadora. Lote com placa separada no digital não vai num pedido de placas,
+  porque a caixa não sai inteira; a lista de lotes mostra quantas já saíram. O grupo recebe um código de acesso
   único de 6 caracteres e o link direto `/ativar?codigo=...`.
 - Ativação pelo comprador - em `/ativar`, só com o código do grupo. Na
   avaliação, cada placa recebe a avaliação no Google do estabelecimento; no
@@ -431,10 +435,15 @@ confirmar, em Comissões, que ele chegou. Só o
   Placa já ativada só troca o destino, também só com o código. O limite diário de
   destinos não vale para a ativação pelo comprador; os destinos bloqueados e
   o Google Web Risk valem.
-- Devolução digital - a operadora cancela o grupo, revoga o link e estorna a
-  receita no razão. Placas ainda não ativadas voltam ao estoque da mesma
-  revenda. Placas ativadas têm a venda cancelada e o QR encerrado para sempre;
-  não voltam ao estoque e precisam de outro código para uma nova venda.
+- Placa separada para o comprador - fica no estoque da revenda, marcada
+  "Pedido digital", até ele ativar: não vende no balcão, não entra em troca,
+  não sai com vendedor, não dá baixa e o lote dela não se arquiva.
+- Devolução digital - a operadora registra a devolução do grupo (ou do lote
+  vendido inteiro antes de 19/11/2026), com confirmação: revoga o código,
+  que fica reservado e nunca volta ao sorteio, e estorna a receita no razão.
+  Placas ainda não ativadas voltam ao estoque da mesma revenda. Placas
+  ativadas têm a venda cancelada e o QR encerrado para sempre; não voltam ao
+  estoque e precisam de outro código para uma nova venda.
 - Placa de lote despachado e ainda não ativado - a Nova venda e a ficha dizem
   o lote que falta ativar e que o dono ativa em Estoque. Para outra revenda, o
   código continua não encontrado.
@@ -753,7 +762,9 @@ vendedor.
   no caixa e ainda não no resultado aparece como "a reconhecer". Estorno para
   a apropriação e devolve no mês dele o que já tinha entrado. A venda trazida
   do sistema anterior é reconhecida inteira no mês dela, com o custo, como era
-  lá: nada do histórico chega aos meses da plataforma.
+  lá: nada do histórico chega aos meses da plataforma. A venda digital é de
+  placa como a do balcão: a receita do grupo entra em 12 partes a partir do mês
+  da baixa, com o custo das placas guardado no grupo.
 - Fechamento do mês - o revendedor fecha mês que já acabou. Fechado, a
   despesa ou retirada com data nele é recusada, e a correção de linha dele vai
   ao mês corrente. O pagamento do mês fechado que chega depois também entra no
@@ -967,6 +978,7 @@ As mudanças de 21 a 24/10/2026 estão em [historico/pdd-ate-24-10.md](historico
 
 | Data | Mudança |
 | --- | --- |
+| 20/11/2026 | Fluxos de venda conferidos - venda digital entra na DRE em 12 meses com o custo das placas da revenda; devolução também para o lote vendido inteiro no fluxo antigo; código devolvido fica reservado; placa separada para o comprador não vende, troca, consigna, dá baixa nem arquiva o lote; lote com placa no digital não vai num pedido, e lote a caminho não vende no digital; ações que não se desfazem (baixa de placa, desfazer repasse, cancelar pedido, recusar reabertura, desbloquear domínio, excluir lote, despesa e retirada) pedem confirmação. |
 | 19/11/2026 | Venda digital parcial - lotes são estoque de códigos; a operadora informa as placas do pedido, registra o valor do grupo e o sistema gera código/link de ativação por grupo. Devolução revoga o acesso e estorna a receita; placas não ativadas voltam ao estoque da mesma revenda, placas ativadas são canceladas e encerradas para sempre. |
 | 18/11/2026 | Impressão do lote - o download pede a pasta de destino no computador e o CSV `codigo,photo` aponta cada imagem pelo caminho absoluto, com a pasta do lote uma única vez. |
 | 17/11/2026 | Venda digital e ativação pelo comprador - decisão substituída pela 0034: antes, todo lote novo nascia com código e a baixa vendia o lote inteiro. |
