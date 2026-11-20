@@ -150,7 +150,7 @@ export function DespesasDoMes<C extends string, D extends DespesaDoMes<C>>({ lis
                         <TableCell>{formatarCentavos(d.valorCents)}</TableCell>
                         <TableCell>
                           <AcoesDaLinha nome={d.descricao} principal={{ rotulo: 'Editar', aoClicar: () => setAberta(d) }}
-                            outras={[{ rotulo: 'Excluir', destrutiva: true, desabilitada: excluir.isPending, aoClicar: () => excluir.mutate(d.id) }]} />
+                            outras={[{ rotulo: 'Excluir', destrutiva: true, confirmar: 'A despesa sai do razão e do resultado do mês.', desabilitada: excluir.isPending, aoClicar: () => excluir.mutate(d.id) }]} />
                         </TableCell>
                       </TableRow>
                     ))}

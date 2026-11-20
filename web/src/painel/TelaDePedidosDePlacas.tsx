@@ -89,7 +89,7 @@ export function TelaDePedidosDePlacas() {
                                     else aba?.close()
                                   },
                                 }}
-                                outras={[{ rotulo: 'Cancelar', destrutiva: true, desabilitada: cancelar.isPending, aoClicar: () => cancelar.mutate(p.id) }]} />
+                                outras={[{ rotulo: 'Cancelar', destrutiva: true, confirmar: 'O pedido não pode ser pago depois. Para receber placas, faça outro.', desabilitada: cancelar.isPending, aoClicar: () => cancelar.mutate(p.id) }]} />
                             )}
                           </TableCell>
                         </TableRow>

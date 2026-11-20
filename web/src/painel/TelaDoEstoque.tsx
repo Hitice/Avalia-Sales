@@ -90,6 +90,7 @@ export function TelaDoEstoque() {
                         <TableCell>
                           <EtiquetaDoEstado estado={p.estado} />
                           {p.motivoDaBaixa && <span className="text-xs text-muted-foreground max-md:ml-2">{ROTULO_DA_BAIXA[p.motivoDaBaixa] ?? MOTIVO_DO_SISTEMA[p.motivoDaBaixa]}</span>}
+                          {p.noPedidoDigital && <span className="text-xs text-muted-foreground max-md:ml-2">Pedido digital</span>}
                         </TableCell>
                         <TableCell>{p.consignadaANome ?? '-'}</TableCell>
                         <TableCell>{formatarData(p.venceEm)}</TableCell>
@@ -98,7 +99,7 @@ export function TelaDoEstoque() {
                           <TableCell>
                             <AcoesDaLinha nome={p.codigo} outras={[
                               { rotulo: 'Abrir a ficha', aoClicar: () => navegar(`/placa/${p.codigo}`) },
-                              ...(p.estado === 'EmEstoque' ? MOTIVOS.map((m) => ({ rotulo: `Baixa: ${ROTULO_DA_BAIXA[m]}`, destrutiva: true, aoClicar: () => baixar.mutate({ codigo: p.codigo, motivo: m }) })) : []),
+                              ...(p.estado === 'EmEstoque' && !p.noPedidoDigital ? MOTIVOS.map((m) => ({ rotulo: `Baixa: ${ROTULO_DA_BAIXA[m]}`, destrutiva: true, confirmar: 'A placa sai de circulação e, quebrada ou perdida, o custo dela vai ao razão como perda.', aoClicar: () => baixar.mutate({ codigo: p.codigo, motivo: m }) })) : []),
                               p.estado === 'Baixada' && !!p.motivoDaBaixa && p.motivoDaBaixa in ROTULO_DA_BAIXA && { rotulo: 'Desfazer baixa', aoClicar: () => desfazer.mutate(p.codigo) },
                             ]} />
                           </TableCell>

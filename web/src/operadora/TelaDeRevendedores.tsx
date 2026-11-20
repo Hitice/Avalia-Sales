@@ -111,7 +111,7 @@ export function TelaDeRevendedores() {
                             <AcoesDaLinha nome={r.nome} principal={{ rotulo: 'Editar', aoClicar: () => setEditando(r) }} outras={[
                               ativa && !r.encerramentoPedidoEm && !r.contratoAssinadoEm && { rotulo: 'Contrato assinado', desabilitada: contrato.isPending, aoClicar: () => contrato.mutate(r.id) },
                               !!r.encerradaEm && !!r.reaberturaPedidaEm && { rotulo: 'Aprovar reabertura', desabilitada: reabertura.isPending, aoClicar: () => reabertura.mutate({ id: r.id, aprovar: true }) },
-                              !!r.encerradaEm && !!r.reaberturaPedidaEm && { rotulo: 'Recusar reabertura', destrutiva: true, desabilitada: reabertura.isPending, aoClicar: () => reabertura.mutate({ id: r.id, aprovar: false }) },
+                              !!r.encerradaEm && !!r.reaberturaPedidaEm && { rotulo: 'Recusar reabertura', destrutiva: true, confirmar: 'A conta continua encerrada e o pedido de reabertura é fechado.', desabilitada: reabertura.isPending, aoClicar: () => reabertura.mutate({ id: r.id, aprovar: false }) },
                               ativa && { rotulo: r.doGrupoDaOperadora ? 'Tirar do grupo' : 'Marcar como do grupo', aoClicar: () => { grupo.reset(); setGrupoDe(r) } },
                               ativa && (r.receptoraNoEncerramento || !r.encerramentoPedidoEm) && { rotulo: r.receptoraNoEncerramento ? 'Tirar de receptora' : 'Marcar como receptora', aoClicar: () => { receptora.reset(); setReceptoraDe(r) } },
                               ativa && { rotulo: 'Liberar cadastros', aoClicar: () => setLiberando(r) },

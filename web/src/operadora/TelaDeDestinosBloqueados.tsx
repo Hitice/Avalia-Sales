@@ -64,7 +64,7 @@ export function TelaDeDestinosBloqueados() {
                           <TableCell className="whitespace-normal">{d.motivo}</TableCell>
                           <TableCell>{formatarData(d.criadoEm)}</TableCell>
                           <TableCell>
-                            <AcoesDaLinha nome={d.dominio} principal={{ rotulo: 'Desbloquear', destrutiva: true, desabilitada: desbloquear.isPending, aoClicar: () => desbloquear.mutate(d.id) }} />
+                            <AcoesDaLinha nome={d.dominio} principal={{ rotulo: 'Desbloquear', destrutiva: true, confirmar: 'Placas e links que apontam para o domínio voltam a redirecionar na hora.', desabilitada: desbloquear.isPending, aoClicar: () => desbloquear.mutate(d.id) }} />
                           </TableCell>
                         </TableRow>
                       ))}

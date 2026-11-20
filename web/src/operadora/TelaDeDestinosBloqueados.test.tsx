@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { useSessao } from '@/acesso/sessao'
 import { TelaDeDestinosBloqueados } from './TelaDeDestinosBloqueados'
@@ -45,6 +45,9 @@ describe('TelaDeDestinosBloqueados', () => {
     expect(await screen.findByText('golpe.exemplo.com')).toBeInTheDocument()
     expect(screen.getByText('Phishing')).toBeInTheDocument()
     fireEvent.click(screen.getAllByRole('button', { name: 'Desbloquear' })[0])
+    // Desbloquear volta a redirecionar na hora: pede confirmação antes.
+    expect(envios).toHaveLength(0)
+    fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Desbloquear' }))
     await waitFor(() => expect(envios).toHaveLength(1))
     expect(envios[0]).toMatchObject({ metodo: 'DELETE', url: expect.stringContaining('/operadora/destinos-bloqueados/d1') })
   })

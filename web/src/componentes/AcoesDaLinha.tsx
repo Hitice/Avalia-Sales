@@ -1,10 +1,16 @@
 import { Ellipsis } from 'lucide-react'
+import { useState } from 'react'
 import { Link } from 'react-router'
 import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 
 /** Uma ação da linha: o que fazer (aoClicar), uma tela do app (para) ou um endereço de fora (href, em outra aba). */
-export type Acao = { rotulo: string; aoClicar?: () => void; para?: string; href?: string; desabilitada?: boolean; destrutiva?: boolean }
+export type Acao = {
+  rotulo: string; aoClicar?: () => void; para?: string; href?: string; desabilitada?: boolean; destrutiva?: boolean
+  /** O que não se desfaz pede confirmação: o texto diz o efeito, e o botão do diálogo repete o rótulo. */
+  confirmar?: string
+}
 
 type Props = {
   /** Nome da linha, para o leitor de tela: "Ações de Ju Gomes". */
@@ -15,21 +21,21 @@ type Props = {
   outras?: (Acao | false | null | undefined)[]
 }
 
-function ItemDoMenu({ acao }: { acao: Acao }) {
+function ItemDoMenu({ acao, executar }: { acao: Acao; executar: (acao: Acao) => void }) {
   const variante = acao.destrutiva ? 'destructive' : 'default'
   if (acao.para) return <DropdownMenuItem asChild variant={variante} disabled={acao.desabilitada}><Link to={acao.para}>{acao.rotulo}</Link></DropdownMenuItem>
   if (acao.href) return <DropdownMenuItem asChild variant={variante} disabled={acao.desabilitada}><a href={acao.href} target="_blank" rel="noreferrer noopener">{acao.rotulo}</a></DropdownMenuItem>
-  return <DropdownMenuItem variant={variante} disabled={acao.desabilitada} onSelect={acao.aoClicar}>{acao.rotulo}</DropdownMenuItem>
+  return <DropdownMenuItem variant={variante} disabled={acao.desabilitada} onSelect={() => executar(acao)}>{acao.rotulo}</DropdownMenuItem>
 }
 
 /** Botão da ação: no cartão do celular, do tamanho normal; na linha do computador, `sm`. A destrutiva fica discreta, em vermelho. */
-function BotaoDaAcao({ acao, compacto = false }: { acao: Acao; compacto?: boolean }) {
+function BotaoDaAcao({ acao, executar, compacto = false }: { acao: Acao; executar: (acao: Acao) => void; compacto?: boolean }) {
   const variant = acao.destrutiva ? 'ghost' : 'outline'
   const size = compacto ? 'sm' : 'default'
   const className = acao.destrutiva ? 'text-destructive' : undefined
   if (acao.para && !acao.desabilitada) return <Button asChild variant={variant} size={size} className={className}><Link to={acao.para}>{acao.rotulo}</Link></Button>
   if (acao.href && !acao.desabilitada) return <Button asChild variant={variant} size={size} className={className}><a href={acao.href} target="_blank" rel="noreferrer noopener">{acao.rotulo}</a></Button>
-  return <Button variant={variant} size={size} className={className} disabled={acao.desabilitada} onClick={acao.aoClicar}>{acao.rotulo}</Button>
+  return <Button variant={variant} size={size} className={className} disabled={acao.desabilitada} onClick={() => executar(acao)}>{acao.rotulo}</Button>
 }
 
 /**
@@ -41,7 +47,9 @@ function BotaoDaAcao({ acao, compacto = false }: { acao: Acao; compacto?: boolea
  */
 export function AcoesDaLinha({ nome, principal, outras = [] }: Props) {
   const resto = outras.filter((a): a is Acao => !!a)
+  const [pedindo, setPedindo] = useState<Acao | null>(null)
   if (!principal && resto.length === 0) return null
+  const executar = (acao: Acao) => (acao.confirmar ? setPedindo(acao) : acao.aoClicar?.())
 
   const menu = (acoes: Acao[]) => (
     <DropdownMenu>
@@ -49,7 +57,7 @@ export function AcoesDaLinha({ nome, principal, outras = [] }: Props) {
         <Button variant="ghost" size="icon" aria-label={`Ações de ${nome}`} title="Ações"><Ellipsis aria-hidden /></Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        {acoes.map((a) => <ItemDoMenu key={a.rotulo} acao={a} />)}
+        {acoes.map((a) => <ItemDoMenu key={a.rotulo} acao={a} executar={executar} />)}
       </DropdownMenuContent>
     </DropdownMenu>
   )
@@ -60,14 +68,26 @@ export function AcoesDaLinha({ nome, principal, outras = [] }: Props) {
     <>
       {/* div no celular: o CSS do cartão faz dele a fileira de botões de mesma largura. */}
       <div className="flex flex-wrap items-center justify-end gap-2 md:hidden">
-        <BotaoDaAcao acao={primeira} />
-        {demais.length === 1 ? <BotaoDaAcao acao={demais[0]} /> : demais.length > 1 && menu(demais)}
+        <BotaoDaAcao acao={primeira} executar={executar} />
+        {demais.length === 1 ? <BotaoDaAcao acao={demais[0]} executar={executar} /> : demais.length > 1 && menu(demais)}
       </div>
       {/* Linha sem "⋯" guarda a vaga dele, e o botão fica na coluna dos outros; tabela sem nenhum "⋯" solta a vaga (index.css). */}
       <span className="flex items-center justify-end gap-1 max-md:hidden" data-com-menu={demais.length > 0 || undefined}>
-        <BotaoDaAcao acao={primeira} compacto />
+        <BotaoDaAcao acao={primeira} executar={executar} compacto />
         {demais.length > 0 ? menu(demais) : <span aria-hidden data-vaga-do-menu className="size-9 shrink-0" />}
       </span>
+      <Dialog open={!!pedindo} onOpenChange={(aberto) => !aberto && setPedindo(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{pedindo?.rotulo} - {nome}</DialogTitle>
+            <DialogDescription>{pedindo?.confirmar}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setPedindo(null)}>Voltar</Button>
+            <Button variant={pedindo?.destrutiva ? 'destructive' : 'default'} onClick={() => { pedindo?.aoClicar?.(); setPedindo(null) }}>{pedindo?.rotulo}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

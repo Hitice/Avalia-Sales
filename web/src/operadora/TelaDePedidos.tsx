@@ -90,7 +90,7 @@ export function TelaDePedidos() {
                               }
                               outras={[
                                 pedido.situacao === 'Pago' && { rotulo: 'Iniciar produção', desabilitada: producao.isPending, aoClicar: () => producao.mutate(pedido.id) },
-                                pedido.situacao === 'AguardandoPagamento' && { rotulo: 'Cancelar pedido', destrutiva: true, desabilitada: cancelar.isPending, aoClicar: () => cancelar.mutate(pedido.id) },
+                                pedido.situacao === 'AguardandoPagamento' && { rotulo: 'Cancelar pedido', destrutiva: true, confirmar: 'O pedido não pode ser pago depois. A revenda precisa fazer outro.', desabilitada: cancelar.isPending, aoClicar: () => cancelar.mutate(pedido.id) },
                                 aDespachar && { rotulo: 'Estornar pedido', destrutiva: true, aoClicar: () => { estornar.reset(); setEstornando(pedido) } },
                               ]}
                             />

@@ -14,8 +14,9 @@ import { Field, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { DialogoDaDevolucao } from './DialogoDaDevolucao'
 import { ModalDaVendaDigital } from './ModalDaVendaDigital'
-import { baixarImpressao, type FormatoDaImpressao, useArquivarLote, useDescreverLote, useExcluirLote, useGerarLote, useLotes } from './consultas'
+import { baixarImpressao, type FormatoDaImpressao, useArquivarLote, useDescreverLote, useDevolverLoteDigital, useExcluirLote, useGerarLote, useLotes } from './consultas'
 
 const CATEGORIAS = Object.keys(ROTULO_DA_CATEGORIA) as CategoriaDoLote[]
 
@@ -23,9 +24,13 @@ type DownloadDeImpressao = { lote: Lote; formato: FormatoDaImpressao }
 
 const caminhoAbsoluto = (caminho: string) => caminho.startsWith('/') || /^[A-Za-z]:[\\/]/.test(caminho) || caminho.startsWith('\\\\')
 
-/** Só o lote livre, com código de ativação, de placa de avaliação ou de cardápio. */
+/** Lote de placa ou cardápio, livre ou já no estoque da revenda; não o que está a caminho nem o vendido inteiro no fluxo antigo. */
 const podeVenderNoDigital = (lote: Lote) =>
-  !lote.revendedor && !lote.arquivadoEm && (lote.categoria === 'Placa' || lote.categoria === 'Cardapio')
+  !lote.arquivadoEm && (lote.categoria === 'Placa' || lote.categoria === 'Cardapio')
+  && (!lote.revendedor || !!lote.ativadoEm) && !(lote.vendidoNoDigitalEm && lote.codigoDeAtivacao)
+
+/** Lote vendido inteiro no fluxo antigo, com o código do lote ainda valendo. */
+const vendidoInteiroNoDigital = (lote: Lote) => !!lote.vendidoNoDigitalEm && !!lote.codigoDeAtivacao
 
 /**
  * A tiragem das placas: gerar o lote (ou um avulso, de crachá, cardápio...) e
@@ -42,6 +47,8 @@ export function TelaDeLotes() {
   const excluir = useExcluirLote()
   const [editando, setEditando] = useState<Lote | null>(null)
   const [vendendo, setVendendo] = useState<Lote | null>(null)
+  const [devolvendo, setDevolvendo] = useState<Lote | null>(null)
+  const devolver = useDevolverLoteDigital()
   const [quantidade, setQuantidade] = useState('20')
   const [titulo, setTitulo] = useState('')
   const [categoria, setCategoria] = useState<CategoriaDoLote>('Placa')
@@ -121,15 +128,16 @@ export function TelaDeLotes() {
                           </TableCell>
                           <TableCell>{lote.quantidade}</TableCell>
                           <TableCell>{formatarDataHora(lote.criadoEm)}</TableCell>
-                          <TableCell className="min-w-32 whitespace-normal">{lote.revendedor ?? 'Livre'}</TableCell>
+                          <TableCell className="min-w-32 whitespace-normal">{lote.revendedor ?? (lote.noDigital ? `Livre, ${lote.noDigital} no digital` : 'Livre')}</TableCell>
                           <TableCell>
                             <AcoesDaLinha nome={lote.rotulo} principal={{ rotulo: 'Baixar impressão', aoClicar: () => baixar(lote) }} outras={[
                               { rotulo: 'Só SVG', aoClicar: () => baixar(lote, 'Svg') },
                               { rotulo: 'Só PNG', aoClicar: () => baixar(lote, 'Png') },
                               { rotulo: 'Editar', aoClicar: () => editar(lote) },
                               podeVenderNoDigital(lote) && { rotulo: 'Venda digital', aoClicar: () => setVendendo(lote) },
+                              vendidoInteiroNoDigital(lote) && { rotulo: 'Devolução digital', destrutiva: true, aoClicar: () => setDevolvendo(lote) },
                               !lote.revendedor && { rotulo: lote.arquivadoEm ? 'Desarquivar' : 'Arquivar', aoClicar: () => arquivar.mutate({ id: lote.id, arquivado: !lote.arquivadoEm }) },
-                              lote.podeExcluir && { rotulo: 'Excluir', destrutiva: true, aoClicar: () => excluir.mutate(lote.id) },
+                              lote.podeExcluir && { rotulo: 'Excluir', destrutiva: true, confirmar: 'O lote some e os códigos dele ficam reservados, sem voltar ao sorteio.', aoClicar: () => excluir.mutate(lote.id) },
                             ]} />
                           </TableCell>
                         </TableRow>
@@ -143,6 +151,7 @@ export function TelaDeLotes() {
         </Card>
       </div>
       <ModalDaVendaDigital lote={vendendo} aoFechar={() => setVendendo(null)} />
+      <DialogoDaDevolucao alvo={devolvendo?.id ?? null} titulo={`Devolução do ${devolvendo?.rotulo ?? ''}`} devolver={devolver} aoFechar={() => setDevolvendo(null)} />
       {download && (
         <Dialog open onOpenChange={(aberto) => !aberto && setDownload(null)}>
           <DialogContent>

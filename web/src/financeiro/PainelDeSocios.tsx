@@ -173,7 +173,7 @@ export function PainelDeSocios({ competencia }: { competencia: string | undefine
                       <TableCell>{formatarCentavos(r.valorCents)}</TableCell>
                       <TableCell>
                         <AcoesDaLinha nome={`retirada de ${r.socio}`} principal={{ rotulo: 'Editar', aoClicar: () => setRetirada(r) }}
-                          outras={[{ rotulo: 'Excluir', destrutiva: true, desabilitada: excluirRetirada.isPending, aoClicar: () => excluirRetirada.mutate(r.id) }]} />
+                          outras={[{ rotulo: 'Excluir', destrutiva: true, confirmar: 'A retirada sai do razão e do caixa.', desabilitada: excluirRetirada.isPending, aoClicar: () => excluirRetirada.mutate(r.id) }]} />
                       </TableCell>
                     </TableRow>
                   ))}

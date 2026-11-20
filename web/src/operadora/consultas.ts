@@ -112,6 +112,8 @@ export const useVendasDigitais = (loteId: string | null) => useQuery({
   enabled: !!loteId,
 })
 export const useCancelarVendaDigital = () => useGravar((grupoId: string) => chamarApi(`/operadora/grupos-de-ativacao/${grupoId}/cancelamento`, enviarJson('POST', {})))
+/** A devolução do lote vendido inteiro no fluxo antigo, pelo código do lote. */
+export const useDevolverLoteDigital = () => useGravar((loteId: string) => chamarApi(`/operadora/lotes/${loteId}/devolucao-digital`, enviarJson('POST', {})))
 export const useVenderNoDigital = () => useGravar(({ id, ...venda }: { id: string; revendedorId: string; valorCents: number; canal: CanalDigital; codigosDasPlacas: string[]; pedidoNoCanal: string | null }) =>
   chamarApi<VendaDigitalParcial>(`/operadora/lotes/${id}/venda-digital`, enviarJson('POST', venda)))
 /** As revendas que recebem a venda digital: ativas e sem encerramento; a do grupo da operadora vem primeiro. */

@@ -177,7 +177,7 @@ export function TelaDeComissoes() {
                           <TableCell><Badge variant={r.desfeitoEm ? 'neutro' : 'sucesso'}>{r.desfeitoEm ? 'Desfeito' : 'Pago'}</Badge></TableCell>
                           <TableCell>
                             <AcoesDaLinha nome={`repasse de ${r.vendedor}`} outras={[
-                              r.podeDesfazer && { rotulo: 'Desfazer', destrutiva: true, desabilitada: desfazer.isPending, aoClicar: () => desfazer.mutate(r.id) },
+                              r.podeDesfazer && { rotulo: 'Desfazer', destrutiva: true, confirmar: 'A comissão volta a ser devida ao vendedor e o repasse sai do razão.', desabilitada: desfazer.isPending, aoClicar: () => desfazer.mutate(r.id) },
                             ]} />
                           </TableCell>
                         </TableRow>

@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { paraCentavos } from '@/dinheiro/dinheiro'
+import { DialogoDaDevolucao } from './DialogoDaDevolucao'
 import { useCancelarVendaDigital, useRevendasDaVendaDigital, useVendasDigitais, useVenderNoDigital, type VendaDigitalParcial } from './consultas'
 
 const CANAIS = Object.keys(ROTULO_DO_CANAL) as CanalDigital[]
@@ -33,6 +34,7 @@ export function ModalDaVendaDigital({ lote, aoFechar }: { lote: Lote | null; aoF
   const [pedido, setPedido] = useState('')
   const [codigos, setCodigos] = useState('')
   const [vendido, setVendido] = useState<{ codigoDeAtivacao: string; quantidade: number; lote: string } | null>(null)
+  const [devolvendo, setDevolvendo] = useState<string | null>(null)
   const escolhida = revendedorId ?? revendas.data?.[0]?.id ?? null
   const centavos = paraCentavos(valor)
   const codigosDasPlacas = codigos.split(/[\s,;]+/).map((c) => c.trim().toUpperCase()).filter(Boolean)
@@ -55,7 +57,7 @@ export function ModalDaVendaDigital({ lote, aoFechar }: { lote: Lote | null; aoF
   return (
     <Dialog open={!!lote} onOpenChange={(aberto) => !aberto && fechar()}>
       <DialogContent>
-        <DialogHeader><DialogTitle>{vendido ? `Lote ${vendido.lote} lançado` : `Venda digital do ${lote?.rotulo ?? ''}`}</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{vendido ? `Pedido do ${vendido.lote} lançado` : `Venda digital do ${lote?.rotulo ?? ''}`}</DialogTitle></DialogHeader>
         {vendido && codigo ? (
           <div className="grid gap-4">
             <p className="text-sm">{vendido.quantidade} placas do {vendido.lote}. Mande o código junto com elas:</p>
@@ -97,22 +99,23 @@ export function ModalDaVendaDigital({ lote, aoFechar }: { lote: Lote | null; aoF
             </Field>
             <div className="grid gap-2 border-t pt-4">
               <p className="text-sm font-medium">Pedidos separados</p>
+              {vendasDigitais.data?.length === 0 && <p className="text-sm text-muted-foreground">Nenhum pedido deste lote.</p>}
               {vendasDigitais.data?.map((grupo) => (
                 <div key={grupo.grupoId} className="flex flex-wrap items-center justify-between gap-2">
                   <span className="font-mono text-sm">{grupo.codigoDeAtivacao} · {grupo.quantidade} placas</span>
                   <span className="flex items-center gap-2">
                     <CopiarLink rotulo="Copiar link" endereco={enderecoDaAtivacao(grupo.codigoDeAtivacao)} />
-                    <Button type="button" variant="destructive" size="sm" disabled={cancelar.isPending} onClick={() => cancelar.mutate(grupo.grupoId)}>Cancelar</Button>
+                    <Button type="button" variant="ghost" size="sm" className="text-destructive" onClick={() => setDevolvendo(grupo.grupoId)}>Devolução</Button>
                   </span>
                 </div>
               ))}
-              <Erro erro={cancelar.error ? mensagemDoErro(cancelar.error) : null} />
             </div>
             <Erro erro={vender.error ? mensagemDoErro(vender.error) : null} />
             <Button type="submit" disabled={vender.isPending || !escolhida || !centavos || codigosDasPlacas.length === 0 || new Set(codigosDasPlacas).size !== codigosDasPlacas.length}>{vender.isPending ? 'Lançando...' : 'Lançar venda'}</Button>
           </form>
         )}
       </DialogContent>
+      <DialogoDaDevolucao alvo={devolvendo} titulo="Devolução do pedido digital" devolver={cancelar} aoFechar={() => setDevolvendo(null)} />
     </Dialog>
   )
 }
