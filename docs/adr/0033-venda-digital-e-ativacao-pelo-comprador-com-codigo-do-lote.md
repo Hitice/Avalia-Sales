@@ -1,6 +1,6 @@
 # 0033. Venda digital e ativação pelo comprador com o código do lote
 
-- Situação - Aceita
+- Situação - Substituída pela 0034
 - Data - 17/11/2026
 
 ## Contexto

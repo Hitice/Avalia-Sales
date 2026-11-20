@@ -155,7 +155,7 @@ maiúscula ("otica" acha "Ótica").
 | Tela | O que faz |
 | --- | --- |
 | Pedidos | Fila de pedidos de placas - pedido avulso aberto pela operadora, produção, despacho do lote pelo envio (com transportadora e código de rastreio) ou para retirada, e estorno do pedido pago ainda não despachado |
-| Lotes | Geração e impressão de lotes com título e categoria, exclusão antes do primeiro download e arquivamento. Cada lote mostra o código de ativação; Venda digital lança o lote vendido no Mercado Livre, TikTok Shop ou Shopee (seção 6.5) |
+| Lotes | Geração e impressão de lotes com título e categoria, exclusão antes do primeiro download e arquivamento. Venda digital separa os códigos do pedido, registra a receita e gera um acesso de ativação por grupo (seção 6.5) |
 | Pacotes e Cupons | Cadastro dos pacotes de placas e dos cupons |
 | Catálogo da Avalia | Cadastrar e editar produto, foto com recorte, preço sugerido, desconto da revenda (e a parte da Avalia que sai dele), pedido mínimo, QR na placa (a placa personalizada), ordem e situação |
 | Serviços | Fila de ordens de serviço - iniciar, entregar, cancelar e reabrir; na placa personalizada, gerar os códigos e baixar o QR antes de entregar |
@@ -413,29 +413,28 @@ confirmar, em Comissões, que ele chegou. Só o
   da data: a placa vale 12 meses da venda e continua no ar por mais 30 dias de
   carência; depois, mostra a página de vencida.
 - Placa sem venda não vai ao ar. Lida, abre a Nova venda com o código.
-- Código de ativação - todo lote nasce com um código de 6 caracteres no
-  alfabeto da placa (sem I, L, O e U; na leitura O vira 0, I e L viram 1),
-  único entre lotes, placas e códigos reservados. Vai com o lote para o
-  comprador. Os lotes gerados antes dele ficam sem código.
-- Venda digital - o lote vendido no Mercado Livre, TikTok Shop ou Shopee tem
-  baixa manual pela operadora em Lotes: a revenda que vendeu (a do grupo da
-  operadora vem escolhida), o valor recebido pelo lote inteiro (o "Você
-  recebe" do canal), o canal e o número do pedido. Só lote livre, de placa ou
-  de cardápio, e com código. As placas entram no estoque da revenda sem custo
-  de pedido, o valor entra no razão dela como receita no dia da baixa, numa
-  linha só, e a ação exige o segundo fator da operadora. A placa desse lote
-  não vende no balcão: o comprador ativa pelo código.
-- Ativação pelo comprador - em `/ativar`, só com o código do lote. Na
+- Venda digital - o lote impresso é estoque de códigos disponíveis e não tem
+  código de ativação próprio. Na baixa manual pela operadora em Lotes, são
+  informados os códigos separados para um pedido, a revenda, o valor total
+  recebido por esse grupo, o canal e o número do pedido. Cada código pode ser
+  vendido uma vez. As placas selecionadas entram no estoque da revenda sem
+  custo de pedido; o valor total entra como receita numa linha do razão, e a
+  ação exige o segundo fator da operadora. O grupo recebe um código de acesso
+  único de 6 caracteres e o link direto `/ativar?codigo=...`.
+- Ativação pelo comprador - em `/ativar`, só com o código do grupo. Na
   avaliação, cada placa recebe a avaliação no Google do estabelecimento; no
-  lote de placa única, o código da placa não é pedido. No cardápio, um link
-  só ativa todas as placas do lote. A ativação cria o cliente pelo telefone
+  grupo de uma placa, o código da placa não é pedido. No cardápio, um link
+  ativa todas as placas daquele grupo. A ativação cria o cliente pelo telefone
   (a empresa é também o responsável) e uma venda por placa no nome do dono da
-  revenda, sem comissão, com a parte da placa no valor do lote, sem lançar
+  revenda, sem comissão, com a parte da placa no valor do grupo, sem lançar
   dinheiro de novo; a placa vale 12 meses da ativação e renova como as outras.
-  A venda digital não se cobra, não se cancela nem vira cortesia. Placa já
-  ativada só troca o destino, também só com o código. O limite diário de
+  Placa já ativada só troca o destino, também só com o código. O limite diário de
   destinos não vale para a ativação pelo comprador; os destinos bloqueados e
   o Google Web Risk valem.
+- Devolução digital - a operadora cancela o grupo, revoga o link e estorna a
+  receita no razão. Placas ainda não ativadas voltam ao estoque da mesma
+  revenda. Placas ativadas têm a venda cancelada e o QR encerrado para sempre;
+  não voltam ao estoque e precisam de outro código para uma nova venda.
 - Placa de lote despachado e ainda não ativado - a Nova venda e a ficha dizem
   o lote que falta ativar e que o dono ativa em Estoque. Para outra revenda, o
   código continua não encontrado.
@@ -968,8 +967,9 @@ As mudanças de 21 a 24/10/2026 estão em [historico/pdd-ate-24-10.md](historico
 
 | Data | Mudança |
 | --- | --- |
+| 19/11/2026 | Venda digital parcial - lotes são estoque de códigos; a operadora informa as placas do pedido, registra o valor do grupo e o sistema gera código/link de ativação por grupo. Devolução revoga o acesso e estorna a receita; placas não ativadas voltam ao estoque da mesma revenda, placas ativadas são canceladas e encerradas para sempre. |
 | 18/11/2026 | Impressão do lote - o download pede a pasta de destino no computador e o CSV `codigo,photo` aponta cada imagem pelo caminho absoluto, com a pasta do lote uma única vez. |
-| 17/11/2026 | Venda digital e ativação pelo comprador - todo lote novo nasce com código de ativação; a operadora lança o lote vendido no Mercado Livre, TikTok Shop ou Shopee (revenda, valor recebido, canal e pedido), que entra no estoque e no razão da revenda; o comprador ativa em `/ativar` só com o código: placa de avaliação pelo Google, cardápio com um link para todas, troca de destino da placa já ativada, cópia do endereço e gravação e conferência do NFC. |
+| 17/11/2026 | Venda digital e ativação pelo comprador - decisão substituída pela 0034: antes, todo lote novo nascia com código e a baixa vendia o lote inteiro. |
 | 13/11/2026 | Venda em demonstração que o cliente decide pagar - "Gerar cobrança" na lista abre a venda já com o Pix para copiar ou mandar pelo WhatsApp. Detalhe da venda - mostra o link curto que a venda criou (copiar, mandar pelo WhatsApp, trocar o destino pela ficha da placa; editar o link só o revendedor). |
 | 11/11/2026 | Exportar em CSV - Vendas, Despesas (revenda e operadora), Retiradas, Lançamentos e Repasses ganham o botão Exportar: grava todas as páginas com a busca e os filtros da tela (até 10.000 linhas), separado por ponto e vírgula, com valor em reais com vírgula, para abrir direto no Excel. |
 | 11/11/2026 | Financeiro - o Histórico começa no primeiro mês com movimento; com menos de três meses, mostra cada mês com recebido e resultado em valor e barra proporcional, e as barras lado a lado a partir do terceiro. |
