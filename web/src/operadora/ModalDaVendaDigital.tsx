@@ -8,9 +8,10 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Field, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { paraCentavos } from '@/dinheiro/dinheiro'
-import { useRevendasDaVendaDigital, useVenderNoDigital } from './consultas'
+import { useCancelarVendaDigital, useRevendasDaVendaDigital, useVendasDigitais, useVenderNoDigital, type VendaDigitalParcial } from './consultas'
 
 const CANAIS = Object.keys(ROTULO_DO_CANAL) as CanalDigital[]
 
@@ -24,41 +25,50 @@ const enderecoDaAtivacao = (codigo: string) => `${window.location.origin}/ativar
 export function ModalDaVendaDigital({ lote, aoFechar }: { lote: Lote | null; aoFechar: () => void }) {
   const revendas = useRevendasDaVendaDigital()
   const vender = useVenderNoDigital()
+  const cancelar = useCancelarVendaDigital()
+  const vendasDigitais = useVendasDigitais(lote?.id ?? null)
   const [revendedorId, setRevendedorId] = useState<string | null>(null)
   const [valor, setValor] = useState('')
   const [canal, setCanal] = useState<CanalDigital>('MercadoLivre')
   const [pedido, setPedido] = useState('')
-  const [vendido, setVendido] = useState<Lote | null>(null)
+  const [codigos, setCodigos] = useState('')
+  const [vendido, setVendido] = useState<{ codigoDeAtivacao: string; quantidade: number; lote: string } | null>(null)
   const escolhida = revendedorId ?? revendas.data?.[0]?.id ?? null
   const centavos = paraCentavos(valor)
+  const codigosDasPlacas = codigos.split(/[\s,;]+/).map((c) => c.trim().toUpperCase()).filter(Boolean)
 
   function fechar() {
     setVendido(null)
     setValor('')
     setPedido('')
+    setCodigos('')
     vender.reset()
     aoFechar()
   }
 
   function lancar() {
-    if (!lote || !escolhida || !centavos) return
-    vender.mutate({ id: lote.id, revendedorId: escolhida, valorCents: centavos, canal, pedidoNoCanal: pedido.trim() || null }, { onSuccess: (feito) => setVendido(feito as Lote) })
+    if (!lote || !escolhida || !centavos || codigosDasPlacas.length === 0) return
+    vender.mutate({ id: lote.id, revendedorId: escolhida, valorCents: centavos, canal, codigosDasPlacas, pedidoNoCanal: pedido.trim() || null }, { onSuccess: (feito) => setVendido(feito as VendaDigitalParcial) })
   }
 
-  const codigo = vendido?.codigoDeAtivacao ?? lote?.codigoDeAtivacao
+  const codigo = vendido?.codigoDeAtivacao
   return (
     <Dialog open={!!lote} onOpenChange={(aberto) => !aberto && fechar()}>
       <DialogContent>
-        <DialogHeader><DialogTitle>{vendido ? `Lote ${vendido.rotulo} lançado` : `Venda digital do ${lote?.rotulo ?? ''}`}</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{vendido ? `Lote ${vendido.lote} lançado` : `Venda digital do ${lote?.rotulo ?? ''}`}</DialogTitle></DialogHeader>
         {vendido && codigo ? (
           <div className="grid gap-4">
-            <p className="text-sm">Mande ao comprador junto com as placas:</p>
+            <p className="text-sm">{vendido.quantidade} placas do {vendido.lote}. Mande o código junto com elas:</p>
             <p className="text-center font-mono text-3xl font-semibold tracking-widest">{codigo}</p>
             <CopiarLink rotulo="Endereço da ativação" endereco={enderecoDaAtivacao(codigo)} />
             <Button onClick={fechar}>Fechar</Button>
           </div>
         ) : (
           <form className="grid gap-4" onSubmit={(e) => { e.preventDefault(); lancar() }}>
+            <Field>
+              <FieldLabel htmlFor="codigos-digital">Códigos das placas</FieldLabel>
+              <Textarea id="codigos-digital" value={codigos} onChange={(e) => setCodigos(e.target.value)} placeholder="WGQZ80, ABC123" aria-invalid={codigos !== '' && new Set(codigosDasPlacas).size !== codigosDasPlacas.length} />
+            </Field>
             <Field>
               <FieldLabel htmlFor="revenda-digital">Revenda</FieldLabel>
               <Select value={escolhida ?? undefined} onValueChange={setRevendedorId}>
@@ -69,7 +79,7 @@ export function ModalDaVendaDigital({ lote, aoFechar }: { lote: Lote | null; aoF
               </Select>
             </Field>
             <Field>
-              <FieldLabel htmlFor="valor-digital">Valor recebido</FieldLabel>
+              <FieldLabel htmlFor="valor-digital">Valor recebido pelo grupo</FieldLabel>
               <Input id="valor-digital" inputMode="decimal" placeholder="R$ 0,00" value={valor} onChange={(e) => setValor(e.target.value)} aria-invalid={!!valor && !centavos} />
             </Field>
             <Field>
@@ -85,8 +95,21 @@ export function ModalDaVendaDigital({ lote, aoFechar }: { lote: Lote | null; aoF
               <FieldLabel htmlFor="pedido-digital">Pedido no canal</FieldLabel>
               <Input id="pedido-digital" maxLength={60} value={pedido} onChange={(e) => setPedido(e.target.value)} />
             </Field>
+            <div className="grid gap-2 border-t pt-4">
+              <p className="text-sm font-medium">Pedidos separados</p>
+              {vendasDigitais.data?.map((grupo) => (
+                <div key={grupo.grupoId} className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="font-mono text-sm">{grupo.codigoDeAtivacao} · {grupo.quantidade} placas</span>
+                  <span className="flex items-center gap-2">
+                    <CopiarLink rotulo="Copiar link" endereco={enderecoDaAtivacao(grupo.codigoDeAtivacao)} />
+                    <Button type="button" variant="destructive" size="sm" disabled={cancelar.isPending} onClick={() => cancelar.mutate(grupo.grupoId)}>Cancelar</Button>
+                  </span>
+                </div>
+              ))}
+              <Erro erro={cancelar.error ? mensagemDoErro(cancelar.error) : null} />
+            </div>
             <Erro erro={vender.error ? mensagemDoErro(vender.error) : null} />
-            <Button type="submit" disabled={vender.isPending || !escolhida || !centavos}>{vender.isPending ? 'Lançando...' : 'Lançar venda'}</Button>
+            <Button type="submit" disabled={vender.isPending || !escolhida || !centavos || codigosDasPlacas.length === 0 || new Set(codigosDasPlacas).size !== codigosDasPlacas.length}>{vender.isPending ? 'Lançando...' : 'Lançar venda'}</Button>
           </form>
         )}
       </DialogContent>

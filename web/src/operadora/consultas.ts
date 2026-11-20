@@ -104,8 +104,16 @@ export const useFilaDoErp = (filtros: { situacao?: EnvioAoErp['situacao']; mes?:
   useListaPaginada<EnvioAoErp>(['operadora', 'erp'], '/operadora/erp', { filtros })
 export const useReenviarAoErp = () => useGravar((pedidoId: string) => chamarApi(`/operadora/erp/${pedidoId}/reenvio`, enviarJson('POST', {})))
 /** A baixa manual da venda digital: o lote vai à revenda escolhida, e o comprador ativa pelo código do lote. */
-export const useVenderNoDigital = () => useGravar(({ id, ...venda }: { id: string; revendedorId: string; valorCents: number; canal: CanalDigital; pedidoNoCanal: string | null }) =>
-  chamarApi<Lote>(`/operadora/lotes/${id}/venda-digital`, enviarJson('POST', venda)))
+export type VendaDigitalParcial = { grupoId: string; lote: string; quantidade: number; codigoDeAtivacao: string }
+export type VendaDigitalDoLote = { grupoId: string; codigoDeAtivacao: string; quantidade: number }
+export const useVendasDigitais = (loteId: string | null) => useQuery({
+  queryKey: [...chaves.lotes, loteId, 'vendas-digitais'],
+  queryFn: () => chamarApi<VendaDigitalDoLote[]>(`/operadora/lotes/${loteId}/vendas-digitais`),
+  enabled: !!loteId,
+})
+export const useCancelarVendaDigital = () => useGravar((grupoId: string) => chamarApi(`/operadora/grupos-de-ativacao/${grupoId}/cancelamento`, enviarJson('POST', {})))
+export const useVenderNoDigital = () => useGravar(({ id, ...venda }: { id: string; revendedorId: string; valorCents: number; canal: CanalDigital; codigosDasPlacas: string[]; pedidoNoCanal: string | null }) =>
+  chamarApi<VendaDigitalParcial>(`/operadora/lotes/${id}/venda-digital`, enviarJson('POST', venda)))
 /** As revendas que recebem a venda digital: ativas e sem encerramento; a do grupo da operadora vem primeiro. */
 export const useRevendasDaVendaDigital = () =>
   useQuery({ ...todasAsRevendas, select: (revendas) => revendas.filter((r) => !r.encerradaEm && !r.encerramentoPedidoEm && !r.suspensaEm)
